@@ -19,7 +19,10 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "navigationBarColor": "#ffffff",
+      "softwareKeyboardLayoutMode": "pan",
+      "navigationBarHidden": false
     },
     "web": {
       "favicon": "./assets/favicon.png"
