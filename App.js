@@ -39,7 +39,8 @@ export default function App() {
                   title: 'Coffee Details',
                   headerBackTitle: 'Back',
                   headerRight: () => {
-                    const { isFavorite, handleToggleFavorite } = route.params || {};
+                    const { isFavorite, handleToggleFavorite, isInCollection } = route.params || {};
+                    if (!isInCollection) return null;
                     return (
                       <TouchableOpacity 
                         onPress={handleToggleFavorite}

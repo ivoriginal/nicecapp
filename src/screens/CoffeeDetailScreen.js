@@ -120,9 +120,10 @@ export default function CoffeeDetailScreen() {
   useEffect(() => {
     navigation.setParams({
       isFavorite,
-      handleToggleFavorite
+      handleToggleFavorite,
+      isInCollection
     });
-  }, [isFavorite, navigation]);
+  }, [isFavorite, isInCollection, navigation]);
 
   const navigateToRecipeDetail = (recipeId) => {
     navigation.navigate('RecipeDetail', { recipeId, skipAuth: true });
@@ -333,7 +334,7 @@ export default function CoffeeDetailScreen() {
                 onPress={handleAddToWishlist}
               >
                 <Ionicons 
-                  name={isInWishlist ? "heart" : "heart-outline"} 
+                  name={isInWishlist ? "bookmark" : "bookmark-outline"} 
                   size={20} 
                   color={isInWishlist ? "#FFFFFF" : "#000000"} 
                 />
