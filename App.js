@@ -5,6 +5,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StyleSheet, TouchableOpacity } from 'react-native';
 import BottomTabNavigator from './src/navigation/BottomTabNavigator';
 import CoffeeDetailScreen from './src/screens/CoffeeDetailScreen';
+import RecipeDetailScreen from './src/screens/RecipeDetailScreen';
 import UserProfileScreen from './src/screens/UserProfileScreen';
 import UserProfileBridge from './src/screens/UserProfileBridge';
 import { CoffeeProvider } from './src/context/CoffeeContext';
@@ -54,6 +55,14 @@ export default function App() {
                       </TouchableOpacity>
                     );
                   }
+                })} 
+              />
+              <Stack.Screen 
+                name="RecipeDetail" 
+                component={RecipeDetailScreen} 
+                options={({ route }) => ({ 
+                  title: route.params?.recipeName || 'Recipe Details',
+                  headerBackTitle: 'Back',
                 })} 
               />
               <Stack.Screen 

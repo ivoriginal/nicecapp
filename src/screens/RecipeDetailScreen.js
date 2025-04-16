@@ -19,10 +19,17 @@ import mockData from '../data/mockData.json';
 import { useNavigation, useRoute } from '@react-navigation/native';
 
 export default function RecipeDetailScreen() {
-  const { coffeeCollection, addToCollection, removeFromCollection } = useCoffee();
+  const { 
+    coffeeCollection, 
+    addToCollection, 
+    removeFromCollection,
+    recipes,
+    coffeeEvents
+  } = useCoffee();
+  
   const navigation = useNavigation();
   const route = useRoute();
-  const { recipe } = route.params;
+  const { recipeId, coffeeId, coffeeName, skipAuth } = route.params;
   const { 
     coffeeWishlist, 
     favorites, 
@@ -32,7 +39,10 @@ export default function RecipeDetailScreen() {
     setCoffeeWishlist,
     toggleFavorite
   } = useCoffee();
+  
   const insets = useSafeAreaInsets();
+  const [recipe, setRecipe] = useState(null);
+  const [coffee, setCoffee] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isInCollection, setIsInCollection] = useState(false);
   const [isInWishlist, setIsInWishlist] = useState(false);
@@ -44,19 +54,107 @@ export default function RecipeDetailScreen() {
   const [removalTimeout, setRemovalTimeout] = useState(null);
 
   useEffect(() => {
-    // Always use mock data for development
-    const fetchRecipe = () => {
-      setLoading(true);
+    const fetchRecipe = async () => {
       try {
-        // Find the recipe in our mock data
-        const foundRecipe = mockData.recipes.find(r => r.id === recipe.id) || mockData.recipes[0];
+        setLoading(true);
+        // Find the recipe in the recipes array
+        const foundRecipe = recipes.find(r => r.id === recipeId);
+        
         if (foundRecipe) {
-          setRecipe(foundRecipe);
+          // Ensure recipe has tips array and prioritize user info from route params
+          const recipeWithTips = {
+            ...foundRecipe,
+            tips: foundRecipe.tips || [
+              'Use filtered water for best results',
+              'Pre-wet the filter paper to remove paper taste',
+              'Keep the water temperature consistent throughout the brew',
+              'Pour in a circular motion for even extraction'
+            ],
+            // Prioritize user information from route params
+            userId: route.params?.userId || foundRecipe.userId,
+            userName: route.params?.userName || foundRecipe.userName,
+            userAvatar: route.params?.userAvatar || foundRecipe.userAvatar
+          };
           
-          // Check if recipe is in collection, wishlist, or favorites
-          setIsInCollection(coffeeCollection.some(c => c.id === recipe.id));
-          setIsInWishlist(coffeeWishlist.some(c => c.id === recipe.id));
-          setIsFavorite(favorites.includes(foundRecipe.name));
+          setRecipe(recipeWithTips);
+          
+          // If coffee info was passed as params, use it
+          if (coffeeId && coffeeName) {
+            setCoffee({
+              id: coffeeId,
+              name: coffeeName,
+              roaster: route.params?.roaster || 'Coffee Roaster',
+              image: route.params?.imageUrl || 'https://images.unsplash.com/photo-1447933601403-0c6688de566e'
+            });
+          } else {
+            // Try to find coffee info from the recipe
+            const coffee = coffeeCollection.find(c => c.id === foundRecipe.coffeeId) ||
+                          coffeeWishlist.find(c => c.id === foundRecipe.coffeeId);
+            if (coffee) {
+              setCoffee(coffee);
+            }
+          }
+        } else {
+          // Check if we can create a recipe from an event
+          const event = coffeeEvents.find(e => e.id === recipeId);
+          if (event) {
+            const recipeFromEvent = {
+              id: event.id,
+              name: `${event.coffeeName} ${event.method}`,
+              method: event.method,
+              amount: event.amount,
+              grindSize: event.grindSize,
+              waterVolume: event.waterVolume,
+              brewTime: event.brewTime,
+              notes: event.notes,
+              // Prioritize user information from route params
+              userId: route.params?.userId || event.userId,
+              userName: route.params?.userName || event.userName,
+              userAvatar: route.params?.userAvatar || event.userAvatar,
+              tips: [
+                'Use filtered water for best results',
+                'Pre-wet the filter paper to remove paper taste',
+                'Keep the water temperature consistent throughout the brew',
+                'Pour in a circular motion for even extraction'
+              ]
+            };
+            setRecipe(recipeFromEvent);
+            setCoffee({
+              id: event.coffeeId,
+              name: event.coffeeName,
+              roaster: event.roaster,
+              image: event.image
+            });
+          } else {
+            // Fallback to mock data if recipe not found
+            const mockRecipe = {
+              id: recipeId,
+              name: 'Ethiopian Yirgacheffe V60',
+              method: 'Pour Over',
+              amount: 18,
+              grindSize: 'Medium',
+              waterVolume: 300,
+              brewTime: '3:30',
+              notes: 'Bright and clean cup with floral notes',
+              // Prioritize user information from route params
+              userId: route.params?.userId || 'user1',
+              userName: route.params?.userName || 'Coffee Lover',
+              userAvatar: route.params?.userAvatar || 'https://randomuser.me/api/portraits/men/1.jpg',
+              tips: [
+                'Use filtered water for best results',
+                'Pre-wet the filter paper to remove paper taste',
+                'Keep the water temperature consistent throughout the brew',
+                'Pour in a circular motion for even extraction'
+              ]
+            };
+            setRecipe(mockRecipe);
+            setCoffee({
+              id: 'coffee1',
+              name: 'Ethiopian Yirgacheffe',
+              roaster: 'Coffee Roaster',
+              image: 'https://images.unsplash.com/photo-1447933601403-0c6688de566e'
+            });
+          }
         }
       } catch (error) {
         console.error('Error fetching recipe:', error);
@@ -66,10 +164,33 @@ export default function RecipeDetailScreen() {
     };
 
     fetchRecipe();
-  }, [recipe.id, coffeeCollection, coffeeWishlist, favorites]);
+  }, [recipeId, coffeeCollection, coffeeWishlist, favorites, recipes, coffeeEvents, coffeeId, coffeeName, route.params]);
 
   const navigateToUserProfile = (userId) => {
     navigation.navigate('Profile', { userId, skipAuth: true });
+  };
+
+  const navigateToCoffeeDetail = () => {
+    if (coffee) {
+      // Get all recipes for this coffee
+      const coffeeRecipes = recipes.filter(r => r.coffeeId === coffee.id);
+      
+      // Check if coffee is in collection or wishlist
+      const isInCollection = coffeeCollection.some(c => c.id === coffee.id);
+      const isInWishlist = coffeeWishlist.some(c => c.id === coffee.id);
+      
+      navigation.navigate('CoffeeDetail', { 
+        coffeeId: coffee.id,
+        skipAuth: true,
+        // Pass all coffee information
+        coffee: {
+          ...coffee,
+          isInCollection,
+          isInWishlist,
+          recipes: coffeeRecipes
+        }
+      });
+    }
   };
 
   const navigateToCollection = () => {
@@ -247,6 +368,33 @@ export default function RecipeDetailScreen() {
           </View>
         </TouchableOpacity>
 
+        {/* Associated Coffee */}
+        {coffee && (
+          <TouchableOpacity 
+            style={styles.coffeeContainer}
+            onPress={navigateToCoffeeDetail}
+          >
+            <View style={styles.coffeeHeader}>
+              <Text style={styles.coffeeTitle}>Coffee</Text>
+              <Ionicons name="chevron-forward" size={20} color="#666666" />
+            </View>
+            <View style={styles.coffeeInfo}>
+              {coffee.image && (
+                <Image 
+                  source={{ uri: coffee.image }} 
+                  style={styles.coffeeImage} 
+                />
+              )}
+              <View style={styles.coffeeDetails}>
+                <Text style={styles.coffeeName}>{coffee.name}</Text>
+                {coffee.roaster && (
+                  <Text style={styles.coffeeRoaster}>{coffee.roaster}</Text>
+                )}
+              </View>
+            </View>
+          </TouchableOpacity>
+        )}
+
         {/* Recipe Details */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Recipe Details</Text>
@@ -273,12 +421,15 @@ export default function RecipeDetailScreen() {
         {/* Brewing Steps */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Brewing Steps</Text>
-          {recipe.steps.map((step, index) => (
+          {recipe.steps && recipe.steps.map((step, index) => (
             <View key={index} style={styles.stepItem}>
               <View style={styles.stepNumber}>
                 <Text style={styles.stepNumberText}>{index + 1}</Text>
               </View>
-              <Text style={styles.stepText}>{step}</Text>
+              <Text style={styles.stepText}>{step.action}</Text>
+              {step.time && (
+                <Text style={styles.stepTime}>{step.time}</Text>
+              )}
             </View>
           ))}
         </View>
@@ -286,12 +437,15 @@ export default function RecipeDetailScreen() {
         {/* Tips */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Tips</Text>
-          {recipe.tips.map((tip, index) => (
+          {recipe.tips && recipe.tips.map((tip, index) => (
             <View key={index} style={styles.tipItem}>
               <Ionicons name="bulb" size={16} color="#000000" style={styles.tipIcon} />
               <Text style={styles.tipText}>{tip}</Text>
             </View>
           ))}
+          {(!recipe.tips || recipe.tips.length === 0) && (
+            <Text style={styles.emptyText}>No tips available for this recipe.</Text>
+          )}
         </View>
 
         {/* Notes */}
@@ -449,6 +603,11 @@ const styles = StyleSheet.create({
     color: '#333333',
     lineHeight: 24,
   },
+  stepTime: {
+    fontSize: 14,
+    color: '#666666',
+    marginLeft: 12,
+  },
   tipItem: {
     flexDirection: 'row',
     marginBottom: 12,
@@ -468,5 +627,51 @@ const styles = StyleSheet.create({
     color: '#333333',
     lineHeight: 24,
     fontStyle: 'italic',
+  },
+  coffeeContainer: {
+    backgroundColor: '#F8F8F8',
+    borderRadius: 12,
+    padding: 16,
+    marginHorizontal: 16,
+    marginTop: 16,
+  },
+  coffeeHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  coffeeTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000000',
+  },
+  coffeeInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  coffeeImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    marginRight: 12,
+  },
+  coffeeDetails: {
+    flex: 1,
+  },
+  coffeeName: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#000000',
+    marginBottom: 4,
+  },
+  coffeeRoaster: {
+    fontSize: 14,
+    color: '#666666',
+  },
+  emptyText: {
+    fontSize: 14,
+    color: '#666666',
+    textAlign: 'center',
   },
 }); 

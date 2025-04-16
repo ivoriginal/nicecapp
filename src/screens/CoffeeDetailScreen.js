@@ -21,15 +21,16 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 
 export default function CoffeeDetailScreen() {
   const { 
-    coffeeEvents = [], 
-    coffeeCollection = [], 
-    coffeeWishlist = [], 
-    favorites = [], 
-    addToCollection = () => {}, 
-    removeFromCollection = () => {}, 
-    addToWishlist = () => {},
-    removeFromWishlist = () => {},
-    toggleFavorite = () => {}
+    coffeeEvents, 
+    coffeeCollection, 
+    coffeeWishlist, 
+    favorites,
+    getRecipesForCoffee,
+    addToCollection, 
+    removeFromCollection,
+    addToWishlist, 
+    removeFromWishlist,
+    toggleFavorite
   } = useCoffee();
   
   const navigation = useNavigation();
@@ -54,7 +55,20 @@ export default function CoffeeDetailScreen() {
     const fetchCoffee = () => {
       setLoading(true);
       try {
-        // First try to find the coffee in the coffeeEvents
+        // First check if coffee was passed through route params
+        if (route.params?.coffee) {
+          const { coffee: routeCoffee } = route.params;
+          setCoffee(routeCoffee);
+          setIsInCollection(routeCoffee.isInCollection);
+          setIsInWishlist(routeCoffee.isInWishlist);
+          if (routeCoffee.recipes) {
+            setRelatedRecipes(routeCoffee.recipes);
+          }
+          setLoading(false);
+          return;
+        }
+
+        // Otherwise try to find the coffee in the coffeeEvents
         const eventCoffee = coffeeEvents.find(event => event.coffeeId === coffeeId);
         
         if (eventCoffee) {
@@ -81,6 +95,56 @@ export default function CoffeeDetailScreen() {
           const foundCoffee = mockData.coffees.find(c => c.id === coffeeId) || mockData.coffees[0];
           if (foundCoffee) {
             setCoffee(foundCoffee);
+            // Set mock recipes for the mock coffee
+            setRelatedRecipes([
+              {
+                id: 'recipe-1',
+                name: 'Ethiopian Yirgacheffe V60',
+                method: 'V60',
+                userId: 'currentUser',
+                userName: 'Coffee Lover',
+                userAvatar: 'https://randomuser.me/api/portraits/men/1.jpg',
+                coffeeId: 'mock1',
+                steps: [
+                  { time: '0:00', action: 'Rinse filter and warm vessel', water: 0 },
+                  { time: '0:00', action: 'Add 18g coffee (medium-fine grind)', water: 0 },
+                  { time: '0:00', action: 'Add 36g water for bloom', water: 36 },
+                  { time: '0:30', action: 'Gently stir bloom', water: 0 },
+                  { time: '0:45', action: 'Add water to 120g', water: 84 },
+                  { time: '1:15', action: 'Add water to 180g', water: 60 },
+                  { time: '1:45', action: 'Add water to 240g', water: 60 },
+                  { time: '2:15', action: 'Add water to 300g', water: 60 },
+                  { time: '3:00', action: 'Drawdown complete', water: 0 }
+                ],
+                tips: [
+                  'Use filtered water at 200°F (93°C)',
+                  'Grind coffee just before brewing',
+                  'Rinse paper filter thoroughly',
+                  'Keep water temperature consistent',
+                  'Time your pours carefully'
+                ],
+                notes: 'Bright, floral, with notes of bergamot and honey'
+              }
+            ]);
+          } else {
+            // If not found in events, use mock data
+            setCoffee({
+              id: 'mock1',
+              name: 'Ethiopian Yirgacheffe',
+              roaster: 'Blue Bottle Coffee',
+              image: 'https://images.unsplash.com/photo-1447933601403-0c6688de566e?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
+              description: 'A bright, clean coffee with notes of citrus and floral aromas. Perfect for pour-over brewing.',
+              origin: 'Ethiopia',
+              process: 'Washed',
+              roastLevel: 'Light',
+              price: '$24.00',
+              stats: {
+                rating: 4.5,
+                reviews: 128,
+                brews: 256,
+                wishlist: 89
+              }
+            });
           }
         }
       } catch (error) {
@@ -91,7 +155,16 @@ export default function CoffeeDetailScreen() {
     };
 
     fetchCoffee();
-  }, [coffeeId, coffeeEvents]);
+  }, [coffeeId, coffeeEvents, route.params]);
+
+  // Fetch related recipes when coffee is loaded (only if recipes weren't passed in route params)
+  useEffect(() => {
+    if (coffee && !route.params?.coffee?.recipes) {
+      // Get recipes for this coffee
+      const recipes = getRecipesForCoffee(coffee.id);
+      setRelatedRecipes(recipes);
+    }
+  }, [coffee, getRecipesForCoffee, route.params?.coffee?.recipes]);
 
   // Update favorite state whenever coffee or favorites change
   useEffect(() => {
@@ -126,7 +199,12 @@ export default function CoffeeDetailScreen() {
   }, [isFavorite, isInCollection, navigation]);
 
   const navigateToRecipeDetail = (recipeId) => {
-    navigation.navigate('RecipeDetail', { recipeId, skipAuth: true });
+    navigation.navigate('RecipeDetail', { 
+      recipeId, 
+      coffeeId: coffee.id,
+      coffeeName: coffee.name,
+      skipAuth: true 
+    });
   };
 
   const navigateToUserProfile = (userId) => {
@@ -183,6 +261,14 @@ export default function CoffeeDetailScreen() {
     );
   };
 
+  const navigateToCreateRecipe = () => {
+    navigation.navigate('CreateRecipe', { 
+      coffeeId: coffee.id,
+      coffeeName: coffee.name,
+      skipAuth: true 
+    });
+  };
+
   const renderRecipeItem = ({ item }) => (
     <TouchableOpacity 
       style={styles.recipeCard}
@@ -219,6 +305,22 @@ export default function CoffeeDetailScreen() {
           <Text style={styles.detailValue}>{item.brewTime}</Text>
         </View>
       </View>
+
+      {item.steps && item.steps.length > 0 && (
+        <View style={styles.stepsContainer}>
+          <Text style={styles.stepsTitle}>Brewing Steps</Text>
+          {item.steps.slice(0, 2).map((step, index) => (
+            <View key={index} style={styles.stepItem}>
+              <Text style={styles.stepNumber}>{index + 1}</Text>
+              <Text style={styles.stepText}>{step.action}</Text>
+              <Text style={styles.stepTime}>{step.time}</Text>
+            </View>
+          ))}
+          {item.steps.length > 2 && (
+            <Text style={styles.moreStepsText}>+{item.steps.length - 2} more steps</Text>
+          )}
+        </View>
+      )}
 
       <TouchableOpacity 
         style={styles.userContainer}
@@ -289,17 +391,17 @@ export default function CoffeeDetailScreen() {
             <View style={styles.statsContainer}>
               <View style={styles.statItem}>
                 <Ionicons name="star" size={16} color="#000000" />
-                <Text style={styles.statText}>{coffee.stats.rating}</Text>
-                <Text style={styles.statLabel}>({coffee.stats.reviews})</Text>
+                <Text style={styles.statText}>{coffee.stats?.rating || 0}</Text>
+                <Text style={styles.statLabel}>({coffee.stats?.reviews || 0})</Text>
               </View>
               <View style={styles.statItem}>
                 <Ionicons name="cafe" size={16} color="#000000" />
-                <Text style={styles.statText}>{coffee.stats.brews}</Text>
+                <Text style={styles.statText}>{coffee.stats?.brews || 0}</Text>
                 <Text style={styles.statLabel}>brews</Text>
               </View>
               <View style={styles.statItem}>
                 <Ionicons name="heart" size={16} color="#000000" />
-                <Text style={styles.statText}>{coffee.stats.wishlist}</Text>
+                <Text style={styles.statText}>{coffee.stats?.wishlist || 0}</Text>
                 <Text style={styles.statLabel}>saved</Text>
               </View>
             </View>
@@ -380,13 +482,40 @@ export default function CoffeeDetailScreen() {
 
         {/* Related Recipes */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Related Recipes</Text>
-          <FlatList
-            data={relatedRecipes}
-            renderItem={renderRecipeItem}
-            keyExtractor={item => item.id}
-            scrollEnabled={false}
-          />
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Brewing Recipes</Text>
+            <TouchableOpacity 
+              style={styles.createRecipeButton}
+              onPress={navigateToCreateRecipe}
+            >
+              <Ionicons name="add-circle-outline" size={20} color="#000000" />
+              <Text style={styles.createRecipeText}>Create Recipe</Text>
+            </TouchableOpacity>
+          </View>
+          {relatedRecipes.length > 0 ? (
+            <FlatList
+              data={relatedRecipes}
+              renderItem={renderRecipeItem}
+              keyExtractor={item => item.id}
+              horizontal={true}
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.recipeCarousel}
+              snapToInterval={300}
+              decelerationRate="fast"
+              snapToAlignment="start"
+            />
+          ) : (
+            <View style={styles.emptyRecipesContainer}>
+              <Ionicons name="cafe" size={24} color="#CCCCCC" />
+              <Text style={styles.emptyRecipesText}>No recipes yet for this coffee</Text>
+              <TouchableOpacity 
+                style={styles.createFirstRecipeButton}
+                onPress={navigateToCreateRecipe}
+              >
+                <Text style={styles.createFirstRecipeText}>Create Your First Recipe</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       </ScrollView>
     </View>
@@ -506,11 +635,43 @@ const styles = StyleSheet.create({
     padding: 16,
     marginTop: 8,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#000000',
     marginBottom: 16,
+  },
+  createRecipeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F2F2F7',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  createRecipeText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#000000',
+    marginLeft: 4,
+  },
+  createFirstRecipeButton: {
+    backgroundColor: '#000000',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginTop: 12,
+  },
+  createFirstRecipeText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#FFFFFF',
   },
   detailsGrid: {
     flexDirection: 'row',
@@ -539,7 +700,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8F8F8',
     borderRadius: 12,
     padding: 16,
-    marginBottom: 12,
+    marginRight: 12,
+    width: 300,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   recipeHeader: {
     flexDirection: 'row',
@@ -580,6 +747,49 @@ const styles = StyleSheet.create({
     width: '50%',
     marginBottom: 8,
   },
+  stepsContainer: {
+    marginTop: 12,
+    marginBottom: 12,
+  },
+  stepsTitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#000000',
+    marginBottom: 8,
+  },
+  stepItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  stepNumber: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#F2F2F7',
+    textAlign: 'center',
+    lineHeight: 20,
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#000000',
+    marginRight: 8,
+  },
+  stepText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#333333',
+  },
+  stepTime: {
+    fontSize: 14,
+    color: '#666666',
+    marginLeft: 8,
+  },
+  moreStepsText: {
+    fontSize: 14,
+    color: '#666666',
+    fontStyle: 'italic',
+    marginTop: 4,
+  },
   userContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -605,5 +815,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666666',
     fontStyle: 'italic',
+  },
+  emptyRecipesContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  emptyRecipesText: {
+    marginTop: 8,
+    fontSize: 14,
+    color: '#666666',
+    textAlign: 'center',
+  },
+  recipeCarousel: {
+    paddingVertical: 8,
+    paddingRight: 16,
   },
 }); 

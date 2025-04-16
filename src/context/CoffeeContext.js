@@ -20,6 +20,7 @@ const CoffeeContext = createContext({
   coffeeCollection: [],
   coffeeWishlist: [],
   favorites: [],
+  recipes: [],
   isLoading: true,
   isAuthenticated: false,
   addCoffeeEvent: () => {},
@@ -34,7 +35,9 @@ const CoffeeContext = createContext({
   toggleFavorite: () => {},
   setCoffeeCollection: () => {},
   setCoffeeWishlist: () => {},
-  loadData: () => {}
+  loadData: () => {},
+  getRecipesForCoffee: () => [],
+  addRecipe: () => {}
 });
 
 export function CoffeeProvider({ children }) {
@@ -52,7 +55,9 @@ export function CoffeeProvider({ children }) {
       name: 'Ethiopian Yirgacheffe V60',
       method: 'V60',
       userId: 'user2',
-      coffeeId: 'coffee1',
+      userName: 'Sarah Williams',
+      userAvatar: 'https://randomuser.me/api/portraits/women/44.jpg',
+      coffeeId: 'coffee-0',
       steps: [
         { time: '0:00', action: 'Rinse filter and warm vessel', water: 0 },
         { time: '0:00', action: 'Add 15g coffee (medium-fine grind)', water: 0 },
@@ -64,6 +69,13 @@ export function CoffeeProvider({ children }) {
         { time: '2:15', action: 'Add water to 250g', water: 50 },
         { time: '2:45', action: 'Drawdown complete', water: 0 }
       ],
+      tips: [
+        'Use filtered water at 200°F (93°C)',
+        'Grind coffee just before brewing',
+        'Rinse paper filter thoroughly',
+        'Keep water temperature consistent',
+        'Time your pours carefully'
+      ],
       notes: 'Bright, floral, with notes of bergamot and honey',
       image: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085'
     },
@@ -72,7 +84,9 @@ export function CoffeeProvider({ children }) {
       name: 'Colombian Supremo AeroPress',
       method: 'AeroPress',
       userId: 'user3',
-      coffeeId: 'coffee2',
+      userName: 'Michael Chen',
+      userAvatar: 'https://randomuser.me/api/portraits/men/67.jpg',
+      coffeeId: 'coffee-1',
       steps: [
         { time: '0:00', action: 'Add 17g coffee (fine grind)', water: 0 },
         { time: '0:00', action: 'Add 50g water (94°C)', water: 50 },
@@ -82,6 +96,13 @@ export function CoffeeProvider({ children }) {
         { time: '1:30', action: 'Press slowly', water: 0 },
         { time: '2:00', action: 'Add 100g water to dilute', water: 100 }
       ],
+      tips: [
+        'Pre-heat the AeroPress with hot water',
+        'Use a fine grind, similar to espresso',
+        'Press gently to avoid bitter extraction',
+        'Clean all parts thoroughly after use',
+        'Experiment with inverted method'
+      ],
       notes: 'Rich chocolate, caramel, with a smooth finish',
       image: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd'
     },
@@ -90,7 +111,9 @@ export function CoffeeProvider({ children }) {
       name: 'Kenya AA Chemex',
       method: 'Chemex',
       userId: 'user4',
-      coffeeId: 'coffee3',
+      userName: 'Emily Rodriguez',
+      userAvatar: 'https://randomuser.me/api/portraits/women/22.jpg',
+      coffeeId: 'coffee-2',
       steps: [
         { time: '0:00', action: 'Rinse filter and warm vessel', water: 0 },
         { time: '0:00', action: 'Add 22g coffee (medium-coarse grind)', water: 0 },
@@ -101,6 +124,13 @@ export function CoffeeProvider({ children }) {
         { time: '3:00', action: 'Add water to 400g', water: 50 },
         { time: '3:45', action: 'Drawdown complete', water: 0 }
       ],
+      tips: [
+        'Fold the filter properly along the seams',
+        'Rinse filter thoroughly with hot water',
+        'Use medium-coarse ground coffee',
+        'Pour in circular motions',
+        'Maintain water level below the top'
+      ],
       notes: 'Complex, bright acidity with blackberry and citrus notes',
       image: 'https://images.unsplash.com/photo-1520970014086-2208d157c9e2'
     },
@@ -109,13 +139,22 @@ export function CoffeeProvider({ children }) {
       name: 'Guatemala Antigua French Press',
       method: 'French Press',
       userId: 'user5',
-      coffeeId: 'coffee4',
+      userName: 'Alex Johnson',
+      userAvatar: 'https://randomuser.me/api/portraits/men/32.jpg',
+      coffeeId: 'coffee-3',
       steps: [
         { time: '0:00', action: 'Add 30g coffee (coarse grind)', water: 0 },
         { time: '0:00', action: 'Add 500g water (94°C)', water: 500 },
         { time: '0:00', action: 'Stir gently to ensure all grounds are wet', water: 0 },
         { time: '4:00', action: 'Break the crust and stir gently', water: 0 },
         { time: '4:30', action: 'Press slowly and serve', water: 0 }
+      ],
+      tips: [
+        'Use coarse ground coffee',
+        'Pre-heat the French Press',
+        'Break and remove the crust at 4 minutes',
+        'Press plunger slowly and steadily',
+        'Serve immediately after pressing'
       ],
       notes: 'Nutty with a subtle sweetness. Very balanced cup with medium body.',
       image: 'https://images.unsplash.com/photo-1517668808822-9ebb02f2a0e6'
@@ -125,7 +164,9 @@ export function CoffeeProvider({ children }) {
       name: 'Sumatra Mandheling Moka Pot',
       method: 'Moka Pot',
       userId: 'user6',
-      coffeeId: 'coffee5',
+      userName: 'Maria Garcia',
+      userAvatar: 'https://randomuser.me/api/portraits/women/28.jpg',
+      coffeeId: 'coffee-4',
       steps: [
         { time: '0:00', action: 'Fill bottom chamber with hot water', water: 0 },
         { time: '0:00', action: 'Add 20g coffee (fine grind) to filter basket', water: 0 },
@@ -134,7 +175,154 @@ export function CoffeeProvider({ children }) {
         { time: '5:00', action: 'Remove from heat when coffee flow slows', water: 0 },
         { time: '5:30', action: 'Serve immediately or dilute to taste', water: 0 }
       ],
+      tips: [
+        'Start with hot water in the base',
+        'Use medium-fine ground coffee',
+        'Don\'t tamp the coffee grounds',
+        'Use medium heat to avoid burning',
+        'Remove from heat when brewing is complete'
+      ],
       notes: 'Earthy with low acidity. Perfect for espresso-style drinks or Americano.',
+      image: 'https://images.unsplash.com/photo-1517668808822-9ebb02f2a0e6'
+    },
+    {
+      id: '6',
+      name: 'Ethiopian Yirgacheffe V60',
+      method: 'V60',
+      userId: 'currentUser',
+      userName: 'Coffee Lover',
+      userAvatar: 'https://randomuser.me/api/portraits/men/1.jpg',
+      coffeeId: 'coffee-0',
+      roaster: 'Blue Bottle Coffee',
+      steps: [
+        { time: '0:00', action: 'Rinse filter and warm vessel', water: 0 },
+        { time: '0:00', action: 'Add 18g coffee (medium-fine grind)', water: 0 },
+        { time: '0:00', action: 'Add 36g water for bloom', water: 36 },
+        { time: '0:30', action: 'Gently stir bloom', water: 0 },
+        { time: '0:45', action: 'Add water to 120g', water: 84 },
+        { time: '1:15', action: 'Add water to 180g', water: 60 },
+        { time: '1:45', action: 'Add water to 240g', water: 60 },
+        { time: '2:15', action: 'Add water to 300g', water: 60 },
+        { time: '3:00', action: 'Drawdown complete', water: 0 }
+      ],
+      tips: [
+        'Use filtered water at 200°F (93°C)',
+        'Grind coffee just before brewing',
+        'Rinse paper filter thoroughly',
+        'Keep water temperature consistent',
+        'Time your pours carefully'
+      ],
+      notes: 'Bright, floral, with notes of bergamot and honey',
+      image: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085'
+    },
+    {
+      id: '7',
+      name: 'Colombian Supremo French Press',
+      method: 'French Press',
+      userId: 'currentUser',
+      userName: 'Coffee Lover',
+      userAvatar: 'https://randomuser.me/api/portraits/men/1.jpg',
+      coffeeId: 'coffee-1',
+      roaster: 'Stumptown Coffee Roasters',
+      steps: [
+        { time: '0:00', action: 'Add 30g coffee (coarse grind)', water: 0 },
+        { time: '0:00', action: 'Add 500g water (94°C)', water: 500 },
+        { time: '0:00', action: 'Stir gently to ensure all grounds are wet', water: 0 },
+        { time: '4:00', action: 'Break the crust and stir gently', water: 0 },
+        { time: '4:30', action: 'Press slowly and serve', water: 0 }
+      ],
+      tips: [
+        'Use coarse ground coffee',
+        'Pre-heat the French Press',
+        'Break and remove the crust at 4 minutes',
+        'Press plunger slowly and steadily',
+        'Serve immediately after pressing'
+      ],
+      notes: 'Rich chocolate notes with a hint of caramel. Good body.',
+      image: 'https://images.unsplash.com/photo-1517668808822-9ebb02f2a0e6'
+    },
+    {
+      id: '8',
+      name: 'Kenya AA AeroPress',
+      method: 'AeroPress',
+      userId: 'currentUser',
+      userName: 'Coffee Lover',
+      userAvatar: 'https://randomuser.me/api/portraits/men/1.jpg',
+      coffeeId: 'coffee-2',
+      roaster: 'Intelligentsia Coffee',
+      steps: [
+        { time: '0:00', action: 'Add 17g coffee (fine grind)', water: 0 },
+        { time: '0:00', action: 'Add 50g water (94°C)', water: 50 },
+        { time: '0:10', action: 'Stir gently', water: 0 },
+        { time: '0:30', action: 'Add water to 150g', water: 100 },
+        { time: '1:00', action: 'Stir gently', water: 0 },
+        { time: '1:30', action: 'Press slowly', water: 0 },
+        { time: '2:00', action: 'Add 100g water to dilute', water: 100 }
+      ],
+      tips: [
+        'Pre-heat the AeroPress with hot water',
+        'Use a fine grind, similar to espresso',
+        'Press gently to avoid bitter extraction',
+        'Clean all parts thoroughly after use',
+        'Experiment with inverted method'
+      ],
+      notes: 'Complex berry notes with a clean finish. Excellent!',
+      image: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd'
+    },
+    {
+      id: '9',
+      name: 'Guatemala Antigua Chemex',
+      method: 'Chemex',
+      userId: 'currentUser',
+      userName: 'Coffee Lover',
+      userAvatar: 'https://randomuser.me/api/portraits/men/1.jpg',
+      coffeeId: 'coffee-3',
+      roaster: 'Counter Culture Coffee',
+      steps: [
+        { time: '0:00', action: 'Rinse filter and warm vessel', water: 0 },
+        { time: '0:00', action: 'Add 22g coffee (medium-coarse grind)', water: 0 },
+        { time: '0:00', action: 'Add 44g water for bloom', water: 44 },
+        { time: '0:45', action: 'Add water to 150g', water: 106 },
+        { time: '1:30', action: 'Add water to 250g', water: 100 },
+        { time: '2:15', action: 'Add water to 350g', water: 100 },
+        { time: '3:00', action: 'Add water to 400g', water: 50 },
+        { time: '3:45', action: 'Drawdown complete', water: 0 }
+      ],
+      tips: [
+        'Fold the filter properly along the seams',
+        'Rinse filter thoroughly with hot water',
+        'Use medium-coarse ground coffee',
+        'Pour in circular motions',
+        'Maintain water level below the top'
+      ],
+      notes: 'Nutty with a subtle sweetness. Very balanced.',
+      image: 'https://images.unsplash.com/photo-1520970014086-2208d157c9e2'
+    },
+    {
+      id: '10',
+      name: 'Sumatra Mandheling Moka Pot',
+      method: 'Moka Pot',
+      userId: 'currentUser',
+      userName: 'Coffee Lover',
+      userAvatar: 'https://randomuser.me/api/portraits/men/1.jpg',
+      coffeeId: 'coffee-4',
+      roaster: 'Starbucks Reserve',
+      steps: [
+        { time: '0:00', action: 'Fill bottom chamber with hot water', water: 0 },
+        { time: '0:00', action: 'Add 20g coffee (fine grind) to filter basket', water: 0 },
+        { time: '0:00', action: 'Assemble Moka Pot and place on medium heat', water: 0 },
+        { time: '3:00', action: 'Coffee begins to flow into top chamber', water: 0 },
+        { time: '5:00', action: 'Remove from heat when coffee flow slows', water: 0 },
+        { time: '5:30', action: 'Serve immediately or dilute to taste', water: 0 }
+      ],
+      tips: [
+        'Start with hot water in the base',
+        'Use medium-fine ground coffee',
+        'Don\'t tamp the coffee grounds',
+        'Use medium heat to avoid burning',
+        'Remove from heat when brewing is complete'
+      ],
+      notes: 'Earthy with low acidity. Good for espresso-style drinks.',
       image: 'https://images.unsplash.com/photo-1517668808822-9ebb02f2a0e6'
     }
   ]);
@@ -270,24 +458,76 @@ export function CoffeeProvider({ children }) {
   const generateMockEvents = () => {
     const methods = ['Pour Over', 'Espresso', 'French Press', 'AeroPress', 'Cold Brew'];
     const grindSizes = ['Fine', 'Medium', 'Coarse'];
-    const origins = ['Ethiopia', 'Colombia', 'Kenya', 'Brazil', 'Guatemala'];
-    const roasters = ['Blue Bottle', 'Stumptown', 'Intelligentsia', 'Counter Culture', 'Verve'];
     
-    return Array(10).fill(null).map((_, index) => ({
-      id: `event-${index}`,
-      coffeeId: `coffee-${index}`,
-      coffeeName: `${origins[Math.floor(Math.random() * origins.length)]} ${Math.floor(Math.random() * 1000)}`,
-      roaster: roasters[Math.floor(Math.random() * roasters.length)],
-      imageUrl: 'https://images.unsplash.com/photo-1447933601403-0c6688de566e?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80',
-      rating: Math.floor(Math.random() * 5) + 1,
-      date: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
-      brewingMethod: methods[Math.floor(Math.random() * methods.length)],
-      grindSize: grindSizes[Math.floor(Math.random() * grindSizes.length)],
-      notes: 'A delicious cup of coffee with notes of chocolate and caramel.',
-      userId: 'currentUser',
-      userName: 'Coffee Lover',
-      userAvatar: 'https://randomuser.me/api/portraits/men/1.jpg'
-    }));
+    // Define specific coffees
+    const specificCoffees = [
+      {
+        id: 'coffee-0',
+        name: 'Ethiopian Yirgacheffe',
+        roaster: 'Blue Bottle Coffee'
+      },
+      {
+        id: 'coffee-1',
+        name: 'Colombian Supremo',
+        roaster: 'Stumptown Coffee Roasters'
+      },
+      {
+        id: 'coffee-2',
+        name: 'Kenya AA',
+        roaster: 'Intelligentsia Coffee'
+      },
+      {
+        id: 'coffee-3',
+        name: 'Guatemala Antigua',
+        roaster: 'Counter Culture Coffee'
+      },
+      {
+        id: 'coffee-4',
+        name: 'Sumatra Mandheling',
+        roaster: 'Starbucks Reserve'
+      }
+    ];
+    
+    // Generate events using specific coffees first, then random ones
+    return Array(10).fill(null).map((_, index) => {
+      if (index < specificCoffees.length) {
+        const coffee = specificCoffees[index];
+        return {
+          id: `event-${index}`,
+          coffeeId: coffee.id,
+          coffeeName: coffee.name,
+          roaster: coffee.roaster,
+          imageUrl: 'https://images.unsplash.com/photo-1447933601403-0c6688de566e?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80',
+          rating: Math.floor(Math.random() * 5) + 1,
+          date: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
+          brewingMethod: methods[Math.floor(Math.random() * methods.length)],
+          grindSize: grindSizes[Math.floor(Math.random() * grindSizes.length)],
+          notes: 'A delicious cup of coffee with notes of chocolate and caramel.',
+          userId: 'currentUser',
+          userName: 'Coffee Lover',
+          userAvatar: 'https://randomuser.me/api/portraits/men/1.jpg'
+        };
+      } else {
+        // For remaining events, use random data
+        const origins = ['Ethiopia', 'Colombia', 'Kenya', 'Brazil', 'Guatemala'];
+        const roasters = ['Blue Bottle', 'Stumptown', 'Intelligentsia', 'Counter Culture', 'Verve'];
+        return {
+          id: `event-${index}`,
+          coffeeId: `coffee-${index}`,
+          coffeeName: `${origins[Math.floor(Math.random() * origins.length)]} ${Math.floor(Math.random() * 1000)}`,
+          roaster: roasters[Math.floor(Math.random() * roasters.length)],
+          imageUrl: 'https://images.unsplash.com/photo-1447933601403-0c6688de566e?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80',
+          rating: Math.floor(Math.random() * 5) + 1,
+          date: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
+          brewingMethod: methods[Math.floor(Math.random() * methods.length)],
+          grindSize: grindSizes[Math.floor(Math.random() * grindSizes.length)],
+          notes: 'A delicious cup of coffee with notes of chocolate and caramel.',
+          userId: 'currentUser',
+          userName: 'Coffee Lover',
+          userAvatar: 'https://randomuser.me/api/portraits/men/1.jpg'
+        };
+      }
+    });
   };
 
   const addCoffeeEvent = async (event) => {
@@ -459,7 +699,7 @@ export function CoffeeProvider({ children }) {
         userName: 'Alex Johnson',
         userAvatar: 'https://randomuser.me/api/portraits/men/32.jpg',
         actionType: 'logged',
-        coffeeId: 'coffee1',
+        coffeeId: 'coffee-0',
         recipeId: 'recipe1',
         roasterName: 'Blue Bottle Coffee'
       },
@@ -478,7 +718,7 @@ export function CoffeeProvider({ children }) {
         userName: 'Sarah Williams',
         userAvatar: 'https://randomuser.me/api/portraits/women/44.jpg',
         actionType: 'logged',
-        coffeeId: 'coffee2',
+        coffeeId: 'coffee-1',
         recipeId: 'recipe2',
         roasterName: 'Stumptown Coffee Roasters'
       },
@@ -497,7 +737,7 @@ export function CoffeeProvider({ children }) {
         userName: 'Michael Chen',
         userAvatar: 'https://randomuser.me/api/portraits/men/67.jpg',
         actionType: 'logged',
-        coffeeId: 'coffee3',
+        coffeeId: 'coffee-2',
         recipeId: 'recipe3',
         roasterName: 'Intelligentsia Coffee'
       },
@@ -516,7 +756,7 @@ export function CoffeeProvider({ children }) {
         userName: 'Emily Rodriguez',
         userAvatar: 'https://randomuser.me/api/portraits/women/22.jpg',
         actionType: 'logged',
-        coffeeId: 'coffee4',
+        coffeeId: 'coffee-3',
         recipeId: 'recipe4',
         roasterName: 'Counter Culture Coffee'
       },
@@ -535,7 +775,7 @@ export function CoffeeProvider({ children }) {
         userName: 'You',
         userAvatar: 'https://randomuser.me/api/portraits/men/1.jpg',
         actionType: 'logged',
-        coffeeId: 'coffee5',
+        coffeeId: 'coffee-4',
         recipeId: 'recipe5',
         roasterName: 'Starbucks Reserve'
       }
@@ -550,11 +790,44 @@ export function CoffeeProvider({ children }) {
     });
   };
 
+  // Function to get recipes for a specific coffee
+  const getRecipesForCoffee = (coffeeId) => {
+    // Get all recipes for this coffee
+    const allRecipes = recipes.filter(recipe => recipe.coffeeId === coffeeId);
+    
+    // Create a map to store unique recipes by user
+    const uniqueRecipes = new Map();
+    
+    // Process recipes in reverse order (newest first)
+    allRecipes.reverse().forEach(recipe => {
+      const key = `${recipe.userId}-${recipe.method}`;
+      if (!uniqueRecipes.has(key)) {
+        uniqueRecipes.set(key, recipe);
+      }
+    });
+    
+    // Convert map back to array and sort by timestamp
+    return Array.from(uniqueRecipes.values())
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  };
+
+  // Function to add a new recipe
+  const addRecipe = (recipe) => {
+    const newRecipe = {
+      id: recipe.id || `recipe-${Date.now()}`,
+      timestamp: recipe.timestamp || new Date().toISOString(),
+      ...recipe
+    };
+    setRecipes(prev => [...prev, newRecipe]);
+    return newRecipe;
+  };
+
   const value = {
     coffeeEvents,
     coffeeCollection,
     coffeeWishlist,
     favorites,
+    recipes,
     isLoading,
     isAuthenticated,
     addCoffeeEvent,
@@ -569,7 +842,9 @@ export function CoffeeProvider({ children }) {
     toggleFavorite,
     setCoffeeCollection,
     setCoffeeWishlist,
-    loadData
+    loadData,
+    getRecipesForCoffee,
+    addRecipe
   };
 
   return (

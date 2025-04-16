@@ -124,11 +124,17 @@ export default function ProfileScreen({ route }) {
     });
   };
 
-  const handleRecipePress = (event) => {
-    // Navigate to recipe detail screen with mock data
-    navigation.navigate('RecipeDetail', { 
-      recipeId: event.recipeId,
-      skipAuth: true // Add flag to skip authentication
+  const handleRecipePress = (recipeId, coffeeId, coffeeName, roaster, imageUrl, userId, userName, userAvatar) => {
+    navigation.navigate('RecipeDetail', {
+      recipeId,
+      coffeeId,
+      coffeeName,
+      roaster,
+      imageUrl,
+      userId,
+      userName,
+      userAvatar,
+      skipAuth: true
     });
   };
 
@@ -251,7 +257,7 @@ export default function ProfileScreen({ route }) {
       case 'recipes':
         return (
           <FlatList
-            data={recipes.filter(recipe => recipe.userId !== 'currentUser')}
+            data={recipes.filter(recipe => recipe.userId === 'currentUser')}
             renderItem={renderRecipeItem}
             keyExtractor={(item, index) => `${item.name}-${index}`}
             ListHeaderComponent={renderHeader}
@@ -273,8 +279,17 @@ export default function ProfileScreen({ route }) {
 
   const renderRecipeItem = ({ item }) => (
     <TouchableOpacity 
-      style={styles.coffeeItem}
-      onPress={() => handleRecipePress({ recipeId: item.id })}
+      style={styles.recipeItem}
+      onPress={() => handleRecipePress(
+        item.id, 
+        item.coffeeId, 
+        item.name.split(' ')[0], 
+        item.roaster, 
+        item.image,
+        item.userId,
+        item.userName,
+        item.userAvatar
+      )}
     >
       <View style={styles.coffeeImageContainer}>
         {item.image ? (
@@ -840,5 +855,12 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  recipeItem: {
+    flexDirection: 'row',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+    alignItems: 'center',
   },
 }); 

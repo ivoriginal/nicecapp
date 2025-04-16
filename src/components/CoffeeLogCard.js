@@ -70,7 +70,7 @@ const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress }) => 
         </View>
       </TouchableOpacity>
 
-      {/* Recipe details */}
+      {/* Recipe details - now clickable */}
       <TouchableOpacity 
         style={styles.recipeContainer}
         onPress={() => onRecipePress && onRecipePress(event)}
@@ -81,6 +81,7 @@ const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress }) => 
             <Ionicons name="cafe" size={20} color="#000000" />
             <Text style={styles.methodText}>{event.method || event.brewingMethod}</Text>
           </View>
+          <Ionicons name="chevron-forward" size={20} color="#666666" />
         </View>
         <View style={styles.recipeDetails}>
           <View style={styles.detailRow}>
@@ -191,6 +192,7 @@ const styles = StyleSheet.create({
   },
   recipeContainer: {
     padding: 12,
+    backgroundColor: '#F8F8F8',
   },
   recipeHeader: {
     flexDirection: 'row',
@@ -201,7 +203,7 @@ const styles = StyleSheet.create({
   methodContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8F8F8',
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
