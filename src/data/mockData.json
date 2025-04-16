@@ -101,6 +101,40 @@
       "joinedDate": "2022-07-10T00:00:00Z"
     }
   ],
+  "suggestedUsers": [
+    {
+      "id": "user2",
+      "userName": "Sarah Williams",
+      "userAvatar": "https://randomuser.me/api/portraits/women/44.jpg",
+      "bio": "Specialty coffee lover. Always on the hunt for the perfect cup.",
+      "location": "Portland, OR",
+      "mutualFriends": 3
+    },
+    {
+      "id": "user5",
+      "userName": "Emma Garcia",
+      "userAvatar": "https://randomuser.me/api/portraits/women/33.jpg",
+      "bio": "Coffee shop owner and latte art enthusiast. Love connecting with fellow coffee lovers!",
+      "location": "Austin, TX",
+      "mutualFriends": 2
+    },
+    {
+      "id": "user7",
+      "userName": "Sophia Miller",
+      "userAvatar": "https://randomuser.me/api/portraits/women/68.jpg",
+      "bio": "Coffee educator and brewing competition judge. Always learning and sharing knowledge.",
+      "location": "Chicago, IL",
+      "mutualFriends": 4
+    },
+    {
+      "id": "user9",
+      "userName": "Olivia Taylor",
+      "userAvatar": "https://randomuser.me/api/portraits/women/12.jpg",
+      "bio": "Coffee and pastry pairing expert. Finding the perfect match for every brew.",
+      "location": "Boston, MA",
+      "mutualFriends": 1
+    }
+  ],
   "businesses": [
     {
       "id": "business1",
@@ -447,6 +481,70 @@
         "sweetness": 6,
         "complexity": 7
       }
+    }
+  ],
+  "coffeeSuggestions": [
+    {
+      "id": "coffee1",
+      "type": "coffee",
+      "name": "Ethiopian Yirgacheffe",
+      "roaster": "Blue Bottle Coffee",
+      "imageUrl": "https://images.unsplash.com/photo-1447933601403-0c6688de566e?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80",
+      "rating": 4.8,
+      "price": 18.99,
+      "description": "Bright acidity with floral notes. Very clean cup."
+    },
+    {
+      "id": "coffee2",
+      "type": "coffee",
+      "name": "Colombian Supremo",
+      "roaster": "Stumptown Coffee",
+      "imageUrl": "https://images.unsplash.com/photo-1447933601403-0c6688de566e?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80",
+      "rating": 4.6,
+      "price": 16.99,
+      "description": "Rich chocolate notes with a hint of caramel."
+    },
+    {
+      "id": "coffee3",
+      "type": "coffee",
+      "name": "Kenya AA",
+      "roaster": "Intelligentsia Coffee",
+      "imageUrl": "https://images.unsplash.com/photo-1447933601403-0c6688de566e?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80",
+      "rating": 4.9,
+      "price": 22.99,
+      "description": "Complex berry notes with a bright finish."
+    }
+  ],
+  "trendingCafes": [
+    {
+      "id": "cafe1",
+      "type": "cafe",
+      "name": "The Coffee Lab",
+      "location": "San Francisco, CA",
+      "imageUrl": "https://images.unsplash.com/photo-1554118811-1e0d58224f24?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80",
+      "rating": 4.7,
+      "reviewCount": 128,
+      "description": "Specialty coffee shop with a focus on single-origin beans."
+    },
+    {
+      "id": "cafe2",
+      "type": "cafe",
+      "name": "Brew & Bloom",
+      "location": "Portland, OR",
+      "imageUrl": "https://images.unsplash.com/photo-1554118811-1e0d58224f24?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80",
+      "rating": 4.8,
+      "reviewCount": 95,
+      "description": "Artisanal coffee and fresh pastries in a cozy atmosphere."
+    },
+    {
+      "id": "cafe3",
+      "type": "cafe",
+      "name": "Bean Scene",
+      "location": "Seattle, WA",
+      "imageUrl": "https://images.unsplash.com/photo-1554118811-1e0d58224f24?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80",
+      "rating": 4.6,
+      "reviewCount": 156,
+      "description": "Modern cafe with a rotating selection of local roasters."
     }
   ]
 } 

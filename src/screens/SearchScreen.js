@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, CommonActions } from '@react-navigation/native';
 import mockData from '../data/mockData.json';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import RecipeCard from '../components/RecipeCard';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = width * 0.7;
@@ -23,15 +24,73 @@ export default function SearchScreen() {
   const searchInputRef = useRef(null);
   const navigation = useNavigation();
   const isFirstMount = useRef(true);
+  const [suggestedUsers, setSuggestedUsers] = useState(mockData.suggestedUsers);
+  const [popularRecipes, setPopularRecipes] = useState([
+    {
+      id: 'recipe1',
+      name: 'Ethiopian Yirgacheffe V60',
+      method: 'V60',
+      userId: 'user1',
+      userName: 'Coffee Enthusiast',
+      userAvatar: 'https://randomuser.me/api/portraits/men/1.jpg',
+      image: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
+      rating: 4.8,
+      brewCount: 156,
+      coffeeName: 'Ethiopian Yirgacheffe',
+      coffeeId: 'coffee1',
+      coffeeImage: 'https://images.unsplash.com/photo-1447933601403-0c6688de566e?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
+      roaster: 'Blue Bottle Coffee'
+    },
+    {
+      id: 'recipe2',
+      name: 'Colombian Supremo AeroPress',
+      method: 'AeroPress',
+      userId: 'user2',
+      userName: 'Brew Master',
+      userAvatar: 'https://randomuser.me/api/portraits/women/2.jpg',
+      image: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
+      rating: 4.6,
+      brewCount: 98,
+      coffeeName: 'Colombian Supremo',
+      coffeeId: 'coffee2',
+      coffeeImage: 'https://images.unsplash.com/photo-1447933601403-0c6688de566e?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
+      roaster: 'Stumptown Coffee'
+    },
+    {
+      id: 'recipe3',
+      name: 'Kenya AA Chemex',
+      method: 'Chemex',
+      userId: 'user3',
+      userName: 'Coffee Explorer',
+      userAvatar: 'https://randomuser.me/api/portraits/men/3.jpg',
+      image: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
+      rating: 4.9,
+      brewCount: 203,
+      coffeeName: 'Kenya AA',
+      coffeeId: 'coffee3',
+      coffeeImage: 'https://images.unsplash.com/photo-1447933601403-0c6688de566e?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
+      roaster: 'Intelligentsia Coffee'
+    },
+    {
+      id: 'recipe4',
+      name: 'Guatemala Antigua French Press',
+      method: 'French Press',
+      userId: 'user4',
+      userName: 'Bean Hunter',
+      userAvatar: 'https://randomuser.me/api/portraits/women/4.jpg',
+      image: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
+      rating: 4.7,
+      brewCount: 145,
+      coffeeName: 'Guatemala Antigua',
+      coffeeId: 'coffee4',
+      coffeeImage: 'https://images.unsplash.com/photo-1447933601403-0c6688de566e?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
+      roaster: 'Counter Culture Coffee'
+    }
+  ]);
 
   // Get coffee suggestions and trending cafés from mock data
-  const coffeeSuggestions = mockData.coffees.slice(0, 5);
-  const trendingCafes = mockData.businesses.filter(business => 
-    business.type === 'coffee_shop' || business.type === 'roaster_coffee_shop'
-  ).slice(0, 5);
-  
-  // Get suggested users from mock data
-  const suggestedUsers = mockData.users.filter(user => user.id !== 'currentUser').slice(0, 5);
+  const coffeeSuggestions = mockData.coffeeSuggestions;
+  const trendingCafes = mockData.trendingCafes;
   
   // Get coffee events for the "People You Might Know" section
   const suggestedEvents = [
@@ -293,103 +352,128 @@ export default function SearchScreen() {
   };
 
   const renderCarouselItem = ({ item, type }) => {
-    if (type === 'coffee') {
-      return (
-        <TouchableOpacity 
-          style={styles.carouselCard}
-          onPress={() => navigation.navigate('CoffeeDetail', { coffeeId: item.id })}
-        >
-          <Image 
-            source={{ uri: item.image }} 
-            style={styles.carouselImage} 
-            resizeMode="cover"
-          />
-          <View style={styles.carouselOverlay}>
-            <Text style={styles.carouselTitle}>{item.name}</Text>
-            <Text style={styles.carouselSubtitle}>{item.roaster}</Text>
-            <View style={styles.carouselStats}>
-              <Text style={styles.carouselPrice}>${item.price.toFixed(2)}</Text>
-              <Text style={styles.carouselOrigin}>{item.origin}</Text>
-            </View>
-          </View>
-        </TouchableOpacity>
-      );
-    } else if (type === 'cafe') {
-      return (
-        <TouchableOpacity 
-          style={styles.carouselCard}
-          onPress={() => navigation.navigate('CoffeeDetail', { coffeeId: item.id })}
-        >
-          <Image 
-            source={{ uri: item.coverImage }} 
-            style={styles.carouselImage} 
-            resizeMode="cover"
-          />
-          <View style={styles.carouselOverlay}>
-            <Text style={styles.carouselTitle}>{item.name}</Text>
-            <Text style={styles.carouselSubtitle}>{item.location}</Text>
-            <View style={styles.carouselStats}>
-              <Text style={styles.carouselType}>{item.type === 'roaster_coffee_shop' ? 'Roaster & Café' : 'Café'}</Text>
-            </View>
-          </View>
-        </TouchableOpacity>
-      );
-    } else if (type === 'user') {
-      return (
-        <TouchableOpacity 
-          style={styles.userCard}
-          onPress={() => {
-            // Navigate to the bridge component first
-            navigation.navigate('UserProfileBridge', { 
-              userId: item.id, 
+    switch (type) {
+      case 'recipe':
+        return (
+          <RecipeCard
+            recipe={item}
+            onPress={(recipeId) => navigation.navigate('RecipeDetail', { 
+              recipeId,
+              coffeeName: item.name.split(' ')[0],
+              roaster: 'Blue Bottle Coffee',
+              imageUrl: item.image,
+              userId: item.userId,
+              userName: item.userName,
+              userAvatar: item.userAvatar,
+              skipAuth: true
+            })}
+            onUserPress={(userId) => navigation.navigate('UserProfileBridge', { 
+              userId, 
               userName: item.userName,
               skipAuth: true 
-            });
-          }}
-        >
-          <Image 
-            source={{ uri: item.userAvatar }} 
-            style={styles.userAvatar} 
-            resizeMode="cover"
+            })}
+            showCoffeeInfo={true}
           />
-          <View style={styles.userInfo}>
-            <Text style={styles.userName}>{item.userName}</Text>
-            <Text style={styles.userUsername}>@{item.email.split('@')[0]}</Text>
-          </View>
-          <TouchableOpacity style={styles.followButton}>
-            <Text style={styles.followButtonText}>Follow</Text>
+        );
+      case 'coffee':
+        return (
+          <TouchableOpacity 
+            style={styles.carouselCard}
+            onPress={() => navigation.navigate('CoffeeDetail', { coffeeId: item.id })}
+          >
+            <Image 
+              source={{ uri: item.image }} 
+              style={styles.carouselImage} 
+              resizeMode="cover"
+            />
+            <View style={styles.carouselOverlay}>
+              <Text style={styles.carouselTitle}>{item.name}</Text>
+              <Text style={styles.carouselSubtitle}>{item.roaster}</Text>
+              <View style={styles.carouselStats}>
+                <Text style={styles.carouselPrice}>${item.price.toFixed(2)}</Text>
+                <Text style={styles.carouselOrigin}>{item.origin}</Text>
+              </View>
+            </View>
           </TouchableOpacity>
-        </TouchableOpacity>
-      );
-    } else if (type === 'event') {
-      return (
-        <TouchableOpacity 
-          style={styles.eventCard}
-          onPress={() => navigation.navigate('CoffeeDetail', { coffeeId: item.id })}
-        >
-          <Image 
-            source={{ uri: item.imageUrl }} 
-            style={styles.eventImage} 
-            resizeMode="cover"
-          />
-          <View style={styles.eventContent}>
-            <View style={styles.eventUserInfo}>
-              <Image 
-                source={{ uri: item.userAvatar }} 
-                style={styles.eventUserAvatar} 
-                resizeMode="cover"
-              />
-              <Text style={styles.eventUserName}>{item.userName}</Text>
+        );
+      case 'cafe':
+        return (
+          <TouchableOpacity 
+            style={styles.carouselCard}
+            onPress={() => navigation.navigate('CoffeeDetail', { coffeeId: item.id })}
+          >
+            <Image 
+              source={{ uri: item.coverImage }} 
+              style={styles.carouselImage} 
+              resizeMode="cover"
+            />
+            <View style={styles.carouselOverlay}>
+              <Text style={styles.carouselTitle}>{item.name}</Text>
+              <Text style={styles.carouselSubtitle}>{item.location}</Text>
+              <View style={styles.carouselStats}>
+                <Text style={styles.carouselType}>{item.type === 'roaster_coffee_shop' ? 'Roaster & Café' : 'Café'}</Text>
+              </View>
             </View>
-            <Text style={styles.eventCoffeeName}>{item.coffeeName}</Text>
-            <Text style={styles.eventRoaster}>{item.roaster}</Text>
-            <View style={styles.eventRating}>
-              <Ionicons name="star" size={14} color="#FFD700" />
-              <Text style={styles.eventRatingText}>{item.rating.toFixed(1)}</Text>
+          </TouchableOpacity>
+        );
+      case 'user':
+        return (
+          <TouchableOpacity 
+            style={styles.userCard}
+            onPress={() => {
+              // Navigate to the bridge component first
+              navigation.navigate('UserProfileBridge', { 
+                userId: item.id, 
+                userName: item.userName,
+                skipAuth: true 
+              });
+            }}
+          >
+            <Image 
+              source={{ uri: item.userAvatar }} 
+              style={styles.userAvatar} 
+              resizeMode="cover"
+            />
+            <View style={styles.userInfo}>
+              <Text style={styles.userName}>{item.userName}</Text>
+              <Text style={styles.userUsername}>@{item.userName.toLowerCase().replace(' ', '')}</Text>
             </View>
-          </View>
-        </TouchableOpacity>
-      );
+            <TouchableOpacity style={styles.followButton}>
+              <Text style={styles.followButtonText}>Follow</Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        );
+      case 'event':
+        return (
+          <TouchableOpacity 
+            style={styles.eventCard}
+            onPress={() => navigation.navigate('CoffeeDetail', { coffeeId: item.id })}
+          >
+            <Image 
+              source={{ uri: item.imageUrl }} 
+              style={styles.eventImage} 
+              resizeMode="cover"
+            />
+            <View style={styles.eventContent}>
+              <View style={styles.eventUserInfo}>
+                <Image 
+                  source={{ uri: item.userAvatar }} 
+                  style={styles.eventUserAvatar} 
+                  resizeMode="cover"
+                />
+                <Text style={styles.eventUserName}>{item.userName}</Text>
+              </View>
+              <Text style={styles.eventCoffeeName}>{item.coffeeName}</Text>
+              <Text style={styles.eventRoaster}>{item.roaster}</Text>
+              <View style={styles.eventRating}>
+                <Ionicons name="star" size={14} color="#FFD700" />
+                <Text style={styles.eventRatingText}>{item.rating.toFixed(1)}</Text>
+              </View>
+            </View>
+          </TouchableOpacity>
+        );
+      default:
+        return null;
     }
   };
 
@@ -495,8 +579,9 @@ export default function SearchScreen() {
           contentContainerStyle={styles.discoveryContentContainer}
           showsVerticalScrollIndicator={false}
         >
-          {renderCarousel('Coffee you might like', coffeeSuggestions, 'coffee')}
+          {renderCarousel('Coffee Suggestions', coffeeSuggestions, 'coffee')}
           {renderCarousel('Trending Cafés', trendingCafes, 'cafe')}
+          {renderCarousel('Popular Recipes', popularRecipes, 'recipe')}
           {renderCarousel('People You Might Know', suggestedUsers, 'user')}
         </ScrollView>
       )}

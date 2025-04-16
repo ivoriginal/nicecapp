@@ -18,6 +18,7 @@ import Toast from '../components/Toast';
 import eventEmitter from '../utils/EventEmitter';
 import mockData from '../data/mockData.json';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import RecipeCard from '../components/RecipeCard';
 
 export default function CoffeeDetailScreen() {
   const { 
@@ -270,78 +271,11 @@ export default function CoffeeDetailScreen() {
   };
 
   const renderRecipeItem = ({ item }) => (
-    <TouchableOpacity 
-      style={styles.recipeCard}
-      onPress={() => navigateToRecipeDetail(item.id)}
-    >
-      <View style={styles.recipeHeader}>
-        <View style={styles.methodContainer}>
-          <Ionicons name="cafe" size={20} color="#000000" />
-          <Text style={styles.methodText}>{item.method}</Text>
-        </View>
-        {item.rating && (
-          <View style={styles.ratingContainer}>
-            <Ionicons name="star" size={16} color="#000000" />
-            <Text style={styles.ratingText}>{item.rating.toFixed(1)}</Text>
-          </View>
-        )}
-      </View>
-
-      <View style={styles.recipeDetails}>
-        <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Coffee</Text>
-          <Text style={styles.detailValue}>{item.amount}g</Text>
-        </View>
-        <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Grind Size</Text>
-          <Text style={styles.detailValue}>{item.grindSize}</Text>
-        </View>
-        <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Water</Text>
-          <Text style={styles.detailValue}>{item.waterVolume}ml</Text>
-        </View>
-        <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Brew Time</Text>
-          <Text style={styles.detailValue}>{item.brewTime}</Text>
-        </View>
-      </View>
-
-      {item.steps && item.steps.length > 0 && (
-        <View style={styles.stepsContainer}>
-          <Text style={styles.stepsTitle}>Brewing Steps</Text>
-          {item.steps.slice(0, 2).map((step, index) => (
-            <View key={index} style={styles.stepItem}>
-              <Text style={styles.stepNumber}>{index + 1}</Text>
-              <Text style={styles.stepText}>{step.action}</Text>
-              <Text style={styles.stepTime}>{step.time}</Text>
-            </View>
-          ))}
-          {item.steps.length > 2 && (
-            <Text style={styles.moreStepsText}>+{item.steps.length - 2} more steps</Text>
-          )}
-        </View>
-      )}
-
-      <TouchableOpacity 
-        style={styles.userContainer}
-        onPress={() => navigateToUserProfile(item.userId)}
-      >
-        <Image 
-          source={{ uri: item.userAvatar || 'https://via.placeholder.com/32' }} 
-          style={styles.userAvatar} 
-        />
-        <Text style={styles.userName}>{item.userName}</Text>
-        <Text style={styles.timestamp}>
-          {new Date(item.timestamp).toLocaleDateString()}
-        </Text>
-      </TouchableOpacity>
-
-      {item.notes && (
-        <Text style={styles.notesText} numberOfLines={2}>
-          {item.notes}
-        </Text>
-      )}
-    </TouchableOpacity>
+    <RecipeCard 
+      recipe={item}
+      onPress={navigateToRecipeDetail}
+      onUserPress={navigateToUserProfile}
+    />
   );
 
   if (loading) {
@@ -702,11 +636,6 @@ const styles = StyleSheet.create({
     padding: 16,
     marginRight: 12,
     width: 300,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
   },
   recipeHeader: {
     flexDirection: 'row',
@@ -830,5 +759,17 @@ const styles = StyleSheet.create({
   recipeCarousel: {
     paddingVertical: 8,
     paddingRight: 16,
+  },
+  recipeSection: {
+    marginTop: 24,
+  },
+  recipeSectionTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    marginBottom: 16,
+    color: '#000000',
+  },
+  recipeList: {
+    marginTop: 8,
   },
 }); 
