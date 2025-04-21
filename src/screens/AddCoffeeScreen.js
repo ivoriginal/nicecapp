@@ -12,11 +12,13 @@ export default function AddCoffeeScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
   const [coffeeData, setCoffeeData] = useState({
     name: '',
+    coffeeId: null,
     method: '',
     amount: '',
     grindSize: '',
     waterVolume: '',
     brewTime: '',
+    notes: '',
   });
   const [coffeeSuggestions, setCoffeeSuggestions] = useState([]);
   const [recipeSuggestions, setRecipeSuggestions] = useState([]);
@@ -41,9 +43,17 @@ export default function AddCoffeeScreen({ navigation, route }) {
   useEffect(() => {
     // Check if we should save (triggered by the Save button in the modal)
     if (route.params?.shouldSave) {
-      handleSave();
+      // Show the preview modal first
+      setShowPreview(true);
     }
   }, [route.params?.shouldSave]);
+
+  // Add useEffect for handling text input updates
+  useEffect(() => {
+    if (nameInputRef.current && coffeeData.name) {
+      nameInputRef.current.setNativeProps({ text: coffeeData.name });
+    }
+  }, [coffeeData.name]);
 
   const searchCoffeeDatabase = async (query) => {
     if (!query.trim()) {
@@ -106,9 +116,31 @@ export default function AddCoffeeScreen({ navigation, route }) {
   };
 
   const handleCoffeeSelect = async (coffee) => {
-    setCoffeeData({ ...coffeeData, name: coffee.name, coffeeId: coffee.id });
+    // Create new coffee data object
+    const newCoffeeData = {
+      ...coffeeData,
+      name: coffee.name,
+      coffeeId: coffee.id
+    };
+    
+    // Update state
+    setCoffeeData(newCoffeeData);
+    
+    // Clear suggestions
     setCoffeeSuggestions([]);
-    await searchRecipeDatabase(coffee.id);
+    
+    // Search for recipes
+    searchRecipeDatabase(coffee.id);
+    
+    // Force update the text input
+    if (nameInputRef.current) {
+      nameInputRef.current.setNativeProps({ text: coffee.name });
+    }
+  };
+
+  const handleClearInput = () => {
+    setCoffeeData({ ...coffeeData, name: '', coffeeId: null });
+    setCoffeeSuggestions([]);
   };
 
   const handleRecipeSelect = (recipe) => {
@@ -185,6 +217,7 @@ export default function AddCoffeeScreen({ navigation, route }) {
         timestamp: new Date().toISOString(),
         isPrivate,
         rating: rating > 0 ? rating : null,
+        notes: coffeeData.notes,
         originalRecipe: selectedRecipe ? {
           method: selectedRecipe.method,
           amount: selectedRecipe.amount,
@@ -201,13 +234,14 @@ export default function AddCoffeeScreen({ navigation, route }) {
       // Add the event to the context
       await addCoffeeEvent(eventData);
       
-      // Close the preview modal if it's open
-      if (showPreview) {
-        setShowPreview(false);
-      }
+      // Close the preview modal first
+      setShowPreview(false);
       
-      // Navigate back
-      navigation.goBack();
+      // Small delay to ensure the preview modal is closed before navigating
+      setTimeout(() => {
+        // Navigate back using the custom navigation prop
+        navigation.goBack();
+      }, 100);
     } catch (error) {
       console.error('Error saving coffee:', error);
       Alert.alert('Error', 'Failed to save coffee event. Please try again.');
@@ -381,13 +415,6 @@ export default function AddCoffeeScreen({ navigation, route }) {
           placeholderTextColor="#999"
         />
       </View>
-      
-      <TouchableOpacity 
-        style={styles.continueButton}
-        onPress={handleCustomSave}
-      >
-        <Text style={styles.continueButtonText}>Continue</Text>
-      </TouchableOpacity>
     </View>
   );
 
@@ -474,6 +501,20 @@ export default function AddCoffeeScreen({ navigation, route }) {
                 thumbColor={!isPrivate ? '#2196F3' : '#f4f4f4'}
               />
             </View>
+
+            <View style={styles.notesContainer}>
+              <Text style={styles.notesLabel}>Notes (optional)</Text>
+              <TextInput
+                style={styles.notesInput}
+                value={coffeeData.notes}
+                onChangeText={(text) => setCoffeeData({ ...coffeeData, notes: text })}
+                placeholder="Add any notes about this brew..."
+                placeholderTextColor="#999"
+                multiline
+                numberOfLines={4}
+                textAlignVertical="top"
+              />
+            </View>
           </ScrollView>
 
           <View style={[styles.modalFooter, { paddingBottom: insets.bottom }]}>
@@ -550,15 +591,32 @@ export default function AddCoffeeScreen({ navigation, route }) {
       <ScrollView style={styles.scrollView}>
         <View style={styles.inputContainer}>
           <Text style={styles.label}>Coffee Name</Text>
-          <TextInput
-            ref={nameInputRef}
-            style={styles.input}
-            value={coffeeData.name}
-            onChangeText={handleNameChange}
-            placeholder="Enter coffee name"
-            placeholderTextColor="#999"
-            autoFocus
-          />
+          <View style={styles.inputWrapper}>
+            <TextInput
+              ref={nameInputRef}
+              style={styles.input}
+              value={coffeeData.name}
+              onChangeText={handleNameChange}
+              placeholder="Enter coffee name"
+              placeholderTextColor="#999"
+              autoFocus
+              onBlur={() => {
+                // Force update the value when the input loses focus
+                if (nameInputRef.current) {
+                  nameInputRef.current.setNativeProps({ text: coffeeData.name });
+                }
+              }}
+            />
+            {coffeeData.name.length > 0 && (
+              <TouchableOpacity 
+                style={styles.clearButton}
+                onPress={handleClearInput}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons name="close-circle" size={20} color="#999" />
+              </TouchableOpacity>
+            )}
+          </View>
           {coffeeSuggestions.length > 0 && (
             <View style={styles.suggestionsContainer}>
               {coffeeSuggestions.map((coffee, index) => (
@@ -582,15 +640,6 @@ export default function AddCoffeeScreen({ navigation, route }) {
         )}
       </ScrollView>
       
-      <View style={[styles.saveButtonContainer, { paddingBottom: insets.bottom }]}>
-        <TouchableOpacity 
-          style={styles.saveButton}
-          onPress={handleSave}
-        >
-          <Text style={styles.saveButtonText}>Save</Text>
-        </TouchableOpacity>
-      </View>
-
       {renderPreviewSheet()}
       {renderOriginalRecipeModal()}
     </View>
@@ -616,12 +665,24 @@ const styles = StyleSheet.create({
     color: '#000000',
     marginBottom: 8,
   },
+  inputWrapper: {
+    position: 'relative',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   input: {
+    flex: 1,
     fontSize: 16,
     color: '#000000',
     padding: 12,
+    paddingRight: 40, // Make room for the clear button
     backgroundColor: '#F2F2F7',
     borderRadius: 8,
+  },
+  clearButton: {
+    position: 'absolute',
+    right: 12,
+    padding: 4,
   },
   suggestionsContainer: {
     marginTop: 8,
@@ -629,6 +690,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#E5E5EA',
+    maxHeight: 200,
   },
   suggestion: {
     padding: 12,
@@ -846,9 +908,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666666',
   },
-  clearButton: {
-    padding: 4,
-  },
   ratingContainer: {
     marginTop: 16,
     marginBottom: 16,
@@ -868,22 +927,24 @@ const styles = StyleSheet.create({
   starButton: {
     padding: 4,
   },
-  saveButtonContainer: {
-    padding: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E5EA',
-    backgroundColor: '#FFFFFF',
-  },
-  continueButton: {
-    backgroundColor: '#2196F3',
-    padding: 16,
-    borderRadius: 8,
-    alignItems: 'center',
+  notesContainer: {
     marginTop: 16,
+    padding: 16,
+    backgroundColor: '#F8F8F8',
+    borderRadius: 8,
   },
-  continueButtonText: {
-    color: '#FFFFFF',
+  notesLabel: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '500',
+    color: '#000000',
+    marginBottom: 8,
+  },
+  notesInput: {
+    flex: 1,
+    fontSize: 14,
+    color: '#000000',
+    padding: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
   },
 }); 
