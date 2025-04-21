@@ -71,7 +71,7 @@ export default function BottomTabNavigator() {
           },
           tabBarActiveTintColor: '#000000',
           tabBarInactiveTintColor: 'gray',
-          tabBarShowLabel: false,
+          tabBarShowLabel: true,
           headerShown: true,
           headerTitleStyle: {
             color: '#000000',
@@ -80,7 +80,7 @@ export default function BottomTabNavigator() {
           headerTintColor: '#000000',
           tabBarStyle: {
             height: 48 + insets.bottom,
-            paddingTop: 8,
+            paddingTop: 4,
             paddingHorizontal: 5,
             backgroundColor: '#ffffff',
             borderTopWidth: 1,
@@ -192,6 +192,8 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
+    flex: 1,
+    textAlign: 'center',
   },
   content: {
     flex: 1,
