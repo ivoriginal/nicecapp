@@ -107,7 +107,7 @@ export default function HomeScreen({ navigation }) {
             onUserPress={handleUserPress}
           />
         )}
-        keyExtractor={item => item.id}
+        keyExtractor={item => `${item.id}-${item.timestamp || Date.now()}`}
         contentContainerStyle={styles.listContainer}
         refreshControl={
           <RefreshControl
