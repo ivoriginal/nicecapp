@@ -415,6 +415,24 @@ export default function AddCoffeeScreen({ navigation, route }) {
           placeholderTextColor="#999"
         />
       </View>
+
+      {selectedTab === 'custom' && (
+        <View style={styles.bottomSaveButtonContainer}>
+          <TouchableOpacity
+            style={[
+              styles.bottomSaveButton,
+              (!coffeeData.name || !coffeeData.method || !coffeeData.amount || !coffeeData.grindSize || !coffeeData.waterVolume || !coffeeData.brewTime) && styles.bottomSaveButtonDisabled
+            ]}
+            onPress={handleCustomSave}
+            disabled={!coffeeData.name || !coffeeData.method || !coffeeData.amount || !coffeeData.grindSize || !coffeeData.waterVolume || !coffeeData.brewTime}
+          >
+            <Text style={[
+              styles.bottomSaveButtonText,
+              (!coffeeData.name || !coffeeData.method || !coffeeData.amount || !coffeeData.grindSize || !coffeeData.waterVolume || !coffeeData.brewTime) && styles.bottomSaveButtonTextDisabled
+            ]}>Save Coffee</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 
@@ -656,8 +674,7 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
+    paddingBottom: 8,
   },
   label: {
     fontSize: 16,
@@ -866,13 +883,13 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#E5E5EA',
   },
-  saveButton: {
+  closeButton: {
     backgroundColor: '#2196F3',
     padding: 16,
     borderRadius: 8,
     alignItems: 'center',
   },
-  saveButtonText: {
+  closeButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
@@ -891,22 +908,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666666',
     marginTop: 4,
-  },
-  closeButton: {
-    padding: 4,
-  },
-  basedOnContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#F8F8F8',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
-  },
-  basedOnText: {
-    fontSize: 14,
-    color: '#666666',
   },
   ratingContainer: {
     marginTop: 16,
@@ -946,5 +947,51 @@ const styles = StyleSheet.create({
     padding: 12,
     backgroundColor: '#FFFFFF',
     borderRadius: 8,
+  },
+  bottomSaveButtonContainer: {
+    padding: 16,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#E5E5EA',
+    marginTop: 16,
+  },
+  bottomSaveButton: {
+    backgroundColor: '#2196F3',
+    padding: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  bottomSaveButtonDisabled: {
+    backgroundColor: '#CCCCCC',
+  },
+  bottomSaveButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  bottomSaveButtonTextDisabled: {
+    color: '#999999',
+  },
+  saveButton: {
+    backgroundColor: '#2196F3',
+    padding: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  saveButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  customSaveButton: {
+    backgroundColor: '#2196F3',
+    padding: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  customSaveButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
 }); 
