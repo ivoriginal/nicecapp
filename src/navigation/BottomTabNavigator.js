@@ -1,7 +1,7 @@
 import React from 'react';
 import { Ionicons } from "@expo/vector-icons";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { useColorScheme, Button, Modal, View, Text, StyleSheet, Alert, Keyboard } from "react-native";
+import { useColorScheme, Button, Modal, View, Text, StyleSheet, Alert, Keyboard, TouchableOpacity, Platform } from "react-native";
 import { useState, useContext, useEffect } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from 'expo-status-bar';
@@ -20,11 +20,13 @@ export default function BottomTabNavigator() {
   const [previousTab, setPreviousTab] = useState('Home');
   const insets = useSafeAreaInsets();
   const [shouldSave, setShouldSave] = useState(false);
+  const [selectedCoffee, setSelectedCoffee] = useState(null);
   const { unreadCount } = useNotifications();
 
   const handleCancel = () => {
     setIsModalVisible(false);
     setShouldSave(false);
+    setSelectedCoffee(null);
   };
 
   const handleLogPress = (e) => {
@@ -35,15 +37,38 @@ export default function BottomTabNavigator() {
   };
 
   const handleSave = () => {
-    // Dismiss keyboard before saving
-    Keyboard.dismiss();
     // Set shouldSave to true to trigger the save action in AddCoffeeScreen
     setShouldSave(true);
+    // Dismiss keyboard if it's open
+    Keyboard.dismiss();
   };
 
   const handleSaveComplete = () => {
     setIsModalVisible(false);
     setShouldSave(false);
+    setSelectedCoffee(null);
+  };
+
+  // Create a custom navigation object for the AddCoffeeScreen
+  const customNavigation = {
+    goBack: handleSaveComplete,
+    navigate: () => {}, // Add empty navigate function to prevent errors
+    setParams: (params) => {
+      if (params.shouldSave !== undefined) {
+        setShouldSave(params.shouldSave);
+      }
+      if (params.selectedCoffee) {
+        setSelectedCoffee(params.selectedCoffee);
+      }
+      if (params.shouldSave === true) {
+        handleSaveComplete();
+      }
+    }
+  };
+
+  // Create a custom route object for the AddCoffeeScreen
+  const customRoute = {
+    params: { shouldSave, selectedCoffee }
   };
 
   return (
@@ -143,27 +168,22 @@ export default function BottomTabNavigator() {
         onRequestClose={handleCancel}
       >
         <View style={styles.modalContainer}>
-          <View style={[styles.header, { paddingTop: insets.top }]}>
+          <View style={[styles.header, { paddingTop: Platform.OS === 'ios' ? insets.top : 0 }]}>
             <View style={styles.headerContent}>
-              <Button title="Cancel" onPress={handleCancel} />
+              <View style={styles.headerLeft} />
               <Text style={styles.headerTitle}>Log Coffee</Text>
-              <Button 
-                title="Save" 
-                onPress={handleSave}
-              />
+              <TouchableOpacity 
+                style={styles.closeButton} 
+                onPress={handleCancel}
+              >
+                <Ionicons name="close" size={24} color="#000000" />
+              </TouchableOpacity>
             </View>
           </View>
           <View style={styles.content}>
             <AddCoffeeScreen 
-              navigation={{
-                goBack: handleSaveComplete,
-                setParams: (params) => {
-                  if (params.shouldSave) {
-                    handleSaveComplete();
-                  }
-                }
-              }}
-              route={{ params: { shouldSave } }}
+              navigation={customNavigation}
+              route={customRoute}
             />
           </View>
         </View>
@@ -189,15 +209,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     height: 56,
   },
+  headerLeft: {
+    width: 24,
+  },
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
     flex: 1,
     textAlign: 'center',
   },
+  closeButton: {
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   content: {
     flex: 1,
-  },
+  }
 });
 
 // Empty component for the Log tab since we're using Modal
