@@ -1,8 +1,8 @@
 import React from 'react';
 import { Ionicons } from "@expo/vector-icons";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { useColorScheme, Button, Modal, View, Text, StyleSheet, Alert, Keyboard, TouchableOpacity, Platform } from "react-native";
-import { useState, useContext, useEffect } from "react";
+import { useColorScheme, Button, Modal, View, Text, StyleSheet, Alert, Keyboard, TouchableOpacity, Platform, Image, FlatList } from "react-native";
+import { useState, useContext, useEffect, useRef } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from 'expo-status-bar';
 import HomeScreen from '../screens/HomeScreen';
@@ -11,6 +11,8 @@ import NotificationsScreen from '../screens/NotificationsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import AddCoffeeScreen from '../screens/AddCoffeeScreen';
 import { useNotifications } from '../context/NotificationsContext';
+import { useCoffee } from '../context/CoffeeContext';
+import eventEmitter from '../utils/EventEmitter';
 
 const BottomTab = createBottomTabNavigator();
 
@@ -22,6 +24,52 @@ export default function BottomTabNavigator() {
   const [shouldSave, setShouldSave] = useState(false);
   const [selectedCoffee, setSelectedCoffee] = useState(null);
   const { unreadCount } = useNotifications();
+  const { accounts, currentAccount, switchAccount } = useCoffee();
+
+  // Remove the bottom sheet ref and snap points
+  const [showAccountModal, setShowAccountModal] = useState(false);
+
+  // Handle account switching
+  const handleAccountSwitch = (account) => {
+    // Switch account in context
+    switchAccount(account);
+
+    // Close the modal
+    setShowAccountModal(false);
+  };
+
+  // Open account switching modal
+  const openAccountModal = () => {
+    setShowAccountModal(true);
+  };
+
+  // Render account item in the modal
+  const renderAccountItem = ({ item }) => (
+    <TouchableOpacity
+      style={styles.accountItem}
+      onPress={() => handleAccountSwitch(item)}
+    >
+      <View style={styles.accountAvatarContainer}>
+        {item.avatar_url ? (
+          <Image
+            source={{ uri: item.avatar_url }}
+            style={styles.accountAvatar}
+          />
+        ) : (
+          <View style={styles.accountAvatarPlaceholder}>
+            <Ionicons name="person" size={24} color="#000000" />
+          </View>
+        )}
+      </View>
+      <View style={styles.accountInfo}>
+        <Text style={styles.accountName}>{item.username}</Text>
+        <Text style={styles.accountEmail}>{item.email}</Text>
+      </View>
+      {currentAccount.id === item.id && (
+        <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+      )}
+    </TouchableOpacity>
+  );
 
   const handleCancel = () => {
     setIsModalVisible(false);
@@ -30,10 +78,18 @@ export default function BottomTabNavigator() {
   };
 
   const handleLogPress = (e) => {
-    // Prevent default tab press behavior
     e.preventDefault();
-    setPreviousTab('Home'); // Default to Home if we can't determine the current tab
+    setPreviousTab('Home');
     setIsModalVisible(true);
+  };
+
+  const handleProfileLongPress = (e) => {
+    console.log('Profile tab long press detected');
+    if (e && e.preventDefault) {
+      e.preventDefault();
+    }
+    // Emit an event to notify the ProfileScreen that profile tab was long pressed
+    eventEmitter.emit('profileTabLongPress');
   };
 
   const handleSave = () => {
@@ -52,7 +108,7 @@ export default function BottomTabNavigator() {
   // Create a custom navigation object for the AddCoffeeScreen
   const customNavigation = {
     goBack: handleSaveComplete,
-    navigate: () => {}, // Add empty navigate function to prevent errors
+    navigate: () => { }, // Add empty navigate function to prevent errors
     setParams: (params) => {
       if (params.shouldSave !== undefined) {
         setShouldSave(params.shouldSave);
@@ -158,6 +214,9 @@ export default function BottomTabNavigator() {
             headerShown: false,
           }}
           initialParams={{ skipAuth: true }}
+          listeners={{
+            tabLongPress: handleProfileLongPress,
+          }}
         />
       </BottomTab.Navigator>
 
@@ -172,8 +231,8 @@ export default function BottomTabNavigator() {
             <View style={styles.headerContent}>
               <View style={styles.headerLeft} />
               <Text style={styles.headerTitle}>Log Coffee</Text>
-              <TouchableOpacity 
-                style={styles.closeButton} 
+              <TouchableOpacity
+                style={styles.closeButton}
                 onPress={handleCancel}
               >
                 <Ionicons name="close" size={24} color="#000000" />
@@ -181,9 +240,34 @@ export default function BottomTabNavigator() {
             </View>
           </View>
           <View style={styles.content}>
-            <AddCoffeeScreen 
+            <AddCoffeeScreen
               navigation={customNavigation}
               route={customRoute}
+            />
+          </View>
+        </View>
+      </Modal>
+
+      {/* Account Switching Modal */}
+      <Modal
+        visible={showAccountModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowAccountModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Switch Account</Text>
+              <TouchableOpacity onPress={() => setShowAccountModal(false)}>
+                <Ionicons name="close" size={24} color="#000000" />
+              </TouchableOpacity>
+            </View>
+            <FlatList
+              data={accounts}
+              renderItem={renderAccountItem}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={styles.accountsList}
             />
           </View>
         </View>
@@ -226,6 +310,64 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  accountsList: {
+    paddingBottom: 16,
+  },
+  accountItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5EA',
+  },
+  accountAvatarContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F2F2F7',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  accountAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
+  accountAvatarPlaceholder: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F2F2F7',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  accountInfo: {
+    flex: 1,
+  },
+  accountName: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  accountEmail: {
+    fontSize: 14,
+    color: '#8E8E93',
   }
 });
 

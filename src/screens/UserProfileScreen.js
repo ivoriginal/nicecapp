@@ -19,7 +19,7 @@ export default function UserProfileScreen() {
   const route = useRoute();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-  const { userId } = route.params || { userId: null };
+  const { userId } = route.params || { userId: 'user1' }; // Default to Ivo Vilches
   const { coffeeEvents } = useCoffee();
   
   const [user, setUser] = useState(null);
@@ -28,18 +28,15 @@ export default function UserProfileScreen() {
   const [activeTab, setActiveTab] = useState('coffees'); // 'coffees' or 'recipes'
 
   useEffect(() => {
-    // Simulate loading user data
-    setTimeout(() => {
-      // Find user in mock data
-      const foundUser = mockData.users.find(u => u.id === userId) || mockData.users[0];
-      setUser(foundUser);
-      
-      // Get user's coffee events from the context
-      const userEvents = coffeeEvents.filter(event => event.userId === userId);
-      setUserCoffees(userEvents);
-      
-      setLoading(false);
-    }, 500);
+    // Find user in mock data immediately (no need for setTimeout)
+    const foundUser = mockData.users.find(u => u.id === userId) || mockData.users[0];
+    setUser(foundUser);
+    
+    // Get user's coffee events from the context
+    const userEvents = coffeeEvents ? coffeeEvents.filter(event => event.userId === userId) : [];
+    setUserCoffees(userEvents);
+    
+    setLoading(false);
   }, [userId, coffeeEvents]);
 
   const renderCoffeeItem = ({ item }) => (
@@ -80,11 +77,11 @@ export default function UserProfileScreen() {
           {/* Profile Header */}
           <View style={styles.header}>
             <Image 
-              source={{ uri: user.avatar || 'https://via.placeholder.com/100' }} 
+              source={{ uri: user.userAvatar }} 
               style={styles.avatar} 
             />
-            <Text style={styles.userName}>{user.name}</Text>
-            <Text style={styles.userHandle}>@{user.username}</Text>
+            <Text style={styles.userName}>{user.userName}</Text>
+            <Text style={styles.userHandle}>@{user.userName.toLowerCase().replace(/\s+/g, '_')}</Text>
             
             <View style={styles.statsContainer}>
               <View style={styles.statItem}>
@@ -92,11 +89,11 @@ export default function UserProfileScreen() {
                 <Text style={styles.statLabel}>Coffees</Text>
               </View>
               <View style={styles.statItem}>
-                <Text style={styles.statValue}>{user.followers || 0}</Text>
+                <Text style={styles.statValue}>0</Text>
                 <Text style={styles.statLabel}>Followers</Text>
               </View>
               <View style={styles.statItem}>
-                <Text style={styles.statValue}>{user.following || 0}</Text>
+                <Text style={styles.statValue}>0</Text>
                 <Text style={styles.statLabel}>Following</Text>
               </View>
             </View>
@@ -110,6 +107,28 @@ export default function UserProfileScreen() {
           {user.bio && (
             <View style={styles.bioContainer}>
               <Text style={styles.bioText}>{user.bio}</Text>
+            </View>
+          )}
+          
+          {/* Location */}
+          {user.location && (
+            <View style={styles.locationContainer}>
+              <Ionicons name="location-outline" size={16} color="#666666" />
+              <Text style={styles.locationText}>{user.location}</Text>
+            </View>
+          )}
+          
+          {/* Gear */}
+          {user.gear && user.gear.length > 0 && (
+            <View style={styles.gearContainer}>
+              <Text style={styles.gearTitle}>Gear</Text>
+              <View style={styles.gearList}>
+                {user.gear.map((item, index) => (
+                  <View key={index} style={styles.gearItem}>
+                    <Text style={styles.gearText}>{item}</Text>
+                  </View>
+                ))}
+              </View>
             </View>
           )}
           
@@ -313,6 +332,48 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
+    color: '#666666',
+  },
+  locationContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E5EA',
+  },
+  locationText: {
+    fontSize: 14,
+    color: '#666666',
+    marginLeft: 8,
+  },
+  gearContainer: {
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E5EA',
+  },
+  gearTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000000',
+    marginBottom: 8,
+  },
+  gearList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  gearItem: {
+    backgroundColor: '#F2F2F7',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  gearText: {
+    fontSize: 14,
     color: '#666666',
   },
 }); 

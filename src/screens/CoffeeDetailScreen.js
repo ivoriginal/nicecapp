@@ -163,6 +163,7 @@ export default function CoffeeDetailScreen() {
     if (coffee && !route.params?.coffee?.recipes) {
       // Get recipes for this coffee
       const recipes = getRecipesForCoffee(coffee.id);
+      console.log(`Found ${recipes.length} recipes for coffee ${coffee.id}`);
       setRelatedRecipes(recipes);
     }
   }, [coffee, getRecipesForCoffee, route.params?.coffee?.recipes]);
@@ -200,12 +201,19 @@ export default function CoffeeDetailScreen() {
   }, [isFavorite, isInCollection, navigation]);
 
   const navigateToRecipeDetail = (recipeId) => {
-    navigation.navigate('RecipeDetail', { 
-      recipeId, 
-      coffeeId: coffee.id,
-      coffeeName: coffee.name,
-      skipAuth: true 
-    });
+    // Find the recipe in the related recipes
+    const recipe = relatedRecipes.find(r => r.id === recipeId);
+    if (recipe) {
+      navigation.navigate('RecipeDetail', {
+        recipeId: recipe.id,
+        coffeeId: coffee.id,
+        coffeeName: coffee.name,
+        recipeName: recipe.name,
+        coffeeImage: coffee.image,
+        roaster: coffee.roaster,
+        recipe: recipe // Pass the full recipe for immediate rendering
+      });
+    }
   };
 
   const navigateToUserProfile = (userId) => {

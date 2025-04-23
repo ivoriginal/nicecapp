@@ -7,7 +7,7 @@ import CoffeeLogCard from '../components/CoffeeLogCard';
 import Toast from '../components/Toast';
 
 export default function HomeScreen({ navigation }) {
-  const { coffeeEvents, isLoading, loadData, recipes, addRecipe } = useCoffee();
+  const { allEvents, isLoading, loadData, recipes, addRecipe } = useCoffee();
   const insets = useSafeAreaInsets();
   const [refreshing, setRefreshing] = useState(false);
   const [toastVisible, setToastVisible] = useState(false);
@@ -98,7 +98,7 @@ export default function HomeScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <FlatList
-        data={coffeeEvents}
+        data={allEvents}
         renderItem={({ item }) => (
           <CoffeeLogCard 
             event={item}

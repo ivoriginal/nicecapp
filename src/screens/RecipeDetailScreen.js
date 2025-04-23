@@ -29,7 +29,7 @@ export default function RecipeDetailScreen() {
   
   const navigation = useNavigation();
   const route = useRoute();
-  const { recipeId, coffeeId, coffeeName, skipAuth } = route.params;
+  const { recipeId, coffeeId, coffeeName, recipe: routeRecipe } = route.params;
   const { 
     coffeeWishlist, 
     favorites, 
@@ -57,6 +57,25 @@ export default function RecipeDetailScreen() {
     const fetchRecipe = async () => {
       try {
         setLoading(true);
+        
+        // Check if a recipe was passed directly in route params
+        if (routeRecipe) {
+          console.log('Using recipe from route params:', routeRecipe.name);
+          setRecipe(routeRecipe);
+          
+          // Use coffee info from route params
+          if (coffeeId && coffeeName) {
+            setCoffee({
+              id: coffeeId,
+              name: coffeeName,
+              roaster: route.params?.roaster || 'Coffee Roaster',
+              image: route.params?.coffeeImage || 'https://images.unsplash.com/photo-1447933601403-0c6688de566e'
+            });
+          }
+          setLoading(false);
+          return;
+        }
+        
         // Find the recipe in the recipes array
         const foundRecipe = recipes.find(r => r.id === recipeId);
         

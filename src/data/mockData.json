@@ -2,8 +2,8 @@
   "users": [
     {
       "id": "user1",
-      "email": "alex.johnson@example.com",
-      "userName": "Alex Johnson",
+      "email": "ivo.vilches@example.com",
+      "userName": "Ivo Vilches",
       "userAvatar": "https://randomuser.me/api/portraits/men/32.jpg",
       "bio": "Coffee enthusiast and home barista. Always exploring new brewing methods.",
       "gear": ["Hario V60", "Baratza Encore", "Fellow Stagg EKG", "Acaia Pearl Scale"],
@@ -12,8 +12,8 @@
     },
     {
       "id": "user2",
-      "email": "sarah.williams@example.com",
-      "userName": "Sarah Williams",
+      "email": "contacto@vertigoycalambre.com",
+      "userName": "Vértigo y Calambre",
       "userAvatar": "https://randomuser.me/api/portraits/women/44.jpg",
       "bio": "Specialty coffee lover. Always on the hunt for the perfect cup.",
       "gear": ["Chemex", "Comandante C40", "Bonavita Kettle"],
@@ -22,8 +22,8 @@
     },
     {
       "id": "user3",
-      "email": "michael.chen@example.com",
-      "userName": "Michael Chen",
+      "email": "carlos.hernandez@example.com",
+      "userName": "Carlos Hernández",
       "userAvatar": "https://randomuser.me/api/portraits/men/67.jpg",
       "bio": "Coffee roaster and barista. Passionate about the craft.",
       "gear": ["La Marzocco Linea Mini", "Niche Zero", "Acaia Lunar Scale"],
