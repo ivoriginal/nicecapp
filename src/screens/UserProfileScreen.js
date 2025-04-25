@@ -35,22 +35,61 @@ export default function UserProfileScreen() {
     const foundUser = mockData.users.find(u => u.id === userId) || mockData.users[0];
     
     // Determine if this is a business account
-    const isBusinessAccount = userId === 'user2'; // Vértigo y Calambre is a business
-    const userWithBusinessStatus = {
-      ...foundUser,
-      isBusinessAccount,
-      userHandle: isBusinessAccount 
-        ? 'vertigoycalambre' 
-        : foundUser.userName.toLowerCase().replace(/\s+/g, '_')
-    };
+    // Check for business accounts:
+    // 1. Explicit matches like Vértigo y Calambre (user2)
+    // 2. Business IDs that start with "business-" like "business-kima"
+    // 3. Café IDs that start with "cafe" like "cafe1"
+    const isBusinessAccount = userId === 'user2' || 
+                             userId.startsWith('business-') || 
+                             userId.startsWith('cafe');
     
-    // Update locations
+    // For café accounts that aren't in the users array, create a mock user object
+    let userWithBusinessStatus;
+    
+    if (userId.startsWith('cafe')) {
+      // Find café in trendingCafes
+      const cafeData = mockData.trendingCafes.find(cafe => cafe.id === userId);
+      
+      if (cafeData) {
+        userWithBusinessStatus = {
+          id: cafeData.id,
+          userName: cafeData.name,
+          userAvatar: cafeData.imageUrl,
+          location: cafeData.location,
+          bio: cafeData.description,
+          isBusinessAccount: true,
+          userHandle: cafeData.id,
+          // Add empty gear since businesses don't have personal gear
+          gear: []
+        };
+      } else {
+        // Fallback if café not found
+        userWithBusinessStatus = {
+          ...foundUser,
+          isBusinessAccount,
+          userHandle: userId,
+          gear: []
+        };
+      }
+    } else {
+      userWithBusinessStatus = {
+        ...foundUser,
+        isBusinessAccount,
+        userHandle: isBusinessAccount 
+          ? userId === 'user2' ? 'vertigoycalambre' : userId.replace('business-', '')
+          : foundUser.userName.toLowerCase().replace(/\s+/g, '_')
+      };
+    }
+    
+    // Update locations for specific users (not needed for cafés as they already have location data)
     if (userWithBusinessStatus.id === 'user1') {
       userWithBusinessStatus.location = 'Murcia, Spain';
     } else if (userWithBusinessStatus.id === 'user2') {
       userWithBusinessStatus.location = 'Murcia, Spain';
     } else if (userWithBusinessStatus.id === 'user3') {
       userWithBusinessStatus.location = 'Madrid, Spain';
+    } else if (userWithBusinessStatus.id === 'business-kima') {
+      userWithBusinessStatus.location = 'Málaga, Spain';
     }
     
     setUser(userWithBusinessStatus);

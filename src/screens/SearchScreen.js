@@ -8,7 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import RecipeCard from '../components/RecipeCard';
 
 const { width } = Dimensions.get('window');
-const CARD_WIDTH = width * 0.7;
+const CARD_WIDTH = width * 0.8;
 const CARD_HEIGHT = 200;
 const RECENT_SEARCHES_KEY = 'recent_searches';
 const MAX_RECENT_SEARCHES = 5;
@@ -25,6 +25,7 @@ export default function SearchScreen() {
   const navigation = useNavigation();
   const isFirstMount = useRef(true);
   const [suggestedUsers, setSuggestedUsers] = useState(mockData.suggestedUsers);
+  
   const [popularRecipes, setPopularRecipes] = useState([
     {
       id: 'recipe1',
@@ -236,12 +237,15 @@ export default function SearchScreen() {
         { id: '13', name: 'CodingCarlos', type: 'user', username: 'codingcarlos' },
         { id: '14', name: 'Elias', type: 'user', username: 'elias' },
         { id: '15', name: 'Alena', type: 'user', username: 'alena' },
-        { id: '16', name: 'CafeLab', type: 'roaster', location: 'Murcia, Spain' },
-        { id: '17', name: 'The Fix', type: 'roaster', location: 'Madrid, Spain' },
+        { id: '16', name: 'CafeLab', type: 'cafe', location: 'Murcia, Spain' },
+        { id: '17', name: 'The Fix', type: 'cafe', location: 'Madrid, Spain', isRoaster: true },
+        { id: '18', name: 'Coffee Corner', type: 'cafe', location: 'Barcelona, Spain' },
+        { id: '19', name: 'Urban Brew', type: 'cafe', location: 'Valencia, Spain' },
       ].filter(item => 
         item.name.toLowerCase().includes(text.toLowerCase()) || 
         (item.roaster && item.roaster.toLowerCase().includes(text.toLowerCase())) ||
-        (item.username && item.username.toLowerCase().includes(text.toLowerCase()))
+        (item.username && item.username.toLowerCase().includes(text.toLowerCase())) ||
+        (item.location && item.location.toLowerCase().includes(text.toLowerCase()))
       );
       
       setSearchResults(mockResults);
@@ -271,7 +275,10 @@ export default function SearchScreen() {
   const renderSearchResult = ({ item }) => {
     if (item.type === 'coffee') {
       return (
-        <TouchableOpacity style={styles.resultItem}>
+        <TouchableOpacity 
+          style={styles.resultItem}
+          onPress={() => navigation.navigate('CoffeeDetail', { coffeeId: item.id })}
+        >
           <View style={styles.resultContent}>
             <Text style={styles.coffeeName}>{item.name}</Text>
             <Text style={styles.roasterName}>{item.roaster}</Text>
@@ -281,10 +288,43 @@ export default function SearchScreen() {
       );
     } else if (item.type === 'roaster') {
       return (
-        <TouchableOpacity style={styles.resultItem}>
+        <TouchableOpacity 
+          style={styles.resultItem}
+          onPress={() => {
+            navigation.navigate('UserProfileBridge', { 
+              userId: item.id, 
+              userName: item.name,
+              skipAuth: true 
+            });
+          }}
+        >
           <View style={styles.resultContent}>
             <Text style={styles.coffeeName}>{item.name}</Text>
             <Text style={styles.roasterName}>{item.location}</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color="#000000" />
+        </TouchableOpacity>
+      );
+    } else if (item.type === 'cafe') {
+      return (
+        <TouchableOpacity 
+          style={styles.resultItem}
+          onPress={() => {
+            navigation.navigate('UserProfileBridge', { 
+              userId: item.id, 
+              userName: item.name,
+              skipAuth: true 
+            });
+          }}
+        >
+          <View style={styles.resultContent}>
+            <Text style={styles.coffeeName}>{item.name}</Text>
+            <Text style={styles.roasterName}>{item.location}</Text>
+            {item.isRoaster && (
+              <View style={styles.cafeRoasterTag}>
+                <Text style={styles.cafeRoasterTagText}>Roaster</Text>
+              </View>
+            )}
           </View>
           <Ionicons name="chevron-forward" size={20} color="#000000" />
         </TouchableOpacity>
@@ -317,6 +357,7 @@ export default function SearchScreen() {
       { id: 'all', label: 'All' },
       { id: 'coffee', label: 'Coffees' },
       { id: 'roaster', label: 'Roasters' },
+      { id: 'cafe', label: 'Cafés' },
       { id: 'user', label: 'Users' },
     ];
 
@@ -382,7 +423,7 @@ export default function SearchScreen() {
             onPress={() => navigation.navigate('CoffeeDetail', { coffeeId: item.id })}
           >
             <Image 
-              source={{ uri: item.image }} 
+              source={{ uri: item.imageUrl || item.image }} 
               style={styles.carouselImage} 
               resizeMode="cover"
             />
@@ -390,7 +431,7 @@ export default function SearchScreen() {
               <Text style={styles.carouselTitle}>{item.name}</Text>
               <Text style={styles.carouselSubtitle}>{item.roaster}</Text>
               <View style={styles.carouselStats}>
-                <Text style={styles.carouselPrice}>${item.price.toFixed(2)}</Text>
+                <Text style={styles.carouselPrice}>${item.price ? item.price.toFixed(2) : '0.00'}</Text>
                 <Text style={styles.carouselOrigin}>{item.origin}</Text>
               </View>
             </View>
@@ -401,18 +442,13 @@ export default function SearchScreen() {
           <TouchableOpacity 
             style={styles.carouselCard}
             onPress={() => {
-              // Check if this is a user-based cafe (like Vértigo y Calambre)
-              if (item.id && item.id.startsWith('user')) {
-                // Navigate to UserProfileBridge for user cafes
-                navigation.navigate('UserProfileBridge', { 
-                  userId: item.id, 
-                  userName: item.name,
-                  skipAuth: true 
-                });
-              } else {
-                // Navigate to CoffeeDetail for regular cafes
-                navigation.navigate('CoffeeDetail', { coffeeId: item.id });
-              }
+              // All cafés should be treated as business accounts
+              // and should navigate to UserProfileBridge
+              navigation.navigate('UserProfileBridge', { 
+                userId: item.id, 
+                userName: item.name,
+                skipAuth: true 
+              });
             }}
           >
             <Image 
@@ -421,10 +457,16 @@ export default function SearchScreen() {
               resizeMode="cover"
             />
             <View style={styles.carouselOverlay}>
-              <Text style={styles.carouselTitle}>{item.name}</Text>
-              <Text style={styles.carouselSubtitle}>{item.location}</Text>
-              <View style={styles.carouselStats}>
-                <Text style={styles.carouselType}>{item.type === 'roaster_coffee_shop' ? 'Roaster & Café' : 'Café'}</Text>
+              <View style={styles.cafeInfoRow}>
+                <Image 
+                  source={{ uri: item.logo }} 
+                  style={styles.cafeLogo} 
+                  resizeMode="cover"
+                />
+                <View style={styles.cafeTextContainer}>
+                  <Text style={styles.carouselTitle}>{item.name}</Text>
+                  <Text style={styles.carouselSubtitle}>{item.location}</Text>
+                </View>
               </View>
             </View>
           </TouchableOpacity>
@@ -447,10 +489,8 @@ export default function SearchScreen() {
               style={styles.userAvatar} 
               resizeMode="cover"
             />
-            <View style={styles.userInfo}>
-              <Text style={styles.userName}>{item.userName}</Text>
-              <Text style={styles.userUsername}>@{item.userName.toLowerCase().replace(' ', '')}</Text>
-            </View>
+            <Text style={styles.userName}>{item.userName}</Text>
+            <Text style={styles.userUsername}>@{item.userName.toLowerCase().replace(' ', '')}</Text>
             <TouchableOpacity style={styles.followButton}>
               <Text style={styles.followButtonText}>Follow</Text>
             </TouchableOpacity>
@@ -480,7 +520,7 @@ export default function SearchScreen() {
               <Text style={styles.eventRoaster}>{item.roaster}</Text>
               <View style={styles.eventRating}>
                 <Ionicons name="star" size={14} color="#FFD700" />
-                <Text style={styles.eventRatingText}>{item.rating.toFixed(1)}</Text>
+                <Text style={styles.eventRatingText}>{item.rating ? item.rating.toFixed(1) : '0.0'}</Text>
               </View>
             </View>
           </TouchableOpacity>
@@ -490,15 +530,74 @@ export default function SearchScreen() {
     }
   };
 
-  const renderCarousel = (title, data, type) => {
+  const renderCarousel = (title, data, type, showViewMore = false, viewMoreDestination = null, viewMoreParams = {}) => {
     if (!data || data.length === 0) return null;
     
     return (
       <View style={styles.carouselSection}>
-        <Text style={styles.carouselSectionTitle}>{title}</Text>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.carouselSectionTitle}>{title}</Text>
+          {showViewMore && (
+            <TouchableOpacity 
+              onPress={() => navigation.navigate(viewMoreDestination, viewMoreParams)}
+            >
+              <Text style={styles.viewAllText}>View more</Text>
+            </TouchableOpacity>
+          )}
+        </View>
         <FlatList
           data={data}
           renderItem={({ item }) => renderCarouselItem({ item, type: type === 'mixed' ? (item.type || 'user') : type })}
+          keyExtractor={item => item.id}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={type === 'user' ? styles.userCarouselContainer : styles.carouselContainer}
+        />
+      </View>
+    );
+  };
+
+  const renderPopularCoffeeItem = ({ item }) => (
+    <TouchableOpacity 
+      style={styles.popularCoffeeCard}
+      onPress={() => navigation.navigate('CoffeeDetail', { coffeeId: item.id })}
+    >
+      <Image 
+        source={{ uri: item.imageUrl || item.image }} 
+        style={styles.popularCoffeeImage} 
+        resizeMode="cover"
+      />
+      <View style={styles.popularCoffeeContent}>
+        <Text style={styles.popularCoffeeName}>{item.name}</Text>
+        <Text style={styles.popularCoffeeRoaster}>{item.roaster}</Text>
+        <View style={styles.popularCoffeeDetails}>
+          <View style={styles.popularCoffeeOriginContainer}>
+            <Text style={styles.popularCoffeeOrigin}>{item.origin}</Text>
+          </View>
+          <Text style={styles.popularCoffeePrice}>${item.price ? item.price.toFixed(2) : '0.00'}</Text>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+
+  const renderPopularCoffeeCarousel = (title, data, showViewMore = false, viewMoreDestination = null, viewMoreParams = {}) => {
+    if (!data || data.length === 0) return null;
+    
+    return (
+      <View style={styles.carouselSection}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.carouselSectionTitle}>{title}</Text>
+          {showViewMore && (
+            <TouchableOpacity 
+              onPress={() => navigation.navigate(viewMoreDestination, viewMoreParams)}
+            >
+              <Text style={styles.viewAllText}>View more</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+        <FlatList
+          data={data}
+          renderItem={renderPopularCoffeeItem}
           keyExtractor={item => item.id}
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -515,7 +614,7 @@ export default function SearchScreen() {
         <TextInput
           ref={searchInputRef}
           style={styles.searchInput}
-          placeholder="Search coffees, roasters, users..."
+          placeholder="Search coffees, cafés, roasters and users"
           value={searchQuery}
           onChangeText={handleSearch}
           onFocus={() => setIsInputFocused(true)}
@@ -592,10 +691,10 @@ export default function SearchScreen() {
           contentContainerStyle={styles.discoveryContentContainer}
           showsVerticalScrollIndicator={false}
         >
-          {renderCarousel('Coffee Suggestions', coffeeSuggestions, 'coffee')}
-          {renderCarousel('Trending Cafés', trendingCafes, 'cafe')}
-          {renderCarousel('Popular Recipes', popularRecipes, 'recipe')}
-          {renderCarousel('People You Might Know', suggestedUsers, 'user')}
+          {renderPopularCoffeeCarousel('Discover Coffee', mockData.coffees, true, 'CoffeeDiscovery', { sortBy: 'popularity' })}
+          {renderCarousel('Good Cafés', trendingCafes, 'cafe', true, 'CafesList')}
+          {renderCarousel('Recipes for you', popularRecipes, 'recipe', true, 'RecipesList')}
+          {renderCarousel('People You Might Know', suggestedUsers, 'user', true, 'PeopleList')}
         </ScrollView>
       )}
     </View>
@@ -605,22 +704,22 @@ export default function SearchScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#FFFFFF',
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#E5E5EA',
     borderRadius: 10,
     marginHorizontal: 16,
     marginVertical: 8,
     paddingHorizontal: 12,
-    height: 44,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    height: 48,
+    // shadowColor: '#000',
+    // shadowOffset: { width: 0, height: 1 },
+    // shadowOpacity: 0.1,
+    // shadowRadius: 2,
+    // elevation: 2,
   },
   searchIcon: {
     marginRight: 8,
@@ -634,7 +733,7 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   filterChipsContainer: {
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#FFFFFF',
     paddingVertical: 8,
     paddingBottom: 12,
     borderBottomWidth: 1,
@@ -647,7 +746,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F2F2F7',
     marginRight: 8,
     borderWidth: 1,
     borderColor: '#E5E5EA',
@@ -681,11 +780,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 16,
     marginBottom: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
   },
   resultContent: {
     flex: 1,
@@ -715,30 +809,24 @@ const styles = StyleSheet.create({
     paddingTop: 16,
   },
   carouselSection: {
-    marginBottom: 24,
+    marginBottom: 32,
   },
   carouselSectionTitle: {
     fontSize: 20,
     fontWeight: '600',
     color: '#000000',
-    marginHorizontal: 16,
-    marginBottom: 12,
+    marginHorizontal: 4,
   },
   carouselContainer: {
-    paddingHorizontal: 8,
+    paddingHorizontal: 16,
   },
   carouselCard: {
     width: CARD_WIDTH,
     height: CARD_HEIGHT,
     borderRadius: 12,
-    marginHorizontal: 8,
+    marginRight: 12,
     overflow: 'hidden',
     backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   carouselImage: {
     width: '100%',
@@ -749,8 +837,10 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    paddingHorizontal: 12,
     padding: 12,
+    paddingBottom: 4,
   },
   carouselTitle: {
     fontSize: 18,
@@ -761,7 +851,7 @@ const styles = StyleSheet.create({
   carouselSubtitle: {
     fontSize: 14,
     color: '#FFFFFF',
-    marginBottom: 8,
+    marginBottom: 1,
   },
   carouselStats: {
     flexDirection: 'row',
@@ -826,45 +916,47 @@ const styles = StyleSheet.create({
     color: '#666666',
   },
   userCard: {
-    width: CARD_WIDTH,
-    height: 100,
+    width: 180,
+    height: 232,
     borderRadius: 12,
-    marginHorizontal: 8,
+    marginRight: 12,
     overflow: 'hidden',
     backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    flexDirection: 'row',
+    flexDirection: 'column',
     alignItems: 'center',
-    padding: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
   },
   userAvatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    marginBottom: 12,
   },
   userInfo: {
-    flex: 1,
-    marginLeft: 12,
+    width: '100%',
+    alignItems: 'center',
   },
   userName: {
     fontSize: 16,
     fontWeight: '600',
     color: '#000000',
     marginBottom: 4,
+    textAlign: 'center',
   },
   userUsername: {
     fontSize: 14,
     color: '#666666',
+    marginBottom: 12,
+    textAlign: 'center',
   },
   followButton: {
     backgroundColor: '#000000',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
+    marginTop: 'auto',
   },
   followButtonText: {
     color: '#FFFFFF',
@@ -878,11 +970,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 8,
     overflow: 'hidden',
     backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   eventImage: {
     width: '100%',
@@ -929,5 +1016,102 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#000000',
     marginLeft: 4,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginHorizontal: 16,
+    marginBottom: 12,
+  },
+  viewAllText: {
+    fontSize: 14,
+    color: '#007AFF',
+    fontWeight: '500',
+  },
+  cafeLogo: {
+    width: 40,
+    height: 40,
+    borderRadius: 6,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#FFFFFF',
+    marginRight: 12,
+  },
+  cafeInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  cafeTextContainer: {
+    flex: 1,
+  },
+  popularCoffeeCard: {
+    width: CARD_WIDTH,
+    borderRadius: 12,
+    marginRight: 12,
+    overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+  },
+  popularCoffeeImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 8,
+    marginRight: 12,
+    backgroundColor: '#E5E5EA',
+  },
+  popularCoffeeContent: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  popularCoffeeName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000000',
+    marginBottom: 3,
+  },
+  popularCoffeeRoaster: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#666666',
+    marginBottom: 8,
+  },
+  popularCoffeeDetails: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  popularCoffeeOriginContainer: {
+    flex: 1,
+  },
+  popularCoffeeOrigin: {
+    fontSize: 14,
+    color: '#666666',
+  },
+  popularCoffeePrice: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#000000',
+  },
+  userCarouselContainer: {
+    paddingHorizontal: 16,
+  },
+  cafeRoasterTag: {
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginTop: 4,
+    alignSelf: 'flex-start',
+  },
+  cafeRoasterTagText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 }); 

@@ -1,5 +1,5 @@
 import React, { useState, useContext, useRef, useEffect } from 'react';
-import { View, Text, TextInput, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, Switch, ActionSheetIOS, Platform, Modal, Alert } from 'react-native';
+import { View, Text, TextInput, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, Switch, ActionSheetIOS, Platform, Modal, Alert, KeyboardAvoidingView } from 'react-native';
 import { CoffeeContext } from '../context/CoffeeContext';
 import { supabase } from '../lib/supabase';
 import { useCoffee } from '../context/CoffeeContext';
@@ -86,6 +86,7 @@ export default function AddCoffeeScreen({ navigation, route }) {
           grindSize: 'Medium-Fine',
           waterVolume: '300',
           brewTime: '3:30',
+          userName: 'Ivo Vilches'
         },
         {
           method: 'AeroPress',
@@ -93,6 +94,7 @@ export default function AddCoffeeScreen({ navigation, route }) {
           grindSize: 'Fine',
           waterVolume: '250',
           brewTime: '2:00',
+          userName: 'Vértigo y Calambre'
         },
         {
           method: 'Chemex',
@@ -100,6 +102,7 @@ export default function AddCoffeeScreen({ navigation, route }) {
           grindSize: 'Medium',
           waterVolume: '350',
           brewTime: '4:30',
+          userName: 'Carlos Hernández'
         }
       ];
       setRecipeSuggestions(mockRecipes);
@@ -224,7 +227,7 @@ export default function AddCoffeeScreen({ navigation, route }) {
           grindSize: selectedRecipe.grindSize,
           waterVolume: selectedRecipe.waterVolume,
           brewTime: selectedRecipe.brewTime,
-          userName: selectedRecipe.userName || 'Community',
+          userName: selectedRecipe.userName || 'Ivo Vilches',
         } : null,
       };
 
@@ -239,8 +242,8 @@ export default function AddCoffeeScreen({ navigation, route }) {
       
       // Small delay to ensure the preview modal is closed before navigating
       setTimeout(() => {
-        // Navigate to the Home screen instead of going back
-        navigation.navigate('MainTabs', { screen: 'Home' });
+        // Use goBack() to return to the previous screen (which should be Home)
+        navigation.goBack();
       }, 100);
     } catch (error) {
       console.error('Error saving coffee:', error);
@@ -314,7 +317,10 @@ export default function AddCoffeeScreen({ navigation, route }) {
             onPress={() => handleRecipePress(recipe)}
           >
             <View style={styles.recipeHeader}>
-              <Text style={styles.recipeMethod}>{recipe.method}</Text>
+              <View>
+                <Text style={styles.recipeMethod}>{recipe.method}</Text>
+                <Text style={styles.recipeAuthor}>by {recipe.userName || 'Ivo Vilches'}</Text>
+              </View>
               <Ionicons name="chevron-forward" size={20} color="#666666" />
             </View>
             <View style={styles.recipeDetails}>
@@ -348,13 +354,13 @@ export default function AddCoffeeScreen({ navigation, route }) {
       {selectedRecipe && (
         <View style={styles.basedOnContainer}>
           <Text style={styles.basedOnText}>
-            Based on a recipe by {selectedRecipe.userName || 'Community'}
+            Based on a recipe by {selectedRecipe.userName || 'Ivo Vilches'}
           </Text>
           <TouchableOpacity 
             onPress={handleClearRecipe}
             style={styles.clearButton}
           >
-            <Ionicons name="close-circle" size={20} color="#666666" />
+            <Ionicons name="refresh" size={20} color="#666666" />
           </TouchableOpacity>
         </View>
       )}
@@ -443,7 +449,10 @@ export default function AddCoffeeScreen({ navigation, route }) {
       transparent={true}
       onRequestClose={() => setShowPreview(false)}
     >
-      <View style={styles.modalContainer}>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.modalContainer}
+      >
         <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Preview</Text>
@@ -455,7 +464,11 @@ export default function AddCoffeeScreen({ navigation, route }) {
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.previewContent}>
+          <ScrollView 
+            style={styles.previewContent}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="interactive"
+          >
             <Text style={styles.previewCoffeeName}>{coffeeData.name}</Text>
             
             <View style={styles.recipePreview}>
@@ -505,6 +518,25 @@ export default function AddCoffeeScreen({ navigation, route }) {
               </View>
             </View>
 
+            <View style={styles.notesContainer}>
+              <Text style={styles.notesLabel}>Notes (optional)</Text>
+              <TextInput
+                style={styles.notesInput}
+                value={coffeeData.notes}
+                onChangeText={(text) => setCoffeeData({ ...coffeeData, notes: text })}
+                placeholder="Add any notes about this brew..."
+                placeholderTextColor="#999"
+                multiline
+                numberOfLines={4}
+                textAlignVertical="top"
+              />
+            </View>
+            
+            {/* Add extra padding at the bottom to ensure scrollability */}
+            <View style={{ height: 100 }} />
+          </ScrollView>
+
+          <View style={styles.sharingContainer}>
             <View style={styles.sharingOptions}>
               <View style={styles.sharingTextContainer}>
                 <Text style={styles.sharingLabel}>Share with community</Text>
@@ -519,21 +551,7 @@ export default function AddCoffeeScreen({ navigation, route }) {
                 thumbColor={!isPrivate ? '#2196F3' : '#f4f4f4'}
               />
             </View>
-
-            <View style={styles.notesContainer}>
-              <Text style={styles.notesLabel}>Notes (optional)</Text>
-              <TextInput
-                style={styles.notesInput}
-                value={coffeeData.notes}
-                onChangeText={(text) => setCoffeeData({ ...coffeeData, notes: text })}
-                placeholder="Add any notes about this brew..."
-                placeholderTextColor="#999"
-                multiline
-                numberOfLines={4}
-                textAlignVertical="top"
-              />
-            </View>
-          </ScrollView>
+          </View>
 
           <View style={[styles.modalFooter, { paddingBottom: insets.bottom }]}>
             <TouchableOpacity 
@@ -544,7 +562,7 @@ export default function AddCoffeeScreen({ navigation, route }) {
             </TouchableOpacity>
           </View>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 
@@ -570,7 +588,7 @@ export default function AddCoffeeScreen({ navigation, route }) {
           <View style={styles.originalRecipeContent}>
             <View style={styles.originalRecipeHeader}>
               <Text style={styles.originalRecipeTitle}>
-                {selectedRecipe?.userName || 'Community'}'s Recipe
+                {selectedRecipe?.userName || 'Ivo Vilches'}'s Recipe
               </Text>
               <Text style={styles.originalRecipeSubtitle}>
                 Original recipe for {coffeeData.name}
@@ -729,6 +747,7 @@ const styles = StyleSheet.create({
   segmentedControl: {
     flexDirection: 'row',
     margin: 16,
+    marginBottom: 0,
     backgroundColor: '#F2F2F7',
     borderRadius: 8,
     padding: 4,
@@ -774,6 +793,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#000000',
+  },
+  recipeAuthor: {
+    fontSize: 12,
+    color: '#666666',
+    marginTop: 2,
   },
   recipeDetails: {
     flexDirection: 'row',
@@ -843,71 +867,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 12,
-  },
-  sharingOptions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E5EA',
-  },
-  sharingTextContainer: {
-    flex: 1,
-  },
-  sharingLabel: {
-    fontSize: 16,
-    color: '#000000',
-  },
-  sharingDescription: {
-    fontSize: 14,
-    color: '#666666',
-    marginTop: 2,
-  },
-  recipeAttribution: {
-    marginTop: 16,
-    padding: 12,
-    backgroundColor: '#F8F8F8',
-    borderRadius: 8,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  attributionText: {
-    fontSize: 14,
-    color: '#666666',
-    textAlign: 'center',
-  },
-  modalFooter: {
-    padding: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E5EA',
-  },
-  closeButton: {
-    backgroundColor: '#2196F3',
-    padding: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  closeButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  originalRecipeContent: {
-    padding: 16,
-  },
-  originalRecipeHeader: {
-    marginBottom: 16,
-  },
-  originalRecipeTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-  },
-  originalRecipeSubtitle: {
-    fontSize: 14,
-    color: '#666666',
-    marginTop: 4,
   },
   ratingContainer: {
     marginTop: 16,
@@ -990,6 +949,87 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   customSaveButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  basedOnContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#EFEFEF',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  basedOnText: {
+    fontSize: 14,
+    color: '#444444',
+    fontWeight: '500',
+  },
+  sharingContainer: {
+    borderTopWidth: 1,
+    borderTopColor: '#E5E5EA',
+    backgroundColor: '#FFFFFF',
+  },
+  sharingOptions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+  },
+  sharingTextContainer: {
+    flex: 1,
+  },
+  sharingLabel: {
+    fontSize: 16,
+    color: '#000000',
+  },
+  sharingDescription: {
+    fontSize: 14,
+    color: '#666666',
+    marginTop: 2,
+  },
+  originalRecipeContent: {
+    padding: 16,
+  },
+  originalRecipeHeader: {
+    marginBottom: 16,
+  },
+  originalRecipeTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+  },
+  originalRecipeSubtitle: {
+    fontSize: 14,
+    color: '#666666',
+    marginTop: 4,
+  },
+  closeButton: {
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  modalFooter: {
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E5EA',
+  },
+  recipeAttribution: {
+    marginTop: 16,
+    padding: 12,
+    backgroundColor: '#F8F8F8',
+    borderRadius: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  attributionText: {
+    fontSize: 14,
+    color: '#666666',
+    textAlign: 'center',
+  },
+  closeButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',

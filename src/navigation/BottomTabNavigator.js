@@ -160,11 +160,21 @@ export default function BottomTabNavigator() {
           },
           headerTintColor: '#000000',
           tabBarStyle: {
-            paddingTop: 4,
-            paddingHorizontal: 5,
+            minHeight: 56,
+            paddingHorizontal: 4,
+            paddingBottom: insets.bottom,
             backgroundColor: '#ffffff',
             borderTopWidth: 1,
             borderTopColor: '#f0f0f0',
+          },
+          tabBarItemStyle: {
+            justifyContent: 'center',
+            alignItems: 'center',
+          },
+          tabBarIconStyle: {
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
           },
         })}
       >

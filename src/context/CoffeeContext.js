@@ -510,6 +510,14 @@ export const CoffeeProvider = ({ children }) => {
       // Add the new event to the coffeeEvents state
       setCoffeeEvents(prevEvents => [newEvent, ...prevEvents]);
       
+      // Add the new event to the allEvents state too
+      setAllEvents(prevEvents => [newEvent, ...prevEvents]);
+      
+      // Also update the accountData object
+      if (accountData[currentAccount]) {
+        accountData[currentAccount].coffeeEvents = [newEvent, ...(accountData[currentAccount].coffeeEvents || [])];
+      }
+      
       // Return the new event in case it's needed by the caller
       return newEvent;
     } catch (error) {
@@ -639,8 +647,64 @@ export const CoffeeProvider = ({ children }) => {
     ]
   };
 
-  // Function to get recipes for a specific coffee
+  // Get recipes for a specific coffee
   const getRecipesForCoffee = (coffeeId) => {
+    if (coffeeId === 'coffee-villa-rosario') {
+      return [
+        {
+          id: 'recipe-villa-rosario-1',
+          name: 'Villa Rosario V60',
+          method: 'V60',
+          userId: 'user2',
+          userName: 'Vértigo y Calambre',
+          userAvatar: 'https://instagram.fvlc6-1.fna.fbcdn.net/v/t51.2885-19/336824776_569041758334218_6485683640258084106_n.jpg?stp=dst-jpg_s150x150_tt6&_nc_ht=instagram.fvlc6-1.fna.fbcdn.net&_nc_cat=106&_nc_oc=Q6cZ2QG9yijX6AYS-LyAN9vATpVAGPTj3dueZAwrz_3RB68vu_PtQKtRFxeVRSPP84eYFZw&_nc_ohc=mD1tNAu2Bp0Q7kNvwHFAMaF&_nc_gid=a2z4gQ9o-xKDwiAyIMflPA&edm=AOQ1c0wBAAAA&ccb=7-5&oh=00_AfHHhBR9AddwcSMHdDw7WSR00XBUUwYOp5v4FuY-lTj-vw&oe=680ED603&_nc_sid=8b3546',
+          coffeeId: 'coffee-villa-rosario',
+          coffeeName: 'Villa Rosario',
+          roaster: 'Kima Coffee',
+          steps: [
+            { time: '0:00', action: 'Rinse filter and warm vessel', water: 0 },
+            { time: '0:00', action: 'Add 18g coffee (medium-fine grind)', water: 0 },
+            { time: '0:00', action: 'Add 40g water for bloom', water: 40 },
+            { time: '0:30', action: 'Gently swirl brewer', water: 0 },
+            { time: '0:45', action: 'Add water to 150g', water: 110 },
+            { time: '1:15', action: 'Add water to 250g', water: 100 },
+            { time: '1:45', action: 'Gently swirl brewer', water: 0 },
+            { time: '2:30', action: 'Drawdown complete', water: 0 }
+          ],
+          tips: [
+            'Use filtered water at 94°C',
+            'Grind coffee just before brewing',
+            'Aim for a total brew time of 2:30-3:00'
+          ],
+          notes: 'Highlights the cherry and cookie notes with a sweet caramel finish.'
+        },
+        {
+          id: 'recipe-villa-rosario-2',
+          name: 'Villa Rosario Espresso',
+          method: 'Espresso',
+          userId: 'business-kima',
+          userName: 'Kima Coffee',
+          userAvatar: 'https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728',
+          coffeeId: 'coffee-villa-rosario',
+          coffeeName: 'Villa Rosario',
+          roaster: 'Kima Coffee',
+          steps: [
+            { time: '0:00', action: 'Dose 18g coffee (fine grind)', water: 0 },
+            { time: '0:00', action: 'Distribute and tamp evenly', water: 0 },
+            { time: '0:00', action: 'Pull shot with 36g output', water: 36 },
+            { time: '0:28', action: 'Shot complete', water: 0 }
+          ],
+          tips: [
+            'Aim for 28-32 seconds extraction time',
+            'Machine temperature around 93°C',
+            ' 1:2 brew ratio (18g in, 36g out)'
+          ],
+          notes: 'Rich body with strong caramel sweetness and delicate cola aftertaste.'
+        }
+      ];
+    }
+    
+    // Original function content for other coffees
     return mockRecipes[coffeeId] || [];
   };
 

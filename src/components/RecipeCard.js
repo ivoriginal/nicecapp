@@ -47,10 +47,6 @@ const RecipeCard = ({
           style={styles.coffeeContainer}
           onPress={() => onPress && onPress(coffeeId)}
         >
-          <View style={styles.coffeeHeader}>
-            <Text style={styles.coffeeTitle}>Coffee</Text>
-            <Ionicons name="chevron-forward" size={16} color="#666666" />
-          </View>
           <View style={styles.coffeeInfo}>
             {coffeeImage && (
               <Image 
@@ -145,7 +141,7 @@ const RecipeCard = ({
 
 const styles = StyleSheet.create({
   recipeCard: {
-    backgroundColor: '#F8F8F8',
+    backgroundColor: '#F0F0F0',
     borderRadius: 12,
     padding: 16,
     marginRight: 12,

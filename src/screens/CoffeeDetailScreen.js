@@ -9,7 +9,8 @@ import {
   FlatList,
   ActivityIndicator,
   Alert,
-  TextInput
+  TextInput,
+  Dimensions
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useCoffee } from '../context/CoffeeContext';
@@ -19,45 +20,6 @@ import eventEmitter from '../utils/EventEmitter';
 import mockData from '../data/mockData.json';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import RecipeCard from '../components/RecipeCard';
-
-// Mock data for sellers
-const mockSellers = {
-  'coffee1': [
-    { id: 'business3', name: 'Blue Bottle Coffee', isRoaster: true, businessAccount: false, avatar: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80', location: 'Oakland, CA' },
-    { id: 'user2', name: 'Vértigo y Calambre', isRoaster: false, businessAccount: true, avatar: 'https://instagram.fvlc6-1.fna.fbcdn.net/v/t51.2885-19/336824776_569041758334218_6485683640258084106_n.jpg?stp=dst-jpg_s150x150_tt6&_nc_ht=instagram.fvlc6-1.fna.fbcdn.net&_nc_cat=106&_nc_oc=Q6cZ2QG9yijX6AYS-LyAN9vATpVAGPTj3dueZAwrz_3RB68vu_PtQKtRFxeVRSPP84eYFZw&_nc_ohc=mD1tNAu2Bp0Q7kNvwHFAMaF&_nc_gid=a2z4gQ9o-xKDwiAyIMflPA&edm=AOQ1c0wBAAAA&ccb=7-5&oh=00_AfHHhBR9AddwcSMHdDw7WSR00XBUUwYOp5v4FuY-lTj-vw&oe=680ED603&_nc_sid=8b3546', location: 'Murcia, Spain' }
-  ],
-  'coffee2': [
-    { id: 'business4', name: 'Stumptown Coffee Roasters', isRoaster: true, businessAccount: false, avatar: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80', location: 'Portland, OR' },
-    { id: 'user2', name: 'Vértigo y Calambre', isRoaster: false, businessAccount: true, avatar: 'https://instagram.fvlc6-1.fna.fbcdn.net/v/t51.2885-19/336824776_569041758334218_6485683640258084106_n.jpg?stp=dst-jpg_s150x150_tt6&_nc_ht=instagram.fvlc6-1.fna.fbcdn.net&_nc_cat=106&_nc_oc=Q6cZ2QG9yijX6AYS-LyAN9vATpVAGPTj3dueZAwrz_3RB68vu_PtQKtRFxeVRSPP84eYFZw&_nc_ohc=mD1tNAu2Bp0Q7kNvwHFAMaF&_nc_gid=a2z4gQ9o-xKDwiAyIMflPA&edm=AOQ1c0wBAAAA&ccb=7-5&oh=00_AfHHhBR9AddwcSMHdDw7WSR00XBUUwYOp5v4FuY-lTj-vw&oe=680ED603&_nc_sid=8b3546', location: 'Murcia, Spain' },
-    { id: 'business2', name: 'The Fix', isRoaster: false, businessAccount: true, avatar: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80', location: 'Austin, TX' }
-  ],
-  'coffee3': [
-    { id: 'business3', name: 'Blue Bottle Coffee', isRoaster: true, businessAccount: false, avatar: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80', location: 'Oakland, CA' }
-  ],
-  'coffee4': [
-    { id: 'business4', name: 'Stumptown Coffee Roasters', isRoaster: true, businessAccount: false, avatar: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80', location: 'Portland, OR' },
-    { id: 'user2', name: 'Vértigo y Calambre', isRoaster: false, businessAccount: true, avatar: 'https://instagram.fvlc6-1.fna.fbcdn.net/v/t51.2885-19/336824776_569041758334218_6485683640258084106_n.jpg?stp=dst-jpg_s150x150_tt6&_nc_ht=instagram.fvlc6-1.fna.fbcdn.net&_nc_cat=106&_nc_oc=Q6cZ2QG9yijX6AYS-LyAN9vATpVAGPTj3dueZAwrz_3RB68vu_PtQKtRFxeVRSPP84eYFZw&_nc_ohc=mD1tNAu2Bp0Q7kNvwHFAMaF&_nc_gid=a2z4gQ9o-xKDwiAyIMflPA&edm=AOQ1c0wBAAAA&ccb=7-5&oh=00_AfHHhBR9AddwcSMHdDw7WSR00XBUUwYOp5v4FuY-lTj-vw&oe=680ED603&_nc_sid=8b3546', location: 'Murcia, Spain' }
-  ],
-  'coffee5': [
-    { id: 'business2', name: 'The Fix', isRoaster: true, businessAccount: true, avatar: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80', location: 'Austin, TX' }
-  ],
-  'coffee-0': [
-    { id: 'business3', name: 'Blue Bottle Coffee', isRoaster: true, businessAccount: false, avatar: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80', location: 'Oakland, CA' },
-    { id: 'user2', name: 'Vértigo y Calambre', isRoaster: false, businessAccount: true, avatar: 'https://instagram.fvlc6-1.fna.fbcdn.net/v/t51.2885-19/336824776_569041758334218_6485683640258084106_n.jpg?stp=dst-jpg_s150x150_tt6&_nc_ht=instagram.fvlc6-1.fna.fbcdn.net&_nc_cat=106&_nc_oc=Q6cZ2QG9yijX6AYS-LyAN9vATpVAGPTj3dueZAwrz_3RB68vu_PtQKtRFxeVRSPP84eYFZw&_nc_ohc=mD1tNAu2Bp0Q7kNvwHFAMaF&_nc_gid=a2z4gQ9o-xKDwiAyIMflPA&edm=AOQ1c0wBAAAA&ccb=7-5&oh=00_AfHHhBR9AddwcSMHdDw7WSR00XBUUwYOp5v4FuY-lTj-vw&oe=680ED603&_nc_sid=8b3546', location: 'Murcia, Spain' }
-  ],
-  'coffee-1': [
-    { id: 'business4', name: 'Stumptown Coffee Roasters', isRoaster: true, businessAccount: false, avatar: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80', location: 'Portland, OR' },
-    { id: 'user2', name: 'Vértigo y Calambre', isRoaster: false, businessAccount: true, avatar: 'https://instagram.fvlc6-1.fna.fbcdn.net/v/t51.2885-19/336824776_569041758334218_6485683640258084106_n.jpg?stp=dst-jpg_s150x150_tt6&_nc_ht=instagram.fvlc6-1.fna.fbcdn.net&_nc_cat=106&_nc_oc=Q6cZ2QG9yijX6AYS-LyAN9vATpVAGPTj3dueZAwrz_3RB68vu_PtQKtRFxeVRSPP84eYFZw&_nc_ohc=mD1tNAu2Bp0Q7kNvwHFAMaF&_nc_gid=a2z4gQ9o-xKDwiAyIMflPA&edm=AOQ1c0wBAAAA&ccb=7-5&oh=00_AfHHhBR9AddwcSMHdDw7WSR00XBUUwYOp5v4FuY-lTj-vw&oe=680ED603&_nc_sid=8b3546', location: 'Murcia, Spain' }
-  ],
-  'coffee-2': [
-    { id: 'business1', name: 'Toma Café', isRoaster: true, businessAccount: true, avatar: 'https://instagram.fvlc6-1.fna.fbcdn.net/v/t51.2885-19/336824776_569041758334218_6485683640258084106_n.jpg', location: 'Madrid, Spain' },
-    { id: 'user2', name: 'Vértigo y Calambre', isRoaster: false, businessAccount: true, avatar: 'https://instagram.fvlc6-1.fna.fbcdn.net/v/t51.2885-19/336824776_569041758334218_6485683640258084106_n.jpg?stp=dst-jpg_s150x150_tt6&_nc_ht=instagram.fvlc6-1.fna.fbcdn.net&_nc_cat=106&_nc_oc=Q6cZ2QG9yijX6AYS-LyAN9vATpVAGPTj3dueZAwrz_3RB68vu_PtQKtRFxeVRSPP84eYFZw&_nc_ohc=mD1tNAu2Bp0Q7kNvwHFAMaF&_nc_gid=a2z4gQ9o-xKDwiAyIMflPA&edm=AOQ1c0wBAAAA&ccb=7-5&oh=00_AfHHhBR9AddwcSMHdDw7WSR00XBUUwYOp5v4FuY-lTj-vw&oe=680ED603&_nc_sid=8b3546', location: 'Murcia, Spain' }
-  ],
-  'mock1': [
-    { id: 'business3', name: 'Blue Bottle Coffee', isRoaster: true, businessAccount: false, avatar: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80', location: 'Oakland, CA' },
-    { id: 'user2', name: 'Vértigo y Calambre', isRoaster: false, businessAccount: true, avatar: 'https://instagram.fvlc6-1.fna.fbcdn.net/v/t51.2885-19/336824776_569041758334218_6485683640258084106_n.jpg?stp=dst-jpg_s150x150_tt6&_nc_ht=instagram.fvlc6-1.fna.fbcdn.net&_nc_cat=106&_nc_oc=Q6cZ2QG9yijX6AYS-LyAN9vATpVAGPTj3dueZAwrz_3RB68vu_PtQKtRFxeVRSPP84eYFZw&_nc_ohc=mD1tNAu2Bp0Q7kNvwHFAMaF&_nc_gid=a2z4gQ9o-xKDwiAyIMflPA&edm=AOQ1c0wBAAAA&ccb=7-5&oh=00_AfHHhBR9AddwcSMHdDw7WSR00XBUUwYOp5v4FuY-lTj-vw&oe=680ED603&_nc_sid=8b3546', location: 'Murcia, Spain' }
-  ]
-};
 
 export default function CoffeeDetailScreen() {
   const { 
@@ -90,6 +52,7 @@ export default function CoffeeDetailScreen() {
   const [pendingRemoval, setPendingRemoval] = useState(null);
   const [removalTimeout, setRemovalTimeout] = useState(null);
   const [sellers, setSellers] = useState([]);
+  const [descriptionExpanded, setDescriptionExpanded] = useState(false);
 
   useEffect(() => {
     // Always use mock data for development
@@ -106,8 +69,8 @@ export default function CoffeeDetailScreen() {
             setRelatedRecipes(routeCoffee.recipes);
           }
           
-          // Set sellers for this coffee
-          setSellers(mockSellers[routeCoffee.id] || []);
+          // Set sellers for this coffee from mockData
+          setSellers(mockData.sellers[routeCoffee.id] || []);
           
           setLoading(false);
           return;
@@ -117,34 +80,53 @@ export default function CoffeeDetailScreen() {
         const eventCoffee = coffeeEvents.find(event => event.coffeeId === coffeeId);
         
         if (eventCoffee) {
-          // If found in events, use that data
-          setCoffee({
-            id: eventCoffee.coffeeId,
-            name: eventCoffee.coffeeName,
-            roaster: eventCoffee.roaster,
-            image: eventCoffee.imageUrl,
-            description: eventCoffee.notes || 'No description available',
-            origin: 'Unknown',
-            process: 'Unknown',
-            roastLevel: 'Medium',
-            price: '$18.00',
-            stats: {
-              rating: eventCoffee.rating,
-              reviews: Math.floor(Math.random() * 100) + 10,
-              brews: Math.floor(Math.random() * 50) + 5,
-              wishlist: Math.floor(Math.random() * 30) + 3
-            }
-          });
+          // Create a mapping for legacy coffee IDs to their proper entry in the mockData.coffees array
+          const legacyCoffeeMap = {
+            'coffee-0': 'coffee1', // Ethiopian Yirgacheffe
+            'coffee-1': 'coffee2', // Colombian Supremo
+            'coffee-2': 'coffee3', // Kenya AA
+            'coffee-3': 'coffee4', // Guatemala Antigua
+            'coffee-4': 'coffee5'  // Sumatra Mandheling
+          };
           
-          // Set sellers for this coffee
-          setSellers(mockSellers[eventCoffee.coffeeId] || []);
+          // Check if this is a legacy coffee ID (from events) and map it to a real coffee
+          const mappedCoffeeId = legacyCoffeeMap[eventCoffee.coffeeId] || eventCoffee.coffeeId;
+          const matchedCoffee = mockData.coffees.find(c => c.id === mappedCoffeeId);
+          
+          if (matchedCoffee) {
+            // If we found a matching coffee in the mockData, use that
+            setCoffee(matchedCoffee);
+            setSellers(mockData.sellers[matchedCoffee.id] || []);
+          } else {
+            // Otherwise use the event data
+            setCoffee({
+              id: eventCoffee.coffeeId,
+              name: eventCoffee.coffeeName,
+              roaster: eventCoffee.roaster,
+              image: eventCoffee.imageUrl,
+              description: eventCoffee.notes || 'No description available',
+              origin: 'Unknown',
+              process: 'Unknown',
+              roastLevel: 'Medium',
+              price: '$18.00',
+              stats: {
+                rating: eventCoffee.rating,
+                reviews: Math.floor(Math.random() * 100) + 10,
+                brews: Math.floor(Math.random() * 50) + 5,
+                wishlist: Math.floor(Math.random() * 30) + 3
+              }
+            });
+            
+            // Set sellers for this coffee from mockData
+            setSellers(mockData.sellers[eventCoffee.coffeeId] || []);
+          }
         } else {
           // Otherwise find in mock data
           const foundCoffee = mockData.coffees.find(c => c.id === coffeeId) || mockData.coffees[0];
           if (foundCoffee) {
             setCoffee(foundCoffee);
-            // Set sellers for this coffee
-            setSellers(mockSellers[foundCoffee.id] || []);
+            // Set sellers for this coffee from mockData
+            setSellers(mockData.sellers[foundCoffee.id] || []);
             
             // Set mock recipes for the mock coffee
             setRelatedRecipes([
@@ -198,8 +180,8 @@ export default function CoffeeDetailScreen() {
             };
             setCoffee(mockCoffee);
             
-            // Set sellers for this coffee
-            setSellers(mockSellers['mock1'] || []);
+            // Set sellers for this coffee from mockData
+            setSellers(mockData.sellers['mock1'] || []);
           }
         }
       } catch (error) {
@@ -271,19 +253,14 @@ export default function CoffeeDetailScreen() {
   };
 
   const navigateToUserProfile = (userId, userName) => {
-    if (userName === 'Vértigo y Calambre') {
-      navigation.navigate('UserProfileBridge', { 
-        userId: 'user2', 
-        userName: 'Vértigo y Calambre',
-        skipAuth: true 
-      });
-    } else {
-      navigation.navigate('UserProfileBridge', { 
-        userId, 
-        userName,
-        skipAuth: true 
-      });
-    }
+    // Check if this is a business account (like Vértigo y Calambre or Kima Coffee) by checking the businessAccount flag in sellers
+    const isBusinessAccount = sellers.some(seller => seller.id === userId && seller.businessAccount);
+    
+    navigation.navigate('UserProfileBridge', { 
+      userId, 
+      userName,
+      skipAuth: true 
+    });
   };
 
   const navigateToCollection = () => {
@@ -416,10 +393,27 @@ export default function CoffeeDetailScreen() {
       <ScrollView>
         {/* Coffee Header */}
         <View style={styles.header}>
-          <Image 
-            source={{ uri: coffee.image }} 
-            style={styles.coffeeImage} 
-          />
+          {/* Coffee Image(s) */}
+          {coffee.images ? (
+            <FlatList
+              data={coffee.images}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={true}
+              keyExtractor={(item, index) => `image-${index}`}
+              renderItem={({ item }) => (
+                <Image 
+                  source={{ uri: item }} 
+                  style={styles.coffeeImageInSlider}
+                />
+              )}
+            />
+          ) : (
+            <Image 
+              source={{ uri: coffee.image }} 
+              style={styles.coffeeImage} 
+            />
+          )}
           <View style={styles.headerContent}>
             <Text style={styles.coffeeName}>{coffee.name}</Text>
             <Text style={styles.roasterName}>{coffee.roaster}</Text>
@@ -494,17 +488,47 @@ export default function CoffeeDetailScreen() {
               <Text style={styles.detailLabel}>Origin</Text>
               <Text style={styles.detailValue}>{coffee.origin}</Text>
             </View>
+            {coffee.region && (
+              <View style={styles.detailItem}>
+                <Text style={styles.detailLabel}>Region</Text>
+                <Text style={styles.detailValue}>{coffee.region}</Text>
+              </View>
+            )}
+            {coffee.producer && (
+              <View style={styles.detailItem}>
+                <Text style={styles.detailLabel}>Producer</Text>
+                <Text style={styles.detailValue}>{coffee.producer}</Text>
+              </View>
+            )}
+            {coffee.altitude && (
+              <View style={styles.detailItem}>
+                <Text style={styles.detailLabel}>Altitude</Text>
+                <Text style={styles.detailValue}>{coffee.altitude}</Text>
+              </View>
+            )}
+            {coffee.varietal && (
+              <View style={styles.detailItem}>
+                <Text style={styles.detailLabel}>Varietal</Text>
+                <Text style={styles.detailValue}>{coffee.varietal}</Text>
+              </View>
+            )}
             <View style={styles.detailItem}>
               <Text style={styles.detailLabel}>Process</Text>
               <Text style={styles.detailValue}>{coffee.process}</Text>
             </View>
+            {coffee.profile && (
+              <View style={styles.detailItem}>
+                <Text style={styles.detailLabel}>Profile</Text>
+                <Text style={styles.detailValue}>{coffee.profile}</Text>
+              </View>
+            )}
             <View style={styles.detailItem}>
               <Text style={styles.detailLabel}>Roast Level</Text>
-              <Text style={styles.detailValue}>{coffee.roastLevel}</Text>
+              <Text style={styles.detailValue}>{coffee.roastLevel || 'Medium'}</Text>
             </View>
             <View style={styles.detailItem}>
               <Text style={styles.detailLabel}>Price</Text>
-              <Text style={styles.detailValue}>{coffee.price}</Text>
+              <Text style={styles.detailValue}>{typeof coffee.price === 'number' ? `€${coffee.price.toFixed(2)}` : coffee.price}</Text>
             </View>
           </View>
         </View>
@@ -512,7 +536,17 @@ export default function CoffeeDetailScreen() {
         {/* Description */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Description</Text>
-          <Text style={styles.descriptionText}>{coffee.description}</Text>
+          <Text style={styles.descriptionText} numberOfLines={descriptionExpanded ? undefined : 4}>{coffee.description}</Text>
+          {coffee.description && coffee.description.length > 150 && (
+            <TouchableOpacity 
+              style={styles.viewMoreButton} 
+              onPress={() => setDescriptionExpanded(!descriptionExpanded)}
+            >
+              <Text style={styles.viewMoreText}>
+                {descriptionExpanded ? 'View Less' : 'View More'}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Sold By Section */}
@@ -887,7 +921,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   sellersContainer: {
-    marginTop: 20,
+    margin: 16,
   },
   sellerItem: {
     flexDirection: 'row',
@@ -932,5 +966,20 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 10,
     fontWeight: '600',
+  },
+  coffeeImageInSlider: {
+    width: Dimensions.get('window').width - 32, // Full width minus padding
+    height: 200,
+    borderRadius: 12,
+    marginRight: 8,
+  },
+  viewMoreButton: {
+    marginTop: 8,
+    padding: 6,
+    alignSelf: 'flex-start',
+  },
+  viewMoreText: {
+    color: '#007AFF',
+    fontWeight: '500',
   },
 }); 

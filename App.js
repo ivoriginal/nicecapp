@@ -9,6 +9,10 @@ import RecipeDetailScreen from './src/screens/RecipeDetailScreen';
 import UserProfileScreen from './src/screens/UserProfileScreen';
 import UserProfileBridge from './src/screens/UserProfileBridge';
 import GearDetailScreen from './src/screens/GearDetailScreen';
+import CoffeeDiscoveryScreen from './src/screens/CoffeeDiscoveryScreen';
+import RecipesListScreen from './src/screens/RecipesListScreen';
+import PeopleListScreen from './src/screens/PeopleListScreen';
+import CafesListScreen from './src/screens/CafesListScreen';
 import { CoffeeProvider } from './src/context/CoffeeContext';
 import { NotificationsProvider } from './src/context/NotificationsContext';
 import { configureNavigationBar } from './src/lib/navigationBar';
@@ -86,6 +90,26 @@ export default function App() {
                   title: route.params?.gearName || 'Gear Details',
                   headerBackTitle: 'Back',
                 })} 
+              />
+              <Stack.Screen 
+                name="CoffeeDiscovery" 
+                component={CoffeeDiscoveryScreen} 
+                options={{ headerShown: false }} 
+              />
+              <Stack.Screen 
+                name="RecipesList" 
+                component={RecipesListScreen} 
+                options={{ headerShown: false }} 
+              />
+              <Stack.Screen 
+                name="PeopleList" 
+                component={PeopleListScreen} 
+                options={{ headerShown: false }} 
+              />
+              <Stack.Screen 
+                name="CafesList" 
+                component={CafesListScreen} 
+                options={{ headerShown: false }} 
               />
             </Stack.Navigator>
           </CoffeeProvider>

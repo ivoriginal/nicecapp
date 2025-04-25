@@ -35,8 +35,8 @@ export default function HomeScreen({ navigation }) {
     // Create a recipe object from the event data
     const recipe = {
       id: `recipe-${event.id}`,
-      name: `${event.coffeeName} ${event.method}`,
-      method: event.method,
+      name: `${event.coffeeName} ${event.method || event.brewingMethod}`,
+      method: event.method || event.brewingMethod,
       amount: event.amount,
       grindSize: event.grindSize,
       waterVolume: event.waterVolume,
@@ -46,6 +46,8 @@ export default function HomeScreen({ navigation }) {
       userName: event.userName,
       userAvatar: event.userAvatar,
       coffeeId: event.coffeeId,
+      coffeeName: event.coffeeName,
+      roaster: event.roaster,
       timestamp: event.timestamp,
       steps: [
         { time: '0:00', action: 'Rinse filter and warm vessel', water: 0 },
@@ -72,17 +74,19 @@ export default function HomeScreen({ navigation }) {
       addRecipe(recipe);
     }
 
-    // Navigate to the RecipeDetail screen with the recipe ID
+    // Navigate to the RecipeDetail screen with the recipe ID and coffee information
     navigation.navigate('RecipeDetail', { 
       recipeId: recipe.id,
       coffeeId: event.coffeeId,
-      coffeeName: event.coffeeName
+      coffeeName: event.coffeeName,
+      roaster: event.roaster
     });
   };
 
   const handleUserPress = (event) => {
-    navigation.navigate('Profile', { 
+    navigation.navigate('UserProfileBridge', { 
       userId: event.userId,
+      userName: event.userName,
       skipAuth: true
     });
   };
