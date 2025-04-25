@@ -11,12 +11,14 @@ import {
   RefreshControl,
   StatusBar,
   Modal,
-  Platform
+  Platform,
+  ActionSheetIOS,
+  Alert
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useCoffee } from '../context/CoffeeContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useNavigation, useFocusEffect, CommonActions } from '@react-navigation/native';
 import CoffeeLogCard from '../components/CoffeeLogCard';
 import eventEmitter from '../utils/EventEmitter';
 
@@ -91,23 +93,32 @@ export default function ProfileScreen() {
     'user1': {
       id: 'user1',
       userName: 'Ivo Vilches',
+      userHandle: 'ivoriginal',
       userAvatar: 'https://randomuser.me/api/portraits/men/32.jpg',
       email: 'ivo.vilches@example.com',
-      location: 'Santiago, Chile'
+      location: 'Murcia, Spain',
+      isBusinessAccount: false,
+      gear: ["Hario V60", "Baratza Encore", "Fellow Stagg EKG", "Acaia Pearl Scale"]
     },
     'user2': {
       id: 'user2',
       userName: 'Vértigo y Calambre',
-      userAvatar: 'https://randomuser.me/api/portraits/women/44.jpg',
+      userHandle: 'vertigoycalambre',
+      userAvatar: 'https://instagram.fvlc6-1.fna.fbcdn.net/v/t51.2885-19/336824776_569041758334218_6485683640258084106_n.jpg?stp=dst-jpg_s150x150_tt6&_nc_ht=instagram.fvlc6-1.fna.fbcdn.net&_nc_cat=106&_nc_oc=Q6cZ2QG9yijX6AYS-LyAN9vATpVAGPTj3dueZAwrz_3RB68vu_PtQKtRFxeVRSPP84eYFZw&_nc_ohc=mD1tNAu2Bp0Q7kNvwHFAMaF&_nc_gid=a2z4gQ9o-xKDwiAyIMflPA&edm=AOQ1c0wBAAAA&ccb=7-5&oh=00_AfHHhBR9AddwcSMHdDw7WSR00XBUUwYOp5v4FuY-lTj-vw&oe=680ED603&_nc_sid=8b3546',
       email: 'contacto@vertigoycalambre.com',
-      location: 'Buenos Aires, Argentina' 
+      location: 'Murcia, Spain',
+      isBusinessAccount: true,
+      gear: ["La Marzocco Linea Mini", "Mahlkönig E65S GbW", "Acaia Lunar Scale"]
     },
     'user3': {
       id: 'user3',
       userName: 'Carlos Hernández',
+      userHandle: 'carlos_hdez',
       userAvatar: 'https://randomuser.me/api/portraits/men/67.jpg',
       email: 'carlos.hernandez@example.com',
-      location: 'New York, USA'
+      location: 'Madrid, Spain',
+      isBusinessAccount: false,
+      gear: ["AeroPress", "Comandante C40", "Fellow Stagg EKG"]
     }
   };
   
@@ -116,10 +127,20 @@ export default function ProfileScreen() {
 
   // Selected account data - prefer user data from context, fall back to defaults
   const [currentUserData, setCurrentUserData] = useState(defaultUser);
-  const userData = user || currentUserData;
+  const userData = user ? 
+    // If we have user data from context, use it, but ensure gear data is present
+    {...currentUserData, ...user, gear: user.gear || currentUserData.gear || []} : 
+    // Otherwise fall back to our local state
+    currentUserData;
   const displayName = userData?.userName || userData?.name || 'Guest';
+  const userHandle = userData?.userHandle || displayName.toLowerCase().replace(/\s+/g, '_');
   const avatarUrl = userData?.userAvatar || userData?.avatar || 'https://randomuser.me/api/portraits/men/32.jpg';
-  const location = userData?.location || 'Unknown location';
+  const location = userData?.location || defaultUser?.location || 'Unknown location';
+  const isBusinessAccount = userData?.isBusinessAccount || false;
+  const userGear = userData?.gear || defaultUser?.gear || [];
+  console.log('USER GEAR:', userGear);
+  console.log('CURRENT USER DATA:', userData);
+  console.log('DEFAULT USER:', defaultUser);
 
   // Only initialize once on mount with the current account
   useEffect(() => {
@@ -246,45 +267,45 @@ export default function ProfileScreen() {
       // Show loading state and prevent any other actions
       setRefreshing(true);
       
-      // First update the local account ID
+      // First update the local account ID to maintain state
       setLocalCurrentAccount(accountId);
       
       // Immediately set default user data for smoother transition
       const defaultAccountData = defaultUsers[accountId];
       if (defaultAccountData) {
+        console.log('Setting default account data:', defaultAccountData);
         setCurrentUserData(defaultAccountData);
       }
 
-      // Find the account data directly
-      const selectedAccount = accounts.find(a => a.id === accountId);
-      if (!selectedAccount) {
-        console.error('Account not found:', accountId);
-        setLocalError(`Account ${accountId} not found`);
+      // Use the switchAccount function from CoffeeContext
+      if (switchAccount) {
+        switchAccount(accountId)
+          .then(() => {
+            console.log('Account switched successfully');
+            
+            // After loading, ensure we still have the gear data
+            if (!user || !user.gear) {
+              console.log('Gear data missing from loaded user, using default gear');
+              const updatedUserData = {
+                ...user || {},
+                ...defaultAccountData,
+                gear: defaultAccountData?.gear || []
+              };
+              setCurrentUserData(updatedUserData);
+            }
+          })
+          .catch(error => {
+            console.error('Error switching account:', error);
+            setLocalError(error.message || 'Failed to switch account');
+          })
+          .finally(() => {
+            setRefreshing(false);
+          });
+      } else {
+        console.error('switchAccount function not available');
+        setLocalError('Switch account functionality not available');
         setRefreshing(false);
-        return;
       }
-
-      console.log('Selected account:', selectedAccount);
-      
-      // Force a direct re-initialization with the new account
-      (async () => {
-        try {
-          console.log('Direct loading data for account:', accountId);
-          
-          // Load the data without using switchAccount
-          if (loadData) {
-            await loadData(accountId);
-            console.log('Data loaded for new account');
-          } else {
-            throw new Error('loadData function not available');
-          }
-        } catch (error) {
-          console.error('Error loading data for new account:', error);
-          setLocalError(error.message || 'Failed to load account data');
-        } finally {
-          setRefreshing(false);
-        }
-      })();
     } catch (error) {
       console.error('Error in handleSwitchAccount:', error);
       setLocalError(error.message);
@@ -432,17 +453,21 @@ export default function ProfileScreen() {
         <Text style={[styles.tabText, activeTab === 'coffee' && styles.activeTabText]}>Coffee Logs</Text>
       </TouchableOpacity>
       <TouchableOpacity
-        style={[styles.tab, activeTab === 'collection' && styles.activeTab]}
-        onPress={() => handleTabChange('collection')}
+        style={[styles.tab, activeTab === (isBusinessAccount ? 'shop' : 'collection') && styles.activeTab]}
+        onPress={() => handleTabChange(isBusinessAccount ? 'shop' : 'collection')}
       >
-        <Text style={[styles.tabText, activeTab === 'collection' && styles.activeTabText]}>Collection</Text>
+        <Text style={[styles.tabText, activeTab === (isBusinessAccount ? 'shop' : 'collection') && styles.activeTabText]}>
+          {isBusinessAccount ? 'Shop' : 'Collection'}
+        </Text>
       </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.tab, activeTab === 'wishlist' && styles.activeTab]}
-        onPress={() => handleTabChange('wishlist')}
-      >
-        <Text style={[styles.tabText, activeTab === 'wishlist' && styles.activeTabText]}>Wishlist</Text>
-      </TouchableOpacity>
+      {!isBusinessAccount && (
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'wishlist' && styles.activeTab]}
+          onPress={() => handleTabChange('wishlist')}
+        >
+          <Text style={[styles.tabText, activeTab === 'wishlist' && styles.activeTabText]}>Wishlist</Text>
+        </TouchableOpacity>
+      )}
       <TouchableOpacity
         style={[styles.tab, activeTab === 'recipes' && styles.activeTab]}
         onPress={() => handleTabChange('recipes')}
@@ -462,85 +487,158 @@ export default function ProfileScreen() {
 
   // Render content based on active tab
   const renderContent = () => {
-    switch (activeTab) {
-      case 'coffee':
-        return (
-          <FlatList
-            data={coffeeEvents}
-            renderItem={renderCoffeeItem}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.contentContainer}
-            ListEmptyComponent={() => renderEmptyState('No coffee logs yet')}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={handleRefresh}
-                colors={['#000000']}
-                tintColor="#000000"
-              />
-            }
+    if (loading) {
+      return <LoadingView insets={insets} />;
+    }
+
+    if (combinedError) {
+      return <ErrorView error={combinedError} insets={insets} onRetry={handleRefresh} />;
+    }
+
+    return (
+      <ScrollView 
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        }
+        showsVerticalScrollIndicator={false}
+        style={{ flex: 1 }}
+      >
+        {/* Profile Header - Avatar, name, stats */}
+        <View style={[styles.profileHeader]}>
+          <Image 
+            source={{ uri: avatarUrl }} 
+            style={[
+              styles.avatar,
+              isBusinessAccount ? styles.businessAvatar : styles.userAvatar
+            ]} 
           />
-        );
-      case 'collection':
-        return (
-          <FlatList
-            data={coffeeCollection}
-            renderItem={renderCollectionItem}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.contentContainer}
-            ListEmptyComponent={() => renderEmptyState('No coffees in collection')}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={handleRefresh}
-                colors={['#000000']}
-                tintColor="#000000"
+          <View style={styles.profileInfo}>
+            <Text style={styles.name}>{displayName}</Text>
+            <Text style={styles.location}>{location}</Text>
+          </View>
+        </View>
+        
+        {/* Gear Module - showing user's gear */}
+        {renderGearModule()}
+        
+        {/* Tabs for collection/wishlist/recipes */}
+        {renderTabs()}
+        
+        {/* Tab Content */}
+        {activeTab === 'coffee' && (
+          <View style={styles.sectionContainer}>
+            {coffeeEvents && coffeeEvents.length > 0 ? (
+              <FlatList
+                data={coffeeEvents}
+                renderItem={renderCoffeeItem}
+                keyExtractor={(item) => item.id}
+                showsVerticalScrollIndicator={false}
+                scrollEnabled={false}
               />
-            }
-          />
-        );
-      case 'wishlist':
-        return (
-          <FlatList
-            data={coffeeWishlist}
-            renderItem={renderWishlistItem}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.contentContainer}
-            ListEmptyComponent={() => renderEmptyState('No coffees in wishlist')}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={handleRefresh}
-                colors={['#000000']}
-                tintColor="#000000"
+            ) : (
+              renderEmptyState('No coffee logs yet')
+            )}
+          </View>
+        )}
+        
+        {activeTab === (isBusinessAccount ? 'shop' : 'collection') && (
+          <View style={styles.sectionContainer}>
+            {coffeeCollection && coffeeCollection.length > 0 ? (
+              <FlatList
+                data={coffeeCollection}
+                renderItem={renderCollectionItem}
+                keyExtractor={(item) => item.id}
+                showsVerticalScrollIndicator={false}
+                scrollEnabled={false}
               />
-            }
-          />
-        );
-      case 'recipes':
-        return (
-          <FlatList
-            data={recipes}
-            renderItem={renderRecipeItem}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.contentContainer}
-            ListEmptyComponent={() => renderEmptyState('No recipes yet')}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={handleRefresh}
-                colors={['#000000']}
-                tintColor="#000000"
+            ) : (
+              renderEmptyState(`No coffees in ${isBusinessAccount ? 'shop' : 'collection'} yet`)
+            )}
+          </View>
+        )}
+        
+        {activeTab === 'wishlist' && (
+          <View style={styles.sectionContainer}>
+            {coffeeWishlist && coffeeWishlist.length > 0 ? (
+              <FlatList
+                data={coffeeWishlist}
+                renderItem={renderWishlistItem}
+                keyExtractor={(item) => item.id}
+                showsVerticalScrollIndicator={false}
+                scrollEnabled={false}
               />
-            }
-          />
-        );
-      default:
-        return null;
+            ) : (
+              renderEmptyState('No coffees in wishlist yet')
+            )}
+          </View>
+        )}
+        
+        {activeTab === 'recipes' && (
+          <View style={styles.sectionContainer}>
+            {recipes && recipes.length > 0 ? (
+              <FlatList
+                data={recipes}
+                renderItem={renderRecipeItem}
+                keyExtractor={(item) => item.id}
+                showsVerticalScrollIndicator={false}
+                scrollEnabled={false}
+              />
+            ) : (
+              renderEmptyState('No recipes saved yet')
+            )}
+          </View>
+        )}
+      </ScrollView>
+    );
+  };
+
+  // Handle options press (3-dot menu)
+  const handleOptionsPress = () => {
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ['Edit Profile', 'Settings', 'Sign Out', 'Cancel'],
+          cancelButtonIndex: 3,
+          userInterfaceStyle: 'light'
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 0) {
+            // Edit Profile
+            // For now, just show an alert
+            Alert.alert('Coming Soon', 'Edit Profile functionality will be available soon.');
+          } else if (buttonIndex === 1) {
+            // Settings
+            Alert.alert('Coming Soon', 'Settings functionality will be available soon.');
+          } else if (buttonIndex === 2) {
+            // Sign Out
+            Alert.alert('Coming Soon', 'Sign Out functionality will be available soon.');
+          }
+        }
+      );
+    } else {
+      // For Android, we would use a custom modal or menu
+      Alert.alert(
+        'Options',
+        'Choose an option',
+        [
+          { text: 'Edit Profile', onPress: () => Alert.alert('Coming Soon', 'Edit Profile functionality will be available soon.') },
+          { text: 'Settings', onPress: () => Alert.alert('Coming Soon', 'Settings functionality will be available soon.') },
+          { text: 'Sign Out', onPress: () => Alert.alert('Coming Soon', 'Sign Out functionality will be available soon.') },
+          { text: 'Cancel', style: 'cancel' }
+        ]
+      );
     }
   };
 
-  // Render account modal
+  // Handle gear item press
+  const handleGearPress = (item) => {
+    console.log('Navigating to GearDetailScreen with gear:', item);
+    navigation.navigate('GearDetail', {
+      gearName: item
+    });
+  };
+
+  // Render account modal - with added "Create Account" option
   const renderAccountModal = () => (
     <Modal
       animationType="slide"
@@ -572,7 +670,7 @@ export default function ProfileScreen() {
               >
                 <Image
                   source={{ uri: item.userAvatar || 'https://randomuser.me/api/portraits/men/32.jpg' }}
-                  style={styles.accountAvatar}
+                  style={[styles.accountAvatar, defaultUsers[item.id]?.isBusinessAccount && styles.businessAvatar]}
                 />
                 <View style={styles.accountInfo}>
                   <Text style={styles.accountName}>{item.userName || item.name}</Text>
@@ -583,23 +681,103 @@ export default function ProfileScreen() {
                 )}
               </TouchableOpacity>
             )}
+            ListFooterComponent={
+              <TouchableOpacity
+                style={styles.createAccountItem}
+                onPress={() => {
+                  setModalVisible(false);
+                  Alert.alert('Coming Soon', 'Create Account functionality will be available soon.');
+                }}
+              >
+                <View style={styles.createAccountCircle}>
+                  <Ionicons name="add" size={24} color="#FFFFFF" />
+                </View>
+                <Text style={styles.createAccountText}>Create Account</Text>
+              </TouchableOpacity>
+            }
           />
         </View>
       </View>
     </Modal>
   );
 
+  // Render the gear module
+  const renderGearModule = () => {
+    // Make sure we always have gear data by using the default user's gear as a fallback
+    const gearToDisplay = userGear && userGear.length > 0 
+      ? userGear 
+      : defaultUsers[currentAccount]?.gear || [];
+    
+    console.log('RENDERING GEAR MODULE - GEAR TO DISPLAY:', gearToDisplay);
+    
+    return (
+      <View style={styles.gearContainer}>
+        <Text style={styles.gearTitle}>My gear</Text>
+        <View style={styles.gearGrid}>
+          {gearToDisplay.length > 0 ? (
+            gearToDisplay.map((item, index) => {
+              console.log('RENDERING GEAR ITEM:', item);
+              return (
+                <TouchableOpacity 
+                  key={index} 
+                  style={styles.gearItem}
+                  onPress={() => handleGearPress(item)}
+                >
+                  <Ionicons name="hardware-chip-outline" size={16} color="#666666" style={styles.gearIcon} />
+                  <Text style={styles.gearItemText}>{item}</Text>
+                </TouchableOpacity>
+              );
+            })
+          ) : (
+            <Text style={styles.emptyGearText}>No gear added yet</Text>
+          )}
+        </View>
+      </View>
+    );
+  };
+
   // Update current user data when user changes
   useEffect(() => {
     console.log('User data changed:', user);
     if (user) {
-      setCurrentUserData(user);
-    } else if (currentAccount && accounts) {
-      // If user is null but we have an account ID, find the account data
+      // If user data is loaded but missing gear, merge with default user gear
+      const defaultUserForAccount = defaultUsers[currentAccount];
+      if (!user.gear && defaultUserForAccount && defaultUserForAccount.gear) {
+        console.log('User data loaded but missing gear, using default gear');
+        const mergedUserData = {
+          ...user,
+          ...defaultUserForAccount,
+          userName: user.userName || defaultUserForAccount.userName,
+          userAvatar: user.userAvatar || defaultUserForAccount.userAvatar,
+          userHandle: user.userHandle || defaultUserForAccount.userHandle,
+          location: user.location || defaultUserForAccount.location,
+          gear: defaultUserForAccount.gear
+        };
+        setCurrentUserData(mergedUserData);
+      } else {
+        setCurrentUserData(user);
+      }
+    } else if (currentAccount && accounts && accounts.length > 0) {
+      // If user is null but we have an account ID, find the account data and merge with defaults
       const accountData = accounts.find(acc => acc.id === currentAccount);
-      if (accountData) {
+      const defaultUserForAccount = defaultUsers[currentAccount];
+      
+      if (accountData && defaultUserForAccount) {
         console.log('Found account data:', accountData);
-        setCurrentUserData(accountData);
+        
+        // Merge account data with default data, with account data taking precedence
+        const mergedAccountData = {
+          ...defaultUserForAccount, 
+          ...accountData,
+          // Ensure these critical fields are present
+          gear: accountData.gear || defaultUserForAccount.gear || [],
+          userHandle: accountData.userHandle || defaultUserForAccount.userHandle,
+          location: accountData.location || defaultUserForAccount.location
+        };
+        setCurrentUserData(mergedAccountData);
+      } else if (defaultUserForAccount) {
+        // If we only have default data, use that
+        setCurrentUserData(defaultUserForAccount);
       }
     }
   }, [user, currentAccount, accounts]);
@@ -608,43 +786,24 @@ export default function ProfileScreen() {
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" />
 
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
-        <View style={styles.headerContent}>
-          <Image
-            source={{ uri: avatarUrl }}
-            style={styles.avatar}
-          />
-          <View style={styles.userInfo}>
-            <Text style={styles.userName}>{displayName}</Text>
-            <Text style={styles.userLocation}>{location}</Text>
-          </View>
-
-          <TouchableOpacity
-            style={styles.gearButton}
-            onPress={() => setModalVisible(true)}
-          >
-            <Ionicons name="settings-outline" size={24} color="#000000" />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.statsContainer}>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{coffeeEvents?.length || 0}</Text>
-            <Text style={styles.statLabel}>Coffee Logs</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{coffeeCollection?.length || 0}</Text>
-            <Text style={styles.statLabel}>Collection</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{coffeeWishlist?.length || 0}</Text>
-            <Text style={styles.statLabel}>Wishlist</Text>
-          </View>
-        </View>
+      {/* Top Navigation Bar */}
+      <View style={[styles.topNavBar, { paddingTop: insets.top }]}>
+        <TouchableOpacity 
+          style={styles.usernameContainer}
+          onPress={() => setModalVisible(true)}
+        >
+          <Text style={styles.usernameText}>@{userHandle}</Text>
+          <Ionicons name="chevron-down" size={16} color="#000000" />
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={styles.optionsButton}
+          onPress={handleOptionsPress}
+        >
+          <Ionicons name="ellipsis-horizontal" size={24} color="#000000" />
+        </TouchableOpacity>
       </View>
 
-      {renderTabs()}
       {renderContent()}
       {renderAccountModal()}
     </View>
@@ -660,23 +819,51 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  topNavBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5E5',
+    backgroundColor: '#FFFFFF',
+  },
+  usernameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  usernameText: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginRight: 5,
+  },
+  optionsButton: {
+    padding: 8,
+  },
   header: {
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 15,
-    paddingBottom: 15,
+    paddingVertical: 15,
     borderBottomWidth: 1,
     borderBottomColor: '#E5E5E5',
   },
   headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
   },
   avatar: {
     width: 80,
     height: 80,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#CCCCCC',
+  },
+  userAvatar: {
     borderRadius: 40,
-    marginRight: 15,
+  },
+  businessAvatar: {
+    borderRadius: 12,
   },
   userInfo: {
     flex: 1,
@@ -693,47 +880,6 @@ const styles = StyleSheet.create({
   },
   gearButton: {
     padding: 8,
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 20,
-  },
-  statItem: {
-    alignItems: 'center',
-  },
-  statValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#000000',
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#666666',
-  },
-  tabsContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-    height: 48,
-  },
-  tab: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  activeTab: {
-    borderBottomWidth: 2,
-    borderBottomColor: '#000000',
-  },
-  tabText: {
-    fontSize: 14,
-    color: '#666666',
-  },
-  activeTabText: {
-    color: '#000000',
-    fontWeight: '600',
   },
   contentContainer: {
     paddingHorizontal: 0,
@@ -753,15 +899,8 @@ const styles = StyleSheet.create({
   },
   coffeeItem: {
     flexDirection: 'row',
-    borderRadius: 12,
-    marginBottom: 12,
     padding: 12,
     backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
   },
   coffeeImage: {
     width: 60,
@@ -828,16 +967,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    paddingTop: 20,
-    paddingHorizontal: 15,
-    paddingBottom: 20
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 15,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#E5E5E5',
   },
@@ -852,7 +988,7 @@ const styles = StyleSheet.create({
   accountItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 15,
+    padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#E5E5E5',
   },
@@ -860,7 +996,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    marginRight: 10,
+    marginRight: 12,
   },
   accountInfo: {
     flex: 1,
@@ -873,6 +1009,26 @@ const styles = StyleSheet.create({
   accountEmail: {
     fontSize: 14,
     color: '#666666',
+  },
+  createAccountItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 15,
+    marginTop: 10,
+  },
+  createAccountCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#000000',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  createAccountText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#000000',
   },
   loadingText: {
     marginTop: 10,
@@ -897,12 +1053,90 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 16,
   },
-  coffeeLogCardContainer: {
-    marginHorizontal: 15,
-    marginVertical: 5,
+  profileHeader: {
+    padding: 16,
+    paddingBottom: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  coffeeItemContainer: {
-    marginHorizontal: 15,
-    marginVertical: 5,
+  profileInfo: {
+    flex: 1,
+    marginLeft: 15,
+    justifyContent: 'center',
+  },
+  name: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#000000',
+    marginBottom: 4,
+  },
+  location: {
+    fontSize: 14,
+    color: '#666666',
+  },
+  tabsContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5EA',
+    height: 48,
+  },
+  tab: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  activeTab: {
+    borderBottomWidth: 2,
+    borderBottomColor: '#000000',
+  },
+  tabText: {
+    fontSize: 14,
+    color: '#666666',
+  },
+  activeTabText: {
+    color: '#000000',
+    fontWeight: '600',
+  },
+  sectionContainer: {
+    padding: 0,
+  },
+  gearContainer: {
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+  },
+  gearTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#000000',
+    marginBottom: 12,
+  },
+  gearGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  gearItem: {
+    backgroundColor: '#F5F5F7',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
+    marginRight: 10,
+    marginBottom: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  gearIcon: {
+    marginRight: 6,
+  },
+  gearItemText: {
+    fontSize: 14,
+    color: '#333333',
+    fontWeight: '500',
+  },
+  emptyGearText: {
+    fontSize: 14,
+    color: '#666666',
+    fontStyle: 'italic',
+    paddingVertical: 8,
   },
 }); 

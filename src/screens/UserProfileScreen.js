@@ -7,7 +7,9 @@ import {
   ScrollView, 
   TouchableOpacity, 
   FlatList,
-  ActivityIndicator
+  ActivityIndicator,
+  Alert,
+  StatusBar
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -20,24 +22,63 @@ export default function UserProfileScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const { userId } = route.params || { userId: 'user1' }; // Default to Ivo Vilches
-  const { coffeeEvents } = useCoffee();
+  const { coffeeEvents, following, followers } = useCoffee();
   
   const [user, setUser] = useState(null);
   const [userCoffees, setUserCoffees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('coffees'); // 'coffees' or 'recipes'
+  const [isFollowing, setIsFollowing] = useState(false);
 
   useEffect(() => {
     // Find user in mock data immediately (no need for setTimeout)
     const foundUser = mockData.users.find(u => u.id === userId) || mockData.users[0];
-    setUser(foundUser);
+    
+    // Determine if this is a business account
+    const isBusinessAccount = userId === 'user2'; // Vértigo y Calambre is a business
+    const userWithBusinessStatus = {
+      ...foundUser,
+      isBusinessAccount,
+      userHandle: isBusinessAccount 
+        ? 'vertigoycalambre' 
+        : foundUser.userName.toLowerCase().replace(/\s+/g, '_')
+    };
+    
+    // Update locations
+    if (userWithBusinessStatus.id === 'user1') {
+      userWithBusinessStatus.location = 'Murcia, Spain';
+    } else if (userWithBusinessStatus.id === 'user2') {
+      userWithBusinessStatus.location = 'Murcia, Spain';
+    } else if (userWithBusinessStatus.id === 'user3') {
+      userWithBusinessStatus.location = 'Madrid, Spain';
+    }
+    
+    setUser(userWithBusinessStatus);
+    
+    // Check if following
+    setIsFollowing(following.some(f => f.id === userId));
     
     // Get user's coffee events from the context
     const userEvents = coffeeEvents ? coffeeEvents.filter(event => event.userId === userId) : [];
     setUserCoffees(userEvents);
     
     setLoading(false);
-  }, [userId, coffeeEvents]);
+  }, [userId, coffeeEvents, following]);
+
+  const handleFollowPress = () => {
+    setIsFollowing(!isFollowing);
+    Alert.alert(
+      isFollowing ? 'Unfollowed' : 'Followed',
+      isFollowing ? `You unfollowed ${user.userName}` : `You followed ${user.userName}`
+    );
+  };
+
+  const handleGearPress = (item) => {
+    console.log('Navigating to GearDetail with:', item);
+    navigation.navigate('GearDetail', {
+      gearName: item
+    });
+  };
 
   const renderCoffeeItem = ({ item }) => (
     <TouchableOpacity 
@@ -61,6 +102,8 @@ export default function UserProfileScreen() {
 
   return (
     <View style={styles.container}>
+      <StatusBar barStyle="dark-content" />
+
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#000000" />
@@ -75,13 +118,21 @@ export default function UserProfileScreen() {
       ) : (
         <View style={{ flex: 1 }}>
           {/* Profile Header */}
-          <View style={styles.header}>
-            <Image 
-              source={{ uri: user.userAvatar }} 
-              style={styles.avatar} 
-            />
-            <Text style={styles.userName}>{user.userName}</Text>
-            <Text style={styles.userHandle}>@{user.userName.toLowerCase().replace(/\s+/g, '_')}</Text>
+          <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
+            <View style={styles.headerContent}>
+              <Image 
+                source={{ uri: user.userAvatar }} 
+                style={[
+                  styles.avatar,
+                  user.isBusinessAccount ? styles.businessAvatar : styles.userAvatar
+                ]} 
+              />
+              <View style={styles.userInfo}>
+                <Text style={styles.userName}>{user.userName}</Text>
+                <Text style={styles.userLocation}>@{user.userHandle}</Text>
+                <Text style={styles.userLocation}>{user.location}</Text>
+              </View>
+            </View>
             
             <View style={styles.statsContainer}>
               <View style={styles.statItem}>
@@ -89,17 +140,28 @@ export default function UserProfileScreen() {
                 <Text style={styles.statLabel}>Coffees</Text>
               </View>
               <View style={styles.statItem}>
-                <Text style={styles.statValue}>0</Text>
+                <Text style={styles.statValue}>{followers.length || 0}</Text>
                 <Text style={styles.statLabel}>Followers</Text>
               </View>
               <View style={styles.statItem}>
-                <Text style={styles.statValue}>0</Text>
+                <Text style={styles.statValue}>{following.length || 0}</Text>
                 <Text style={styles.statLabel}>Following</Text>
               </View>
             </View>
             
-            <TouchableOpacity style={styles.followButton}>
-              <Text style={styles.followButtonText}>Follow</Text>
+            <TouchableOpacity 
+              style={[
+                styles.followButton,
+                isFollowing && styles.followingButton
+              ]}
+              onPress={handleFollowPress}
+            >
+              <Text style={[
+                styles.followButtonText,
+                isFollowing && styles.followingButtonText
+              ]}>
+                {isFollowing ? 'Following' : 'Follow'}
+              </Text>
             </TouchableOpacity>
           </View>
           
@@ -110,29 +172,25 @@ export default function UserProfileScreen() {
             </View>
           )}
           
-          {/* Location */}
-          {user.location && (
-            <View style={styles.locationContainer}>
-              <Ionicons name="location-outline" size={16} color="#666666" />
-              <Text style={styles.locationText}>{user.location}</Text>
-            </View>
-          )}
-          
           {/* Gear */}
           {user.gear && user.gear.length > 0 && (
             <View style={styles.gearContainer}>
               <Text style={styles.gearTitle}>Gear</Text>
               <View style={styles.gearList}>
                 {user.gear.map((item, index) => (
-                  <View key={index} style={styles.gearItem}>
+                  <TouchableOpacity 
+                    key={index} 
+                    style={styles.gearItem}
+                    onPress={() => handleGearPress(item)}
+                  >
                     <Text style={styles.gearText}>{item}</Text>
-                  </View>
+                  </TouchableOpacity>
                 ))}
               </View>
             </View>
           )}
           
-          {/* Tabs */}
+          {/* Tabs - conditionally show Shop for business accounts */}
           <View style={styles.tabsContainer}>
             <TouchableOpacity 
               style={[styles.tab, activeTab === 'coffees' && styles.activeTab]}
@@ -140,6 +198,31 @@ export default function UserProfileScreen() {
             >
               <Text style={[styles.tabText, activeTab === 'coffees' && styles.activeTabText]}>Coffees</Text>
             </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[
+                styles.tab, 
+                activeTab === (user.isBusinessAccount ? 'shop' : 'collection') && styles.activeTab
+              ]}
+              onPress={() => setActiveTab(user.isBusinessAccount ? 'shop' : 'collection')}
+            >
+              <Text style={[
+                styles.tabText, 
+                activeTab === (user.isBusinessAccount ? 'shop' : 'collection') && styles.activeTabText
+              ]}>
+                {user.isBusinessAccount ? 'Shop' : 'Collection'}
+              </Text>
+            </TouchableOpacity>
+            
+            {!user.isBusinessAccount && (
+              <TouchableOpacity 
+                style={[styles.tab, activeTab === 'wishlist' && styles.activeTab]}
+                onPress={() => setActiveTab('wishlist')}
+              >
+                <Text style={[styles.tabText, activeTab === 'wishlist' && styles.activeTabText]}>Wishlist</Text>
+              </TouchableOpacity>
+            )}
+            
             <TouchableOpacity 
               style={[styles.tab, activeTab === 'recipes' && styles.activeTab]}
               onPress={() => setActiveTab('recipes')}
@@ -161,6 +244,14 @@ export default function UserProfileScreen() {
                 </View>
               }
             />
+          ) : activeTab === 'collection' || activeTab === 'shop' ? (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>No {user.isBusinessAccount ? 'products' : 'coffees'} in collection</Text>
+            </View>
+          ) : activeTab === 'wishlist' ? (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>No coffees in wishlist</Text>
+            </View>
           ) : (
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyText}>No recipes yet</Text>
@@ -175,7 +266,7 @@ export default function UserProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#FFFFFF',
   },
   loadingContainer: {
     flex: 1,
@@ -208,24 +299,37 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: '#FFFFFF',
     padding: 20,
-    alignItems: 'center',
   },
-  avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 16,
   },
+  avatar: {
+    width: 80,
+    height: 80,
+    marginRight: 15,
+    borderWidth: 1,
+    borderColor: '#CCCCCC',
+  },
+  userAvatar: {
+    borderRadius: 40,
+  },
+  businessAvatar: {
+    borderRadius: 12,
+  },
+  userInfo: {
+    flex: 1,
+  },
   userName: {
-    fontSize: 20,
-    fontWeight: '600',
+    fontSize: 24,
+    fontWeight: 'bold',
     color: '#000000',
     marginBottom: 4,
   },
-  userHandle: {
+  userLocation: {
     fontSize: 14,
     color: '#666666',
-    marginBottom: 16,
   },
   statsContainer: {
     flexDirection: 'row',
@@ -238,7 +342,7 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: 'bold',
     color: '#000000',
   },
   statLabel: {
@@ -250,30 +354,71 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 24,
     borderRadius: 20,
+    alignSelf: 'center',
   },
   followButtonText: {
     color: '#FFFFFF',
     fontWeight: '500',
   },
+  followingButton: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#000000',
+  },
+  followingButtonText: {
+    color: '#000000',
+  },
   bioContainer: {
     backgroundColor: '#FFFFFF',
     padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E5EA',
   },
   bioText: {
     fontSize: 14,
     color: '#333333',
     lineHeight: 20,
   },
+  gearContainer: {
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E5EA',
+  },
+  gearTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000000',
+    marginBottom: 8,
+  },
+  gearList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  gearItem: {
+    backgroundColor: '#F2F2F7',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  gearText: {
+    fontSize: 14,
+    color: '#666666',
+  },
   tabsContainer: {
     flexDirection: 'row',
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E5EA',
+    height: 48,
   },
   tab: {
     flex: 1,
     paddingVertical: 12,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   activeTab: {
     borderBottomWidth: 2,
@@ -288,14 +433,19 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   coffeesContainer: {
-    padding: 16,
+    padding: 8,
   },
   coffeeItem: {
     flexDirection: 'row',
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    marginBottom: 12,
+    marginBottom: 8,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   coffeeImage: {
     width: 80,
@@ -327,53 +477,13 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   emptyContainer: {
-    padding: 20,
+    padding: 12,
     alignItems: 'center',
+    flex: 1,
+    justifyContent: 'center',
   },
   emptyText: {
     fontSize: 16,
-    color: '#666666',
-  },
-  locationContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E5EA',
-  },
-  locationText: {
-    fontSize: 14,
-    color: '#666666',
-    marginLeft: 8,
-  },
-  gearContainer: {
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E5EA',
-  },
-  gearTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000000',
-    marginBottom: 8,
-  },
-  gearList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  gearItem: {
-    backgroundColor: '#F2F2F7',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    marginRight: 8,
-    marginBottom: 8,
-  },
-  gearText: {
-    fontSize: 14,
     color: '#666666',
   },
 }); 

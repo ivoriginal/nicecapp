@@ -239,8 +239,8 @@ export default function AddCoffeeScreen({ navigation, route }) {
       
       // Small delay to ensure the preview modal is closed before navigating
       setTimeout(() => {
-        // Navigate back using the custom navigation prop
-        navigation.goBack();
+        // Navigate to the Home screen instead of going back
+        navigation.navigate('MainTabs', { screen: 'Home' });
       }, 100);
     } catch (error) {
       console.error('Error saving coffee:', error);

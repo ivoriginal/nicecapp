@@ -20,6 +20,45 @@ import mockData from '../data/mockData.json';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import RecipeCard from '../components/RecipeCard';
 
+// Mock data for sellers
+const mockSellers = {
+  'coffee1': [
+    { id: 'business3', name: 'Blue Bottle Coffee', isRoaster: true, businessAccount: false, avatar: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80', location: 'Oakland, CA' },
+    { id: 'user2', name: 'Vértigo y Calambre', isRoaster: false, businessAccount: true, avatar: 'https://instagram.fvlc6-1.fna.fbcdn.net/v/t51.2885-19/336824776_569041758334218_6485683640258084106_n.jpg?stp=dst-jpg_s150x150_tt6&_nc_ht=instagram.fvlc6-1.fna.fbcdn.net&_nc_cat=106&_nc_oc=Q6cZ2QG9yijX6AYS-LyAN9vATpVAGPTj3dueZAwrz_3RB68vu_PtQKtRFxeVRSPP84eYFZw&_nc_ohc=mD1tNAu2Bp0Q7kNvwHFAMaF&_nc_gid=a2z4gQ9o-xKDwiAyIMflPA&edm=AOQ1c0wBAAAA&ccb=7-5&oh=00_AfHHhBR9AddwcSMHdDw7WSR00XBUUwYOp5v4FuY-lTj-vw&oe=680ED603&_nc_sid=8b3546', location: 'Murcia, Spain' }
+  ],
+  'coffee2': [
+    { id: 'business4', name: 'Stumptown Coffee Roasters', isRoaster: true, businessAccount: false, avatar: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80', location: 'Portland, OR' },
+    { id: 'user2', name: 'Vértigo y Calambre', isRoaster: false, businessAccount: true, avatar: 'https://instagram.fvlc6-1.fna.fbcdn.net/v/t51.2885-19/336824776_569041758334218_6485683640258084106_n.jpg?stp=dst-jpg_s150x150_tt6&_nc_ht=instagram.fvlc6-1.fna.fbcdn.net&_nc_cat=106&_nc_oc=Q6cZ2QG9yijX6AYS-LyAN9vATpVAGPTj3dueZAwrz_3RB68vu_PtQKtRFxeVRSPP84eYFZw&_nc_ohc=mD1tNAu2Bp0Q7kNvwHFAMaF&_nc_gid=a2z4gQ9o-xKDwiAyIMflPA&edm=AOQ1c0wBAAAA&ccb=7-5&oh=00_AfHHhBR9AddwcSMHdDw7WSR00XBUUwYOp5v4FuY-lTj-vw&oe=680ED603&_nc_sid=8b3546', location: 'Murcia, Spain' },
+    { id: 'business2', name: 'The Fix', isRoaster: false, businessAccount: true, avatar: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80', location: 'Austin, TX' }
+  ],
+  'coffee3': [
+    { id: 'business3', name: 'Blue Bottle Coffee', isRoaster: true, businessAccount: false, avatar: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80', location: 'Oakland, CA' }
+  ],
+  'coffee4': [
+    { id: 'business4', name: 'Stumptown Coffee Roasters', isRoaster: true, businessAccount: false, avatar: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80', location: 'Portland, OR' },
+    { id: 'user2', name: 'Vértigo y Calambre', isRoaster: false, businessAccount: true, avatar: 'https://instagram.fvlc6-1.fna.fbcdn.net/v/t51.2885-19/336824776_569041758334218_6485683640258084106_n.jpg?stp=dst-jpg_s150x150_tt6&_nc_ht=instagram.fvlc6-1.fna.fbcdn.net&_nc_cat=106&_nc_oc=Q6cZ2QG9yijX6AYS-LyAN9vATpVAGPTj3dueZAwrz_3RB68vu_PtQKtRFxeVRSPP84eYFZw&_nc_ohc=mD1tNAu2Bp0Q7kNvwHFAMaF&_nc_gid=a2z4gQ9o-xKDwiAyIMflPA&edm=AOQ1c0wBAAAA&ccb=7-5&oh=00_AfHHhBR9AddwcSMHdDw7WSR00XBUUwYOp5v4FuY-lTj-vw&oe=680ED603&_nc_sid=8b3546', location: 'Murcia, Spain' }
+  ],
+  'coffee5': [
+    { id: 'business2', name: 'The Fix', isRoaster: true, businessAccount: true, avatar: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80', location: 'Austin, TX' }
+  ],
+  'coffee-0': [
+    { id: 'business3', name: 'Blue Bottle Coffee', isRoaster: true, businessAccount: false, avatar: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80', location: 'Oakland, CA' },
+    { id: 'user2', name: 'Vértigo y Calambre', isRoaster: false, businessAccount: true, avatar: 'https://instagram.fvlc6-1.fna.fbcdn.net/v/t51.2885-19/336824776_569041758334218_6485683640258084106_n.jpg?stp=dst-jpg_s150x150_tt6&_nc_ht=instagram.fvlc6-1.fna.fbcdn.net&_nc_cat=106&_nc_oc=Q6cZ2QG9yijX6AYS-LyAN9vATpVAGPTj3dueZAwrz_3RB68vu_PtQKtRFxeVRSPP84eYFZw&_nc_ohc=mD1tNAu2Bp0Q7kNvwHFAMaF&_nc_gid=a2z4gQ9o-xKDwiAyIMflPA&edm=AOQ1c0wBAAAA&ccb=7-5&oh=00_AfHHhBR9AddwcSMHdDw7WSR00XBUUwYOp5v4FuY-lTj-vw&oe=680ED603&_nc_sid=8b3546', location: 'Murcia, Spain' }
+  ],
+  'coffee-1': [
+    { id: 'business4', name: 'Stumptown Coffee Roasters', isRoaster: true, businessAccount: false, avatar: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80', location: 'Portland, OR' },
+    { id: 'user2', name: 'Vértigo y Calambre', isRoaster: false, businessAccount: true, avatar: 'https://instagram.fvlc6-1.fna.fbcdn.net/v/t51.2885-19/336824776_569041758334218_6485683640258084106_n.jpg?stp=dst-jpg_s150x150_tt6&_nc_ht=instagram.fvlc6-1.fna.fbcdn.net&_nc_cat=106&_nc_oc=Q6cZ2QG9yijX6AYS-LyAN9vATpVAGPTj3dueZAwrz_3RB68vu_PtQKtRFxeVRSPP84eYFZw&_nc_ohc=mD1tNAu2Bp0Q7kNvwHFAMaF&_nc_gid=a2z4gQ9o-xKDwiAyIMflPA&edm=AOQ1c0wBAAAA&ccb=7-5&oh=00_AfHHhBR9AddwcSMHdDw7WSR00XBUUwYOp5v4FuY-lTj-vw&oe=680ED603&_nc_sid=8b3546', location: 'Murcia, Spain' }
+  ],
+  'coffee-2': [
+    { id: 'business1', name: 'Toma Café', isRoaster: true, businessAccount: true, avatar: 'https://instagram.fvlc6-1.fna.fbcdn.net/v/t51.2885-19/336824776_569041758334218_6485683640258084106_n.jpg', location: 'Madrid, Spain' },
+    { id: 'user2', name: 'Vértigo y Calambre', isRoaster: false, businessAccount: true, avatar: 'https://instagram.fvlc6-1.fna.fbcdn.net/v/t51.2885-19/336824776_569041758334218_6485683640258084106_n.jpg?stp=dst-jpg_s150x150_tt6&_nc_ht=instagram.fvlc6-1.fna.fbcdn.net&_nc_cat=106&_nc_oc=Q6cZ2QG9yijX6AYS-LyAN9vATpVAGPTj3dueZAwrz_3RB68vu_PtQKtRFxeVRSPP84eYFZw&_nc_ohc=mD1tNAu2Bp0Q7kNvwHFAMaF&_nc_gid=a2z4gQ9o-xKDwiAyIMflPA&edm=AOQ1c0wBAAAA&ccb=7-5&oh=00_AfHHhBR9AddwcSMHdDw7WSR00XBUUwYOp5v4FuY-lTj-vw&oe=680ED603&_nc_sid=8b3546', location: 'Murcia, Spain' }
+  ],
+  'mock1': [
+    { id: 'business3', name: 'Blue Bottle Coffee', isRoaster: true, businessAccount: false, avatar: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80', location: 'Oakland, CA' },
+    { id: 'user2', name: 'Vértigo y Calambre', isRoaster: false, businessAccount: true, avatar: 'https://instagram.fvlc6-1.fna.fbcdn.net/v/t51.2885-19/336824776_569041758334218_6485683640258084106_n.jpg?stp=dst-jpg_s150x150_tt6&_nc_ht=instagram.fvlc6-1.fna.fbcdn.net&_nc_cat=106&_nc_oc=Q6cZ2QG9yijX6AYS-LyAN9vATpVAGPTj3dueZAwrz_3RB68vu_PtQKtRFxeVRSPP84eYFZw&_nc_ohc=mD1tNAu2Bp0Q7kNvwHFAMaF&_nc_gid=a2z4gQ9o-xKDwiAyIMflPA&edm=AOQ1c0wBAAAA&ccb=7-5&oh=00_AfHHhBR9AddwcSMHdDw7WSR00XBUUwYOp5v4FuY-lTj-vw&oe=680ED603&_nc_sid=8b3546', location: 'Murcia, Spain' }
+  ]
+};
+
 export default function CoffeeDetailScreen() {
   const { 
     coffeeEvents, 
@@ -50,6 +89,7 @@ export default function CoffeeDetailScreen() {
   const [toastActionText, setToastActionText] = useState('');
   const [pendingRemoval, setPendingRemoval] = useState(null);
   const [removalTimeout, setRemovalTimeout] = useState(null);
+  const [sellers, setSellers] = useState([]);
 
   useEffect(() => {
     // Always use mock data for development
@@ -65,6 +105,10 @@ export default function CoffeeDetailScreen() {
           if (routeCoffee.recipes) {
             setRelatedRecipes(routeCoffee.recipes);
           }
+          
+          // Set sellers for this coffee
+          setSellers(mockSellers[routeCoffee.id] || []);
+          
           setLoading(false);
           return;
         }
@@ -91,11 +135,17 @@ export default function CoffeeDetailScreen() {
               wishlist: Math.floor(Math.random() * 30) + 3
             }
           });
+          
+          // Set sellers for this coffee
+          setSellers(mockSellers[eventCoffee.coffeeId] || []);
         } else {
           // Otherwise find in mock data
           const foundCoffee = mockData.coffees.find(c => c.id === coffeeId) || mockData.coffees[0];
           if (foundCoffee) {
             setCoffee(foundCoffee);
+            // Set sellers for this coffee
+            setSellers(mockSellers[foundCoffee.id] || []);
+            
             // Set mock recipes for the mock coffee
             setRelatedRecipes([
               {
@@ -129,7 +179,7 @@ export default function CoffeeDetailScreen() {
             ]);
           } else {
             // If not found in events, use mock data
-            setCoffee({
+            const mockCoffee = {
               id: 'mock1',
               name: 'Ethiopian Yirgacheffe',
               roaster: 'Blue Bottle Coffee',
@@ -145,7 +195,11 @@ export default function CoffeeDetailScreen() {
                 brews: 256,
                 wishlist: 89
               }
-            });
+            };
+            setCoffee(mockCoffee);
+            
+            // Set sellers for this coffee
+            setSellers(mockSellers['mock1'] || []);
           }
         }
       } catch (error) {
@@ -216,8 +270,20 @@ export default function CoffeeDetailScreen() {
     }
   };
 
-  const navigateToUserProfile = (userId) => {
-    navigation.navigate('Profile', { userId, skipAuth: true });
+  const navigateToUserProfile = (userId, userName) => {
+    if (userName === 'Vértigo y Calambre') {
+      navigation.navigate('UserProfileBridge', { 
+        userId: 'user2', 
+        userName: 'Vértigo y Calambre',
+        skipAuth: true 
+      });
+    } else {
+      navigation.navigate('UserProfileBridge', { 
+        userId, 
+        userName,
+        skipAuth: true 
+      });
+    }
   };
 
   const navigateToCollection = () => {
@@ -285,6 +351,33 @@ export default function CoffeeDetailScreen() {
       onUserPress={navigateToUserProfile}
     />
   );
+
+  const renderSellerItem = ({ item }) => {
+    return (
+      <TouchableOpacity 
+        style={styles.sellerItem}
+        onPress={() => navigateToUserProfile(item.id, item.name)}
+      >
+        <Image 
+          source={{ uri: item.avatar }}
+          style={[
+            styles.sellerAvatar,
+            item.businessAccount ? styles.businessAvatar : styles.userAvatar
+          ]}
+        />
+        <View style={styles.sellerInfo}>
+          <Text style={styles.sellerName}>{item.name}</Text>
+          <Text style={styles.sellerLocation}>{item.location}</Text>
+          {item.isRoaster && (
+            <View style={styles.roasterBadge}>
+              <Text style={styles.roasterBadgeText}>Roaster</Text>
+            </View>
+          )}
+        </View>
+        <Ionicons name="chevron-forward" size={20} color="#000000" />
+      </TouchableOpacity>
+    );
+  };
 
   if (loading) {
     return (
@@ -421,6 +514,19 @@ export default function CoffeeDetailScreen() {
           <Text style={styles.sectionTitle}>Description</Text>
           <Text style={styles.descriptionText}>{coffee.description}</Text>
         </View>
+
+        {/* Sold By Section */}
+        {sellers.length > 0 && (
+          <View style={styles.sellersContainer}>
+            <Text style={styles.sectionTitle}>Sold By</Text>
+            <FlatList
+              data={sellers}
+              renderItem={renderSellerItem}
+              keyExtractor={(item) => item.id}
+              scrollEnabled={false}
+            />
+          </View>
+        )}
 
         {/* Related Recipes */}
         <View style={styles.section}>
@@ -779,5 +885,52 @@ const styles = StyleSheet.create({
   },
   recipeList: {
     marginTop: 8,
+  },
+  sellersContainer: {
+    marginTop: 20,
+  },
+  sellerItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5EA',
+  },
+  sellerAvatar: {
+    width: 40,
+    height: 40,
+    marginRight: 12,
+  },
+  userAvatar: {
+    borderRadius: 20,
+  },
+  businessAvatar: {
+    borderRadius: 8,
+  },
+  sellerInfo: {
+    flex: 1,
+  },
+  sellerName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000000',
+    marginBottom: 2,
+  },
+  sellerLocation: {
+    fontSize: 14,
+    color: '#666666',
+  },
+  roasterBadge: {
+    backgroundColor: '#000000',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginTop: 4,
+    alignSelf: 'flex-start',
+  },
+  roasterBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '600',
   },
 }); 

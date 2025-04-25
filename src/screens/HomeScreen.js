@@ -144,9 +144,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  listContainer: {
-    paddingBottom: 16,
-  },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',

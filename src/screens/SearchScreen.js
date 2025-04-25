@@ -400,10 +400,23 @@ export default function SearchScreen() {
         return (
           <TouchableOpacity 
             style={styles.carouselCard}
-            onPress={() => navigation.navigate('CoffeeDetail', { coffeeId: item.id })}
+            onPress={() => {
+              // Check if this is a user-based cafe (like Vértigo y Calambre)
+              if (item.id && item.id.startsWith('user')) {
+                // Navigate to UserProfileBridge for user cafes
+                navigation.navigate('UserProfileBridge', { 
+                  userId: item.id, 
+                  userName: item.name,
+                  skipAuth: true 
+                });
+              } else {
+                // Navigate to CoffeeDetail for regular cafes
+                navigation.navigate('CoffeeDetail', { coffeeId: item.id });
+              }
+            }}
           >
             <Image 
-              source={{ uri: item.coverImage }} 
+              source={{ uri: item.coverImage || item.imageUrl }} 
               style={styles.carouselImage} 
               resizeMode="cover"
             />

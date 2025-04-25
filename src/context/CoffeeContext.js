@@ -367,7 +367,7 @@ export const CoffeeProvider = ({ children }) => {
           notes: 'Nutty with a subtle sweetness. Very balanced.',
           userId: 'user2',
           userName: 'Vértigo y Calambre',
-          userAvatar: 'https://randomuser.me/api/portraits/women/44.jpg'
+          userAvatar: 'https://instagram.fvlc6-1.fna.fbcdn.net/v/t51.2885-19/336824776_569041758334218_6485683640258084106_n.jpg?stp=dst-jpg_s150x150_tt6&_nc_ht=instagram.fvlc6-1.fna.fbcdn.net&_nc_cat=106&_nc_oc=Q6cZ2QG9yijX6AYS-LyAN9vATpVAGPTj3dueZAwrz_3RB68vu_PtQKtRFxeVRSPP84eYFZw&_nc_ohc=mD1tNAu2Bp0Q7kNvwHFAMaF&_nc_gid=a2z4gQ9o-xKDwiAyIMflPA&edm=AOQ1c0wBAAAA&ccb=7-5&oh=00_AfHHhBR9AddwcSMHdDw7WSR00XBUUwYOp5v4FuY-lTj-vw&oe=680ED603&_nc_sid=8b3546'
         }
       ],
       coffeeCollection: [
@@ -559,7 +559,7 @@ export const CoffeeProvider = ({ children }) => {
         coffeeName: 'Ethiopian Yirgacheffe',
         userId: 'user2',
         userName: 'Vértigo y Calambre',
-        userAvatar: 'https://randomuser.me/api/portraits/women/44.jpg',
+        userAvatar: 'https://instagram.fvlc6-1.fna.fbcdn.net/v/t51.2885-19/336824776_569041758334218_6485683640258084106_n.jpg?stp=dst-jpg_s150x150_tt6&_nc_ht=instagram.fvlc6-1.fna.fbcdn.net&_nc_cat=106&_nc_oc=Q6cZ2QG9yijX6AYS-LyAN9vATpVAGPTj3dueZAwrz_3RB68vu_PtQKtRFxeVRSPP84eYFZw&_nc_ohc=mD1tNAu2Bp0Q7kNvwHFAMaF&_nc_gid=a2z4gQ9o-xKDwiAyIMflPA&edm=AOQ1c0wBAAAA&ccb=7-5&oh=00_AfHHhBR9AddwcSMHdDw7WSR00XBUUwYOp5v4FuY-lTj-vw&oe=680ED603&_nc_sid=8b3546',
         amount: 15,
         grindSize: 'Medium',
         waterVolume: 230,

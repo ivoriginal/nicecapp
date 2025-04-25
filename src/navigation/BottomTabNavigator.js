@@ -160,7 +160,6 @@ export default function BottomTabNavigator() {
           },
           headerTintColor: '#000000',
           tabBarStyle: {
-            height: 48 + insets.bottom,
             paddingTop: 4,
             paddingHorizontal: 5,
             backgroundColor: '#ffffff',

@@ -8,6 +8,7 @@ import CoffeeDetailScreen from './src/screens/CoffeeDetailScreen';
 import RecipeDetailScreen from './src/screens/RecipeDetailScreen';
 import UserProfileScreen from './src/screens/UserProfileScreen';
 import UserProfileBridge from './src/screens/UserProfileBridge';
+import GearDetailScreen from './src/screens/GearDetailScreen';
 import { CoffeeProvider } from './src/context/CoffeeContext';
 import { NotificationsProvider } from './src/context/NotificationsContext';
 import { configureNavigationBar } from './src/lib/navigationBar';
@@ -75,6 +76,14 @@ export default function App() {
                 component={UserProfileScreen} 
                 options={({ route }) => ({ 
                   title: route.params?.userName || 'Profile',
+                  headerBackTitle: 'Back',
+                })} 
+              />
+              <Stack.Screen 
+                name="GearDetail" 
+                component={GearDetailScreen} 
+                options={({ route }) => ({ 
+                  title: route.params?.gearName || 'Gear Details',
                   headerBackTitle: 'Back',
                 })} 
               />

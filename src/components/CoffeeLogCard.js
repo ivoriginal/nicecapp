@@ -19,6 +19,9 @@ const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress }) => 
       return 'Unknown date';
     }
   };
+  
+  // Check if this is a business account (like Vértigo y Calambre)
+  const isBusinessAccount = event.userName === 'Vértigo y Calambre';
 
   return (
     <View style={styles.container}>
@@ -30,7 +33,10 @@ const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress }) => 
         >
           <Image 
             source={{ uri: event.userAvatar || 'https://via.placeholder.com/40' }} 
-            style={styles.userAvatar} 
+            style={[
+              styles.userAvatar,
+              isBusinessAccount ? styles.businessAvatar : null
+            ]} 
           />
           <Text style={styles.userName}>{event.userName}</Text>
         </TouchableOpacity>
@@ -57,16 +63,6 @@ const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress }) => 
         <View style={styles.coffeeInfo}>
           <Text style={styles.coffeeName}>{event.coffeeName}</Text>
           <Text style={styles.roasterName}>{event.roaster || event.roasterName}</Text>
-          <View style={styles.ratingContainer}>
-            {[...Array(5)].map((_, i) => (
-              <Ionicons 
-                key={i} 
-                name={i < (event.rating || 0) ? "star" : "star-outline"} 
-                size={16} 
-                color="#FFD700" 
-              />
-            ))}
-          </View>
         </View>
       </TouchableOpacity>
 
@@ -138,6 +134,9 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     marginRight: 8,
   },
+  businessAvatar: {
+    borderRadius: 6,
+  },
   userName: {
     fontSize: 14,
     fontWeight: '500',
@@ -187,12 +186,9 @@ const styles = StyleSheet.create({
     color: '#666666',
     marginBottom: 4,
   },
-  ratingContainer: {
-    flexDirection: 'row',
-  },
   recipeContainer: {
     padding: 12,
-    backgroundColor: '#F8F8F8',
+    backgroundColor: '#FFFFFF',
   },
   recipeHeader: {
     flexDirection: 'row',
@@ -203,7 +199,7 @@ const styles = StyleSheet.create({
   methodContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F8F8F8',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
