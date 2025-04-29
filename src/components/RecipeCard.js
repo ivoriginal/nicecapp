@@ -3,10 +3,10 @@ import {
   View, 
   Text, 
   StyleSheet, 
-  TouchableOpacity, 
-  Image 
+  TouchableOpacity
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import AppImage from './common/AppImage';
 
 const RecipeCard = ({ 
   recipe, 
@@ -49,9 +49,10 @@ const RecipeCard = ({
         >
           <View style={styles.coffeeInfo}>
             {coffeeImage && (
-              <Image 
+              <AppImage 
                 source={{ uri: coffeeImage }} 
                 style={styles.coffeeImage} 
+                placeholder="coffee"
               />
             )}
             <View style={styles.coffeeDetails}>
@@ -117,9 +118,10 @@ const RecipeCard = ({
           style={styles.userContainer}
           onPress={() => onUserPress && onUserPress(userId)}
         >
-          <Image 
+          <AppImage 
             source={{ uri: userAvatar || 'https://via.placeholder.com/32' }} 
             style={styles.userAvatar} 
+            placeholder="avatar"
           />
           <Text style={styles.userName}>{userName}</Text>
           {timestamp && (

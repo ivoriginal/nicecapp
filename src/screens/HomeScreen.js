@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, RefreshControl, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,8 +12,21 @@ export default function HomeScreen({ navigation }) {
   const [refreshing, setRefreshing] = useState(false);
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const [initialLoadDone, setInitialLoadDone] = useState(false);
+
+  console.log('HomeScreen rendering, allEvents length:', allEvents?.length || 0);
+
+  // Load data once when the component mounts
+  useEffect(() => {
+    if (!initialLoadDone && (!allEvents || allEvents.length === 0)) {
+      console.log('HomeScreen - Initial data load');
+      loadData();
+      setInitialLoadDone(true);
+    }
+  }, [initialLoadDone, allEvents, loadData]);
 
   const onRefresh = useCallback(async () => {
+    console.log('HomeScreen refresh triggered');
     setRefreshing(true);
     try {
       await loadData();

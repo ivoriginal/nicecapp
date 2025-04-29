@@ -934,6 +934,8 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     marginRight: 12,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
   },
   userAvatar: {
     borderRadius: 20,

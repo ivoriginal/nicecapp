@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
+import AppImage from './common/AppImage';
 
 export default function CoffeeCard({
   title,
@@ -14,13 +15,11 @@ export default function CoffeeCard({
   return (
     <TouchableOpacity onPress={onPress} style={styles.card}>
       <View style={styles.imageContainer}>
-        {imageUrl ? (
-          <Image source={{ uri: imageUrl }} style={styles.image} />
-        ) : (
-          <View style={styles.placeholderImage}>
-            <FontAwesome name="coffee" size={24} color="#666" />
-          </View>
-        )}
+        <AppImage 
+          source={imageUrl}
+          style={styles.image}
+          placeholder="coffee"
+        />
       </View>
       <View style={styles.content}>
         <Text style={styles.title}>{title}</Text>
@@ -46,15 +45,11 @@ export default function CoffeeCard({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: 'white',
+    backgroundColor: '#fff',
     borderRadius: 12,
-    marginHorizontal: 16,
-    marginVertical: 8,
+    marginBottom: 16,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
@@ -68,22 +63,15 @@ const styles = StyleSheet.create({
   image: {
     width: '100%',
     height: '100%',
-    resizeMode: 'cover',
-  },
-  placeholderImage: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: '#f5f5f5',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   content: {
     padding: 16,
   },
   title: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '600',
     marginBottom: 8,
+    color: '#333',
   },
   description: {
     fontSize: 14,
@@ -97,7 +85,7 @@ const styles = StyleSheet.create({
   },
   username: {
     fontSize: 12,
-    color: '#666',
+    color: '#999',
   },
   ratingContainer: {
     flexDirection: 'row',

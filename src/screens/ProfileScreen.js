@@ -94,7 +94,7 @@ export default function ProfileScreen() {
       id: 'user1',
       userName: 'Ivo Vilches',
       userHandle: 'ivoriginal',
-      userAvatar: 'https://randomuser.me/api/portraits/men/32.jpg',
+      userAvatar: require('../../assets/users/ivo-vilches.jpg'),
       email: 'ivo.vilches@example.com',
       location: 'Murcia, Spain',
       isBusinessAccount: false,
@@ -104,7 +104,7 @@ export default function ProfileScreen() {
       id: 'user2',
       userName: 'Vértigo y Calambre',
       userHandle: 'vertigoycalambre',
-      userAvatar: 'https://instagram.fvlc6-1.fna.fbcdn.net/v/t51.2885-19/336824776_569041758334218_6485683640258084106_n.jpg?stp=dst-jpg_s150x150_tt6&_nc_ht=instagram.fvlc6-1.fna.fbcdn.net&_nc_cat=106&_nc_oc=Q6cZ2QG9yijX6AYS-LyAN9vATpVAGPTj3dueZAwrz_3RB68vu_PtQKtRFxeVRSPP84eYFZw&_nc_ohc=mD1tNAu2Bp0Q7kNvwHFAMaF&_nc_gid=a2z4gQ9o-xKDwiAyIMflPA&edm=AOQ1c0wBAAAA&ccb=7-5&oh=00_AfHHhBR9AddwcSMHdDw7WSR00XBUUwYOp5v4FuY-lTj-vw&oe=680ED603&_nc_sid=8b3546',
+      userAvatar: require('../../assets/businesses/vertigo-logo.jpg'),
       email: 'contacto@vertigoycalambre.com',
       location: 'Murcia, Spain',
       isBusinessAccount: true,
@@ -113,8 +113,8 @@ export default function ProfileScreen() {
     'user3': {
       id: 'user3',
       userName: 'Carlos Hernández',
-      userHandle: 'carlos_hdez',
-      userAvatar: 'https://randomuser.me/api/portraits/men/67.jpg',
+      userHandle: 'CodingCarlos',
+      userAvatar: require('../../assets/users/carlos-hernandez.jpg'),
       email: 'carlos.hernandez@example.com',
       location: 'Madrid, Spain',
       isBusinessAccount: false,
@@ -134,7 +134,7 @@ export default function ProfileScreen() {
     currentUserData;
   const displayName = userData?.userName || userData?.name || 'Guest';
   const userHandle = userData?.userHandle || displayName.toLowerCase().replace(/\s+/g, '_');
-  const avatarUrl = userData?.userAvatar || userData?.avatar || 'https://randomuser.me/api/portraits/men/32.jpg';
+  const avatarUrl = userData?.userAvatar || userData?.avatar || require('../../assets/users/ivo-vilches.jpg');
   const location = userData?.location || defaultUser?.location || 'Unknown location';
   const isBusinessAccount = userData?.isBusinessAccount || false;
   const userGear = userData?.gear || defaultUser?.gear || [];
@@ -450,7 +450,7 @@ export default function ProfileScreen() {
         style={[styles.tab, activeTab === 'coffee' && styles.activeTab]}
         onPress={() => handleTabChange('coffee')}
       >
-        <Text style={[styles.tabText, activeTab === 'coffee' && styles.activeTabText]}>Coffee Logs</Text>
+        <Text style={[styles.tabText, activeTab === 'coffee' && styles.activeTabText]}>Activity</Text>
       </TouchableOpacity>
       <TouchableOpacity
         style={[styles.tab, activeTab === (isBusinessAccount ? 'shop' : 'collection') && styles.activeTab]}
@@ -506,7 +506,7 @@ export default function ProfileScreen() {
         {/* Profile Header - Avatar, name, stats */}
         <View style={[styles.profileHeader]}>
           <Image 
-            source={{ uri: avatarUrl }} 
+            source={typeof avatarUrl === 'string' ? { uri: avatarUrl } : avatarUrl} 
             style={[
               styles.avatar,
               isBusinessAccount ? styles.businessAvatar : styles.userAvatar
@@ -669,7 +669,7 @@ export default function ProfileScreen() {
                 onPress={() => handleSwitchAccount(item.id)}
               >
                 <Image
-                  source={{ uri: item.userAvatar || 'https://randomuser.me/api/portraits/men/32.jpg' }}
+                  source={typeof item.userAvatar === 'string' ? { uri: item.userAvatar } : item.userAvatar}
                   style={[styles.accountAvatar, defaultUsers[item.id]?.isBusinessAccount && styles.businessAvatar]}
                 />
                 <View style={styles.accountInfo}>
@@ -857,7 +857,7 @@ const styles = StyleSheet.create({
     height: 80,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: '#CCCCCC',
+    borderColor: '#F0F0F0',
   },
   userAvatar: {
     borderRadius: 40,
@@ -993,10 +993,12 @@ const styles = StyleSheet.create({
     borderBottomColor: '#E5E5E5',
   },
   accountAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     marginRight: 12,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
   },
   accountInfo: {
     flex: 1,

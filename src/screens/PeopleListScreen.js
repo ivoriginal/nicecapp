@@ -1,14 +1,41 @@
 import React from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import mockData from '../data/mockData.json';
+import { useCoffee } from '../context/CoffeeContext';
+import AppImage from '../components/common/AppImage';
 
 const PeopleListScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
-  // Combine suggested users with all other users from mockData
-  const users = [...mockData.suggestedUsers, ...mockData.users.filter(user => 
-    !mockData.suggestedUsers.some(suggestedUser => suggestedUser.id === user.id)
+  const { user: currentUser } = useCoffee();
+  
+  // Filter out business accounts and the "You" user
+  const filteredUsers = mockData.users.filter(user => {
+    // Skip business accounts (user2 is Vértigo y Calambre)
+    if (user.id === 'user2' || user.businessAccount || user.isBusinessAccount || user.id.startsWith('business-') || user.id.startsWith('cafe')) {
+      console.log(`Filtering out business account: ${user.userName || user.name}`);
+      return false;
+    }
+    
+    // Skip the "You" user when current user is Ivo Vilches
+    if (user.id === 'currentUser') {
+      console.log('Filtering out "You" user since we are using real accounts');
+      return false;
+    }
+    
+    return true;
+  });
+  
+  // Filter business accounts from suggested users too
+  const filteredSuggestedUsers = mockData.suggestedUsers.filter(user => {
+    return !(user.id === 'user2' || user.businessAccount || user.isBusinessAccount || 
+             user.id.startsWith('business-') || user.id.startsWith('cafe'));
+  });
+  
+  // Combine suggested users with filtered users
+  const users = [...filteredSuggestedUsers, ...filteredUsers.filter(user => 
+    !filteredSuggestedUsers.some(suggestedUser => suggestedUser.id === user.id)
   )];
   
   const renderUserItem = ({ item }) => (
@@ -20,10 +47,10 @@ const PeopleListScreen = ({ navigation }) => {
         skipAuth: true 
       })}
     >
-      <Image 
-        source={{ uri: item.userAvatar || item.avatar }} 
+      <AppImage 
+        source={item.userAvatar || item.avatar} 
         style={styles.userAvatar}
-        resizeMode="cover"
+        placeholder="person"
       />
       <View style={styles.userInfo}>
         <Text style={styles.userName}>{item.userName || item.name}</Text>
@@ -96,6 +123,8 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
+    borderWidth: 1.5,
+    borderColor: '#D0D0D0',
   },
   userInfo: {
     flex: 1,

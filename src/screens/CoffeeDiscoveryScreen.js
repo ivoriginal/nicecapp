@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, Image, ScrollView, Modal } from 'react-native';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, ScrollView, Modal, TouchableWithoutFeedback } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import mockData from '../data/mockData.json';
+import AppImage from '../components/common/AppImage';
 
 const CoffeeDiscoveryScreen = ({ route, navigation }) => {
   const insets = useSafeAreaInsets();
@@ -268,7 +269,7 @@ const CoffeeDiscoveryScreen = ({ route, navigation }) => {
                 ]}
               >
                 {category.label}
-                {activeCount > 0 && ` (${activeCount})`}
+                {activeCount > 0 ? ` (${activeCount})` : ''}
               </Text>
             </TouchableOpacity>
           );
@@ -456,10 +457,10 @@ const CoffeeDiscoveryScreen = ({ route, navigation }) => {
       style={styles.coffeeCard}
       onPress={() => navigation.navigate('CoffeeDetail', { coffeeId: item.id })}
     >
-      <Image 
-        source={{ uri: item.image || item.images?.[0] }} 
+      <AppImage 
+        source={item.image || item.images?.[0]} 
         style={styles.coffeeImage}
-        resizeMode="cover"
+        placeholder="coffee"
       />
       <View style={styles.coffeeContent}>
         <Text style={styles.coffeeName}>{item.name}</Text>

@@ -63,9 +63,9 @@ export const CoffeeProvider = ({ children }) => {
   const [following, setFollowing] = useState([]); // Users that the current user follows
   const [followers, setFollowers] = useState([]); // Users that follow the current user
   const [accounts] = useState([
-    { id: 'user1', userName: 'Ivo Vilches', userAvatar: 'https://randomuser.me/api/portraits/men/32.jpg', email: 'ivo.vilches@example.com' },
-    { id: 'user2', userName: 'Vértigo y Calambre', userAvatar: 'https://instagram.fvlc6-1.fna.fbcdn.net/v/t51.2885-19/336824776_569041758334218_6485683640258084106_n.jpg?stp=dst-jpg_s150x150_tt6&_nc_ht=instagram.fvlc6-1.fna.fbcdn.net&_nc_cat=106&_nc_oc=Q6cZ2QG9yijX6AYS-LyAN9vATpVAGPTj3dueZAwrz_3RB68vu_PtQKtRFxeVRSPP84eYFZw&_nc_ohc=mD1tNAu2Bp0Q7kNvwHFAMaF&_nc_gid=a2z4gQ9o-xKDwiAyIMflPA&edm=AOQ1c0wBAAAA&ccb=7-5&oh=00_AfHHhBR9AddwcSMHdDw7WSR00XBUUwYOp5v4FuY-lTj-vw&oe=680ED603&_nc_sid=8b3546', email: 'contacto@vertigoycalambre.com' },
-    { id: 'user3', userName: 'Carlos Hernández', userAvatar: 'https://randomuser.me/api/portraits/men/67.jpg', email: 'carlos.hernandez@example.com' }
+    { id: 'user1', userName: 'Ivo Vilches', userAvatar: require('../../assets/users/ivo-vilches.jpg'), email: 'ivo.vilches@example.com' },
+    { id: 'user2', userName: 'Vértigo y Calambre', userAvatar: require('../../assets/businesses/vertigo-logo.jpg'), email: 'contacto@vertigoycalambre.com' },
+    { id: 'user3', userName: 'Carlos Hernández', userAvatar: require('../../assets/users/carlos-hernandez.jpg'), email: 'carlos.hernandez@example.com' }
   ]);
   
   // Initialize on mount
@@ -102,13 +102,41 @@ export const CoffeeProvider = ({ children }) => {
         setCurrentAccount(accountToLoad);
       }
 
+      // Debug: log all available accounts in accountData
+      console.log('Available accounts in accountData:', Object.keys(accountData));
+
+      // IMPORTANT: Collect all events for social feed - do this BEFORE loading account-specific data
+      let allUserEvents = [];
+      for (const acct in accountData) {
+        if (accountData[acct]?.coffeeEvents && Array.isArray(accountData[acct].coffeeEvents)) {
+          console.log(`Adding ${accountData[acct].coffeeEvents.length} events from ${acct}`);
+          // Make sure each event has all required data
+          const eventsWithUserInfo = accountData[acct].coffeeEvents.map(event => {
+            // Ensure each event has proper user info
+            if (!event.userName || !event.userAvatar) {
+              const accountInfo = accounts.find(a => a.id === acct);
+              return {
+                ...event,
+                userName: event.userName || accountInfo?.userName || 'Unknown User',
+                userAvatar: event.userAvatar || accountInfo?.userAvatar || null,
+              };
+            }
+            return event;
+          });
+          allUserEvents = [...allUserEvents, ...eventsWithUserInfo];
+        }
+      }
+      
+      console.log('Combined events from all accounts:', allUserEvents.length);
+
       // Load account-specific data
       if (accountData[accountToLoad]) {
         console.log('Using existing account data for:', accountToLoad);
         // Use existing data if available
         const data = accountData[accountToLoad];
-        console.log('Events count:', data.coffeeEvents?.length);
-        console.log('Collection count:', data.coffeeCollection?.length);
+        console.log('Events count for this account:', data.coffeeEvents?.length || 0);
+        
+        // Set current user's data
         setCoffeeEvents(data.coffeeEvents || []);
         setCoffeeCollection(data.coffeeCollection || []);
         setCoffeeWishlist(data.coffeeWishlist || []);
@@ -119,18 +147,6 @@ export const CoffeeProvider = ({ children }) => {
         const otherUsers = accounts.filter(acc => acc.id !== accountToLoad);
         setFollowing(otherUsers);
         setFollowers(otherUsers);
-        
-        // Collect all events from all users for the social feed
-        let allUserEvents = [];
-        for (const acct in accountData) {
-          if (accountData[acct]?.coffeeEvents) {
-            allUserEvents = [...allUserEvents, ...accountData[acct].coffeeEvents];
-          }
-        }
-        
-        // Sort by date (newest first)
-        allUserEvents.sort((a, b) => new Date(b.date) - new Date(a.date));
-        setAllEvents(allUserEvents);
       } else {
         console.log('Generating new account data for:', accountToLoad);
         // Generate mock data for new accounts
@@ -179,20 +195,8 @@ export const CoffeeProvider = ({ children }) => {
         setFollowing(otherUsers);
         setFollowers(otherUsers);
         
-        // Collect all events for social feed
-        let allUserEvents = [];
-        for (const acct in accountData) {
-          if (accountData[acct]?.coffeeEvents) {
-            allUserEvents = [...allUserEvents, ...accountData[acct].coffeeEvents];
-          }
-        }
-        
-        // Add the new mock events
+        // Add the newly generated events to the allEvents array
         allUserEvents = [...allUserEvents, ...mockEvents];
-        
-        // Sort by date (newest first)
-        allUserEvents.sort((a, b) => new Date(b.date) - new Date(a.date));
-        setAllEvents(allUserEvents);
         
         // Store the generated data for future use
         accountData[accountToLoad] = {
@@ -203,6 +207,13 @@ export const CoffeeProvider = ({ children }) => {
           recipes: []
         };
       }
+      
+      // Sort by date (newest first)
+      allUserEvents.sort((a, b) => new Date(b.date || b.timestamp) - new Date(a.date || a.timestamp));
+      console.log('FINAL - Setting allEvents with length:', allUserEvents.length);
+      console.log('Events preview:', allUserEvents.slice(0, 3).map(e => ({ id: e.id, user: e.userName })));
+      setAllEvents(allUserEvents);
+      
       console.log('CoffeeContext - Data loaded successfully');
     } catch (error) {
       console.error('Error loading data:', error);
@@ -284,7 +295,7 @@ export const CoffeeProvider = ({ children }) => {
           notes: 'Bright acidity with floral notes. Very clean cup.',
           userId: 'user1',
           userName: 'Ivo Vilches',
-          userAvatar: 'https://randomuser.me/api/portraits/men/32.jpg'
+          userAvatar: require('../../assets/users/ivo-vilches.jpg')
         },
         {
           id: 'event-user1-1',
@@ -299,7 +310,7 @@ export const CoffeeProvider = ({ children }) => {
           notes: 'Rich chocolate notes with a hint of caramel. Good body.',
           userId: 'user1',
           userName: 'Ivo Vilches',
-          userAvatar: 'https://randomuser.me/api/portraits/men/32.jpg'
+          userAvatar: require('../../assets/users/ivo-vilches.jpg')
         },
         {
           id: 'event-user1-2',
@@ -314,7 +325,7 @@ export const CoffeeProvider = ({ children }) => {
           notes: 'Complex berry notes with a clean finish. Excellent!',
           userId: 'user1',
           userName: 'Ivo Vilches',
-          userAvatar: 'https://randomuser.me/api/portraits/men/32.jpg'
+          userAvatar: require('../../assets/users/ivo-vilches.jpg')
         }
       ],
       coffeeCollection: [
@@ -367,7 +378,7 @@ export const CoffeeProvider = ({ children }) => {
           notes: 'Nutty with a subtle sweetness. Very balanced.',
           userId: 'user2',
           userName: 'Vértigo y Calambre',
-          userAvatar: 'https://instagram.fvlc6-1.fna.fbcdn.net/v/t51.2885-19/336824776_569041758334218_6485683640258084106_n.jpg?stp=dst-jpg_s150x150_tt6&_nc_ht=instagram.fvlc6-1.fna.fbcdn.net&_nc_cat=106&_nc_oc=Q6cZ2QG9yijX6AYS-LyAN9vATpVAGPTj3dueZAwrz_3RB68vu_PtQKtRFxeVRSPP84eYFZw&_nc_ohc=mD1tNAu2Bp0Q7kNvwHFAMaF&_nc_gid=a2z4gQ9o-xKDwiAyIMflPA&edm=AOQ1c0wBAAAA&ccb=7-5&oh=00_AfHHhBR9AddwcSMHdDw7WSR00XBUUwYOp5v4FuY-lTj-vw&oe=680ED603&_nc_sid=8b3546'
+          userAvatar: require('../../assets/businesses/vertigo-logo.jpg')
         }
       ],
       coffeeCollection: [
@@ -406,7 +417,7 @@ export const CoffeeProvider = ({ children }) => {
           notes: 'Earthy with low acidity. Good for espresso-style drinks.',
           userId: 'user3',
           userName: 'Carlos Hernández',
-          userAvatar: 'https://randomuser.me/api/portraits/men/67.jpg'
+          userAvatar: require('../../assets/users/carlos-hernandez.jpg')
         }
       ],
       coffeeCollection: [
@@ -537,7 +548,7 @@ export const CoffeeProvider = ({ children }) => {
         coffeeName: 'Ethiopian Yirgacheffe',
         userId: 'user1',
         userName: 'Ivo Vilches',
-        userAvatar: 'https://randomuser.me/api/portraits/men/32.jpg',
+        userAvatar: require('../../assets/users/ivo-vilches.jpg'),
         amount: 20,
         grindSize: 'Medium-Fine',
         waterVolume: 300,
@@ -567,7 +578,7 @@ export const CoffeeProvider = ({ children }) => {
         coffeeName: 'Ethiopian Yirgacheffe',
         userId: 'user2',
         userName: 'Vértigo y Calambre',
-        userAvatar: 'https://instagram.fvlc6-1.fna.fbcdn.net/v/t51.2885-19/336824776_569041758334218_6485683640258084106_n.jpg?stp=dst-jpg_s150x150_tt6&_nc_ht=instagram.fvlc6-1.fna.fbcdn.net&_nc_cat=106&_nc_oc=Q6cZ2QG9yijX6AYS-LyAN9vATpVAGPTj3dueZAwrz_3RB68vu_PtQKtRFxeVRSPP84eYFZw&_nc_ohc=mD1tNAu2Bp0Q7kNvwHFAMaF&_nc_gid=a2z4gQ9o-xKDwiAyIMflPA&edm=AOQ1c0wBAAAA&ccb=7-5&oh=00_AfHHhBR9AddwcSMHdDw7WSR00XBUUwYOp5v4FuY-lTj-vw&oe=680ED603&_nc_sid=8b3546',
+        userAvatar: require('../../assets/businesses/vertigo-logo.jpg'),
         amount: 15,
         grindSize: 'Medium',
         waterVolume: 230,
@@ -597,7 +608,7 @@ export const CoffeeProvider = ({ children }) => {
         coffeeName: 'Colombian Supremo',
         userId: 'user3',
         userName: 'Carlos Hernández',
-        userAvatar: 'https://randomuser.me/api/portraits/men/67.jpg',
+        userAvatar: require('../../assets/users/carlos-hernandez.jpg'),
         amount: 18,
         grindSize: 'Fine',
         waterVolume: 36,
@@ -626,7 +637,7 @@ export const CoffeeProvider = ({ children }) => {
         coffeeName: 'Kenya AA',
         userId: 'user1',
         userName: 'Ivo Vilches',
-        userAvatar: 'https://randomuser.me/api/portraits/men/32.jpg',
+        userAvatar: require('../../assets/users/ivo-vilches.jpg'),
         amount: 30,
         grindSize: 'Coarse',
         waterVolume: 500,
@@ -657,7 +668,7 @@ export const CoffeeProvider = ({ children }) => {
           method: 'V60',
           userId: 'user2',
           userName: 'Vértigo y Calambre',
-          userAvatar: 'https://instagram.fvlc6-1.fna.fbcdn.net/v/t51.2885-19/336824776_569041758334218_6485683640258084106_n.jpg?stp=dst-jpg_s150x150_tt6&_nc_ht=instagram.fvlc6-1.fna.fbcdn.net&_nc_cat=106&_nc_oc=Q6cZ2QG9yijX6AYS-LyAN9vATpVAGPTj3dueZAwrz_3RB68vu_PtQKtRFxeVRSPP84eYFZw&_nc_ohc=mD1tNAu2Bp0Q7kNvwHFAMaF&_nc_gid=a2z4gQ9o-xKDwiAyIMflPA&edm=AOQ1c0wBAAAA&ccb=7-5&oh=00_AfHHhBR9AddwcSMHdDw7WSR00XBUUwYOp5v4FuY-lTj-vw&oe=680ED603&_nc_sid=8b3546',
+          userAvatar: 'assets/businesses/vertigo-logo.jpg',
           coffeeId: 'coffee-villa-rosario',
           coffeeName: 'Villa Rosario',
           roaster: 'Kima Coffee',

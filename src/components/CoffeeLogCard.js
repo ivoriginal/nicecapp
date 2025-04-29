@@ -1,10 +1,13 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import AppImage from './common/AppImage';
 
 const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress }) => {
   // Ensure we have a valid event object
-  if (!event) return null;
+  if (!event) {
+    return null;
+  }
 
   // Format the date
   const formatDate = (dateString) => {
@@ -31,17 +34,18 @@ const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress }) => 
           style={styles.userInfoContainer}
           onPress={() => onUserPress && onUserPress(event)}
         >
-          <Image 
-            source={{ uri: event.userAvatar || 'https://via.placeholder.com/40' }} 
+          <AppImage 
+            source={event.userAvatar || 'https://via.placeholder.com/40'} 
             style={[
               styles.userAvatar,
               isBusinessAccount ? styles.businessAvatar : null
-            ]} 
+            ]}
+            placeholder="person"
           />
-          <Text style={styles.userName}>{event.userName}</Text>
+          <Text style={styles.userName}>{event.userName || 'Unknown User'}</Text>
         </TouchableOpacity>
         <Text style={styles.timestamp}>
-          {formatDate(event.timestamp || event.date)}
+          {formatDate(event.timestamp || event.date || new Date())}
         </Text>
       </View>
 
@@ -53,7 +57,7 @@ const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress }) => 
       >
         <View style={styles.coffeeImageContainer}>
           {event.imageUrl ? (
-            <Image source={{ uri: event.imageUrl }} style={styles.coffeeImage} />
+            <AppImage source={event.imageUrl} style={styles.coffeeImage} placeholder="coffee" />
           ) : (
             <View style={styles.placeholderImage}>
               <Ionicons name="cafe" size={24} color="#666" />
@@ -61,8 +65,8 @@ const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress }) => 
           )}
         </View>
         <View style={styles.coffeeInfo}>
-          <Text style={styles.coffeeName}>{event.coffeeName}</Text>
-          <Text style={styles.roasterName}>{event.roaster || event.roasterName}</Text>
+          <Text style={styles.coffeeName}>{event.coffeeName || 'Unknown Coffee'}</Text>
+          <Text style={styles.roasterName}>{event.roaster || event.roasterName || 'Unknown Roaster'}</Text>
         </View>
       </TouchableOpacity>
 
@@ -75,7 +79,7 @@ const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress }) => 
         <View style={styles.recipeHeader}>
           <View style={styles.methodContainer}>
             <Ionicons name="cafe" size={20} color="#000000" />
-            <Text style={styles.methodText}>{event.method || event.brewingMethod}</Text>
+            <Text style={styles.methodText}>{event.method || event.brewingMethod || 'Unknown Method'}</Text>
           </View>
           <Ionicons name="chevron-forward" size={20} color="#666666" />
         </View>
@@ -132,10 +136,17 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    marginRight: 8,
+    marginRight: 10,
+    borderWidth: 1,
+    borderColor: '#E0E0E0'
   },
   businessAvatar: {
+    width: 32,
+    height: 32,
     borderRadius: 6,
+    marginRight: 10,
+    borderWidth: 1,
+    borderColor: '#E0E0E0'
   },
   userName: {
     fontSize: 14,

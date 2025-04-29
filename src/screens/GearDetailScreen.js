@@ -27,11 +27,11 @@ const gearData = {
       { name: 'Amazon', url: 'https://amazon.com', location: 'Online' },
     ],
     usedBy: [
-      { id: 'user1', name: 'Ivo Vilches', avatar: 'https://randomuser.me/api/portraits/men/32.jpg' },
+      { id: 'user1', name: 'Ivo Vilches', avatar: require('../../assets/users/ivo-vilches.jpg') },
       { id: 'user7', name: 'Sophia Miller', avatar: 'https://randomuser.me/api/portraits/women/68.jpg' }
     ],
     wantedBy: [
-      { id: 'user3', name: 'Carlos Hernández', avatar: 'https://randomuser.me/api/portraits/men/67.jpg' },
+      { id: 'user3', name: 'Carlos Hernández', avatar: require('../../assets/users/carlos-hernandez.jpg') },
       { id: 'user5', name: 'Emma Garcia', avatar: 'https://randomuser.me/api/portraits/women/33.jpg' }
     ]
   },
@@ -47,7 +47,7 @@ const gearData = {
       { name: 'Amazon', url: 'https://amazon.com', location: 'Online' },
     ],
     usedBy: [
-      { id: 'user3', name: 'Carlos Hernández', avatar: 'https://randomuser.me/api/portraits/men/67.jpg' },
+      { id: 'user3', name: 'Carlos Hernández', avatar: require('../../assets/users/carlos-hernandez.jpg') },
       { id: 'user6', name: 'David Kim', avatar: 'https://randomuser.me/api/portraits/men/45.jpg' }
     ],
     wantedBy: [
@@ -66,11 +66,11 @@ const gearData = {
       { name: 'Specialty Coffee Shops', url: '', location: 'Various Locations' }
     ],
     usedBy: [
-      { id: 'user2', name: 'Vértigo y Calambre', avatar: 'https://randomuser.me/api/portraits/women/44.jpg' },
+      { id: 'user2', name: 'Vértigo y Calambre', avatar: require('../../assets/businesses/vertigo-logo.jpg') },
       { id: 'user8', name: 'James Wilson', avatar: 'https://randomuser.me/api/portraits/men/22.jpg' }
     ],
     wantedBy: [
-      { id: 'user1', name: 'Ivo Vilches', avatar: 'https://randomuser.me/api/portraits/men/32.jpg' },
+      { id: 'user1', name: 'Ivo Vilches', avatar: require('../../assets/users/ivo-vilches.jpg') },
       { id: 'user6', name: 'David Kim', avatar: 'https://randomuser.me/api/portraits/men/45.jpg' }
     ]
   },
@@ -86,7 +86,7 @@ const gearData = {
       { name: 'Amazon', url: 'https://amazon.com', location: 'Online' },
     ],
     usedBy: [
-      { id: 'user1', name: 'Ivo Vilches', avatar: 'https://randomuser.me/api/portraits/men/32.jpg' },
+      { id: 'user1', name: 'Ivo Vilches', avatar: require('../../assets/users/ivo-vilches.jpg') },
       { id: 'user7', name: 'Sophia Miller', avatar: 'https://randomuser.me/api/portraits/women/68.jpg' }
     ],
     wantedBy: [
@@ -106,11 +106,11 @@ const gearData = {
       { name: 'Amazon', url: 'https://amazon.com', location: 'Online' },
     ],
     usedBy: [
-      { id: 'user1', name: 'Ivo Vilches', avatar: 'https://randomuser.me/api/portraits/men/32.jpg' },
+      { id: 'user1', name: 'Ivo Vilches', avatar: require('../../assets/users/ivo-vilches.jpg') },
       { id: 'user9', name: 'Olivia Taylor', avatar: 'https://randomuser.me/api/portraits/women/12.jpg' }
     ],
     wantedBy: [
-      { id: 'user3', name: 'Carlos Hernández', avatar: 'https://randomuser.me/api/portraits/men/67.jpg' },
+      { id: 'user3', name: 'Carlos Hernández', avatar: require('../../assets/users/carlos-hernandez.jpg') },
       { id: 'user10', name: 'Lucas Brown', avatar: 'https://randomuser.me/api/portraits/men/55.jpg' }
     ]
   },
@@ -240,7 +240,10 @@ export default function GearDetailScreen() {
                   style={styles.userItem}
                   onPress={() => handleUserPress(user.id, user.name)}
                 >
-                  <Image source={{ uri: user.avatar }} style={styles.userAvatar} />
+                  <Image 
+                    source={typeof user.avatar === 'string' ? { uri: user.avatar } : user.avatar} 
+                    style={styles.userAvatar} 
+                  />
                   <Text style={styles.userName}>{user.name}</Text>
                   <Ionicons name="chevron-forward" size={20} color="#000000" />
                 </TouchableOpacity>
@@ -258,7 +261,10 @@ export default function GearDetailScreen() {
                   style={styles.userItem}
                   onPress={() => handleUserPress(user.id, user.name)}
                 >
-                  <Image source={{ uri: user.avatar }} style={styles.userAvatar} />
+                  <Image 
+                    source={typeof user.avatar === 'string' ? { uri: user.avatar } : user.avatar} 
+                    style={styles.userAvatar} 
+                  />
                   <Text style={styles.userName}>{user.name}</Text>
                   <Ionicons name="chevron-forward" size={20} color="#000000" />
                 </TouchableOpacity>
@@ -361,6 +367,8 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     marginRight: 12,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
   },
   userName: {
     flex: 1,

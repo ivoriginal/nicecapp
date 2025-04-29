@@ -8,10 +8,22 @@ export default function UserProfileBridge() {
   const route = useRoute();
   const { userId, userName, skipAuth } = route.params || {};
 
+  console.log('UserProfileBridge params:', route.params);
+
   useEffect(() => {
     // This component will automatically redirect to the UserProfileScreen
     // with the correct parameters
-    navigation.replace('UserProfile', { userId, userName, skipAuth });
+    if (userId) {
+      console.log('Navigating to UserProfile with userId:', userId);
+      navigation.replace('UserProfile', { 
+        userId, 
+        userName,
+        skipAuth
+      });
+    } else {
+      console.error('Missing userId in UserProfileBridge');
+      navigation.goBack();
+    }
   }, [navigation, userId, userName, skipAuth]);
 
   return (

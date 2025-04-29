@@ -6,6 +6,7 @@ import { useNavigation, CommonActions } from '@react-navigation/native';
 import mockData from '../data/mockData.json';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import RecipeCard from '../components/RecipeCard';
+import AppImage from '../components/common/AppImage';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = width * 0.8;
@@ -422,8 +423,8 @@ export default function SearchScreen() {
             style={styles.carouselCard}
             onPress={() => navigation.navigate('CoffeeDetail', { coffeeId: item.id })}
           >
-            <Image 
-              source={{ uri: item.imageUrl || item.image }} 
+            <AppImage 
+              source={item.imageUrl || item.image} 
               style={styles.carouselImage} 
               resizeMode="cover"
             />
@@ -451,15 +452,15 @@ export default function SearchScreen() {
               });
             }}
           >
-            <Image 
-              source={{ uri: item.coverImage || item.imageUrl }} 
-              style={styles.carouselImage} 
+            <AppImage 
+              source={item.coverImage || item.imageUrl} 
+              style={styles.carouselImage}
               resizeMode="cover"
             />
             <View style={styles.carouselOverlay}>
               <View style={styles.cafeInfoRow}>
-                <Image 
-                  source={{ uri: item.logo }} 
+                <AppImage 
+                  source={item.logo} 
                   style={styles.cafeLogo} 
                   resizeMode="cover"
                 />
@@ -484,8 +485,8 @@ export default function SearchScreen() {
               });
             }}
           >
-            <Image 
-              source={{ uri: item.userAvatar }} 
+            <AppImage 
+              source={item.userAvatar} 
               style={styles.userAvatar} 
               resizeMode="cover"
             />
@@ -502,15 +503,15 @@ export default function SearchScreen() {
             style={styles.eventCard}
             onPress={() => navigation.navigate('CoffeeDetail', { coffeeId: item.id })}
           >
-            <Image 
-              source={{ uri: item.imageUrl }} 
+            <AppImage 
+              source={item.imageUrl} 
               style={styles.eventImage} 
               resizeMode="cover"
             />
             <View style={styles.eventContent}>
               <View style={styles.eventUserInfo}>
-                <Image 
-                  source={{ uri: item.userAvatar }} 
+                <AppImage 
+                  source={item.userAvatar} 
                   style={styles.eventUserAvatar} 
                   resizeMode="cover"
                 />
@@ -933,6 +934,8 @@ const styles = StyleSheet.create({
     height: 80,
     borderRadius: 40,
     marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
   },
   userInfo: {
     width: '100%',
@@ -992,6 +995,8 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     marginRight: 8,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
   },
   eventUserName: {
     fontSize: 16,
@@ -1032,10 +1037,10 @@ const styles = StyleSheet.create({
   cafeLogo: {
     width: 40,
     height: 40,
-    borderRadius: 6,
-    backgroundColor: '#FFFFFF',
+    borderRadius: 4,
+    backgroundColor: '#242526',
     borderWidth: 1,
-    borderColor: '#FFFFFF',
+    borderColor: '#242526',
     marginRight: 12,
   },
   cafeInfoRow: {

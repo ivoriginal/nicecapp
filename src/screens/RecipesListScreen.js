@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import mockData from '../data/mockData.json';
+import AppImage from '../components/common/AppImage';
 
 const RecipesListScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
@@ -110,18 +111,18 @@ const RecipesListScreen = ({ navigation }) => {
           skipAuth: true
         })}
       >
-        <Image 
-          source={{ uri: item.image }} 
+        <AppImage 
+          source={item.image} 
           style={styles.recipeImage}
-          resizeMode="cover"
+          placeholder="coffee"
         />
         <View style={styles.recipeContent}>
           <View style={styles.recipeHeader}>
             <View style={styles.userInfo}>
-              <Image 
-                source={{ uri: item.userAvatar }} 
+              <AppImage 
+                source={item.userAvatar} 
                 style={styles.userAvatar}
-                resizeMode="cover"
+                placeholder="person"
               />
               <Text style={styles.userName}>{userName}</Text>
             </View>
@@ -230,6 +231,8 @@ const styles = StyleSheet.create({
     height: 32,
     borderRadius: 16,
     marginRight: 8,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
   },
   userName: {
     fontSize: 14,

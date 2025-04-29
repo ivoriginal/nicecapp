@@ -9,33 +9,51 @@ import {
   FlatList,
   ActivityIndicator,
   Alert,
-  StatusBar
+  StatusBar,
+  RefreshControl
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import mockData from '../data/mockData.json';
 import { useCoffee } from '../context/CoffeeContext';
+import AppImage from '../components/common/AppImage';
 
 export default function UserProfileScreen() {
   const route = useRoute();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const { userId } = route.params || { userId: 'user1' }; // Default to Ivo Vilches
-  const { coffeeEvents, following, followers } = useCoffee();
+  const { allEvents, following, followers, loadData } = useCoffee();
   
   const [user, setUser] = useState(null);
   const [userCoffees, setUserCoffees] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState('coffees'); // 'coffees' or 'recipes'
   const [isFollowing, setIsFollowing] = useState(false);
 
+  // Refresh function
+  const onRefresh = async () => {
+    console.log('UserProfileScreen - Refreshing data');
+    setRefreshing(true);
+    try {
+      await loadData();
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   useEffect(() => {
+    console.log('UserProfileScreen - Loading profile for userId:', userId);
+    console.log('Current allEvents count:', allEvents?.length || 0);
+    
     // Find user in mock data immediately (no need for setTimeout)
-    const foundUser = mockData.users.find(u => u.id === userId) || mockData.users[0];
+    const foundUser = mockData.users.find(u => u.id === userId);
     
     // Determine if this is a business account
-    // Check for business accounts:
     // 1. Explicit matches like Vértigo y Calambre (user2)
     // 2. Business IDs that start with "business-" like "business-kima"
     // 3. Café IDs that start with "cafe" like "cafe1"
@@ -43,10 +61,25 @@ export default function UserProfileScreen() {
                              userId.startsWith('business-') || 
                              userId.startsWith('cafe');
     
-    // For café accounts that aren't in the users array, create a mock user object
-    let userWithBusinessStatus;
+    let userWithBusinessStatus = null;
     
-    if (userId.startsWith('cafe')) {
+    // Special case for Vértigo y Calambre (user2)
+    if (userId === 'user2') {
+      console.log('Setting up Vértigo y Calambre profile');
+      userWithBusinessStatus = {
+        id: 'user2',
+        userName: 'Vértigo y Calambre',
+        userAvatar: 'assets/businesses/vertigo-logo.jpg',
+        location: 'Murcia, Spain',
+        bio: 'Specialty coffee shop and roastery in Murcia, Spain. We roast and serve the best coffee from around the world.',
+        isBusinessAccount: true,
+        userHandle: 'vertigoycalambre',
+        gear: []
+      };
+    }
+    // For café accounts that aren't in the users array
+    else if (userId.startsWith('cafe')) {
+      console.log('Setting up café profile for', userId);
       // Find café in trendingCafes
       const cafeData = mockData.trendingCafes.find(cafe => cafe.id === userId);
       
@@ -54,7 +87,7 @@ export default function UserProfileScreen() {
         userWithBusinessStatus = {
           id: cafeData.id,
           userName: cafeData.name,
-          userAvatar: cafeData.imageUrl,
+          userAvatar: cafeData.logo || cafeData.imageUrl,
           location: cafeData.location,
           bio: cafeData.description,
           isBusinessAccount: true,
@@ -62,47 +95,90 @@ export default function UserProfileScreen() {
           // Add empty gear since businesses don't have personal gear
           gear: []
         };
-      } else {
-        // Fallback if café not found
+      }
+    }
+    // For business accounts that start with "business-"
+    else if (userId.startsWith('business-')) {
+      console.log('Setting up business profile for', userId);
+      // Try to find in businesses array
+      const businessData = mockData.businesses?.find(b => b.id === userId);
+      
+      if (businessData) {
         userWithBusinessStatus = {
-          ...foundUser,
-          isBusinessAccount,
-          userHandle: userId,
+          id: businessData.id,
+          userName: businessData.name,
+          userAvatar: businessData.logo || businessData.imageUrl,
+          location: businessData.location,
+          bio: businessData.description,
+          isBusinessAccount: true,
+          userHandle: userId.replace('business-', ''),
           gear: []
         };
+      } else {
+        // Try to find in trendingCafes as a fallback
+        const cafeData = mockData.trendingCafes.find(cafe => cafe.id === userId.replace('business-', 'cafe'));
+        
+        if (cafeData) {
+          userWithBusinessStatus = {
+            id: userId,
+            userName: cafeData.name,
+            userAvatar: cafeData.logo || cafeData.imageUrl,
+            location: cafeData.location,
+            bio: cafeData.description,
+            isBusinessAccount: true,
+            userHandle: userId.replace('business-', ''),
+            gear: []
+          };
+        }
       }
-    } else {
+    }
+    // Regular user account
+    else if (foundUser) {
+      console.log('Setting up regular user profile for', userId);
       userWithBusinessStatus = {
         ...foundUser,
-        isBusinessAccount,
-        userHandle: isBusinessAccount 
-          ? userId === 'user2' ? 'vertigoycalambre' : userId.replace('business-', '')
-          : foundUser.userName.toLowerCase().replace(/\s+/g, '_')
+        isBusinessAccount: false,
+        userHandle: foundUser.userName.toLowerCase().replace(/\s+/g, '_')
+      };
+      
+      // Update locations for specific users
+      if (userWithBusinessStatus.id === 'user1') {
+        userWithBusinessStatus.location = 'Murcia, Spain';
+      } else if (userWithBusinessStatus.id === 'user3') {
+        userWithBusinessStatus.location = 'Madrid, Spain';
+      }
+    }
+    
+    // If we still don't have user data, create a fallback
+    if (!userWithBusinessStatus) {
+      console.log('User not found, using fallback');
+      userWithBusinessStatus = {
+        id: userId,
+        userName: 'Unknown User',
+        userAvatar: null,
+        location: '',
+        bio: '',
+        isBusinessAccount: isBusinessAccount,
+        userHandle: isBusinessAccount ? userId.replace('business-', '') : userId,
+        gear: []
       };
     }
     
-    // Update locations for specific users (not needed for cafés as they already have location data)
-    if (userWithBusinessStatus.id === 'user1') {
-      userWithBusinessStatus.location = 'Murcia, Spain';
-    } else if (userWithBusinessStatus.id === 'user2') {
-      userWithBusinessStatus.location = 'Murcia, Spain';
-    } else if (userWithBusinessStatus.id === 'user3') {
-      userWithBusinessStatus.location = 'Madrid, Spain';
-    } else if (userWithBusinessStatus.id === 'business-kima') {
-      userWithBusinessStatus.location = 'Málaga, Spain';
-    }
-    
+    // Debug the user data being set
+    console.log('Setting user data:', JSON.stringify(userWithBusinessStatus, null, 2));
     setUser(userWithBusinessStatus);
     
     // Check if following
     setIsFollowing(following.some(f => f.id === userId));
     
-    // Get user's coffee events from the context
-    const userEvents = coffeeEvents ? coffeeEvents.filter(event => event.userId === userId) : [];
+    // Get user's coffee events from the context using allEvents
+    console.log('Finding events for user:', userId);
+    const userEvents = allEvents ? allEvents.filter(event => event.userId === userId) : [];
+    console.log(`Found ${userEvents.length} events for user ${userId}`);
     setUserCoffees(userEvents);
     
     setLoading(false);
-  }, [userId, coffeeEvents, following]);
+  }, [userId, allEvents, following, followers]);
 
   const handleFollowPress = () => {
     setIsFollowing(!isFollowing);
@@ -124,8 +200,8 @@ export default function UserProfileScreen() {
       style={styles.coffeeItem}
       onPress={() => navigation.navigate('CoffeeDetail', { coffeeId: item.coffeeId, skipAuth: true })}
     >
-      <Image 
-        source={{ uri: item.imageUrl || 'https://via.placeholder.com/100' }} 
+      <AppImage 
+        source={item.imageUrl || 'https://via.placeholder.com/100'} 
         style={styles.coffeeImage} 
       />
       <View style={styles.coffeeInfo}>
@@ -159,8 +235,8 @@ export default function UserProfileScreen() {
           {/* Profile Header */}
           <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
             <View style={styles.headerContent}>
-              <Image 
-                source={{ uri: user.userAvatar }} 
+              <AppImage 
+                source={user.userAvatar} 
                 style={[
                   styles.avatar,
                   user.isBusinessAccount ? styles.businessAvatar : styles.userAvatar
@@ -277,9 +353,19 @@ export default function UserProfileScreen() {
               renderItem={renderCoffeeItem}
               keyExtractor={item => item.id}
               contentContainerStyle={styles.coffeesContainer}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                  colors={['#000000']}
+                />
+              }
               ListEmptyComponent={
                 <View style={styles.emptyContainer}>
                   <Text style={styles.emptyText}>No coffees yet</Text>
+                  <TouchableOpacity onPress={onRefresh} style={styles.refreshButton}>
+                    <Text style={styles.refreshButtonText}>Refresh</Text>
+                  </TouchableOpacity>
                 </View>
               }
             />
@@ -349,7 +435,8 @@ const styles = StyleSheet.create({
     height: 80,
     marginRight: 15,
     borderWidth: 1,
-    borderColor: '#CCCCCC',
+    borderColor: '#F0F0F0',
+    backgroundColor: '#F0F0F0',
   },
   userAvatar: {
     borderRadius: 40,
@@ -524,5 +611,16 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     color: '#666666',
+  },
+  refreshButton: {
+    marginTop: 12,
+    backgroundColor: '#000000',
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+  },
+  refreshButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '500',
   },
 }); 

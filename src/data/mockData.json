@@ -4,7 +4,7 @@
       "id": "user1",
       "email": "ivo.vilches@example.com",
       "userName": "Ivo Vilches",
-      "userAvatar": "https://randomuser.me/api/portraits/men/32.jpg",
+      "userAvatar": "assets/users/ivo-vilches.jpg",
       "bio": "Coffee enthusiast and home barista. Always exploring new brewing methods.",
       "gear": ["Hario V60", "Baratza Encore", "Fellow Stagg EKG", "Acaia Pearl Scale"],
       "location": "San Francisco, CA",
@@ -14,7 +14,7 @@
       "id": "user2",
       "email": "contacto@vertigoycalambre.com",
       "userName": "Vértigo y Calambre",
-      "userAvatar": "https://instagram.fvlc6-1.fna.fbcdn.net/v/t51.2885-19/336824776_569041758334218_6485683640258084106_n.jpg?stp=dst-jpg_s150x150_tt6&_nc_ht=instagram.fvlc6-1.fna.fbcdn.net&_nc_cat=106&_nc_oc=Q6cZ2QG9yijX6AYS-LyAN9vATpVAGPTj3dueZAwrz_3RB68vu_PtQKtRFxeVRSPP84eYFZw&_nc_ohc=mD1tNAu2Bp0Q7kNvwHFAMaF&_nc_gid=a2z4gQ9o-xKDwiAyIMflPA&edm=AOQ1c0wBAAAA&ccb=7-5&oh=00_AfHHhBR9AddwcSMHdDw7WSR00XBUUwYOp5v4FuY-lTj-vw&oe=680ED603&_nc_sid=8b3546",
+      "userAvatar": "assets/businesses/vertigo-logo.jpg",
       "bio": "Specialty coffee lover. Always on the hunt for the perfect cup.",
       "gear": ["Chemex", "Comandante C40", "Bonavita Kettle"],
       "location": "Portland, OR",
@@ -24,7 +24,7 @@
       "id": "user3",
       "email": "carlos.hernandez@example.com",
       "userName": "Carlos Hernández",
-      "userAvatar": "https://randomuser.me/api/portraits/men/67.jpg",
+      "userAvatar": "assets/users/carlos-hernandez.jpg",
       "bio": "Coffee roaster and barista. Passionate about the craft.",
       "gear": ["La Marzocco Linea Mini", "Niche Zero", "Acaia Lunar Scale"],
       "location": "Seattle, WA",
@@ -129,6 +129,100 @@
   ],
   "businesses": [
     {
+      "id": "business-cafelab-murcia",
+      "name": "CaféLab Murcia",
+      "type": "coffee_shop",
+      "description": "Especialistas en café de especialidad en el corazón de Murcia. Ofrecemos una experiencia única con los mejores granos y métodos de preparación.",
+      "logo": "assets/businesses/cafelab-logo.png",
+      "coverImage": "assets/businesses/cafelab-murcia-cover.png",
+      "location": "Murcia, Spain",
+      "address": "Calle Example 123, Murcia",
+      "website": "https://cafelab.es/carta-cafelab-murcia/",
+      "instagram": "@cafelabmurcia",
+      "openingHours": {
+        "monday": "8:00-20:00",
+        "tuesday": "8:00-20:00",
+        "wednesday": "8:00-20:00",
+        "thursday": "8:00-20:00",
+        "friday": "8:00-22:00",
+        "saturday": "9:00-22:00",
+        "sunday": "9:00-20:00"
+      },
+      "menu": [
+        {
+          "id": "menu1",
+          "name": "Espresso",
+          "price": 2.50,
+          "description": "Café espresso doble"
+        },
+        {
+          "id": "menu2",
+          "name": "Cappuccino",
+          "price": 3.50,
+          "description": "Espresso con leche vaporizada y espuma"
+        },
+        {
+          "id": "menu3",
+          "name": "Pour Over",
+          "price": 4.00,
+          "description": "Café de origen único preparado con V60"
+        },
+        {
+          "id": "menu4",
+          "name": "Cold Brew",
+          "price": 4.50,
+          "description": "Café infusionado en frío durante 24 horas"
+        }
+      ]
+    },
+    {
+      "id": "business-cafelab-cartagena",
+      "name": "CaféLab Cartagena",
+      "type": "coffee_shop",
+      "description": "Tu espacio de café de especialidad en Cartagena. Disfruta de una selección cuidadosa de granos y métodos de preparación artesanal.",
+      "logo": "assets/businesses/cafelab-logo.png",
+      "coverImage": "assets/businesses/cafelab-cartagena-cover.png",
+      "location": "Cartagena, Spain",
+      "address": "Calle Example 456, Cartagena",
+      "website": "https://cafelab.es/carta-cafelab-cartagena/",
+      "instagram": "@cafelabcartagena",
+      "openingHours": {
+        "monday": "8:00-20:00",
+        "tuesday": "8:00-20:00",
+        "wednesday": "8:00-20:00",
+        "thursday": "8:00-20:00",
+        "friday": "8:00-22:00",
+        "saturday": "9:00-22:00",
+        "sunday": "9:00-20:00"
+      },
+      "menu": [
+        {
+          "id": "menu1",
+          "name": "Espresso",
+          "price": 2.50,
+          "description": "Café espresso doble"
+        },
+        {
+          "id": "menu2",
+          "name": "Cappuccino",
+          "price": 3.50,
+          "description": "Espresso con leche vaporizada y espuma"
+        },
+        {
+          "id": "menu3",
+          "name": "Pour Over",
+          "price": 4.00,
+          "description": "Café de origen único preparado con V60"
+        },
+        {
+          "id": "menu4",
+          "name": "Cold Brew",
+          "price": 4.50,
+          "description": "Café infusionado en frío durante 24 horas"
+        }
+      ]
+    },
+    {
       "id": "business-kima",
       "name": "Kima Coffee",
       "type": "roaster_coffee_shop",
@@ -186,8 +280,8 @@
       "name": "Vértigo y Calambre",
       "type": "coffee_shop",
       "description": "A cozy coffee shop in the heart of the city, serving specialty coffee and pastries.",
-      "logo": "https://instagram.fvlc6-1.fna.fbcdn.net/v/t51.2885-19/336824776_569041758334218_6485683640258084106_n.jpg?stp=dst-jpg_s150x150_tt6&_nc_ht=instagram.fvlc6-1.fna.fbcdn.net&_nc_cat=106&_nc_oc=Q6cZ2QG9yijX6AYS-LyAN9vATpVAGPTj3dueZAwrz_3RB68vu_PtQKtRFxeVRSPP84eYFZw&_nc_ohc=mD1tNAu2Bp0Q7kNvwHFAMaF&_nc_gid=a2z4gQ9o-xKDwiAyIMflPA&edm=AOQ1c0wBAAAA&ccb=7-5&oh=00_AfHHhBR9AddwcSMHdDw7WSR00XBUUwYOp5v4FuY-lTj-vw&oe=680ED603&_nc_sid=8b3546",
-      "coverImage": "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80",
+      "logo": "assets/businesses/vertigo-logo.jpg",
+      "coverImage": "assets/businesses/vertigo-cover.jpg",
       "location": "Buenos Aires, Argentina",
       "address": "Av. Corrientes 1234",
       "website": "https://vertigoycalambre.com",
@@ -460,6 +554,28 @@
   ],
   "trendingCafes": [
     {
+      "id": "business-cafelab-murcia",
+      "type": "coffee_shop",
+      "name": "CaféLab Murcia",
+      "location": "Murcia, Spain",
+      "imageUrl": "assets/businesses/cafelab-murcia-cover.png",
+      "logo": "assets/businesses/cafelab-logo.png",
+      "rating": 4.8,
+      "reviewCount": 132,
+      "description": "Especialistas en café de especialidad en el corazón de Murcia."
+    },
+    {
+      "id": "business-cafelab-cartagena",
+      "type": "coffee_shop",
+      "name": "CaféLab Cartagena",
+      "location": "Cartagena, Spain",
+      "imageUrl": "assets/businesses/cafelab-cartagena-cover.png",
+      "logo": "assets/businesses/cafelab-logo.png",
+      "rating": 4.7,
+      "reviewCount": 98,
+      "description": "Tu espacio de café de especialidad en Cartagena."
+    },
+    {
       "id": "business-kima",
       "type": "roaster_coffee_shop",
       "name": "Kima Coffee",
@@ -475,8 +591,8 @@
       "type": "cafe",
       "name": "Vértigo y Calambre",
       "location": "Murcia, Spain",
-      "imageUrl": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEg_X04_UUG5nlaag1sx22335yhqLS1A6Vr59QOkdC-zYiGYeZ_SYozPmEnWCVYD4Y9r0p5Uq4p8RP6cIam1xLwPTqsZDKJ9FhC4ncce-XRQubtIsRFGudfXJ8j_gXKzsRnpgDD-jptY58-rCAoSQl3rdMPsUQ0a8jmeLfcIv0kafhyu3Zb3_IIClvUS9nY/s2016/IMG_9616.jpg",
-      "logo": "https://instagram.fvlc6-1.fna.fbcdn.net/v/t51.2885-19/336824776_569041758334218_6485683640258084106_n.jpg?stp=dst-jpg_s150x150_tt6&_nc_ht=instagram.fvlc6-1.fna.fbcdn.net&_nc_cat=106&_nc_oc=Q6cZ2QG9yijX6AYS-LyAN9vATpVAGPTj3dueZAwrz_3RB68vu_PtQKtRFxeVRSPP84eYFZw&_nc_ohc=mD1tNAu2Bp0Q7kNvwHFAMaF&_nc_gid=a2z4gQ9o-xKDwiAyIMflPA&edm=AOQ1c0wBAAAA&ccb=7-5&oh=00_AfHHhBR9AddwcSMHdDw7WSR00XBUUwYOp5v4FuY-lTj-vw&oe=680ED603&_nc_sid=8b3546",
+      "imageUrl": "assets/businesses/vertigo-cover.jpg",
+      "logo": "assets/businesses/vertigo-logo.jpg",
       "rating": 4.9,
       "reviewCount": 145,
       "description": "Specialty coffee roaster offering premium coffees from around the world."
@@ -505,7 +621,7 @@
       {
         "id": "user2",
         "name": "Vértigo y Calambre",
-        "avatar": "https://instagram.fvlc6-1.fna.fbcdn.net/v/t51.2885-19/336824776_569041758334218_6485683640258084106_n.jpg",
+        "avatar": "assets/businesses/vertigo-logo.jpg",
         "location": "Murcia, Spain",
         "isRoaster": false,
         "businessAccount": true

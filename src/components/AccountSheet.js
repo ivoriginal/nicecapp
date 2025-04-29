@@ -1,13 +1,14 @@
-import React, { forwardRef, useImperativeHandle } from 'react';
+import React, { forwardRef, useImperativeHandle, useRef } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
-  Image,
   SafeAreaView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { BottomSheetModal } from '@gorhom/bottom-sheet';
+import AppImage from './common/AppImage';
 
 const AccountSheet = forwardRef(({ accounts, currentAccount, onSwitchAccount }, ref) => {
   useImperativeHandle(ref, () => ({
@@ -41,9 +42,10 @@ const AccountSheet = forwardRef(({ accounts, currentAccount, onSwitchAccount }, 
             <View style={styles.accountInfo}>
               <View style={styles.avatarContainer}>
                 {account.user_metadata?.avatar_url ? (
-                  <Image
-                    source={{ uri: account.user_metadata.avatar_url }}
+                  <AppImage
+                    source={account.user_metadata.avatar_url}
                     style={styles.avatar}
+                    placeholder="person"
                   />
                 ) : (
                   <View style={styles.avatarPlaceholder}>

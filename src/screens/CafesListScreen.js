@@ -3,6 +3,7 @@ import { View, Text, FlatList, StyleSheet, TouchableOpacity, Image, ScrollView, 
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import mockData from '../data/mockData.json';
+import AppImage from '../components/common/AppImage';
 
 const CafesListScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
@@ -345,15 +346,15 @@ const CafesListScreen = ({ navigation }) => {
           });
         }}
       >
-        <Image 
-          source={{ uri: item.coverImage || item.imageUrl }} 
+        <AppImage 
+          source={item.coverImage || item.imageUrl} 
           style={styles.cafeImage}
           resizeMode="cover"
         />
         <View style={styles.cafeContent}>
           <View style={styles.cafeHeader}>
-            <Image 
-              source={{ uri: item.logo }} 
+            <AppImage 
+              source={item.logo} 
               style={styles.cafeLogo}
               resizeMode="cover"
             />
@@ -594,7 +595,7 @@ const styles = StyleSheet.create({
   cafeLogo: {
     width: 50,
     height: 50,
-    borderRadius: 6,
+    borderRadius: 4,
     marginRight: 12,
     borderWidth: 1,
     borderColor: '#E5E5EA',
