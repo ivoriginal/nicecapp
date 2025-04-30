@@ -18,6 +18,7 @@ import { useRoute, useNavigation } from '@react-navigation/native';
 import mockData from '../data/mockData.json';
 import { useCoffee } from '../context/CoffeeContext';
 import AppImage from '../components/common/AppImage';
+import CoffeeLogCard from '../components/CoffeeLogCard';
 
 export default function UserProfileScreen() {
   const route = useRoute();
@@ -30,7 +31,7 @@ export default function UserProfileScreen() {
   const [userCoffees, setUserCoffees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState('coffees'); // 'coffees' or 'recipes'
+  const [activeTab, setActiveTab] = useState('coffees'); // 'coffees' represents the Activity tab which will show coffee logs and other types of events
   const [isFollowing, setIsFollowing] = useState(false);
 
   // Refresh function
@@ -74,7 +75,8 @@ export default function UserProfileScreen() {
         bio: 'Specialty coffee shop and roastery in Murcia, Spain. We roast and serve the best coffee from around the world.',
         isBusinessAccount: true,
         userHandle: 'vertigoycalambre',
-        gear: []
+        gear: [],
+        gearWishlist: foundUser?.gearWishlist || []
       };
     }
     // For café accounts that aren't in the users array
@@ -93,7 +95,8 @@ export default function UserProfileScreen() {
           isBusinessAccount: true,
           userHandle: cafeData.id,
           // Add empty gear since businesses don't have personal gear
-          gear: []
+          gear: [],
+          gearWishlist: []
         };
       }
     }
@@ -112,7 +115,8 @@ export default function UserProfileScreen() {
           bio: businessData.description,
           isBusinessAccount: true,
           userHandle: userId.replace('business-', ''),
-          gear: []
+          gear: [],
+          gearWishlist: []
         };
       } else {
         // Try to find in trendingCafes as a fallback
@@ -127,7 +131,8 @@ export default function UserProfileScreen() {
             bio: cafeData.description,
             isBusinessAccount: true,
             userHandle: userId.replace('business-', ''),
-            gear: []
+            gear: [],
+            gearWishlist: []
           };
         }
       }
@@ -138,7 +143,9 @@ export default function UserProfileScreen() {
       userWithBusinessStatus = {
         ...foundUser,
         isBusinessAccount: false,
-        userHandle: foundUser.userName.toLowerCase().replace(/\s+/g, '_')
+        userHandle: foundUser.userName.toLowerCase().replace(/\s+/g, '_'),
+        // Ensure gearWishlist is defined even if not in the data
+        gearWishlist: foundUser.gearWishlist || []
       };
       
       // Update locations for specific users
@@ -160,12 +167,17 @@ export default function UserProfileScreen() {
         bio: '',
         isBusinessAccount: isBusinessAccount,
         userHandle: isBusinessAccount ? userId.replace('business-', '') : userId,
-        gear: []
+        gear: [],
+        gearWishlist: []
       };
     }
     
     // Debug the user data being set
     console.log('Setting user data:', JSON.stringify(userWithBusinessStatus, null, 2));
+    console.log('User has gear:', userWithBusinessStatus.gear?.length > 0);
+    console.log('User has wishlist:', userWithBusinessStatus.gearWishlist?.length > 0);
+    console.log('User avatar:', userWithBusinessStatus.userAvatar, 'Type:', typeof userWithBusinessStatus.userAvatar);
+    
     setUser(userWithBusinessStatus);
     
     // Check if following
@@ -195,24 +207,34 @@ export default function UserProfileScreen() {
     });
   };
 
+  const handleGearWishlistPress = () => {
+    // Navigate to gear wishlist screen
+    navigation.navigate('GearWishlist', {
+      userId: userId, 
+      userName: user.userName
+    });
+  };
+
+  // Renders a coffee log or other event item using the CoffeeLogCard component
   const renderCoffeeItem = ({ item }) => (
-    <TouchableOpacity 
-      style={styles.coffeeItem}
-      onPress={() => navigation.navigate('CoffeeDetail', { coffeeId: item.coffeeId, skipAuth: true })}
-    >
-      <AppImage 
-        source={item.imageUrl || 'https://via.placeholder.com/100'} 
-        style={styles.coffeeImage} 
-      />
-      <View style={styles.coffeeInfo}>
-        <Text style={styles.coffeeName}>{item.coffeeName}</Text>
-        <Text style={styles.roasterName}>{item.roaster}</Text>
-        <View style={styles.ratingContainer}>
-          <Ionicons name="star" size={16} color="#FFD700" />
-          <Text style={styles.ratingText}>{item.rating.toFixed(1)}</Text>
-        </View>
-      </View>
-    </TouchableOpacity>
+    <CoffeeLogCard
+      event={item}
+      onCoffeePress={() => navigation.navigate('CoffeeDetail', { coffeeId: item.coffeeId, skipAuth: true })}
+      onRecipePress={() => navigation.navigate('RecipeDetail', { 
+        recipeId: `recipe-${item.id}`,
+        coffeeId: item.coffeeId,
+        coffeeName: item.coffeeName,
+        roaster: item.roaster,
+        imageUrl: item.imageUrl,
+        userId: item.userId,
+        userName: item.userName,
+        userAvatar: item.userAvatar
+      })}
+      onUserPress={() => navigation.navigate('UserProfileBridge', { 
+        userId: item.userId,
+        skipAuth: true 
+      })}
+    />
   );
 
   return (
@@ -233,7 +255,7 @@ export default function UserProfileScreen() {
       ) : (
         <View style={{ flex: 1 }}>
           {/* Profile Header */}
-          <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
+          <View style={[styles.header]}>
             <View style={styles.headerContent}>
               <AppImage 
                 source={user.userAvatar} 
@@ -252,7 +274,7 @@ export default function UserProfileScreen() {
             <View style={styles.statsContainer}>
               <View style={styles.statItem}>
                 <Text style={styles.statValue}>{userCoffees.length}</Text>
-                <Text style={styles.statLabel}>Coffees</Text>
+                <Text style={styles.statLabel}>Activity</Text>
               </View>
               <View style={styles.statItem}>
                 <Text style={styles.statValue}>{followers.length || 0}</Text>
@@ -281,27 +303,52 @@ export default function UserProfileScreen() {
           </View>
           
           {/* Bio */}
-          {user.bio && (
+          {/* {user.bio && (
             <View style={styles.bioContainer}>
               <Text style={styles.bioText}>{user.bio}</Text>
             </View>
-          )}
+          )} */}
           
-          {/* Gear */}
-          {user.gear && user.gear.length > 0 && (
+          {/* Gear Section */}
+          {Array.isArray(user.gear) && (
             <View style={styles.gearContainer}>
-              <Text style={styles.gearTitle}>Gear</Text>
-              <View style={styles.gearList}>
-                {user.gear.map((item, index) => (
-                  <TouchableOpacity 
-                    key={index} 
-                    style={styles.gearItem}
-                    onPress={() => handleGearPress(item)}
-                  >
-                    <Text style={styles.gearText}>{item}</Text>
+              <View style={styles.gearTitleContainer}>
+                <Text style={styles.gearTitle}>Gear</Text>
+                
+                {/* Show appropriate action based on wishlist status */}
+                {Array.isArray(user.gearWishlist) ? (
+                  <TouchableOpacity onPress={handleGearWishlistPress}>
+                    <Text style={styles.gearWishlistToggle}>
+                      {user.gearWishlist.length > 0 ? 'Wishlist' : 'Wishlist'}
+                    </Text>
                   </TouchableOpacity>
-                ))}
+                ) : null}
               </View>
+              
+              {user.gear.length > 0 ? (
+                <View style={styles.gearList}>
+                  {user.gear.map((item, index) => (
+                    <TouchableOpacity 
+                      key={index} 
+                      style={styles.gearItem}
+                      onPress={() => handleGearPress(item)}
+                    >
+                      <Text style={styles.gearText}>{item}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              ) : (
+                <View style={styles.emptyGearContainer}>
+                  <Text style={styles.emptyGearText}>
+                    {user.id === 'user3' ? 
+                      "Hasn't added any gear yet" : 
+                      (Array.isArray(user.gearWishlist) && user.gearWishlist.length > 0 
+                        ? "No gear added yet, but this user has a wishlist" 
+                        : "No gear added yet")
+                    }
+                  </Text>
+                </View>
+              )}
             </View>
           )}
           
@@ -311,7 +358,7 @@ export default function UserProfileScreen() {
               style={[styles.tab, activeTab === 'coffees' && styles.activeTab]}
               onPress={() => setActiveTab('coffees')}
             >
-              <Text style={[styles.tabText, activeTab === 'coffees' && styles.activeTabText]}>Coffees</Text>
+              <Text style={[styles.tabText, activeTab === 'coffees' && styles.activeTabText]}>Activity</Text>
             </TouchableOpacity>
             
             <TouchableOpacity 
@@ -353,6 +400,8 @@ export default function UserProfileScreen() {
               renderItem={renderCoffeeItem}
               keyExtractor={item => item.id}
               contentContainerStyle={styles.coffeesContainer}
+              showsVerticalScrollIndicator={false}
+              ItemSeparatorComponent={() => <View style={styles.listSeparator} />}
               refreshControl={
                 <RefreshControl
                   refreshing={refreshing}
@@ -362,7 +411,12 @@ export default function UserProfileScreen() {
               }
               ListEmptyComponent={
                 <View style={styles.emptyContainer}>
-                  <Text style={styles.emptyText}>No coffees yet</Text>
+                  <Text style={styles.emptyText}>
+                    {user.id === 'user3' ? 
+                      "No activity yet from this user" : 
+                      "No activity yet"
+                    }
+                  </Text>
                   <TouchableOpacity onPress={onRefresh} style={styles.refreshButton}>
                     <Text style={styles.refreshButtonText}>Refresh</Text>
                   </TouchableOpacity>
@@ -371,11 +425,11 @@ export default function UserProfileScreen() {
             />
           ) : activeTab === 'collection' || activeTab === 'shop' ? (
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No {user.isBusinessAccount ? 'products' : 'coffees'} in collection</Text>
+              <Text style={styles.emptyText}>No {user.isBusinessAccount ? 'products' : 'logs'} in collection</Text>
             </View>
           ) : activeTab === 'wishlist' ? (
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No coffees in wishlist</Text>
+              <Text style={styles.emptyText}>No logs in wishlist</Text>
             </View>
           ) : (
             <View style={styles.emptyContainer}>
@@ -451,11 +505,12 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: '#000000',
-    marginBottom: 4,
+    marginBottom: -6,
   },
   userLocation: {
     fontSize: 14,
     color: '#666666',
+    marginTop: 8,
   },
   statsContainer: {
     flexDirection: 'row',
@@ -508,14 +563,17 @@ const styles = StyleSheet.create({
   gearContainer: {
     backgroundColor: '#FFFFFF',
     padding: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E5EA',
+  },
+  gearTitleContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
   },
   gearTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: '#000000',
-    marginBottom: 8,
   },
   gearList: {
     flexDirection: 'row',
@@ -532,6 +590,12 @@ const styles = StyleSheet.create({
   gearText: {
     fontSize: 14,
     color: '#666666',
+  },
+  gearWishlistToggle: {
+    fontSize: 14,
+    color: '#0066CC',
+    fontWeight: '500',
+    padding: 5,
   },
   tabsContainer: {
     flexDirection: 'row',
@@ -559,48 +623,12 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   coffeesContainer: {
-    padding: 8,
+    paddingVertical: 0,
+    paddingHorizontal: 0,
   },
-  coffeeItem: {
-    flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    marginBottom: 8,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  coffeeImage: {
-    width: 80,
-    height: 80,
-  },
-  coffeeInfo: {
-    flex: 1,
-    padding: 12,
-    justifyContent: 'center',
-  },
-  coffeeName: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#000000',
-    marginBottom: 4,
-  },
-  roasterName: {
-    fontSize: 14,
-    color: '#666666',
-    marginBottom: 4,
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  ratingText: {
-    fontSize: 14,
-    color: '#000000',
-    marginLeft: 4,
+  listSeparator: {
+    height: 1,
+    backgroundColor: '#E5E5EA',
   },
   emptyContainer: {
     padding: 12,
@@ -623,4 +651,23 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '500',
   },
+  emptyGearContainer: {
+    padding: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 8,
+  },
+  emptyGearText: {
+    fontSize: 14,
+    color: '#666666',
+    fontStyle: 'italic',
+  },
+  coffeeItem: undefined,
+  coffeeImage: undefined,
+  coffeeInfo: undefined,
+  coffeeName: undefined,
+  roasterName: undefined,
+  ratingContainer: undefined,
+  ratingText: undefined,
+  eventNotes: undefined,
 }); 

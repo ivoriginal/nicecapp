@@ -9,6 +9,7 @@ import RecipeDetailScreen from './src/screens/RecipeDetailScreen';
 import UserProfileScreen from './src/screens/UserProfileScreen';
 import UserProfileBridge from './src/screens/UserProfileBridge';
 import GearDetailScreen from './src/screens/GearDetailScreen';
+import GearWishlistScreen from './src/screens/GearWishlistScreen';
 import CoffeeDiscoveryScreen from './src/screens/CoffeeDiscoveryScreen';
 import RecipesListScreen from './src/screens/RecipesListScreen';
 import PeopleListScreen from './src/screens/PeopleListScreen';
@@ -90,6 +91,11 @@ export default function App() {
                   title: route.params?.gearName || 'Gear Details',
                   headerBackTitle: 'Back',
                 })} 
+              />
+              <Stack.Screen 
+                name="GearWishlist" 
+                component={GearWishlistScreen} 
+                options={{ headerShown: false }} 
               />
               <Stack.Screen 
                 name="CoffeeDiscovery" 

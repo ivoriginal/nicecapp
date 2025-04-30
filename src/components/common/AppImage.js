@@ -11,7 +11,11 @@ const localAssets = {
   // CaféLab
   'assets/businesses/cafelab-logo.png': require('../../../assets/businesses/cafelab-logo.png'),
   'assets/businesses/cafelab-murcia-cover.png': require('../../../assets/businesses/cafelab-murcia-cover.png'),
-  'assets/businesses/cafelab-cartagena-cover.png': require('../../../assets/businesses/cafelab-cartagena-cover.png')
+  'assets/businesses/cafelab-cartagena-cover.png': require('../../../assets/businesses/cafelab-cartagena-cover.png'),
+
+  // User avatars
+  'assets/users/carlos-hernandez.jpg': require('../../../assets/users/carlos-hernandez.jpg'),
+  'assets/users/ivo-vilches.jpg': require('../../../assets/users/ivo-vilches.jpg')
 };
 
 const AppImage = ({ 

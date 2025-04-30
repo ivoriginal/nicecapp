@@ -15,6 +15,12 @@ export default function UserProfileBridge() {
     // with the correct parameters
     if (userId) {
       console.log('Navigating to UserProfile with userId:', userId);
+      
+      // Special logging for Carlos to debug avatar issues
+      if (userId === 'user3') {
+        console.log('Loading Carlos Hernández profile, avatar should be assets/users/carlos-hernandez.jpg');
+      }
+      
       navigation.replace('UserProfile', { 
         userId, 
         userName,

@@ -24,8 +24,150 @@ const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress }) => 
   };
   
   // Check if this is a business account (like Vértigo y Calambre)
-  const isBusinessAccount = event.userName === 'Vértigo y Calambre';
+  const isBusinessAccount = event.userName === 'Vértigo y Calambre' || 
+                           event.userName === 'Kima Coffee' ||
+                           event.userName.includes('Café') ||
+                           event.userId?.startsWith('business-');
 
+  // Get event type icon
+  const getEventTypeIcon = () => {
+    const type = event.type || 'coffee_log';
+    
+    switch (type) {
+      case 'cafe_visit':
+        return 'storefront';
+      case 'latte_art':
+        return 'color-palette';
+      case 'gear_purchase':
+        return 'hardware-chip';
+      case 'coffee_roasting':
+        return 'flame';
+      case 'workshop':
+        return 'school';
+      default:
+        return 'cafe';
+    }
+  };
+
+  // Render different event types
+  const renderEventContent = () => {
+    const type = event.type || 'coffee_log';
+    
+    // Default coffee log - has coffeeId, coffeeName and no explicit type
+    if (!type || type === 'coffee_log' || (!event.type && event.coffeeId && event.coffeeName)) {
+      return (
+        <>
+          {/* Coffee image and details */}
+          <TouchableOpacity 
+            style={styles.coffeeContainer}
+            onPress={() => onCoffeePress && onCoffeePress(event)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.coffeeImageContainer}>
+              {event.imageUrl ? (
+                <AppImage source={event.imageUrl} style={styles.coffeeImage} placeholder="coffee" />
+              ) : (
+                <View style={styles.placeholderImage}>
+                  <Ionicons name="cafe" size={24} color="#666" />
+                </View>
+              )}
+            </View>
+            <View style={styles.coffeeInfo}>
+              <Text style={styles.coffeeName}>{event.coffeeName || 'Unknown Coffee'}</Text>
+              <Text style={styles.roasterName}>{event.roaster || event.roasterName || 'Unknown Roaster'}</Text>
+            </View>
+          </TouchableOpacity>
+
+          {/* Recipe details - now clickable */}
+          <TouchableOpacity 
+            style={styles.recipeContainer}
+            onPress={() => onRecipePress && onRecipePress(event)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.recipeHeader}>
+              <View style={styles.methodContainer}>
+                <Ionicons name="cafe" size={20} color="#000000" />
+                <Text style={styles.methodText}>{event.method || event.brewingMethod || 'Unknown Method'}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#666666" />
+            </View>
+            <View style={styles.recipeDetails}>
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Coffee</Text>
+                <Text style={styles.detailValue}>{event.amount || '18'}g</Text>
+              </View>
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Grind Size</Text>
+                <Text style={styles.detailValue}>{event.grindSize || 'Medium'}</Text>
+              </View>
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Water</Text>
+                <Text style={styles.detailValue}>{event.waterVolume || '300'}ml</Text>
+              </View>
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Brew Time</Text>
+                <Text style={styles.detailValue}>{event.brewTime || '3:30'}</Text>
+              </View>
+            </View>
+            {event.notes && (
+              <Text style={styles.notesText} numberOfLines={2}>
+                {event.notes}
+              </Text>
+            )}
+          </TouchableOpacity>
+        </>
+      );
+    }
+    
+    // Other event types
+    return (
+      <View style={styles.genericEventContainer}>
+        <View style={styles.eventImageContainer}>
+          {event.imageUrl ? (
+            <AppImage source={event.imageUrl} style={styles.eventImage} placeholder={getEventTypeIcon()} />
+          ) : (
+            <View style={styles.placeholderImage}>
+              <Ionicons name={getEventTypeIcon()} size={24} color="#666" />
+            </View>
+          )}
+        </View>
+        
+        <View style={styles.eventContent}>
+          {event.title && <Text style={styles.eventTitle}>{event.title}</Text>}
+          {event.location && (
+            <View style={styles.locationContainer}>
+              <Ionicons name="location" size={16} color="#666666" />
+              <Text style={styles.locationText}>{event.location}</Text>
+            </View>
+          )}
+          {event.gearName && (
+            <View style={styles.genericInfoRow}>
+              <Ionicons name="hardware-chip" size={16} color="#666666" />
+              <Text style={styles.genericInfoText}>{event.gearName}</Text>
+            </View>
+          )}
+          {event.cafeId && event.cafeName && (
+            <View style={styles.genericInfoRow}>
+              <Ionicons name="storefront" size={16} color="#666666" />
+              <Text style={styles.genericInfoText}>{event.cafeName}</Text>
+            </View>
+          )}
+          {event.beanOrigin && (
+            <View style={styles.genericInfoRow}>
+              <Ionicons name="globe" size={16} color="#666666" />
+              <Text style={styles.genericInfoText}>{event.beanOrigin}</Text>
+            </View>
+          )}
+          {event.notes && (
+            <Text style={styles.notesText} numberOfLines={3}>
+              {event.notes}
+            </Text>
+          )}
+        </View>
+      </View>
+    );
+  };
+  
   return (
     <View style={styles.container}>
       {/* Header with user info and timestamp */}
@@ -49,64 +191,8 @@ const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress }) => 
         </Text>
       </View>
 
-      {/* Coffee image and details */}
-      <TouchableOpacity 
-        style={styles.coffeeContainer}
-        onPress={() => onCoffeePress && onCoffeePress(event)}
-        activeOpacity={0.7}
-      >
-        <View style={styles.coffeeImageContainer}>
-          {event.imageUrl ? (
-            <AppImage source={event.imageUrl} style={styles.coffeeImage} placeholder="coffee" />
-          ) : (
-            <View style={styles.placeholderImage}>
-              <Ionicons name="cafe" size={24} color="#666" />
-            </View>
-          )}
-        </View>
-        <View style={styles.coffeeInfo}>
-          <Text style={styles.coffeeName}>{event.coffeeName || 'Unknown Coffee'}</Text>
-          <Text style={styles.roasterName}>{event.roaster || event.roasterName || 'Unknown Roaster'}</Text>
-        </View>
-      </TouchableOpacity>
-
-      {/* Recipe details - now clickable */}
-      <TouchableOpacity 
-        style={styles.recipeContainer}
-        onPress={() => onRecipePress && onRecipePress(event)}
-        activeOpacity={0.7}
-      >
-        <View style={styles.recipeHeader}>
-          <View style={styles.methodContainer}>
-            <Ionicons name="cafe" size={20} color="#000000" />
-            <Text style={styles.methodText}>{event.method || event.brewingMethod || 'Unknown Method'}</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color="#666666" />
-        </View>
-        <View style={styles.recipeDetails}>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Coffee</Text>
-            <Text style={styles.detailValue}>{event.amount || '18'}g</Text>
-          </View>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Grind Size</Text>
-            <Text style={styles.detailValue}>{event.grindSize || 'Medium'}</Text>
-          </View>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Water</Text>
-            <Text style={styles.detailValue}>{event.waterVolume || '300'}ml</Text>
-          </View>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Brew Time</Text>
-            <Text style={styles.detailValue}>{event.brewTime || '3:30'}</Text>
-          </View>
-        </View>
-        {event.notes && (
-          <Text style={styles.notesText} numberOfLines={2}>
-            {event.notes}
-          </Text>
-        )}
-      </TouchableOpacity>
+      {/* Event content - either coffee log or other event type */}
+      {renderEventContent()}
     </View>
   );
 };
@@ -244,6 +330,53 @@ const styles = StyleSheet.create({
     color: '#666666',
     fontStyle: 'italic',
   },
+  // New styles for generic events
+  genericEventContainer: {
+    padding: 12,
+    backgroundColor: '#FFFFFF',
+  },
+  eventImageContainer: {
+    width: '100%',
+    height: 160,
+    borderRadius: 8,
+    overflow: 'hidden',
+    marginBottom: 12,
+  },
+  eventImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  eventContent: {
+    paddingHorizontal: 4,
+  },
+  eventTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#000000',
+    marginBottom: 8,
+  },
+  locationContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  locationText: {
+    fontSize: 14,
+    color: '#666666',
+    marginLeft: 4,
+  },
+  genericInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  genericInfoText: {
+    fontSize: 14,
+    color: '#666666',
+    marginLeft: 4,
+    fontWeight: '500',
+  }
 });
 
 export default CoffeeLogCard; 

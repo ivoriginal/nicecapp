@@ -77,36 +77,40 @@ export const CoffeeProvider = ({ children }) => {
   // Load data for a specific account
   const loadData = async (specificAccount = null) => {
     try {
+      console.log('Loading data for account:', specificAccount || currentAccount);
       setLoading(true);
       setError(null);
+      const accountToLoad = specificAccount || currentAccount;
       
-      // Use provided account, or current account, or default to user1
-      const accountToLoad = specificAccount || currentAccount || 'user1';
-      console.log('CoffeeContext - Loading data for account:', accountToLoad);
-      
-      // Find the user in accounts array
-      const userData = accounts.find(u => u.id === accountToLoad);
-      if (!userData) {
-        console.error('User data not found for account:', accountToLoad);
-        throw new Error('Account data not found');
+      // Set user data from accounts list
+      const userData = accounts.find(acc => acc.id === accountToLoad);
+      if (userData) {
+        console.log('Found user data:', userData);
+        setUser(userData);
+      } else {
+        console.error('User data not found for account ID:', accountToLoad);
+        setError('User data not found');
+        return;
       }
       
-      console.log('CoffeeContext - Found user data:', userData);
-
-      // Set user data immediately
-      setUser(userData);
-      
-      // Make sure current account is set
-      if (currentAccount !== accountToLoad) {
-        console.log(`Updating currentAccount from ${currentAccount} to ${accountToLoad}`);
-        setCurrentAccount(accountToLoad);
-      }
-
-      // Debug: log all available accounts in accountData
-      console.log('Available accounts in accountData:', Object.keys(accountData));
-
       // IMPORTANT: Collect all events for social feed - do this BEFORE loading account-specific data
       let allUserEvents = [];
+      
+      // First load events from mockData.json if available
+      if (mockData.coffeeEvents && Array.isArray(mockData.coffeeEvents)) {
+        console.log(`Adding ${mockData.coffeeEvents.length} events from mockData.json`);
+        
+        // Filter out any events without coffee data
+        const validCoffeeEvents = mockData.coffeeEvents.filter(
+          event => event.coffeeId && event.coffeeName && !event.type
+        );
+        
+        allUserEvents = [...mockData.coffeeEvents];
+        
+        // For each user in mockData.coffeeEvents, ensure they have corresponding collection entries
+        // We'll process these later in the collection-building code
+      }
+      
       for (const acct in accountData) {
         if (accountData[acct]?.coffeeEvents && Array.isArray(accountData[acct].coffeeEvents)) {
           console.log(`Adding ${accountData[acct].coffeeEvents.length} events from ${acct}`);
@@ -127,92 +131,58 @@ export const CoffeeProvider = ({ children }) => {
         }
       }
       
-      console.log('Combined events from all accounts:', allUserEvents.length);
-
-      // Load account-specific data
-      if (accountData[accountToLoad]) {
-        console.log('Using existing account data for:', accountToLoad);
-        // Use existing data if available
-        const data = accountData[accountToLoad];
-        console.log('Events count for this account:', data.coffeeEvents?.length || 0);
-        
-        // Set current user's data
-        setCoffeeEvents(data.coffeeEvents || []);
-        setCoffeeCollection(data.coffeeCollection || []);
-        setCoffeeWishlist(data.coffeeWishlist || []);
-        setFavorites(data.favorites || []);
-        setRecipes(data.recipes || []);
-        
-        // Set following and followers - for the social feed, everyone follows everyone
-        const otherUsers = accounts.filter(acc => acc.id !== accountToLoad);
-        setFollowing(otherUsers);
-        setFollowers(otherUsers);
-      } else {
-        console.log('Generating new account data for:', accountToLoad);
-        // Generate mock data for new accounts
-        const mockEvents = generateMockEvents(accountToLoad, 5).map(event => ({
-          ...event,
-          userId: accountToLoad,
-          userName: userData.userName,
-          userAvatar: userData.userAvatar
-        }));
-        
-        const mockCollection = [
-          {
-            id: 'coffee-0',
-            name: 'Ethiopian Yirgacheffe',
-            roaster: 'Blue Bottle Coffee',
-            image: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd',
-            userId: accountToLoad
-          },
-          {
-            id: 'coffee-1',
-            name: 'Colombian Supremo',
-            roaster: 'Stumptown Coffee Roasters',
-            image: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085',
-            userId: accountToLoad
-          }
-        ];
-        
-        const mockWishlist = [
-          {
-            id: 'coffee-3',
-            name: 'Guatemala Antigua',
-            roaster: 'Counter Culture Coffee',
-            image: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd',
-            userId: accountToLoad
-          }
-        ];
-        
-        setCoffeeEvents(mockEvents);
-        setCoffeeCollection(mockCollection);
-        setCoffeeWishlist(mockWishlist);
-        setFavorites(['coffee-0']);
-        setRecipes([]);
-        
-        // Set following and followers - everyone follows everyone
-        const otherUsers = accounts.filter(acc => acc.id !== accountToLoad);
-        setFollowing(otherUsers);
-        setFollowers(otherUsers);
-        
-        // Add the newly generated events to the allEvents array
-        allUserEvents = [...allUserEvents, ...mockEvents];
-        
-        // Store the generated data for future use
-        accountData[accountToLoad] = {
-          coffeeEvents: mockEvents,
-          coffeeCollection: mockCollection,
-          coffeeWishlist: mockWishlist,
-          favorites: ['coffee-0'],
-          recipes: []
-        };
-      }
-      
       // Sort by date (newest first)
       allUserEvents.sort((a, b) => new Date(b.date || b.timestamp) - new Date(a.date || a.timestamp));
-      console.log('FINAL - Setting allEvents with length:', allUserEvents.length);
-      console.log('Events preview:', allUserEvents.slice(0, 3).map(e => ({ id: e.id, user: e.userName })));
-      setAllEvents(allUserEvents);
+      
+      // Filter out events from user3 (Carlos Hernández) as he should have no activity
+      const filteredEvents = allUserEvents.filter(event => event.userId !== 'user3');
+      
+      console.log('FINAL - Setting allEvents with length:', filteredEvents.length);
+      console.log('Events preview:', filteredEvents.slice(0, 3).map(e => ({ id: e.id, user: e.userName })));
+      setAllEvents(filteredEvents);
+      
+      // Extract unique coffeeIds from user events to add to their collection
+      const userEvents = filteredEvents.filter(event => event.userId === accountToLoad && event.coffeeId && event.coffeeName);
+      console.log(`Found ${userEvents.length} events for user ${accountToLoad} to potentially add to collection`);
+      
+      // Create collection items from coffee logs
+      const collectionItemsFromLogs = userEvents.map(event => ({
+        id: event.coffeeId,
+        name: event.coffeeName,
+        roaster: event.roaster || '',
+        image: event.imageUrl || 'https://images.unsplash.com/photo-1447933601403-0c6688de566e',
+        userId: accountToLoad
+      }));
+      
+      // Get existing collection
+      const existingCollection = accountData[accountToLoad]?.coffeeCollection || [];
+      
+      // Combine existing collection with items from logs, avoiding duplicates
+      const existingIds = new Set(existingCollection.map(item => item.id));
+      const newItems = collectionItemsFromLogs.filter(item => !existingIds.has(item.id));
+      
+      // Create combined collection
+      const combinedCollection = [...existingCollection, ...newItems];
+      console.log(`Added ${newItems.length} items to collection from logs`);
+      
+      // Set current user's data
+      const userOwnEvents = allUserEvents.filter(event => event.userId === accountToLoad);
+      console.log(`Setting ${userOwnEvents.length} events for user ${accountToLoad}'s own activity tab`);
+      setCoffeeEvents(userOwnEvents);
+      setCoffeeCollection(combinedCollection);
+      setCoffeeWishlist(accountData[accountToLoad]?.coffeeWishlist || []);
+      setFavorites(accountData[accountToLoad]?.favorites || []);
+      setRecipes(accountData[accountToLoad]?.recipes || []);
+      
+      // Update accountData with the new collection
+      if (accountData[accountToLoad]) {
+        accountData[accountToLoad].coffeeCollection = combinedCollection;
+      }
+      
+      // Set following and followers - for the social feed, everyone follows everyone
+      const otherUsers = accounts.filter(acc => acc.id !== accountToLoad);
+      setFollowing(otherUsers);
+      setFollowers(otherUsers);
       
       console.log('CoffeeContext - Data loaded successfully');
     } catch (error) {

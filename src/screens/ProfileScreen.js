@@ -98,7 +98,8 @@ export default function ProfileScreen() {
       email: 'ivo.vilches@example.com',
       location: 'Murcia, Spain',
       isBusinessAccount: false,
-      gear: ["Hario V60", "Baratza Encore", "Fellow Stagg EKG", "Acaia Pearl Scale"]
+      gear: ["Hario V60", "Baratza Encore", "Fellow Stagg EKG", "Acaia Pearl Scale"],
+      gearWishlist: ["La Marzocco Linea Mini", "Weber Workshops EG-1", "Comandante C40", "Decent DE1"]
     },
     'user2': {
       id: 'user2',
@@ -108,7 +109,8 @@ export default function ProfileScreen() {
       email: 'contacto@vertigoycalambre.com',
       location: 'Murcia, Spain',
       isBusinessAccount: true,
-      gear: ["La Marzocco Linea Mini", "Mahlkönig E65S GbW", "Acaia Lunar Scale"]
+      gear: ["La Marzocco Linea Mini", "Mahlkönig E65S GbW", "Acaia Lunar Scale"],
+      gearWishlist: ["La Marzocco GS3", "Victoria Arduino Eagle One", "Loring S15 Falcon"]
     },
     'user3': {
       id: 'user3',
@@ -129,7 +131,10 @@ export default function ProfileScreen() {
   const [currentUserData, setCurrentUserData] = useState(defaultUser);
   const userData = user ? 
     // If we have user data from context, use it, but ensure gear data is present
-    {...currentUserData, ...user, gear: user.gear || currentUserData.gear || []} : 
+    {...currentUserData, ...user, 
+      gear: user.gear || currentUserData.gear || [],
+      gearWishlist: user.gearWishlist || currentUserData.gearWishlist || []
+    } : 
     // Otherwise fall back to our local state
     currentUserData;
   const displayName = userData?.userName || userData?.name || 'Guest';
@@ -447,29 +452,32 @@ export default function ProfileScreen() {
   const renderTabs = () => (
     <View style={styles.tabsContainer}>
       <TouchableOpacity
-        style={[styles.tab, activeTab === 'coffee' && styles.activeTab]}
+        style={[styles.tabButton, activeTab === 'coffee' && styles.activeTabButton]}
         onPress={() => handleTabChange('coffee')}
       >
         <Text style={[styles.tabText, activeTab === 'coffee' && styles.activeTabText]}>Activity</Text>
       </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.tab, activeTab === (isBusinessAccount ? 'shop' : 'collection') && styles.activeTab]}
+      
+      <TouchableOpacity 
+        style={[styles.tabButton, activeTab === (isBusinessAccount ? 'shop' : 'collection') && styles.activeTabButton]}
         onPress={() => handleTabChange(isBusinessAccount ? 'shop' : 'collection')}
       >
         <Text style={[styles.tabText, activeTab === (isBusinessAccount ? 'shop' : 'collection') && styles.activeTabText]}>
           {isBusinessAccount ? 'Shop' : 'Collection'}
         </Text>
       </TouchableOpacity>
+      
       {!isBusinessAccount && (
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'wishlist' && styles.activeTab]}
+        <TouchableOpacity 
+          style={[styles.tabButton, activeTab === 'wishlist' && styles.activeTabButton]}
           onPress={() => handleTabChange('wishlist')}
         >
           <Text style={[styles.tabText, activeTab === 'wishlist' && styles.activeTabText]}>Wishlist</Text>
         </TouchableOpacity>
       )}
-      <TouchableOpacity
-        style={[styles.tab, activeTab === 'recipes' && styles.activeTab]}
+      
+      <TouchableOpacity 
+        style={[styles.tabButton, activeTab === 'recipes' && styles.activeTabButton]}
         onPress={() => handleTabChange('recipes')}
       >
         <Text style={[styles.tabText, activeTab === 'recipes' && styles.activeTabText]}>Recipes</Text>
@@ -536,7 +544,7 @@ export default function ProfileScreen() {
                 scrollEnabled={false}
               />
             ) : (
-              renderEmptyState('No coffee logs yet')
+              renderEmptyState('No activity yet')
             )}
           </View>
         )}
@@ -552,7 +560,7 @@ export default function ProfileScreen() {
                 scrollEnabled={false}
               />
             ) : (
-              renderEmptyState(`No coffees in ${isBusinessAccount ? 'shop' : 'collection'} yet`)
+              renderEmptyState(`No ${isBusinessAccount ? 'products' : 'logs'} in ${isBusinessAccount ? 'shop' : 'collection'} yet`)
             )}
           </View>
         )}
@@ -568,7 +576,7 @@ export default function ProfileScreen() {
                 scrollEnabled={false}
               />
             ) : (
-              renderEmptyState('No coffees in wishlist yet')
+              renderEmptyState('No logs in wishlist yet')
             )}
           </View>
         )}
@@ -708,11 +716,35 @@ export default function ProfileScreen() {
       ? userGear 
       : defaultUsers[currentAccount]?.gear || [];
     
+    const wishlistToDisplay = currentUserData?.gearWishlist || defaultUsers[currentAccount]?.gearWishlist || [];
+    const hasGear = gearToDisplay.length > 0;
+    const hasWishlist = wishlistToDisplay.length > 0;
+    
+    const handleGearWishlistNavigate = () => {
+      // Navigate to gear wishlist screen
+      navigation.navigate('GearWishlist', {
+        userId: currentAccount, 
+        userName: displayName,
+        isCurrentUser: true
+      });
+    };
+    
     console.log('RENDERING GEAR MODULE - GEAR TO DISPLAY:', gearToDisplay);
+    console.log('RENDERING GEAR MODULE - WISHLIST TO DISPLAY:', wishlistToDisplay);
     
     return (
       <View style={styles.gearContainer}>
-        <Text style={styles.gearTitle}>My gear</Text>
+        <View style={styles.gearTitleRow}>
+          <Text style={styles.gearTitle}>My gear</Text>
+          
+          {/* Always show wishlist link, with different text based on content */}
+          <TouchableOpacity onPress={handleGearWishlistNavigate}>
+            <Text style={styles.gearWishlistToggle}>
+              {hasWishlist ? 'Wishlist' : 'View Wishlist'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+        
         <View style={styles.gearGrid}>
           {gearToDisplay.length > 0 ? (
             gearToDisplay.map((item, index) => {
@@ -729,7 +761,9 @@ export default function ProfileScreen() {
               );
             })
           ) : (
-            <Text style={styles.emptyGearText}>No gear added yet</Text>
+            <Text style={styles.emptyGearText}>
+              No gear added yet
+            </Text>
           )}
         </View>
       </View>
@@ -751,7 +785,8 @@ export default function ProfileScreen() {
           userAvatar: user.userAvatar || defaultUserForAccount.userAvatar,
           userHandle: user.userHandle || defaultUserForAccount.userHandle,
           location: user.location || defaultUserForAccount.location,
-          gear: defaultUserForAccount.gear
+          gear: defaultUserForAccount.gear,
+          gearWishlist: defaultUserForAccount.gearWishlist
         };
         setCurrentUserData(mergedUserData);
       } else {
@@ -771,6 +806,7 @@ export default function ProfileScreen() {
           ...accountData,
           // Ensure these critical fields are present
           gear: accountData.gear || defaultUserForAccount.gear || [],
+          gearWishlist: accountData.gearWishlist || defaultUserForAccount.gearWishlist || [],
           userHandle: accountData.userHandle || defaultUserForAccount.userHandle,
           location: accountData.location || defaultUserForAccount.location
         };
@@ -1083,12 +1119,12 @@ const styles = StyleSheet.create({
     borderBottomColor: '#E5E5EA',
     height: 48,
   },
-  tab: {
+  tabButton: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  activeTab: {
+  activeTabButton: {
     borderBottomWidth: 2,
     borderBottomColor: '#000000',
   },
@@ -1107,11 +1143,22 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     padding: 16,
   },
-  gearTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#000000',
+  gearTitleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 12,
+  },
+  gearTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#000000',
+  },
+  gearWishlistToggle: {
+    fontSize: 14,
+    color: '#0066CC',
+    fontWeight: '500',
+    padding: 5,
   },
   gearGrid: {
     flexDirection: 'row',
