@@ -221,33 +221,113 @@ export default function SearchScreen() {
     
     // Simulate search results
     if (text.length > 0) {
-      // This would be replaced with actual API calls to your backend
-      const mockResults = [
-        { id: '1', name: 'Ethiopian Yirgacheffe', roaster: 'Blue Bottle', type: 'coffee' },
-        { id: '2', name: 'Colombian Supremo', roaster: 'Starbucks', type: 'coffee' },
-        { id: '3', name: 'Kenya AA', roaster: 'Intelligentsia', type: 'coffee' },
-        { id: '4', name: 'Guatemala Antigua', roaster: 'Peet\'s Coffee', type: 'coffee' },
-        { id: '5', name: 'Sumatra Mandheling', roaster: 'Blue Bottle', type: 'coffee' },
-        { id: '6', name: 'Blue Bottle Coffee', type: 'roaster', location: 'San Francisco, CA' },
-        { id: '7', name: 'Starbucks', type: 'roaster', location: 'Seattle, WA' },
-        { id: '8', name: 'Intelligentsia Coffee', type: 'roaster', location: 'Chicago, IL' },
-        { id: '9', name: 'Peet\'s Coffee', type: 'roaster', location: 'Emeryville, CA' },
-        { id: '10', name: 'John Doe', type: 'user', username: 'johndoe' },
-        { id: '11', name: 'Jane Smith', type: 'user', username: 'janesmith' },
-        { id: '12', name: 'Coffee Enthusiast', type: 'user', username: 'coffeelover' },
-        { id: '13', name: 'CodingCarlos', type: 'user', username: 'codingcarlos' },
-        { id: '14', name: 'Elias', type: 'user', username: 'elias' },
-        { id: '15', name: 'Alena', type: 'user', username: 'alena' },
-        { id: '16', name: 'CafeLab', type: 'cafe', location: 'Murcia, Spain' },
-        { id: '17', name: 'The Fix', type: 'cafe', location: 'Madrid, Spain', isRoaster: true },
-        { id: '18', name: 'Coffee Corner', type: 'cafe', location: 'Barcelona, Spain' },
-        { id: '19', name: 'Urban Brew', type: 'cafe', location: 'Valencia, Spain' },
-      ].filter(item => 
-        item.name.toLowerCase().includes(text.toLowerCase()) || 
-        (item.roaster && item.roaster.toLowerCase().includes(text.toLowerCase())) ||
-        (item.username && item.username.toLowerCase().includes(text.toLowerCase())) ||
-        (item.location && item.location.toLowerCase().includes(text.toLowerCase()))
-      );
+      // Create search results with proper IDs from mockData
+      let mockResults = [];
+      // Track names to avoid duplicates
+      const addedNames = new Set();
+      
+      // Add coffees
+      mockData.coffees.forEach(coffee => {
+        if (coffee.name.toLowerCase().includes(text.toLowerCase()) || 
+            coffee.roaster.toLowerCase().includes(text.toLowerCase())) {
+          mockResults.push({
+            id: `coffee-${coffee.id}`,
+            coffeeId: coffee.id,
+            name: coffee.name,
+            roaster: coffee.roaster,
+            type: 'coffee',
+            image: coffee.image
+          });
+          addedNames.add(coffee.name.toLowerCase());
+        }
+      });
+      
+      // Add businesses/cafes/roasters - search through different sources
+      // First, trendingCafes
+      if (mockData.trendingCafes) {
+        mockData.trendingCafes.forEach(business => {
+          if (business.name && !addedNames.has(business.name.toLowerCase()) && 
+              (business.name.toLowerCase().includes(text.toLowerCase()) || 
+              (business.location && business.location.toLowerCase().includes(text.toLowerCase())))) {
+            mockResults.push({
+              id: `cafe-${business.id}`,
+              businessId: business.id,
+              name: business.name,
+              location: business.location || 'Unknown location',
+              type: business.type === 'roaster_coffee_shop' ? 'roaster' : 'cafe',
+              isRoaster: business.type === 'roaster_coffee_shop',
+              logo: business.logo,
+              imageUrl: business.imageUrl || business.coverImage
+            });
+            addedNames.add(business.name.toLowerCase());
+          }
+        });
+      }
+      
+      // Then through businesses
+      if (mockData.businesses) {
+        mockData.businesses.forEach(business => {
+          if (business.name && !addedNames.has(business.name.toLowerCase()) && 
+              (business.name.toLowerCase().includes(text.toLowerCase()) || 
+              (business.location && business.location.toLowerCase().includes(text.toLowerCase())))) {
+            mockResults.push({
+              id: `business-${business.id}`,
+              businessId: business.id,
+              name: business.name,
+              location: business.location || 'Unknown location',
+              type: business.type === 'roaster_coffee_shop' ? 'roaster' : 'cafe',
+              isRoaster: business.type === 'roaster_coffee_shop',
+              logo: business.logo,
+              imageUrl: business.coverImage
+            });
+            addedNames.add(business.name.toLowerCase());
+          }
+        });
+      }
+      
+      // Add users
+      mockData.users.forEach(user => {
+        if (user.userName && !addedNames.has(user.userName.toLowerCase()) && 
+            (user.userName.toLowerCase().includes(text.toLowerCase()) || 
+            (user.location && user.location.toLowerCase().includes(text.toLowerCase())))) {
+          mockResults.push({
+            id: `user-${user.id}`,
+            userId: user.id,
+            name: user.userName,
+            username: user.userName.toLowerCase().replace(/\s+/g, ''),
+            location: user.location,
+            type: 'user',
+            userAvatar: user.userAvatar
+          });
+          addedNames.add(user.userName.toLowerCase());
+        }
+      });
+      
+      // Also check for special case of Vértigo y Calambre which might be in different formats
+      const vertigoTerms = ['vertigo', 'calambre', 'vértigo', 'vertigoycalambre'];
+      if (vertigoTerms.some(term => text.toLowerCase().includes(term))) {
+        // Make sure we add Vértigo y Calambre if not already in results
+        const hasVertigo = addedNames.has('vértigo y calambre');
+        if (!hasVertigo) {
+          // Look for it in users
+          const vertigoUser = mockData.users.find(u => u.userName === 'Vértigo y Calambre');
+          if (vertigoUser) {
+            mockResults.push({
+              id: `user-${vertigoUser.id}-special`,
+              userId: vertigoUser.id,
+              name: vertigoUser.userName,
+              username: 'vertigoycalambre',
+              location: vertigoUser.location || 'Murcia, Spain',
+              type: 'user',
+              userAvatar: vertigoUser.userAvatar
+            });
+            addedNames.add('vértigo y calambre');
+          }
+        }
+      }
+      
+      // Log the results for debugging
+      console.log('Search results:', mockResults.map(r => r.name));
       
       setSearchResults(mockResults);
     } else {
@@ -273,13 +353,53 @@ export default function SearchScreen() {
     return item.type === activeFilter;
   });
 
+  // Helper function to handle both remote and local image sources
+  const getImageSource = (imageUrl) => {
+    // Check if it's a require statement result (for local assets)
+    if (typeof imageUrl === 'number') {
+      return imageUrl;
+    }
+    
+    // Check if it's a string path that starts with 'assets/'
+    if (typeof imageUrl === 'string' && imageUrl.startsWith('assets/')) {
+      // Extract the asset path and load the appropriate image
+      if (imageUrl === 'assets/users/ivo-vilches.jpg') {
+        return require('../../assets/users/ivo-vilches.jpg');
+      } else if (imageUrl === 'assets/users/carlos-hernandez.jpg') {
+        return require('../../assets/users/carlos-hernandez.jpg');
+      } else if (imageUrl === 'assets/businesses/vertigo-logo.jpg') {
+        return require('../../assets/businesses/vertigo-logo.jpg');
+      } else if (imageUrl === 'assets/businesses/vertigo-cover.jpg') {
+        return require('../../assets/businesses/vertigo-cover.jpg');
+      } else if (imageUrl === 'assets/businesses/cafelab-logo.png') {
+        return require('../../assets/businesses/cafelab-logo.png');
+      } else if (imageUrl === 'assets/businesses/cafelab-murcia-cover.png') {
+        return require('../../assets/businesses/cafelab-murcia-cover.png');
+      } else if (imageUrl === 'assets/businesses/cafelab-cartagena-cover.png') {
+        return require('../../assets/businesses/cafelab-cartagena-cover.png');
+      }
+      // Return a default image if the specific asset wasn't found
+      return require('../../assets/users/ivo-vilches.jpg');
+    }
+    
+    // For URLs and other types of sources
+    return typeof imageUrl === 'string' ? { uri: imageUrl } : imageUrl;
+  };
+
   const renderSearchResult = ({ item }) => {
     if (item.type === 'coffee') {
+      // Coffee already has image from the search results
+      const imageUrl = item.image || 'https://images.unsplash.com/photo-1447933601403-0c6688de566e';
+      
       return (
         <TouchableOpacity 
           style={styles.resultItem}
-          onPress={() => navigation.navigate('CoffeeDetail', { coffeeId: item.id })}
+          onPress={() => navigation.navigate('CoffeeDetail', { coffeeId: item.coffeeId || item.id })}
         >
+          <Image 
+            source={{ uri: imageUrl }} 
+            style={styles.resultCoffeeImage} 
+          />
           <View style={styles.resultContent}>
             <Text style={styles.coffeeName}>{item.name}</Text>
             <Text style={styles.roasterName}>{item.roaster}</Text>
@@ -288,17 +408,27 @@ export default function SearchScreen() {
         </TouchableOpacity>
       );
     } else if (item.type === 'roaster') {
+      // Use the logo or imageUrl provided in search results
+      let imageUrl = item.logo || item.imageUrl || 'https://images.unsplash.com/photo-1554118811-1e0d58224f24';
+      
+      // Try to load local assets
+      const imageSource = getImageSource(imageUrl);
+      
       return (
         <TouchableOpacity 
           style={styles.resultItem}
           onPress={() => {
             navigation.navigate('UserProfileBridge', { 
-              userId: item.id, 
+              userId: item.businessId || item.id, 
               userName: item.name,
               skipAuth: true 
             });
           }}
         >
+          <Image 
+            source={imageSource} 
+            style={styles.resultBusinessImage} 
+          />
           <View style={styles.resultContent}>
             <Text style={styles.coffeeName}>{item.name}</Text>
             <Text style={styles.roasterName}>{item.location}</Text>
@@ -307,17 +437,27 @@ export default function SearchScreen() {
         </TouchableOpacity>
       );
     } else if (item.type === 'cafe') {
+      // Use the logo or imageUrl provided in search results
+      let imageUrl = item.logo || item.imageUrl || 'https://images.unsplash.com/photo-1554118811-1e0d58224f24';
+      
+      // Try to load local assets
+      const imageSource = getImageSource(imageUrl);
+      
       return (
         <TouchableOpacity 
           style={styles.resultItem}
           onPress={() => {
             navigation.navigate('UserProfileBridge', { 
-              userId: item.id, 
+              userId: item.businessId || item.id, 
               userName: item.name,
               skipAuth: true 
             });
           }}
         >
+          <Image 
+            source={imageSource}
+            style={styles.resultBusinessImage}
+          />
           <View style={styles.resultContent}>
             <Text style={styles.coffeeName}>{item.name}</Text>
             <Text style={styles.roasterName}>{item.location}</Text>
@@ -331,18 +471,28 @@ export default function SearchScreen() {
         </TouchableOpacity>
       );
     } else if (item.type === 'user') {
+      // Use the userAvatar provided in search results
+      let imageUrl = item.userAvatar || 'https://randomuser.me/api/portraits/men/1.jpg';
+      
+      // Try to load local assets
+      const imageSource = getImageSource(imageUrl);
+      
       return (
         <TouchableOpacity 
           style={styles.resultItem}
           onPress={() => {
             // Navigate to the bridge component first
             navigation.navigate('UserProfileBridge', { 
-              userId: item.id, 
+              userId: item.userId || item.id, 
               userName: item.name,
               skipAuth: true 
             });
           }}
         >
+          <Image 
+            source={imageSource} 
+            style={styles.resultUserImage}
+          />
           <View style={styles.resultContent}>
             <Text style={styles.coffeeName}>{item.name}</Text>
             <Text style={styles.roasterName}>@{item.username}</Text>
@@ -610,36 +760,52 @@ export default function SearchScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <View style={styles.searchContainer}>
-        <Ionicons name="search" size={20} color="#000000" style={styles.searchIcon} />
-        <TextInput
-          ref={searchInputRef}
-          style={styles.searchInput}
-          placeholder="Search coffees, cafés, roasters and users"
-          value={searchQuery}
-          onChangeText={handleSearch}
-          onFocus={() => setIsInputFocused(true)}
-          onBlur={() => setIsInputFocused(false)}
-          onSubmitEditing={handleSearchSubmit}
-          returnKeyType="search"
-        />
-        {searchQuery.length > 0 && (
+      <View style={styles.searchRow}>
+        <View style={styles.searchContainer}>
+          <Ionicons name="search" size={20} color="#000000" style={styles.searchIcon} />
+          <TextInput
+            ref={searchInputRef}
+            style={styles.searchInput}
+            placeholder="Search coffees, cafés, roasters and users"
+            value={searchQuery}
+            onChangeText={handleSearch}
+            onFocus={() => setIsInputFocused(true)}
+            onBlur={() => setIsInputFocused(false)}
+            onSubmitEditing={handleSearchSubmit}
+            returnKeyType="search"
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity 
+              style={styles.clearButton}
+              onPress={() => {
+                setSearchQuery('');
+                setSearchResults([]);
+                setIsSearching(false);
+              }}
+            >
+              <Ionicons name="close-circle" size={20} color="#000000" />
+            </TouchableOpacity>
+          )}
+        </View>
+        {(isInputFocused || searchQuery.length > 0) && (
           <TouchableOpacity 
-            style={styles.clearButton}
+            style={styles.cancelButton}
             onPress={() => {
               setSearchQuery('');
               setSearchResults([]);
               setIsSearching(false);
+              setIsInputFocused(false);
+              searchInputRef.current?.blur();
             }}
           >
-            <Ionicons name="close-circle" size={20} color="#000000" />
+            <Text style={styles.cancelButtonText}>Cancel</Text>
           </TouchableOpacity>
         )}
       </View>
 
       {isSearching && searchQuery.length > 0 ? (
         <View style={styles.searchResultsWrapper}>
-          {renderFilterChips()}
+          {!isInputFocused && renderFilterChips()}
           <FlatList
             data={filteredResults}
             renderItem={renderSearchResult}
@@ -707,13 +873,18 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
-  searchContainer: {
+  searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E5E5EA',
-    borderRadius: 10,
     marginHorizontal: 16,
     marginVertical: 8,
+  },
+  searchContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0F0F0',
+    borderRadius: 10,
     paddingHorizontal: 12,
     height: 48,
     // shadowColor: '#000',
@@ -732,6 +903,15 @@ const styles = StyleSheet.create({
   },
   clearButton: {
     padding: 4,
+  },
+  cancelButton: {
+    marginLeft: 8,
+    paddingHorizontal: 10,
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    color: '#007AFF',
+    fontWeight: '500',
   },
   filterChipsContainer: {
     backgroundColor: '#FFFFFF',
@@ -770,17 +950,16 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   resultsContainer: {
-    paddingHorizontal: 16,
     paddingBottom: 16,
-    paddingTop: 12,
+    paddingTop: 8,
   },
   resultItem: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     borderRadius: 10,
-    padding: 16,
-    marginBottom: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   resultContent: {
     flex: 1,
@@ -1118,5 +1297,32 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  resultUserImage: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    marginRight: 12,
+    backgroundColor: '#F2F2F7',
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+  },
+  resultBusinessImage: {
+    width: 44,
+    height: 44,
+    borderRadius: 8,
+    marginRight: 12,
+    backgroundColor: '#F2F2F7',
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+  },
+  resultCoffeeImage: {
+    width: 44,
+    height: 44,
+    borderRadius: 6,
+    marginRight: 12,
+    backgroundColor: '#F2F2F7',
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
   },
 }); 
