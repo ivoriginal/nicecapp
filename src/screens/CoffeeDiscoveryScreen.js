@@ -5,16 +5,17 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import mockData from '../data/mockData.json';
 import AppImage from '../components/common/AppImage';
 
-const CoffeeDiscoveryScreen = ({ route, navigation }) => {
+const CoffeeDiscoveryScreen = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
-  const { filter, sortBy } = route.params || {};
+  const { filter = null, sortBy = 'default' } = (route && route.params) || {};
   const [coffees, setCoffees] = useState([]);
   const [activeFilter, setActiveFilter] = useState(filter);
   const [activeFilters, setActiveFilters] = useState({});
-  const [sortOrder, setSortOrder] = useState(sortBy || 'default');
+  const [sortOrder, setSortOrder] = useState(sortBy);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [sortModalVisible, setSortModalVisible] = useState(false);
+  const [sellersList, setSellersList] = useState([]);
   
   // Available filter options
   const filterCategories = [
@@ -62,6 +63,11 @@ const CoffeeDiscoveryScreen = ({ route, navigation }) => {
       ]
     },
     {
+      id: 'availableIn',
+      label: 'Available In',
+      options: []
+    },
+    {
       id: 'tried',
       label: 'Tried',
       options: [
@@ -92,6 +98,41 @@ const CoffeeDiscoveryScreen = ({ route, navigation }) => {
   useEffect(() => {
     // Get all coffees from mockData
     let filteredCoffees = [...mockData.coffees];
+    
+    // Collect all sellers to build the filter options
+    const allSellers = new Set();
+    const coffeeSellerMap = {};
+    
+    // Process sellers data
+    Object.entries(mockData.sellers || {}).forEach(([coffeeId, sellers]) => {
+      coffeeSellerMap[coffeeId] = sellers;
+      sellers.forEach(seller => {
+        if (!allSellers.has(seller.id)) {
+          allSellers.add(seller.id);
+        }
+      });
+    });
+    
+    // Update the available sellers in the filter options
+    const sellerOptions = Array.from(allSellers).map(sellerId => {
+      const sellerInfo = Object.values(mockData.sellers).flat()
+        .find(seller => seller.id === sellerId);
+      return {
+        id: sellerId,
+        label: sellerInfo ? sellerInfo.name : sellerId
+      };
+    });
+    
+    // Sort sellers alphabetically
+    sellerOptions.sort((a, b) => a.label.localeCompare(b.label));
+    
+    // Update the sellers filter options
+    const availableInFilterIndex = filterCategories.findIndex(cat => cat.id === 'availableIn');
+    if (availableInFilterIndex !== -1) {
+      filterCategories[availableInFilterIndex].options = sellerOptions;
+    }
+    
+    setSellersList(sellerOptions);
     
     // Apply initial filter if present
     if (activeFilter) {
@@ -146,6 +187,15 @@ const CoffeeDiscoveryScreen = ({ route, navigation }) => {
                 (coffee.description && coffee.description.toLowerCase().includes(option.toLowerCase()))
               )
             );
+            break;
+          case 'availableIn':
+            filteredCoffees = filteredCoffees.filter(coffee => {
+              // Check if this coffee is sold by any of the selected sellers
+              const coffeeSellers = mockData.sellers[coffee.id] || [];
+              return selectedOptions.some(option => 
+                coffeeSellers.some(seller => seller.id === option)
+              );
+            });
             break;
           case 'tried':
             // This would normally use user data to filter by tried/not tried
@@ -234,12 +284,14 @@ const CoffeeDiscoveryScreen = ({ route, navigation }) => {
           onPress={() => setSortModalVisible(true)}
         >
           <View style={styles.sortChipContent}>
-            <Ionicons 
-              name="swap-vertical" 
-              size={14} 
-              color={sortOrder !== 'default' ? '#FFFFFF' : '#000000'} 
-              style={styles.sortIcon}
-            />
+            <Text>
+              <Ionicons 
+                name="swap-vertical" 
+                size={14} 
+                color={sortOrder !== 'default' ? '#FFFFFF' : '#000000'} 
+                style={styles.sortIcon}
+              />
+            </Text>
             <Text 
               style={[
                 styles.filterBarItemText,
@@ -317,7 +369,9 @@ const CoffeeDiscoveryScreen = ({ route, navigation }) => {
               onPress={() => setActiveFilter(null)}
             >
               <Text style={styles.activeFilterChipText}>{activeFilter.label}</Text>
-              <Ionicons name="close-circle" size={18} color="#FFFFFF" style={styles.closeIcon} />
+              <Text>
+                <Ionicons name="close-circle" size={18} color="#FFFFFF" style={styles.closeIcon} />
+              </Text>
             </TouchableOpacity>
           )}
           
@@ -334,7 +388,9 @@ const CoffeeDiscoveryScreen = ({ route, navigation }) => {
               }}
             >
               <Text style={styles.activeFilterChipText}>{filter.label}</Text>
-              <Ionicons name="close-circle" size={18} color="#FFFFFF" style={styles.closeIcon} />
+              <Text>
+                <Ionicons name="close-circle" size={18} color="#FFFFFF" style={styles.closeIcon} />
+              </Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -357,7 +413,9 @@ const CoffeeDiscoveryScreen = ({ route, navigation }) => {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{selectedCategory.label}</Text>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <Ionicons name="close" size={24} color="#000000" />
+                <Text>
+                  <Ionicons name="close" size={24} color="#000000" />
+                </Text>
               </TouchableOpacity>
             </View>
             
@@ -381,7 +439,7 @@ const CoffeeDiscoveryScreen = ({ route, navigation }) => {
                     >
                       {option.label}
                     </Text>
-                    {isSelected && <Ionicons name="checkmark" size={20} color="#FFFFFF" />}
+                    {isSelected && <Text><Ionicons name="checkmark" size={20} color="#FFFFFF" /></Text>}
                   </TouchableOpacity>
                 );
               })}
@@ -414,13 +472,15 @@ const CoffeeDiscoveryScreen = ({ route, navigation }) => {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Sort By</Text>
               <TouchableOpacity onPress={() => setSortModalVisible(false)}>
-                <Ionicons name="close" size={24} color="#000000" />
+                <Text>
+                  <Ionicons name="close" size={24} color="#000000" />
+                </Text>
               </TouchableOpacity>
             </View>
             
             <View style={styles.modalOptionsContainer}>
               {sortOptions.map(option => {
-                const isSelected = sortOrder === option.id;
+                const isSelected = option.id === sortOrder;
                 return (
                   <TouchableOpacity
                     key={option.id}
@@ -433,15 +493,13 @@ const CoffeeDiscoveryScreen = ({ route, navigation }) => {
                       setSortModalVisible(false);
                     }}
                   >
-                    <Text 
-                      style={[
-                        styles.modalOptionText,
-                        isSelected && styles.selectedModalOptionText
-                      ]}
-                    >
+                    <Text style={[
+                      styles.modalOptionText,
+                      isSelected && styles.selectedModalOptionText
+                    ]}>
                       {option.label}
                     </Text>
-                    {isSelected && <Ionicons name="checkmark" size={20} color="#FFFFFF" />}
+                    {isSelected && <Text><Ionicons name="checkmark" size={20} color="#FFFFFF" /></Text>}
                   </TouchableOpacity>
                 );
               })}
@@ -452,27 +510,81 @@ const CoffeeDiscoveryScreen = ({ route, navigation }) => {
     );
   };
 
-  const renderCoffeeItem = ({ item }) => (
-    <TouchableOpacity 
-      style={styles.coffeeCard}
-      onPress={() => navigation.navigate('CoffeeDetail', { coffeeId: item.id })}
-    >
-      <AppImage 
-        source={item.image || item.images?.[0]} 
-        style={styles.coffeeImage}
-        placeholder="coffee"
-      />
-      <View style={styles.coffeeContent}>
-        <Text style={styles.coffeeName}>{item.name}</Text>
-        <Text style={styles.coffeeRoaster}>{item.roaster}</Text>
-        <View style={styles.coffeeDetailsRow}>
-          <Text style={styles.coffeeOrigin}>{item.origin}</Text>
-          <Text style={styles.coffeePrice}>${item.price.toFixed(2)}</Text>
-        </View>
-        {item.process && <Text style={styles.coffeeProcess}>{item.process}</Text>}
+  const renderCoffeeItem = ({ item }) => {
+    // Get sellers for this coffee
+    let sellers = mockData.sellers[item.id] || [];
+    
+    // If no sellers are specified but coffee has a roasterId, 
+    // add the roaster as a seller
+    if (sellers.length === 0 && item.roasterId) {
+      // Find the roaster in existing sellers to get their data
+      const roasterInfo = Object.values(mockData.sellers || {})
+        .flat()
+        .find(seller => seller.id === item.roasterId);
+        
+      if (roasterInfo) {
+        sellers = [roasterInfo];
+      } else {
+        // Create basic seller info from the roaster data
+        sellers = [{
+          id: item.roasterId,
+          name: item.roaster,
+          avatar: item.image, // Use coffee image as fallback
+          location: "",
+          isRoaster: true,
+          businessAccount: true
+        }];
+      }
+    }
+    
+    return (
+      <View style={styles.coffeeCardContainer}>
+        <TouchableOpacity 
+          style={styles.coffeeCard}
+          onPress={() => navigation.navigate('CoffeeDetail', { coffeeId: item.id })}
+        >
+          <AppImage 
+            source={item.image || item.images?.[0]} 
+            style={styles.coffeeImage}
+            placeholder="coffee"
+          />
+          <View style={styles.coffeeContent}>
+            <Text style={styles.coffeeName}>{item.name}</Text>
+            <Text style={styles.coffeeRoaster}>{item.roaster}</Text>
+            <View style={styles.coffeeDetailsRow}>
+              <Text style={styles.coffeeOrigin}>{item.origin}</Text>
+              <Text style={styles.coffeePrice}>${item.price.toFixed(2)}</Text>
+            </View>
+            {item.process && <Text style={styles.coffeeProcess}>{item.process}</Text>}
+          </View>
+        </TouchableOpacity>
+        
+        {sellers.length > 0 && (
+          <View style={styles.availableAtWrapper}>
+            <View style={styles.availableAtContainer}>
+              <Text style={styles.sellerLabel}>Available at:</Text>
+              <View style={styles.sellerList}>
+                {sellers.map((seller, index) => (
+                  <View key={seller.id} style={styles.sellerItem}>
+                    {seller.avatar && (
+                      <AppImage 
+                        source={seller.avatar} 
+                        style={styles.sellerAvatar}
+                        placeholder="business"
+                      />
+                    )}
+                    <Text style={styles.sellerName}>
+                      {seller.name}{index < sellers.length - 1 ? ', ' : ''}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          </View>
+        )}
       </View>
-    </TouchableOpacity>
-  );
+    );
+  };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -481,7 +593,9 @@ const CoffeeDiscoveryScreen = ({ route, navigation }) => {
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color="#000000" />
+          <Text>
+            <Ionicons name="arrow-back" size={24} color="#000000" />
+          </Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>
           {sortOrder === 'popularity' ? 'All Coffee' : (activeFilter ? `${activeFilter.label} Coffees` : 'All Coffees')}
@@ -494,7 +608,7 @@ const CoffeeDiscoveryScreen = ({ route, navigation }) => {
             <Text style={styles.clearFilterText}>Clear All</Text>
           </TouchableOpacity>
         )}
-        {!hasActiveFilters && <View style={{ width: 60 }} />} {/* Spacer for balance when no "Clear All" */}
+        {!hasActiveFilters && <View style={{ width: 80 }} />} {/* Spacer for balance when no "Clear All" */}
       </View>
 
       <FlatList
@@ -547,12 +661,13 @@ const styles = StyleSheet.create({
   },
   clearFilterButton: {
     padding: 8,
-    width: 60,
+    width: 80,
+    alignItems: 'center',
   },
   clearFilterText: {
     color: '#007AFF',
-    fontSize: 14,
-    textAlign: 'right',
+    fontSize: 16,
+    textAlign: 'center',
   },
   filterBarContainer: {
     flexDirection: 'row',
@@ -678,23 +793,29 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   coffeeList: {
-    paddingBottom: 16,
+    paddingBottom: 32,
+  },
+  coffeeCardContainer: {
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5EA',
   },
   coffeeCard: {
     flexDirection: 'row',
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    marginHorizontal: 16,
-    marginTop: 16,
-    overflow: 'hidden',
+    paddingHorizontal: 12,
+    paddingVertical: 12,
   },
   coffeeImage: {
-    width: 100,
-    height: 120,
+    width: 80,
+    height: 80,
+    borderRadius: 8,
+    resizeMode: 'cover',
+    alignSelf: 'center',
+    marginRight: 12,
   },
   coffeeContent: {
     flex: 1,
-    padding: 12,
   },
   coffeeName: {
     fontSize: 16,
@@ -723,6 +844,52 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666666',
     fontStyle: 'italic',
+    marginBottom: 4,
+  },
+  availableAtWrapper: {
+    marginHorizontal: 12,
+    marginBottom: 8,
+    backgroundColor: '#F2F2F7',
+    borderRadius: 12,
+    display: 'flex',
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+    marginTop: 4,
+    display: 'none',
+  },
+  availableAtContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 8,
+    paddingHorizontal: 12,
+  },
+  sellerLabel: {
+    fontSize: 14,
+    color: '#666666',
+    fontWeight: '500',
+    marginRight: 8,
+  },
+  sellerList: {
+    flex: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  sellerItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 8,
+    marginBottom: 4,
+  },
+  sellerAvatar: {
+    width: 24,
+    height: 24,
+    borderRadius: 4,
+    marginRight: 4,
+  },
+  sellerName: {
+    fontSize: 14,
+    color: '#000000',
+    fontWeight: '400',
   },
   emptyContainer: {
     alignItems: 'center',

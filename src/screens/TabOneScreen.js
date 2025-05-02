@@ -3,18 +3,9 @@ import { View, FlatList, StyleSheet, Text } from 'react-native';
 import { useCoffee } from '../context/CoffeeContext';
 import CoffeeCard from '../components/CoffeeCard';
 import { useNavigation } from '@react-navigation/native';
+import mockData from '../data/mockData.json';
 
-// Temporary mock data - replace with your actual data source
-const mockCoffees = [
-  {
-    name: 'Ethiopian Yirgacheffe',
-    imageUrl: 'https://example.com/ethiopian.jpg',
-  },
-  {
-    name: 'Colombian Supremo',
-    imageUrl: 'https://example.com/colombian.jpg',
-  },
-];
+// No longer using local mock data, now importing from mockData.json
 
 export default function TabOneScreen() {
   const { coffeeEvents } = useCoffee();
@@ -65,8 +56,9 @@ export default function TabOneScreen() {
             description += description ? `, Grind Size: ${item.grindSize}` : `Grind Size: ${item.grindSize}`;
           }
 
-          const coffeeData = mockCoffees.find(c => c.name.trim() === (item.coffeeName ? item.coffeeName.trim() : ''));
-          const imageUrl = coffeeData?.imageUrl;
+          // Find the coffee image from mockData.coffees
+          const coffeeData = mockData.coffees.find(c => c.id === item.coffeeId || c.name === item.coffeeName);
+          const imageUrl = coffeeData?.image || item.imageUrl;
 
           return (
             <CoffeeCard

@@ -20,6 +20,7 @@ import eventEmitter from '../utils/EventEmitter';
 import mockData from '../data/mockData.json';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import RecipeCard from '../components/RecipeCard';
+import AppImage from '../components/common/AppImage';
 
 export default function CoffeeDetailScreen() {
   const { 
@@ -53,6 +54,7 @@ export default function CoffeeDetailScreen() {
   const [removalTimeout, setRemovalTimeout] = useState(null);
   const [sellers, setSellers] = useState([]);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
+  const [roasterInfo, setRoasterInfo] = useState(null);
 
   useEffect(() => {
     // Always use mock data for development
@@ -70,7 +72,23 @@ export default function CoffeeDetailScreen() {
           }
           
           // Set sellers for this coffee from mockData
-          setSellers(mockData.sellers[routeCoffee.id] || []);
+          const sellersList = mockData.sellers[routeCoffee.id] || [];
+          
+          // Enhance seller info with additional business data if available
+          const enhancedSellers = sellersList.map(seller => {
+            // Check if this is a business that has a corresponding entry in businesses
+            const businessData = mockData.businesses.find(b => b.id === seller.id);
+            if (businessData) {
+              return {
+                ...seller,
+                // Use avatar from business if available, otherwise use existing seller avatar
+                avatar: businessData.avatar || businessData.logo || seller.avatar
+              };
+            }
+            return seller;
+          });
+          
+          setSellers(enhancedSellers);
           
           setLoading(false);
           return;
@@ -82,11 +100,13 @@ export default function CoffeeDetailScreen() {
         if (eventCoffee) {
           // Create a mapping for legacy coffee IDs to their proper entry in the mockData.coffees array
           const legacyCoffeeMap = {
-            'coffee-0': 'coffee1', // Ethiopian Yirgacheffe
-            'coffee-1': 'coffee2', // Colombian Supremo
-            'coffee-2': 'coffee3', // Kenya AA
-            'coffee-3': 'coffee4', // Guatemala Antigua
-            'coffee-4': 'coffee5'  // Sumatra Mandheling
+            // Map legacy coffee IDs directly to their corresponding entries in mockData.coffees
+            // Instead of hard-coding these, get the actual IDs from mockData
+            'coffee-0': mockData.coffees[0].id,
+            'coffee-1': mockData.coffees[1].id, 
+            'coffee-2': mockData.coffees[2].id,
+            'coffee-3': mockData.coffees[3].id,
+            'coffee-4': mockData.coffees[4].id
           };
           
           // Check if this is a legacy coffee ID (from events) and map it to a real coffee
@@ -96,7 +116,25 @@ export default function CoffeeDetailScreen() {
           if (matchedCoffee) {
             // If we found a matching coffee in the mockData, use that
             setCoffee(matchedCoffee);
-            setSellers(mockData.sellers[matchedCoffee.id] || []);
+            
+            // Set sellers for this coffee from mockData with enhanced info
+            const sellersList = mockData.sellers[matchedCoffee.id] || [];
+            
+            // Enhance seller info with additional business data if available
+            const enhancedSellers = sellersList.map(seller => {
+              // Check if this is a business that has a corresponding entry in businesses
+              const businessData = mockData.businesses.find(b => b.id === seller.id);
+              if (businessData) {
+                return {
+                  ...seller,
+                  // Use avatar from business if available, otherwise use existing seller avatar
+                  avatar: businessData.avatar || businessData.logo || seller.avatar
+                };
+              }
+              return seller;
+            });
+            
+            setSellers(enhancedSellers);
           } else {
             // Otherwise use the event data
             setCoffee({
@@ -117,72 +155,48 @@ export default function CoffeeDetailScreen() {
               }
             });
             
-            // Set sellers for this coffee from mockData
-            setSellers(mockData.sellers[eventCoffee.coffeeId] || []);
+            // Set sellers for this coffee from mockData with enhanced info
+            const sellersList = mockData.sellers[eventCoffee.coffeeId] || [];
+            
+            // Enhance seller info with additional business data if available
+            const enhancedSellers = sellersList.map(seller => {
+              // Check if this is a business that has a corresponding entry in businesses
+              const businessData = mockData.businesses.find(b => b.id === seller.id);
+              if (businessData) {
+                return {
+                  ...seller,
+                  // Use avatar from business if available, otherwise use existing seller avatar
+                  avatar: businessData.avatar || businessData.logo || seller.avatar
+                };
+              }
+              return seller;
+            });
+            
+            setSellers(enhancedSellers);
           }
         } else {
           // Otherwise find in mock data
-          const foundCoffee = mockData.coffees.find(c => c.id === coffeeId) || mockData.coffees[0];
-          if (foundCoffee) {
-            setCoffee(foundCoffee);
-            // Set sellers for this coffee from mockData
-            setSellers(mockData.sellers[foundCoffee.id] || []);
-            
-            // Set mock recipes for the mock coffee
-            setRelatedRecipes([
-              {
-                id: 'recipe-1',
-                name: 'Ethiopian Yirgacheffe V60',
-                method: 'V60',
-                userId: 'currentUser',
-                userName: 'Coffee Lover',
-                userAvatar: 'https://randomuser.me/api/portraits/men/1.jpg',
-                coffeeId: 'mock1',
-                steps: [
-                  { time: '0:00', action: 'Rinse filter and warm vessel', water: 0 },
-                  { time: '0:00', action: 'Add 18g coffee (medium-fine grind)', water: 0 },
-                  { time: '0:00', action: 'Add 36g water for bloom', water: 36 },
-                  { time: '0:30', action: 'Gently stir bloom', water: 0 },
-                  { time: '0:45', action: 'Add water to 120g', water: 84 },
-                  { time: '1:15', action: 'Add water to 180g', water: 60 },
-                  { time: '1:45', action: 'Add water to 240g', water: 60 },
-                  { time: '2:15', action: 'Add water to 300g', water: 60 },
-                  { time: '3:00', action: 'Drawdown complete', water: 0 }
-                ],
-                tips: [
-                  'Use filtered water at 200°F (93°C)',
-                  'Grind coffee just before brewing',
-                  'Rinse paper filter thoroughly',
-                  'Keep water temperature consistent',
-                  'Time your pours carefully'
-                ],
-                notes: 'Bright, floral, with notes of bergamot and honey'
-              }
-            ]);
-          } else {
-            // If not found in events, use mock data
-            const mockCoffee = {
-              id: 'mock1',
-              name: 'Ethiopian Yirgacheffe',
-              roaster: 'Blue Bottle Coffee',
-              image: 'https://images.unsplash.com/photo-1447933601403-0c6688de566e?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
-              description: 'A bright, clean coffee with notes of citrus and floral aromas. Perfect for pour-over brewing.',
-              origin: 'Ethiopia',
-              process: 'Washed',
-              roastLevel: 'Light',
-              price: '$24.00',
-              stats: {
-                rating: 4.5,
-                reviews: 128,
-                brews: 256,
-                wishlist: 89
-              }
-            };
-            setCoffee(mockCoffee);
-            
-            // Set sellers for this coffee from mockData
-            setSellers(mockData.sellers['mock1'] || []);
-          }
+          const foundCoffee = mockData.coffees[0];
+          setCoffee(foundCoffee);
+          
+          // Set sellers for this coffee from mockData with enhanced info
+          const sellersList = mockData.sellers[foundCoffee.id] || [];
+          
+          // Enhance seller info with additional business data if available
+          const enhancedSellers = sellersList.map(seller => {
+            // Check if this is a business that has a corresponding entry in businesses
+            const businessData = mockData.businesses.find(b => b.id === seller.id);
+            if (businessData) {
+              return {
+                ...seller,
+                // Use avatar from business if available, otherwise use existing seller avatar
+                avatar: businessData.avatar || businessData.logo || seller.avatar
+              };
+            }
+            return seller;
+          });
+          
+          setSellers(enhancedSellers);
         }
       } catch (error) {
         console.error('Error fetching coffee:', error);
@@ -229,12 +243,88 @@ export default function CoffeeDetailScreen() {
 
   // Update navigation options with favorite state and toggle function
   useEffect(() => {
+    // Configure header options
     navigation.setParams({
       isFavorite,
       handleToggleFavorite,
       isInCollection
     });
+    
+    // Force header to be shown on this screen - this is crucial
+    const initialSetup = () => {
+      navigation.setOptions({
+        headerShown: true
+      });
+    };
+    
+    // Initial setup
+    initialSetup();
+    
+    // Listen for focus events to restore header when returning to this screen
+    const focusUnsubscribe = navigation.addListener('focus', () => {
+      console.log('CoffeeDetailScreen focused, ensuring header is shown');
+      initialSetup();
+    });
+    
+    // Listen for blur events to handle transition properly
+    const blurUnsubscribe = navigation.addListener('blur', () => {
+      // When leaving this screen, make sure next one has proper header
+      console.log('CoffeeDetailScreen blurred');
+    });
+    
+    // Listen for beforeRemove to clean up
+    const beforeRemoveUnsubscribe = navigation.addListener('beforeRemove', () => {
+      console.log('CoffeeDetailScreen before remove, cleanup');
+    });
+    
+    // Clean up all listeners when component unmounts
+    return () => {
+      focusUnsubscribe();
+      blurUnsubscribe();
+      beforeRemoveUnsubscribe();
+    };
   }, [isFavorite, isInCollection, navigation]);
+
+  // Find and set roaster info when coffee or sellers change
+  useEffect(() => {
+    if (coffee && coffee.roaster) {
+      // First, check if the coffee has a roasterId
+      if (coffee.roasterId) {
+        // Find the business with matching ID
+        const businessRoaster = mockData.businesses.find(b => b.id === coffee.roasterId);
+        if (businessRoaster) {
+          setRoasterInfo({
+            id: businessRoaster.id,
+            name: businessRoaster.name,
+            avatar: businessRoaster.avatar || businessRoaster.logo,
+            isBusinessAccount: true
+          });
+          return;
+        }
+      }
+      
+      // Otherwise, check if any sellers match the roaster name
+      const roasterSeller = sellers.find(s => 
+        s.name === coffee.roaster || 
+        (s.isRoaster && s.businessAccount)
+      );
+      
+      if (roasterSeller) {
+        setRoasterInfo({
+          id: roasterSeller.id,
+          name: roasterSeller.name,
+          avatar: roasterSeller.avatar,
+          isBusinessAccount: roasterSeller.businessAccount
+        });
+      } else {
+        // If we couldn't find the roaster, set just the name
+        setRoasterInfo({
+          name: coffee.roaster,
+          isBusinessAccount: true // Assume it's a business
+        });
+      }
+    }
+  }, [coffee, sellers]);
 
   const navigateToRecipeDetail = (recipeId) => {
     // Find the recipe in the related recipes
@@ -256,11 +346,24 @@ export default function CoffeeDetailScreen() {
     // Check if this is a business account (like Vértigo y Calambre or Kima Coffee) by checking the businessAccount flag in sellers
     const isBusinessAccount = sellers.some(seller => seller.id === userId && seller.businessAccount);
     
-    navigation.navigate('UserProfileBridge', { 
-      userId, 
-      userName,
-      skipAuth: true 
-    });
+    // Special handling for Toma Café locations
+    if (userName && userName.includes('Toma Café') && userName !== 'Toma Café') {
+      // For Toma Café locations (like Toma Café 1), navigate to the specific location
+      navigation.navigate('UserProfileBridge', { 
+        userId, 
+        userName,
+        skipAuth: true,
+        isLocation: true,
+        parentBusinessId: 'business-toma' // 'business-toma' is the parent business ID for all Toma Café locations
+      });
+    } else {
+      // For all other users/businesses, use standard navigation
+      navigation.navigate('UserProfileBridge', { 
+        userId, 
+        userName,
+        skipAuth: true 
+      });
+    }
   };
 
   const navigateToCollection = () => {
@@ -321,6 +424,17 @@ export default function CoffeeDetailScreen() {
     });
   };
 
+  const navigateToRoasterProfile = () => {
+    if (roasterInfo && roasterInfo.id) {
+      // Navigate to UserProfileBridge instead of directly to UserProfile
+      navigation.navigate('UserProfileBridge', { 
+        userId: roasterInfo.id, 
+        userName: roasterInfo.name,
+        skipAuth: true
+      });
+    }
+  };
+
   const renderRecipeItem = ({ item }) => (
     <RecipeCard 
       recipe={item}
@@ -329,27 +443,52 @@ export default function CoffeeDetailScreen() {
     />
   );
 
-  const renderSellerItem = ({ item }) => {
+  const renderSellerItem = ({ item, index }) => {
+    // Check if this is the only seller or the last one in the list
+    const isLastOrOnlySeller = index === sellers.length - 1;
+    
     return (
       <TouchableOpacity 
-        style={styles.sellerItem}
-        onPress={() => navigateToUserProfile(item.id, item.name)}
+        style={[
+          styles.sellerItem,
+          isLastOrOnlySeller ? styles.sellerItemNoBorder : null
+        ]}
+        onPress={() => {
+          // Special handling for Toma Café locations
+          if (item.name && item.name.includes('Toma Café') && item.name !== 'Toma Café') {
+            // For Toma Café locations (like Toma Café 1), find the right ID from trendingCafes
+            const locationId = item.name.replace(/\s+/g, '-').toLowerCase();
+            navigation.navigate('UserProfileBridge', { 
+              userId: locationId, // This should match the ID in trendingCafes (e.g., "toma-cafe-1")
+              userName: item.name,
+              skipAuth: true,
+              isLocation: true,
+              parentBusinessId: 'business-toma'
+            });
+          } else {
+            // For other sellers, use standard navigation
+            navigateToUserProfile(item.id, item.name);
+          }
+        }}
       >
-        <Image 
-          source={{ uri: item.avatar }}
+        <AppImage 
+          source={item.avatar}
           style={[
             styles.sellerAvatar,
             item.businessAccount ? styles.businessAvatar : styles.userAvatar
           ]}
+          resizeMode="cover"
         />
         <View style={styles.sellerInfo}>
-          <Text style={styles.sellerName}>{item.name}</Text>
+          <View style={styles.sellerNameContainer}>
+            <Text style={styles.sellerName}>{item.name}</Text>
+            {item.isRoaster && (
+              <View style={styles.roasterBadge}>
+                <Text style={styles.roasterBadgeText}>Roaster</Text>
+              </View>
+            )}
+          </View>
           <Text style={styles.sellerLocation}>{item.location}</Text>
-          {item.isRoaster && (
-            <View style={styles.roasterBadge}>
-              <Text style={styles.roasterBadgeText}>Roaster</Text>
-            </View>
-          )}
         </View>
         <Ionicons name="chevron-forward" size={20} color="#000000" />
       </TouchableOpacity>
@@ -409,14 +548,37 @@ export default function CoffeeDetailScreen() {
               )}
             />
           ) : (
-            <Image 
-              source={{ uri: coffee.image }} 
-              style={styles.coffeeImage} 
+            <AppImage 
+              source={coffee.image} 
+              style={styles.coffeeImage}
+              resizeMode="cover"
             />
           )}
           <View style={styles.headerContent}>
             <Text style={styles.coffeeName}>{coffee.name}</Text>
-            <Text style={styles.roasterName}>{coffee.roaster}</Text>
+            
+            {/* Roaster with avatar (tappable) */}
+            <TouchableOpacity 
+              style={styles.roasterContainer}
+              onPress={navigateToRoasterProfile}
+              disabled={!roasterInfo || !roasterInfo.id}
+            >
+              {roasterInfo && roasterInfo.avatar && (
+                <AppImage 
+                  source={roasterInfo.avatar} 
+                  style={[
+                    styles.roasterAvatar,
+                    roasterInfo.isBusinessAccount ? styles.roasterBusinessAvatar : styles.roasterUserAvatar
+                  ]} 
+                  resizeMode="cover"
+                />
+              )}
+              <Text style={styles.roasterName}>{coffee.roaster}</Text>
+              {roasterInfo && roasterInfo.id && (
+                <Ionicons name="chevron-forward" size={16} color="#666666" />
+              )}
+            </TouchableOpacity>
+            
             <View style={styles.statsContainer}>
               <View style={styles.statItem}>
                 <Ionicons name="star" size={16} color="#000000" />
@@ -647,7 +809,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   headerContent: {
-    marginBottom: 16,
+    marginVertical: 16,
   },
   coffeeName: {
     fontSize: 24,
@@ -655,10 +817,27 @@ const styles = StyleSheet.create({
     color: '#000000',
     marginBottom: 4,
   },
+  roasterContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
   roasterName: {
     fontSize: 18,
     color: '#666666',
-    marginBottom: 12,
+  },
+  roasterAvatar: {
+    width: 24,
+    height: 24,
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
+  },
+  roasterUserAvatar: {
+    borderRadius: 12,
+  },
+  roasterBusinessAvatar: {
+    borderRadius: 4,
   },
   statsContainer: {
     flexDirection: 'row',
@@ -867,12 +1046,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8,
   },
-  userAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    marginRight: 8,
-  },
   userName: {
     fontSize: 14,
     fontWeight: '500',
@@ -927,6 +1100,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#E5E5EA',
   },
+  sellerItemNoBorder: {
+    borderBottomWidth: 0,
+  },
   sellerAvatar: {
     width: 40,
     height: 40,
@@ -934,14 +1110,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#F0F0F0',
   },
-  userAvatar: {
-    borderRadius: 20,
-  },
-  businessAvatar: {
-    borderRadius: 8,
-  },
   sellerInfo: {
     flex: 1,
+  },
+  sellerNameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   sellerName: {
     fontSize: 16,
@@ -954,15 +1128,14 @@ const styles = StyleSheet.create({
     color: '#666666',
   },
   roasterBadge: {
-    backgroundColor: '#000000',
+    backgroundColor: '#E0E0E0',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 4,
-    marginTop: 4,
-    alignSelf: 'flex-start',
+    marginLeft: 8,
   },
   roasterBadgeText: {
-    color: '#FFFFFF',
+    color: '#555555',
     fontSize: 10,
     fontWeight: '600',
   },
@@ -980,5 +1153,11 @@ const styles = StyleSheet.create({
   viewMoreText: {
     color: '#007AFF',
     fontWeight: '500',
+  },
+  userAvatar: {
+    borderRadius: 20,
+  },
+  businessAvatar: {
+    borderRadius: 8,
   },
 }); 

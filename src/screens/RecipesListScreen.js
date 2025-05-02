@@ -7,80 +7,20 @@ import AppImage from '../components/common/AppImage';
 
 const RecipesListScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
-  const [allRecipes] = useState([
-    {
-      id: 'recipe1',
-      name: 'Ethiopian Yirgacheffe V60',
-      method: 'V60',
-      userId: 'user1',
-      userName: 'Coffee Enthusiast',
-      userAvatar: 'https://randomuser.me/api/portraits/men/1.jpg',
-      image: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
-      rating: 4.8,
-      brewCount: 156,
-      coffeeName: 'Ethiopian Yirgacheffe',
-      coffeeId: 'coffee1',
-      coffeeImage: 'https://images.unsplash.com/photo-1447933601403-0c6688de566e?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
-      roaster: 'Blue Bottle Coffee'
-    },
-    {
-      id: 'recipe2',
-      name: 'Colombian Supremo AeroPress',
-      method: 'AeroPress',
-      userId: 'user2',
-      userName: 'Brew Master',
-      userAvatar: 'https://randomuser.me/api/portraits/women/2.jpg',
-      image: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
-      rating: 4.6,
-      brewCount: 98,
-      coffeeName: 'Colombian Supremo',
-      coffeeId: 'coffee2',
-      coffeeImage: 'https://images.unsplash.com/photo-1447933601403-0c6688de566e?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
-      roaster: 'Stumptown Coffee'
-    },
-    {
-      id: 'recipe3',
-      name: 'Kenya AA Chemex',
-      method: 'Chemex',
-      userId: 'user3',
-      userName: 'Coffee Explorer',
-      userAvatar: 'https://randomuser.me/api/portraits/men/3.jpg',
-      image: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
-      rating: 4.9,
-      brewCount: 203,
-      coffeeName: 'Kenya AA',
-      coffeeId: 'coffee3',
-      coffeeImage: 'https://images.unsplash.com/photo-1447933601403-0c6688de566e?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
-      roaster: 'Intelligentsia Coffee'
-    },
-    {
-      id: 'recipe4',
-      name: 'Guatemala Antigua French Press',
-      method: 'French Press',
-      userId: 'user4',
-      userName: 'Bean Hunter',
-      userAvatar: 'https://randomuser.me/api/portraits/women/4.jpg',
-      image: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
-      rating: 4.7,
-      brewCount: 145,
-      coffeeName: 'Guatemala Antigua',
-      coffeeId: 'coffee4',
-      coffeeImage: 'https://images.unsplash.com/photo-1447933601403-0c6688de566e?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
-      roaster: 'Counter Culture Coffee'
-    }
-  ]);
+  // Use recipes from mockData.json instead of hard-coded recipes
+  const [allRecipes] = useState(mockData.recipes || []);
   
   const [filteredRecipes, setFilteredRecipes] = useState([]);
 
-  // Mock user's gear and coffee collection
-  const userGear = ['V60', 'AeroPress'];
-  const userCoffeeCollection = ['Ethiopian Yirgacheffe', 'Colombian Supremo'];
+  // Mock user's gear and coffee collection - could also get from mockData
+  const userGear = mockData.users.find(u => u.id === 'currentUser')?.gear || ['V60', 'AeroPress'];
+  const userCoffeeCollection = mockData.coffees.slice(0, 2).map(c => c.name);
 
   // Filter recipes based on user's gear and coffee collection
   useEffect(() => {
     // Filter recipes that match user's gear AND coffee collection
     const personalizedRecipes = allRecipes.filter(recipe => 
-      userGear.includes(recipe.method) && 
+      userGear.includes(recipe.brewingMethod) && 
       userCoffeeCollection.includes(recipe.coffeeName)
     );
     
@@ -91,28 +31,28 @@ const RecipesListScreen = ({ navigation }) => {
   const renderRecipeItem = ({ item }) => {
     // Ensure all text values are strings
     const name = item.name || '';
-    const userName = item.userName || '';
+    const userName = item.creatorName || item.userName || '';
     const coffeeName = item.coffeeName || '';
     const roaster = item.roaster || '';
-    const method = item.method || '';
+    const method = item.brewingMethod || '';
     const rating = item.rating ? item.rating.toFixed(1) : '0.0';
     
     return (
       <TouchableOpacity 
         style={styles.recipeCard}
         onPress={() => navigation.navigate('RecipeDetail', { 
-          recipeId: item.id,
+          recipeId: item.id || '',
           coffeeName: coffeeName,
           roaster: roaster,
-          imageUrl: item.image,
-          userId: item.userId,
+          imageUrl: item.imageUrl || item.image || null,
+          userId: item.creatorId || item.userId || '',
           userName: userName,
-          userAvatar: item.userAvatar,
+          userAvatar: item.creatorAvatar || item.userAvatar || null,
           skipAuth: true
         })}
       >
         <AppImage 
-          source={item.image} 
+          source={item.imageUrl || item.image} 
           style={styles.recipeImage}
           placeholder="coffee"
         />
@@ -120,14 +60,16 @@ const RecipesListScreen = ({ navigation }) => {
           <View style={styles.recipeHeader}>
             <View style={styles.userInfo}>
               <AppImage 
-                source={item.userAvatar} 
+                source={item.creatorAvatar || item.userAvatar} 
                 style={styles.userAvatar}
                 placeholder="person"
               />
               <Text style={styles.userName}>{userName}</Text>
             </View>
             <View style={styles.ratingContainer}>
-              <Ionicons name="star" size={16} color="#FFD700" />
+              <Text>
+                <Ionicons name="star" size={16} color="#FFD700" />
+              </Text>
               <Text style={styles.rating}>{rating}</Text>
             </View>
           </View>
@@ -155,7 +97,9 @@ const RecipesListScreen = ({ navigation }) => {
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color="#000000" />
+          <Text>
+            <Ionicons name="arrow-back" size={24} color="#000000" />
+          </Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Recipes for you</Text>
         <View style={{ width: 40 }} /> {/* Placeholder for balance */}

@@ -75,7 +75,9 @@ export default function GearWishlistScreen() {
       onPress={() => handleGearPress(item)}
     >
       <View style={styles.cardIconContainer}>
-        <Ionicons name="hardware-chip-outline" size={28} color="#666666" />
+        <Text>
+          <Ionicons name="hardware-chip-outline" size={28} color="#666666" />
+        </Text>
       </View>
       <View style={styles.cardContent}>
         <Text style={styles.cardTitle} numberOfLines={2}>{item}</Text>
@@ -84,7 +86,9 @@ export default function GearWishlistScreen() {
           <View style={styles.cardTag}>
             <Text style={styles.cardTagText}>Wishlist</Text>
           </View>
-          <Ionicons name="chevron-forward" size={16} color="#999999" />
+          <Text>
+            <Ionicons name="chevron-forward" size={16} color="#999999" />
+          </Text>
         </View>
       </View>
     </TouchableOpacity>
@@ -93,7 +97,9 @@ export default function GearWishlistScreen() {
   // Return customized empty state based on whether it's current user or someone else
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
-      <Ionicons name="heart-outline" size={60} color="#CCCCCC" />
+      <Text>
+        <Ionicons name="heart-outline" size={60} color="#CCCCCC" />
+      </Text>
       <Text style={styles.emptyText}>
         {isCurrentUser ? 'Your wishlist is empty' : `${userName}'s wishlist is empty`}
       </Text>
@@ -121,7 +127,9 @@ export default function GearWishlistScreen() {
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color="#000000" />
+          <Text>
+            <Ionicons name="arrow-back" size={24} color="#000000" />
+          </Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>
           {isCurrentUser ? 'My Gear Wishlist' : `${userName}'s Gear Wishlist`}

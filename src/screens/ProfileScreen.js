@@ -88,6 +88,7 @@ export default function ProfileScreen() {
   const [showAccountSheet, setShowAccountSheet] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [activeTab, setActiveTab] = useState('coffee');
+  const [recipeFilter, setRecipeFilter] = useState('all'); // 'all', 'created', 'saved'
 
   // Default user data for when we don't have loaded data yet
   const defaultUsers = {
@@ -355,6 +356,151 @@ export default function ProfileScreen() {
     setActiveTab(tabName);
   };
 
+  // Filter recipes based on the selected filter
+  const getFilteredRecipes = () => {
+    console.log('Current account in getFilteredRecipes:', currentAccount);
+    console.log('Recipe filter:', recipeFilter);
+    console.log('Recipes from context:', recipes);
+    
+    // If user has no recipes, use mock recipes for Ivo Vilches (user1)
+    let userRecipes = recipes;
+    if ((!userRecipes || userRecipes.length === 0) && currentAccount === 'user1') {
+      console.log('Using mock recipes for Ivo Vilches');
+      userRecipes = [
+        {
+          id: 'recipe1',
+          userId: 'user1',
+          name: 'My Perfect V60 Recipe',
+          coffeeName: 'Villa Rosario',
+          coffeeId: 'coffee-villa-rosario',
+          roaster: 'Kima Coffee',
+          brewingMethod: 'V60',
+          coffeeAmount: 22,
+          waterAmount: 350,
+          brewTime: '3:15',
+          grindSize: 'Medium',
+          temperature: 93,
+          imageUrl: 'https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728',
+          createdAt: '2023-06-15',
+          rating: 4.5,
+          notes: 'Brings out the cherry notes beautifully',
+          steps: ['Add 50g water for bloom', 'Wait 30 seconds', 'Pour to 150g total', 'Pour to 250g total', 'Final pour to 350g total'],
+          isSaved: true,
+          isCreated: true,
+          creatorName: 'Ivo Vilches',
+          creatorAvatar: require('../../assets/users/ivo-vilches.jpg'),
+          usageCount: 24
+        },
+        {
+          id: 'recipe2',
+          userId: 'user3',
+          name: 'AeroPress Concentrate',
+          coffeeName: 'Red Fruits',
+          coffeeId: 'coffee-red-fruits',
+          roaster: 'Kima Coffee',
+          brewingMethod: 'AeroPress',
+          coffeeAmount: 18,
+          waterAmount: 100,
+          brewTime: '1:30',
+          grindSize: 'Fine',
+          temperature: 85,
+          imageUrl: 'https://kimacoffee.com/cdn/shop/files/IMG-5851_900x.png?v=1742796767',
+          createdAt: '2023-07-20',
+          rating: 4.8,
+          notes: 'Concentrated method that intensifies the berry notes',
+          steps: ['Add coffee to inverted AeroPress', 'Add 100g water', 'Stir vigorously', 'Press after 1:30'],
+          isSaved: true,
+          isCreated: false,
+          creatorName: 'Carlos Hernández',
+          creatorAvatar: require('../../assets/users/carlos-hernandez.jpg'),
+          usageCount: 8
+        },
+        {
+          id: 'recipe3',
+          userId: 'user2',
+          name: 'Espresso Blend',
+          coffeeName: 'Kirunga',
+          coffeeId: 'coffee-kirunga',
+          roaster: 'Kima Coffee',
+          brewingMethod: 'Espresso',
+          coffeeAmount: 20,
+          waterAmount: 40,
+          brewTime: '0:25',
+          grindSize: 'Fine',
+          temperature: 94,
+          imageUrl: 'https://kimacoffee.com/cdn/shop/files/A40D5DFF-1058-43A3-9C31-F87C8482EDD8_900x.png?v=1741929637',
+          createdAt: '2023-08-05',
+          rating: 4.2,
+          notes: 'Rich crema, intense body',
+          steps: ['Grind fine', 'Tamp evenly', 'Extract for 25 seconds', 'Aim for 40ml yield'],
+          isSaved: true,
+          isCreated: false,
+          creatorName: 'Vértigo y Calambre',
+          creatorAvatar: require('../../assets/businesses/vertigo-logo.jpg'),
+          usageCount: 12
+        },
+        {
+          id: 'recipe4',
+          userId: 'user1',
+          name: 'Cold Brew Concentrate',
+          coffeeName: 'Kuria',
+          coffeeId: 'coffee-kuria',
+          roaster: 'Kima Coffee',
+          brewingMethod: 'Cold Brew',
+          coffeeAmount: 80,
+          waterAmount: 1000,
+          brewTime: '12:00',
+          grindSize: 'Coarse',
+          temperature: 20,
+          imageUrl: 'https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728',
+          createdAt: '2023-09-10',
+          rating: 4.7,
+          notes: 'Smooth and refreshing, great over ice',
+          steps: ['Coarse grind coffee', 'Add to container with water', 'Steep for 12 hours in refrigerator', 'Filter through paper filter'],
+          isSaved: false,
+          isCreated: true,
+          creatorName: 'Ivo Vilches',
+          creatorAvatar: require('../../assets/users/ivo-vilches.jpg'),
+          usageCount: 15
+        },
+        {
+          id: 'recipe5',
+          userId: 'business-toma',
+          name: "Toma's Signature V60",
+          coffeeName: 'Refisa G1',
+          coffeeId: 'coffee-refisa-g1',
+          roaster: 'Toma Café',
+          brewingMethod: 'V60',
+          coffeeAmount: 15,
+          waterAmount: 250,
+          brewTime: '2:45',
+          grindSize: 'Medium-Fine',
+          temperature: 92,
+          imageUrl: 'https://cdn.shopify.com/s/files/1/0561/2172/1001/files/ET_REF_G1_800x.jpg?v=1738771773',
+          createdAt: '2023-10-21',
+          rating: 4.9,
+          notes: 'Showcases the bergamot notes perfectly',
+          steps: ['30g bloom for 30s', 'Pour to 150g by 1:00', 'Pour to 250g by 1:45', 'Drawdown complete by 2:45'],
+          isSaved: true,
+          isCreated: false,
+          creatorName: 'Toma Café',
+          creatorAvatar: require('../../assets/businesses/toma-logo.jpg'),
+          usageCount: 32
+        }
+      ];
+    }
+    
+    if (recipeFilter === 'all') {
+      return userRecipes;
+    } else if (recipeFilter === 'created') {
+      return userRecipes.filter(recipe => recipe.userId === currentAccount || recipe.isCreated);
+    } else if (recipeFilter === 'saved') {
+      return userRecipes.filter(recipe => recipe.isSaved);
+    }
+    
+    return userRecipes;
+  };
+
   // Render coffee item
   const renderCoffeeItem = ({ item }) => {
     return (
@@ -374,24 +520,25 @@ export default function ProfileScreen() {
 
   // Render collection item
   const renderCollectionItem = ({ item }) => (
-    <TouchableOpacity
-      style={[styles.coffeeItem, styles.coffeeItemContainer]}
+    <TouchableOpacity 
+      style={styles.collectionCard}
       onPress={() => handleCoffeePress(item)}
     >
-      <Image
-        source={{ uri: item.image || 'https://images.unsplash.com/photo-1447933601403-0c6688de566e' }}
-        style={styles.coffeeImage}
-      />
-      <View style={styles.coffeeInfo}>
-        <Text style={styles.coffeeName}>{item.name}</Text>
-        <Text style={styles.coffeeRoaster}>{item.roaster}</Text>
+      {item.image ? (
+        <Image
+          source={{ uri: item.image || 'https://images.unsplash.com/photo-1447933601403-0c6688de566e' }}
+          style={styles.collectionCardImage}
+          resizeMode="cover"
+        />
+      ) : (
+        <View style={styles.collectionCardImagePlaceholder}>
+          <Ionicons name="cafe-outline" size={30} color="#666666" />
+        </View>
+      )}
+      <View style={styles.collectionCardInfo}>
+        <Text style={styles.collectionCardName} numberOfLines={1}>{item.name}</Text>
+        <Text style={styles.collectionCardRoaster} numberOfLines={1}>{item.roaster}</Text>
       </View>
-      <TouchableOpacity
-        style={styles.removeButton}
-        onPress={() => removeFromCollection && removeFromCollection(item.id)}
-      >
-        <Ionicons name="close-circle" size={24} color="#FF3B30" />
-      </TouchableOpacity>
     </TouchableOpacity>
   );
 
@@ -409,28 +556,63 @@ export default function ProfileScreen() {
         <Text style={styles.coffeeName}>{item.name}</Text>
         <Text style={styles.coffeeRoaster}>{item.roaster}</Text>
       </View>
-      <TouchableOpacity
-        style={styles.removeButton}
-        onPress={() => removeFromWishlist && removeFromWishlist(item.id)}
-      >
-        <Ionicons name="close-circle" size={24} color="#FF3B30" />
-      </TouchableOpacity>
     </TouchableOpacity>
   );
 
   // Render recipe item
   const renderRecipeItem = ({ item }) => (
     <TouchableOpacity
-      style={[styles.recipeItem, styles.coffeeItemContainer]}
+      style={styles.recipeCard}
       onPress={() => handleRecipePress(item)}
     >
-      <Image
-        source={{ uri: item.imageUrl || 'https://images.unsplash.com/photo-1447933601403-0c6688de566e' }}
-        style={styles.recipeImage}
-      />
-      <View style={styles.recipeInfo}>
-        <Text style={styles.recipeName}>{item.name || item.coffeeName}</Text>
-        <Text style={styles.recipeMethod}>{item.method || item.brewingMethod}</Text>
+      <View style={styles.recipeCardHeader}>
+        <View style={styles.recipeCardCreator}>
+          {item.creatorAvatar ? (
+            <Image 
+              source={typeof item.creatorAvatar === 'string' ? { uri: item.creatorAvatar } : item.creatorAvatar} 
+              style={styles.recipeCreatorAvatar} 
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={styles.recipeCreatorAvatarPlaceholder}>
+              <Ionicons name="person" size={14} color="#999999" />
+            </View>
+          )}
+          <Text style={styles.recipeCreatorName} numberOfLines={1}>
+            {item.creatorName || item.userName || 'Anonymous'}
+          </Text>
+        </View>
+        <View style={styles.brewMethodTag}>
+          <Text style={styles.brewMethodTagText}>{item.brewingMethod || item.method}</Text>
+        </View>
+      </View>
+      
+      <View style={styles.recipeCardInfo}>
+        <Text style={styles.recipeCardName} numberOfLines={2}>{item.name || item.coffeeName}</Text>
+        <Text style={styles.recipeCardCoffee} numberOfLines={1}>{item.coffeeName}</Text>
+        <Text style={styles.recipeCardRoaster} numberOfLines={1}>{item.roaster}</Text>
+        
+        <View style={styles.recipeCardStats}>
+          <View style={styles.recipeCardDetail}>
+            <Text style={styles.recipeCardDetailValue}>{item.coffeeAmount || 18}g</Text>
+            <Text style={styles.recipeCardDetailLabel}>Coffee</Text>
+          </View>
+          <View style={styles.recipeCardDetail}>
+            <Text style={styles.recipeCardDetailValue}>{item.waterAmount || 300}ml</Text>
+            <Text style={styles.recipeCardDetailLabel}>Water</Text>
+          </View>
+          <View style={styles.recipeCardDetail}>
+            <Text style={styles.recipeCardDetailValue}>{item.brewTime || "3:00"}</Text>
+            <Text style={styles.recipeCardDetailLabel}>Time</Text>
+          </View>
+        </View>
+        
+        <View style={styles.recipeUsageStats}>
+          <Ionicons name="repeat" size={14} color="#666666" />
+          <Text style={styles.recipeUsageText}>
+            Used {item.usageCount || Math.floor(Math.random() * 20) + 1} times
+          </Text>
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -539,15 +721,20 @@ export default function ProfileScreen() {
         {activeTab === (isBusinessAccount ? 'shop' : 'collection') && (
           <View style={styles.sectionContainer}>
             {coffeeCollection && coffeeCollection.length > 0 ? (
-              <FlatList
-                data={coffeeCollection}
-                renderItem={renderCollectionItem}
-                keyExtractor={(item) => item.id}
-                showsVerticalScrollIndicator={false}
-                scrollEnabled={false}
-              />
+              <View style={styles.collectionSection}>
+                <FlatList
+                  data={coffeeCollection}
+                  renderItem={renderCollectionItem}
+                  keyExtractor={(item) => item.id}
+                  numColumns={2}
+                  columnWrapperStyle={styles.collectionCardRow}
+                  showsVerticalScrollIndicator={false}
+                  scrollEnabled={false}
+                  contentContainerStyle={{paddingHorizontal: 16, paddingTop: 16}}
+                />
+              </View>
             ) : (
-              renderEmptyState(`No ${isBusinessAccount ? 'products' : 'logs'} in ${isBusinessAccount ? 'shop' : 'collection'} yet`)
+              renderEmptyState(`No ${isBusinessAccount ? 'products' : 'coffees'} in ${isBusinessAccount ? 'shop' : 'collection'} yet`)
             )}
           </View>
         )}
@@ -570,17 +757,83 @@ export default function ProfileScreen() {
         
         {activeTab === 'recipes' && (
           <View style={styles.sectionContainer}>
-            {recipes && recipes.length > 0 ? (
+            {console.log('Rendering recipes tab')}
+            <View style={styles.collectionSection}>
               <FlatList
-                data={recipes}
+                data={getFilteredRecipes()}
                 renderItem={renderRecipeItem}
-                keyExtractor={(item) => item.id}
+                keyExtractor={(item, index) => item.id || `recipe-${index}`}
+                numColumns={2}
+                columnWrapperStyle={styles.collectionCardRow}
                 showsVerticalScrollIndicator={false}
                 scrollEnabled={false}
+                contentContainerStyle={{paddingHorizontal: 16, paddingTop: 16, paddingBottom: 60}}
+                ListEmptyComponent={() => (
+                  <View style={styles.emptyFilterContainer}>
+                    <Text style={styles.emptyText}>
+                      No {recipeFilter === 'created' ? 'created' : recipeFilter === 'saved' ? 'saved' : ''} recipes found
+                    </Text>
+                  </View>
+                )}
               />
-            ) : (
-              renderEmptyState('No recipes saved yet')
-            )}
+              
+              <View style={styles.recipeFilterContainer}>
+                <View style={styles.recipeFilterSegment}>
+                  <TouchableOpacity
+                    style={[
+                      styles.recipeFilterButton,
+                      recipeFilter === 'all' && styles.recipeFilterButtonActive,
+                      { borderTopLeftRadius: 8, borderBottomLeftRadius: 8 }
+                    ]}
+                    onPress={() => setRecipeFilter('all')}
+                  >
+                    <Text 
+                      style={[
+                        styles.recipeFilterText,
+                        recipeFilter === 'all' && styles.recipeFilterTextActive
+                      ]}
+                    >
+                      All
+                    </Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity
+                    style={[
+                      styles.recipeFilterButton,
+                      recipeFilter === 'created' && styles.recipeFilterButtonActive
+                    ]}
+                    onPress={() => setRecipeFilter('created')}
+                  >
+                    <Text 
+                      style={[
+                        styles.recipeFilterText,
+                        recipeFilter === 'created' && styles.recipeFilterTextActive
+                      ]}
+                    >
+                      Created
+                    </Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity
+                    style={[
+                      styles.recipeFilterButton,
+                      recipeFilter === 'saved' && styles.recipeFilterButtonActive,
+                      { borderTopRightRadius: 8, borderBottomRightRadius: 8 }
+                    ]}
+                    onPress={() => setRecipeFilter('saved')}
+                  >
+                    <Text 
+                      style={[
+                        styles.recipeFilterText,
+                        recipeFilter === 'saved' && styles.recipeFilterTextActive
+                      ]}
+                    >
+                      Saved
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
           </View>
         )}
       </ScrollView>
@@ -1199,5 +1452,226 @@ const styles = StyleSheet.create({
     color: '#666666',
     fontStyle: 'italic',
     paddingVertical: 8,
+  },
+  collectionSection: {
+    paddingBottom: 16,
+  },
+  collectionCard: {
+    width: '48%',
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  collectionCardImage: {
+    width: '100%',
+    height: 120,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+  },
+  collectionCardImagePlaceholder: {
+    width: '100%',
+    height: 120,
+    backgroundColor: '#F0F0F0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+  },
+  collectionCardInfo: {
+    padding: 12,
+  },
+  collectionCardName: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#000000',
+    marginBottom: 4,
+  },
+  collectionCardRoaster: {
+    fontSize: 12,
+    color: '#666666',
+  },
+  collectionCardRow: {
+    justifyContent: 'space-between',
+  },
+  removeButton: {
+    position: 'absolute',
+    top: 5,
+    right: 5,
+    backgroundColor: 'rgba(255,255,255,0.7)',
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  removeIcon: {
+    // No additional styling needed
+  },
+  recipeFilterContainer: {
+    position: 'absolute',
+    bottom: 20,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    zIndex: 10,
+  },
+  recipeFilterSegment: {
+    flexDirection: 'row',
+    backgroundColor: '#F2F2F2',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 4,
+  },
+  recipeFilterButton: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  recipeFilterButtonActive: {
+    backgroundColor: '#000000',
+  },
+  recipeFilterText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#666666',
+  },
+  recipeFilterTextActive: {
+    color: '#FFFFFF',
+  },
+  emptyFilterContainer: {
+    padding: 60,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  recipeDetails: {
+    marginTop: 4,
+  },
+  recipeDetailText: {
+    fontSize: 12,
+    color: '#777777',
+  },
+  recipeCard: {
+    width: '48%',
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  recipeCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingTop: 10,
+    paddingBottom: 6,
+  },
+  recipeCardCreator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  recipeCreatorAvatar: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    marginRight: 6,
+    backgroundColor: '#F5F5F7',
+  },
+  recipeCreatorAvatarPlaceholder: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    marginRight: 6,
+    backgroundColor: '#F5F5F7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  recipeCreatorName: {
+    fontSize: 10,
+    color: '#666666',
+    flex: 1,
+  },
+  brewMethodTag: {
+    backgroundColor: '#F5F5F7',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  brewMethodTagText: {
+    fontSize: 10,
+    color: '#333333',
+    fontWeight: '500',
+  },
+  recipeCardInfo: {
+    padding: 10,
+  },
+  recipeCardName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000000',
+    marginBottom: 4,
+    height: 36,
+  },
+  recipeCardCoffee: {
+    fontSize: 12,
+    color: '#333333',
+    marginBottom: 2,
+  },
+  recipeCardRoaster: {
+    fontSize: 11,
+    color: '#666666',
+    marginBottom: 8,
+  },
+  recipeCardStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 4,
+    marginBottom: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#F5F5F7',
+  },
+  recipeCardDetail: {
+    alignItems: 'center',
+  },
+  recipeCardDetailValue: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#000000',
+    marginBottom: 2,
+  },
+  recipeCardDetailLabel: {
+    fontSize: 10,
+    color: '#888888',
+  },
+  recipeUsageStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 6,
+  },
+  recipeUsageText: {
+    fontSize: 10,
+    color: '#666666',
+    marginLeft: 4,
   },
 }); 

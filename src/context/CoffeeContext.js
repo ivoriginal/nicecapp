@@ -106,27 +106,30 @@ export const CoffeeProvider = ({ children }) => {
         
         allUserEvents = [...mockData.coffeeEvents];
         
-        // For each user in mockData.coffeeEvents, ensure they have corresponding collection entries
-        // We'll process these later in the collection-building code
+        // We're now only using mockData.coffeeEvents for all event data
+        // No need to add events from accountData if we're fully migrating to mockData
       }
-      
-      for (const acct in accountData) {
-        if (accountData[acct]?.coffeeEvents && Array.isArray(accountData[acct].coffeeEvents)) {
-          console.log(`Adding ${accountData[acct].coffeeEvents.length} events from ${acct}`);
-          // Make sure each event has all required data
-          const eventsWithUserInfo = accountData[acct].coffeeEvents.map(event => {
-            // Ensure each event has proper user info
-            if (!event.userName || !event.userAvatar) {
-              const accountInfo = accounts.find(a => a.id === acct);
-              return {
-                ...event,
-                userName: event.userName || accountInfo?.userName || 'Unknown User',
-                userAvatar: event.userAvatar || accountInfo?.userAvatar || null,
-              };
-            }
-            return event;
-          });
-          allUserEvents = [...allUserEvents, ...eventsWithUserInfo];
+      // Only add events from accountData if we want to supplement mockData
+      // This can be removed once the migration to mockData is complete
+      else {
+        for (const acct in accountData) {
+          if (accountData[acct]?.coffeeEvents && Array.isArray(accountData[acct].coffeeEvents)) {
+            console.log(`Adding ${accountData[acct].coffeeEvents.length} events from ${acct}`);
+            // Make sure each event has all required data
+            const eventsWithUserInfo = accountData[acct].coffeeEvents.map(event => {
+              // Ensure each event has proper user info
+              if (!event.userName || !event.userAvatar) {
+                const accountInfo = accounts.find(a => a.id === acct);
+                return {
+                  ...event,
+                  userName: event.userName || accountInfo?.userName || 'Unknown User',
+                  userAvatar: event.userAvatar || accountInfo?.userAvatar || null,
+                };
+              }
+              return event;
+            });
+            allUserEvents = [...allUserEvents, ...eventsWithUserInfo];
+          }
         }
       }
       
@@ -193,105 +196,80 @@ export const CoffeeProvider = ({ children }) => {
     }
   };
 
-  // Generate mock coffee events
+  // Generate mock coffee events - now using mockData.json as the source
   const generateMockEvents = (userId, count = 5) => {
+    // Extract the coffees from mockData
+    const coffees = mockData.coffees;
+    
+    // Set up brewing methods and grind sizes
     const methods = ['Pour Over', 'Espresso', 'French Press', 'AeroPress', 'Cold Brew'];
     const grindSizes = ['Fine', 'Medium', 'Coarse'];
     
-    // Define specific coffees
-    const specificCoffees = [
-      {
-        id: 'coffee-0',
-        name: 'Ethiopian Yirgacheffe',
-        roaster: 'Blue Bottle Coffee'
-      },
-      {
-        id: 'coffee-1',
-        name: 'Colombian Supremo',
-        roaster: 'Stumptown Coffee Roasters'
-      },
-      {
-        id: 'coffee-2',
-        name: 'Kenya AA',
-        roaster: 'Intelligentsia Coffee'
-      },
-      {
-        id: 'coffee-3',
-        name: 'Guatemala Antigua',
-        roaster: 'Counter Culture Coffee'
-      },
-      {
-        id: 'coffee-4',
-        name: 'Sumatra Mandheling',
-        roaster: 'Starbucks Reserve'
-      }
-    ];
-    
-    // Generate events using specific coffees
+    // Generate events using coffees from mockData
     return Array(count).fill(null).map((_, index) => {
-      const coffeeIndex = index % specificCoffees.length;
-      const coffee = specificCoffees[coffeeIndex];
+      const coffeeIndex = index % coffees.length;
+      const coffee = coffees[coffeeIndex];
       return {
         id: `event-${userId}-${index}`,
         coffeeId: coffee.id,
         coffeeName: coffee.name,
         roaster: coffee.roaster,
-        imageUrl: 'https://images.unsplash.com/photo-1447933601403-0c6688de566e',
+        imageUrl: coffee.image || 'https://images.unsplash.com/photo-1447933601403-0c6688de566e',
         rating: Math.floor(Math.random() * 5) + 1,
         date: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
         brewingMethod: methods[Math.floor(Math.random() * methods.length)],
         grindSize: grindSizes[Math.floor(Math.random() * grindSizes.length)],
-        notes: 'A delicious cup of coffee with notes of chocolate and caramel.',
+        notes: coffee.description || 'A delicious cup of coffee with notes of chocolate and caramel.',
         userId: userId
       };
     });
   };
 
-  // Mock accounts data
+  // Mock accounts data - now referencing coffees from mockData.json
   const accountData = {
     'user1': {
       coffeeEvents: [
         {
           id: 'event-user1-0',
-          coffeeId: 'coffee-0',
-          coffeeName: 'Ethiopian Yirgacheffe',
-          roaster: 'Blue Bottle Coffee',
-          imageUrl: 'https://images.unsplash.com/photo-1447933601403-0c6688de566e',
+          coffeeId: mockData.coffees[0].id,
+          coffeeName: mockData.coffees[0].name,
+          roaster: mockData.coffees[0].roaster,
+          imageUrl: mockData.coffees[0].image || 'https://images.unsplash.com/photo-1447933601403-0c6688de566e',
           rating: 4,
           date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
           brewingMethod: 'Pour Over',
           grindSize: 'Medium',
-          notes: 'Bright acidity with floral notes. Very clean cup.',
+          notes: mockData.coffees[0].description || 'Bright acidity with floral notes. Very clean cup.',
           userId: 'user1',
           userName: 'Ivo Vilches',
           userAvatar: require('../../assets/users/ivo-vilches.jpg')
         },
         {
           id: 'event-user1-1',
-          coffeeId: 'coffee-1',
-          coffeeName: 'Colombian Supremo',
-          roaster: 'Stumptown Coffee Roasters',
-          imageUrl: 'https://images.unsplash.com/photo-1447933601403-0c6688de566e',
+          coffeeId: mockData.coffees[1].id,
+          coffeeName: mockData.coffees[1].name,
+          roaster: mockData.coffees[1].roaster,
+          imageUrl: mockData.coffees[1].image || 'https://images.unsplash.com/photo-1447933601403-0c6688de566e',
           rating: 5,
           date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
           brewingMethod: 'Espresso',
           grindSize: 'Fine',
-          notes: 'Rich chocolate notes with a hint of caramel. Good body.',
+          notes: mockData.coffees[1].description || 'Rich chocolate notes with a hint of caramel. Good body.',
           userId: 'user1',
           userName: 'Ivo Vilches',
           userAvatar: require('../../assets/users/ivo-vilches.jpg')
         },
         {
           id: 'event-user1-2',
-          coffeeId: 'coffee-2',
-          coffeeName: 'Kenya AA',
-          roaster: 'Intelligentsia Coffee',
-          imageUrl: 'https://images.unsplash.com/photo-1447933601403-0c6688de566e',
+          coffeeId: mockData.coffees[2].id,
+          coffeeName: mockData.coffees[2].name,
+          roaster: mockData.coffees[2].roaster,
+          imageUrl: mockData.coffees[2].image || 'https://images.unsplash.com/photo-1447933601403-0c6688de566e',
           rating: 4,
           date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
           brewingMethod: 'AeroPress',
           grindSize: 'Medium-Fine',
-          notes: 'Complex berry notes with a clean finish. Excellent!',
+          notes: mockData.coffees[2].description || 'Complex berry notes with a clean finish. Excellent!',
           userId: 'user1',
           userName: 'Ivo Vilches',
           userAvatar: require('../../assets/users/ivo-vilches.jpg')
@@ -299,52 +277,52 @@ export const CoffeeProvider = ({ children }) => {
       ],
       coffeeCollection: [
         {
-          id: 'coffee-0',
-          name: 'Ethiopian Yirgacheffe',
-          roaster: 'Blue Bottle Coffee',
-          image: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085',
+          id: mockData.coffees[0].id,
+          name: mockData.coffees[0].name,
+          roaster: mockData.coffees[0].roaster,
+          image: mockData.coffees[0].image || 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085',
           userId: 'user1'
         },
         {
-          id: 'coffee-1',
-          name: 'Colombian Supremo',
-          roaster: 'Stumptown Coffee Roasters',
-          image: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd',
+          id: mockData.coffees[1].id,
+          name: mockData.coffees[1].name,
+          roaster: mockData.coffees[1].roaster,
+          image: mockData.coffees[1].image || 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd',
           userId: 'user1'
         },
         {
-          id: 'coffee-2',
-          name: 'Kenya AA',
-          roaster: 'Intelligentsia Coffee',
-          image: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd',
+          id: mockData.coffees[2].id,
+          name: mockData.coffees[2].name,
+          roaster: mockData.coffees[2].roaster,
+          image: mockData.coffees[2].image || 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd',
           userId: 'user1'
         }
       ],
       coffeeWishlist: [
         {
-          id: 'coffee-3',
-          name: 'Guatemala Antigua',
-          roaster: 'Counter Culture Coffee',
-          image: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd',
+          id: mockData.coffees[3].id,
+          name: mockData.coffees[3].name,
+          roaster: mockData.coffees[3].roaster,
+          image: mockData.coffees[3].image || 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd',
           userId: 'user1'
         }
       ],
-      favorites: ['coffee-0', 'coffee-1'],
+      favorites: [mockData.coffees[0].id, mockData.coffees[1].id],
       recipes: []
     },
     'user2': {
       coffeeEvents: [
         {
           id: 'event-user2-0',
-          coffeeId: 'coffee-3',
-          coffeeName: 'Guatemala Antigua',
-          roaster: 'Counter Culture Coffee',
-          imageUrl: 'https://images.unsplash.com/photo-1447933601403-0c6688de566e',
+          coffeeId: mockData.coffees[3].id,
+          coffeeName: mockData.coffees[3].name,
+          roaster: mockData.coffees[3].roaster,
+          imageUrl: mockData.coffees[3].image || 'https://images.unsplash.com/photo-1447933601403-0c6688de566e',
           rating: 4,
           date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
           brewingMethod: 'French Press',
           grindSize: 'Coarse',
-          notes: 'Nutty with a subtle sweetness. Very balanced.',
+          notes: mockData.coffees[3].description || 'Nutty with a subtle sweetness. Very balanced.',
           userId: 'user2',
           userName: 'Vértigo y Calambre',
           userAvatar: require('../../assets/businesses/vertigo-logo.jpg')
@@ -352,38 +330,38 @@ export const CoffeeProvider = ({ children }) => {
       ],
       coffeeCollection: [
         {
-          id: 'coffee-3',
-          name: 'Guatemala Antigua',
-          roaster: 'Counter Culture Coffee',
-          image: 'https://images.unsplash.com/photo-1517668808822-9ebb02f2a0e6',
+          id: mockData.coffees[3].id,
+          name: mockData.coffees[3].name,
+          roaster: mockData.coffees[3].roaster,
+          image: mockData.coffees[3].image || 'https://images.unsplash.com/photo-1517668808822-9ebb02f2a0e6',
           userId: 'user2'
         }
       ],
       coffeeWishlist: [
         {
-          id: 'coffee-0',
-          name: 'Ethiopian Yirgacheffe',
-          roaster: 'Blue Bottle Coffee',
-          image: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085',
+          id: mockData.coffees[0].id,
+          name: mockData.coffees[0].name,
+          roaster: mockData.coffees[0].roaster,
+          image: mockData.coffees[0].image || 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085',
           userId: 'user2'
         }
       ],
-      favorites: ['coffee-3'],
+      favorites: [mockData.coffees[3].id],
       recipes: []
     },
     'user3': {
       coffeeEvents: [
         {
           id: 'event-user3-0',
-          coffeeId: 'coffee-4',
-          coffeeName: 'Sumatra Mandheling',
-          roaster: 'Starbucks Reserve',
-          imageUrl: 'https://images.unsplash.com/photo-1447933601403-0c6688de566e',
+          coffeeId: mockData.coffees[4].id,
+          coffeeName: mockData.coffees[4].name,
+          roaster: mockData.coffees[4].roaster,
+          imageUrl: mockData.coffees[4].image || 'https://images.unsplash.com/photo-1447933601403-0c6688de566e',
           rating: 3,
           date: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
           brewingMethod: 'Moka Pot',
           grindSize: 'Fine',
-          notes: 'Earthy with low acidity. Good for espresso-style drinks.',
+          notes: mockData.coffees[4].description || 'Earthy with low acidity. Good for espresso-style drinks.',
           userId: 'user3',
           userName: 'Carlos Hernández',
           userAvatar: require('../../assets/users/carlos-hernandez.jpg')
@@ -391,19 +369,19 @@ export const CoffeeProvider = ({ children }) => {
       ],
       coffeeCollection: [
         {
-          id: 'coffee-4',
-          name: 'Sumatra Mandheling',
-          roaster: 'Starbucks Reserve',
-          image: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd',
+          id: mockData.coffees[4].id,
+          name: mockData.coffees[4].name,
+          roaster: mockData.coffees[4].roaster,
+          image: mockData.coffees[4].image || 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd',
           userId: 'user3'
         }
       ],
       coffeeWishlist: [
         {
-          id: 'coffee-1',
-          name: 'Colombian Supremo',
-          roaster: 'Stumptown Coffee Roasters',
-          image: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd',
+          id: mockData.coffees[1].id,
+          name: mockData.coffees[1].name,
+          roaster: mockData.coffees[1].roaster,
+          image: mockData.coffees[1].image || 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd',
           userId: 'user3'
         }
       ],
@@ -745,9 +723,31 @@ export const CoffeeProvider = ({ children }) => {
 };
 
 export const useCoffee = () => {
-  const context = useContext(CoffeeContext);
-  if (context === undefined) {
-    throw new Error('useCoffee must be used within a CoffeeProvider');
+  try {
+    const context = useContext(CoffeeContext);
+    if (!context) {
+      console.warn('useCoffee was called outside a CoffeeProvider or context is undefined');
+      return { 
+        user: {}, 
+        coffeeEvents: [], 
+        coffeeCollection: [], 
+        coffeeWishlist: [], 
+        favorites: [],
+        isLoading: false,
+        isAuthenticated: false
+      };
+    }
+    return context;
+  } catch (error) {
+    console.error('Error in useCoffee hook:', error);
+    return {
+      user: {},
+      coffeeEvents: [],
+      coffeeCollection: [],
+      coffeeWishlist: [],
+      favorites: [],
+      isLoading: false,
+      isAuthenticated: false
+    };
   }
-  return context;
 };

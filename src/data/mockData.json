@@ -6,8 +6,18 @@
       "userName": "Ivo Vilches",
       "userAvatar": "assets/users/ivo-vilches.jpg",
       "bio": "Coffee enthusiast and home barista. Always exploring new brewing methods.",
-      "gear": ["Hario V60", "Baratza Encore", "Fellow Stagg EKG", "Acaia Pearl Scale"],
-      "gearWishlist": ["La Marzocco Linea Mini", "Weber Workshops EG-1", "Comandante C40", "Decent DE1"],
+      "gear": [
+        "Hario V60",
+        "Baratza Encore",
+        "Fellow Stagg EKG",
+        "Acaia Pearl Scale"
+      ],
+      "gearWishlist": [
+        "La Marzocco Linea Mini",
+        "Weber Workshops EG-1",
+        "Comandante C40",
+        "Decent DE1"
+      ],
       "location": "San Francisco, CA",
       "joinedDate": "2022-01-15T00:00:00Z"
     },
@@ -17,8 +27,16 @@
       "userName": "Vértigo y Calambre",
       "userAvatar": "assets/businesses/vertigo-logo.jpg",
       "bio": "Specialty coffee lover. Always on the hunt for the perfect cup.",
-      "gear": ["Chemex", "Comandante C40", "Bonavita Kettle"],
-      "gearWishlist": ["La Marzocco GS3", "Victoria Arduino Eagle One", "Loring S15 Falcon"],
+      "gear": [
+        "Chemex",
+        "Comandante C40",
+        "Bonavita Kettle"
+      ],
+      "gearWishlist": [
+        "La Marzocco GS3",
+        "Victoria Arduino Eagle One",
+        "Loring S15 Falcon"
+      ],
       "location": "Portland, OR",
       "joinedDate": "2022-03-22T00:00:00Z"
     },
@@ -38,8 +56,16 @@
       "userName": "You",
       "userAvatar": "https://randomuser.me/api/portraits/men/1.jpg",
       "bio": "Coffee enthusiast exploring the world of specialty coffee.",
-      "gear": ["AeroPress", "Timemore C2", "Hario Buono Kettle"],
-      "gearWishlist": ["Fellow Stagg EKG", "Acaia Pearl Scale", "Kalita Wave"],
+      "gear": [
+        "AeroPress",
+        "Timemore C2",
+        "Hario Buono Kettle"
+      ],
+      "gearWishlist": [
+        "Fellow Stagg EKG",
+        "Acaia Pearl Scale",
+        "Kalita Wave"
+      ],
       "location": "New York, NY",
       "joinedDate": "2022-05-05T00:00:00Z"
     },
@@ -49,8 +75,16 @@
       "userName": "Emma Garcia",
       "userAvatar": "https://randomuser.me/api/portraits/women/33.jpg",
       "bio": "Coffee shop owner and latte art enthusiast. Love connecting with fellow coffee lovers!",
-      "gear": ["Rancilio Silvia", "Eureka Mignon", "Acaia Pearl Scale"],
-      "gearWishlist": ["Mahlkönig EK43", "Synesso S200", "Saint Anthony Industries Phoenix"],
+      "gear": [
+        "Rancilio Silvia",
+        "Eureka Mignon",
+        "Acaia Pearl Scale"
+      ],
+      "gearWishlist": [
+        "Mahlkönig EK43",
+        "Synesso S200",
+        "Saint Anthony Industries Phoenix"
+      ],
       "location": "Austin, TX",
       "joinedDate": "2022-04-12T00:00:00Z"
     },
@@ -60,8 +94,16 @@
       "userName": "David Kim",
       "userAvatar": "https://randomuser.me/api/portraits/men/45.jpg",
       "bio": "Coffee photographer and content creator. Sharing the beauty of coffee one shot at a time.",
-      "gear": ["Fellow Stagg X", "1Zpresso JX-Pro", "Hario V60"],
-      "gearWishlist": ["Leica Q2", "Sony Alpha a7 III", "Profitec Pro 700"],
+      "gear": [
+        "Fellow Stagg X",
+        "1Zpresso JX-Pro",
+        "Hario V60"
+      ],
+      "gearWishlist": [
+        "Leica Q2",
+        "Sony Alpha a7 III",
+        "Profitec Pro 700"
+      ],
       "location": "Los Angeles, CA",
       "joinedDate": "2022-06-18T00:00:00Z"
     },
@@ -71,8 +113,16 @@
       "userName": "Sophia Miller",
       "userAvatar": "https://randomuser.me/api/portraits/women/68.jpg",
       "bio": "Coffee educator and brewing competition judge. Always learning and sharing knowledge.",
-      "gear": ["Kalita Wave", "Baratza Vario", "Fellow Stagg EKG"],
-      "gearWishlist": ["La Marzocco GS3", "Slayer Espresso Single Group", "Kees van der Westen Speedster"],
+      "gear": [
+        "Kalita Wave",
+        "Baratza Vario",
+        "Fellow Stagg EKG"
+      ],
+      "gearWishlist": [
+        "La Marzocco GS3",
+        "Slayer Espresso Single Group",
+        "Kees van der Westen Speedster"
+      ],
       "location": "Chicago, IL",
       "joinedDate": "2022-01-30T00:00:00Z"
     },
@@ -82,8 +132,16 @@
       "userName": "James Wilson",
       "userAvatar": "https://randomuser.me/api/portraits/men/22.jpg",
       "bio": "Coffee bean importer and green coffee buyer. Traveling the world for the best beans.",
-      "gear": ["Moccamaster KBGV", "Comandante C40", "Acaia Lunar Scale"],
-      "gearWishlist": ["Ikawa Pro V3", "Cropster Software", "Probat P12"],
+      "gear": [
+        "Moccamaster KBGV",
+        "Comandante C40",
+        "Acaia Lunar Scale"
+      ],
+      "gearWishlist": [
+        "Ikawa Pro V3",
+        "Cropster Software",
+        "Probat P12"
+      ],
       "location": "Denver, CO",
       "joinedDate": "2022-03-05T00:00:00Z"
     },
@@ -93,8 +151,16 @@
       "userName": "Olivia Taylor",
       "userAvatar": "https://randomuser.me/api/portraits/women/12.jpg",
       "bio": "Coffee and pastry pairing expert. Finding the perfect match for every brew.",
-      "gear": ["Chemex", "Baratza Encore", "Bonavita Kettle"],
-      "gearWishlist": ["KitchenAid Pro Line", "Rocket Appartamento", "Baratza Forte AP"],
+      "gear": [
+        "Chemex",
+        "Baratza Encore",
+        "Bonavita Kettle"
+      ],
+      "gearWishlist": [
+        "KitchenAid Pro Line",
+        "Rocket Appartamento",
+        "Baratza Forte AP"
+      ],
       "location": "Boston, MA",
       "joinedDate": "2022-05-22T00:00:00Z"
     },
@@ -104,8 +170,16 @@
       "userName": "Lucas Brown",
       "userAvatar": "https://randomuser.me/api/portraits/men/55.jpg",
       "bio": "Cold brew specialist and nitro coffee innovator. Always experimenting with new methods.",
-      "gear": ["Toddy Cold Brew System", "Fellow Stagg X", "Acaia Pearl Scale"],
-      "gearWishlist": ["GrowlerWerks uKeg Nitro", "Kegerator", "Yama Cold Brew Tower"],
+      "gear": [
+        "Toddy Cold Brew System",
+        "Fellow Stagg X",
+        "Acaia Pearl Scale"
+      ],
+      "gearWishlist": [
+        "GrowlerWerks uKeg Nitro",
+        "Kegerator",
+        "Yama Cold Brew Tower"
+      ],
       "location": "Miami, FL",
       "joinedDate": "2022-07-10T00:00:00Z"
     }
@@ -138,151 +212,37 @@
   ],
   "businesses": [
     {
-      "id": "business-cafelab-murcia",
-      "name": "CaféLab Murcia",
-      "type": "coffee_shop",
-      "description": "Especialistas en café de especialidad en el corazón de Murcia. Ofrecemos una experiencia única con los mejores granos y métodos de preparación.",
-      "logo": "assets/businesses/cafelab-logo.png",
-      "coverImage": "assets/businesses/cafelab-murcia-cover.png",
-      "location": "Murcia, Spain",
-      "address": "Calle Example 123, Murcia",
-      "website": "https://cafelab.es/carta-cafelab-murcia/",
-      "instagram": "@cafelabmurcia",
-      "openingHours": {
-        "monday": "8:00-20:00",
-        "tuesday": "8:00-20:00",
-        "wednesday": "8:00-20:00",
-        "thursday": "8:00-20:00",
-        "friday": "8:00-22:00",
-        "saturday": "9:00-22:00",
-        "sunday": "9:00-20:00"
-      },
-      "menu": [
-        {
-          "id": "menu1",
-          "name": "Espresso",
-          "price": 2.50,
-          "description": "Café espresso doble"
-        },
-        {
-          "id": "menu2",
-          "name": "Cappuccino",
-          "price": 3.50,
-          "description": "Espresso con leche vaporizada y espuma"
-        },
-        {
-          "id": "menu3",
-          "name": "Pour Over",
-          "price": 4.00,
-          "description": "Café de origen único preparado con V60"
-        },
-        {
-          "id": "menu4",
-          "name": "Cold Brew",
-          "price": 4.50,
-          "description": "Café infusionado en frío durante 24 horas"
-        }
-      ]
-    },
-    {
-      "id": "business-cafelab-cartagena",
-      "name": "CaféLab Cartagena",
-      "type": "coffee_shop",
-      "description": "Tu espacio de café de especialidad en Cartagena. Disfruta de una selección cuidadosa de granos y métodos de preparación artesanal.",
-      "logo": "assets/businesses/cafelab-logo.png",
-      "coverImage": "assets/businesses/cafelab-cartagena-cover.png",
-      "location": "Cartagena, Spain",
-      "address": "Calle Example 456, Cartagena",
-      "website": "https://cafelab.es/carta-cafelab-cartagena/",
-      "instagram": "@cafelabcartagena",
-      "openingHours": {
-        "monday": "8:00-20:00",
-        "tuesday": "8:00-20:00",
-        "wednesday": "8:00-20:00",
-        "thursday": "8:00-20:00",
-        "friday": "8:00-22:00",
-        "saturday": "9:00-22:00",
-        "sunday": "9:00-20:00"
-      },
-      "menu": [
-        {
-          "id": "menu1",
-          "name": "Espresso",
-          "price": 2.50,
-          "description": "Café espresso doble"
-        },
-        {
-          "id": "menu2",
-          "name": "Cappuccino",
-          "price": 3.50,
-          "description": "Espresso con leche vaporizada y espuma"
-        },
-        {
-          "id": "menu3",
-          "name": "Pour Over",
-          "price": 4.00,
-          "description": "Café de origen único preparado con V60"
-        },
-        {
-          "id": "menu4",
-          "name": "Cold Brew",
-          "price": 4.50,
-          "description": "Café infusionado en frío durante 24 horas"
-        }
-      ]
-    },
-    {
       "id": "business-kima",
       "name": "Kima Coffee",
       "type": "roaster_coffee_shop",
       "description": "Specialty coffee roaster in Málaga, offering premium coffees from around the world.",
-      "logo": "https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728",
-      "coverImage": "https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728",
+      "logo": "assets/businesses/kima-logo.jpg",
+      "avatar": "assets/businesses/kima-logo.jpg",
+      "coverImage": "https://estaticos-cdn.prensaiberica.es/clip/406688f8-fe13-4e3a-9f0e-05b19c8a97df_16-9-discover-aspect-ratio_default_0.jpg",
       "location": "Málaga, Spain",
-      "address": "Calle Example 123",
-      "website": "https://kimacoffee.com",
-      "instagram": "@kimacoffee",
-      "openingHours": {
-        "monday": "8:00-18:00",
-        "tuesday": "8:00-18:00",
-        "wednesday": "8:00-18:00",
-        "thursday": "8:00-18:00",
-        "friday": "8:00-18:00",
-        "saturday": "9:00-14:00",
-        "sunday": "Closed"
-      },
-      "menu": [
-        {
-          "id": "menu1",
-          "name": "Espresso",
-          "price": 2.50,
-          "description": "Double shot espresso"
-        },
-        {
-          "id": "menu2",
-          "name": "Cappuccino",
-          "price": 3.50,
-          "description": "Espresso with steamed milk and foam"
-        },
-        {
-          "id": "menu3",
-          "name": "Pour Over",
-          "price": 4.00,
-          "description": "Single origin coffee brewed with V60"
-        }
-      ],
-      "roastedBeans": [
-        {
-          "id": "coffee-villa-rosario",
-          "name": "Villa Rosario",
-          "origin": "Bolivia",
-          "process": "Lavado extended",
-          "roastLevel": "Medium",
-          "price": 42.00,
-          "description": "Cereza, cola, galletas y caramelo",
-          "image": "https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728"
-        }
-      ]
+      "isBusiness": true,
+      "isRoaster": true,
+      "rating": 4.9,
+      "reviewCount": 145,
+      "neighborhood": "Centro",
+      "categories": ["specialty coffee", "roaster", "café"],
+      "priceRange": "$$",
+      "website": "https://kima.coffee"
+    },
+    {
+      "id": "user2",
+      "name": "Vértigo y Calambre",
+      "businessId": "business1",
+      "address": "Calle Example 456, Murcia",
+      "avatar": "assets/businesses/vertigo-logo.jpg",
+      "coverImage": "assets/businesses/vertigo-cover.jpg",
+      "isBusiness": true,
+      "rating": 4.9,
+      "reviewCount": 145,
+      "neighborhood": "Centro",
+      "categories": ["specialty coffee", "roaster", "café"],
+      "priceRange": "$$",
+      "location": "Murcia, Spain"
     },
     {
       "id": "business1",
@@ -290,6 +250,7 @@
       "type": "coffee_shop",
       "description": "A cozy coffee shop in the heart of the city, serving specialty coffee and pastries.",
       "logo": "assets/businesses/vertigo-logo.jpg",
+      "avatar": "assets/businesses/vertigo-logo.jpg",
       "coverImage": "assets/businesses/vertigo-cover.jpg",
       "location": "Buenos Aires, Argentina",
       "address": "Av. Corrientes 1234",
@@ -308,25 +269,25 @@
         {
           "id": "menu1",
           "name": "Espresso",
-          "price": 3.50,
+          "price": 3.5,
           "description": "Double shot espresso"
         },
         {
           "id": "menu2",
           "name": "Cappuccino",
-          "price": 4.50,
+          "price": 4.5,
           "description": "Espresso with steamed milk and foam"
         },
         {
           "id": "menu3",
           "name": "Pour Over",
-          "price": 5.00,
+          "price": 5,
           "description": "Single origin coffee brewed with V60"
         },
         {
           "id": "menu4",
           "name": "Cold Brew",
-          "price": 5.50,
+          "price": 5.5,
           "description": "24-hour cold brewed coffee"
         }
       ]
@@ -355,25 +316,25 @@
         {
           "id": "menu1",
           "name": "Espresso",
-          "price": 3.00,
+          "price": 3,
           "description": "Double shot espresso"
         },
         {
           "id": "menu2",
           "name": "Cappuccino",
-          "price": 4.00,
+          "price": 4,
           "description": "Espresso with steamed milk and foam"
         },
         {
           "id": "menu3",
           "name": "Pour Over",
-          "price": 4.50,
+          "price": 4.5,
           "description": "Single origin coffee brewed with V60"
         },
         {
           "id": "menu4",
           "name": "Cold Brew",
-          "price": 5.00,
+          "price": 5,
           "description": "24-hour cold brewed coffee"
         }
       ],
@@ -384,7 +345,7 @@
           "origin": "Ethiopia",
           "process": "Washed",
           "roastLevel": "Light",
-          "price": 18.00,
+          "price": 18,
           "description": "Bright acidity with floral notes. Very clean cup.",
           "image": "https://images.unsplash.com/photo-1447933601403-0c6688de566e?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80"
         },
@@ -394,11 +355,155 @@
           "origin": "Colombia",
           "process": "Washed",
           "roastLevel": "Medium",
-          "price": 16.00,
+          "price": 16,
           "description": "Rich chocolate notes with a hint of caramel. Good body.",
           "image": "https://images.unsplash.com/photo-1447933601403-0c6688de566e?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80"
         }
       ]
+    },
+    {
+      "id": "business-toma",
+      "name": "Toma Café",
+      "type": "roaster_coffee_shop",
+      "description": "Tostadores de café de especialidad en Madrid. Nuestro objetivo como tostadores es compartirte una imagen sensorial del origen, acercarte al terroir y al poder de su naturaleza, respetando la idea del productor y destacando el dulzor en cada tueste.",
+      "logo": "assets/businesses/toma-logo.jpg",
+      "avatar": "assets/businesses/toma-logo.jpg",
+      "coverImage": "https://toma.cafe/img/toma-img/bg-cafe.jpg",
+      "location": "Madrid, Spain",
+      "website": "https://toma.cafe",
+      "instagram": "@tomacafe",
+      "addresses": [
+        {
+          "id": "toma-1",
+          "name": "Toma Café 1",
+          "address": "C/ Palma 49, Madrid",
+          "coordinates": {
+            "lat": 40.4264615,
+            "lng": -3.7059434
+          },
+          "phone": "+34 917 049 344",
+          "openingHours": {
+            "monday": "8:00-20:00",
+            "tuesday": "8:00-20:00",
+            "wednesday": "8:00-20:00",
+            "thursday": "8:00-20:00",
+            "friday": "8:00-20:00",
+            "saturday": "8:00-20:00",
+            "sunday": "8:00-20:00"
+          }
+        },
+        {
+          "id": "toma-2",
+          "name": "Toma Café 2",
+          "address": "C/ Santa Feliciana 5, Madrid",
+          "coordinates": {
+            "lat": 40.4331821,
+            "lng": -3.7000771
+          },
+          "phone": "+34 910 559 802",
+          "openingHours": {
+            "monday": "8:00-20:00",
+            "tuesday": "8:00-20:00",
+            "wednesday": "8:00-20:00",
+            "thursday": "8:00-20:00",
+            "friday": "8:00-20:00",
+            "saturday": "8:00-20:00",
+            "sunday": "8:00-20:00"
+          }
+        },
+        {
+          "id": "toma-3",
+          "name": "Toma Café 3 / Proper Sound",
+          "address": "C/ Raimundo Lulio 16, Madrid",
+          "coordinates": {
+            "lat": 40.4327096,
+            "lng": -3.6987183
+          },
+          "phone": "+34 914 215 224",
+          "openingHours": {
+            "monday": "Closed",
+            "tuesday": "Closed",
+            "wednesday": "Closed",
+            "thursday": "Closed",
+            "friday": "10:00-16:00",
+            "saturday": "10:00-16:00",
+            "sunday": "10:00-16:00"
+          }
+        }
+      ]
+    },
+    {
+      "id": "business-cafelab",
+      "name": "CaféLab",
+      "type": "coffee_shop",
+      "description": "Especialistas en café de especialidad en España. Ofrecemos una experiencia única con los mejores granos y métodos de preparación.",
+      "logo": "assets/businesses/cafelab-logo.png",
+      "avatar": "assets/businesses/cafelab-logo.png",
+      "coverImage": "assets/businesses/cafelab-murcia-cover.png",
+      "location": "España",
+      "website": "https://cafelab.es",
+      "instagram": "@cafelabcafe",
+      "addresses": [
+        {
+          "id": "cafelab-murcia",
+          "name": "CaféLab Murcia",
+          "address": "Calle Example 123, Murcia",
+          "coordinates": {
+            "lat": 37.9922,
+            "lng": -1.1307
+          },
+          "phone": "+34 968 123 456",
+          "openingHours": {
+            "monday": "8:00-20:00",
+            "tuesday": "8:00-20:00",
+            "wednesday": "8:00-20:00",
+            "thursday": "8:00-20:00",
+            "friday": "8:00-22:00",
+            "saturday": "9:00-22:00",
+            "sunday": "9:00-20:00"
+          }
+        },
+        {
+          "id": "cafelab-cartagena",
+          "name": "CaféLab Cartagena",
+          "address": "Calle Example 456, Cartagena",
+          "coordinates": {
+            "lat": 37.6057,
+            "lng": -0.9912
+          },
+          "phone": "+34 968 789 012",
+          "openingHours": {
+            "monday": "8:00-20:00",
+            "tuesday": "8:00-20:00",
+            "wednesday": "8:00-20:00",
+            "thursday": "8:00-20:00",
+            "friday": "8:00-22:00",
+            "saturday": "9:00-22:00",
+            "sunday": "9:00-20:00"
+          }
+        }
+      ]
+    },
+    {
+      "id": "kima-coffee",
+      "name": "Kima Coffee",
+      "businessId": "business-kima",
+      "address": "Calle Sebastián Souvirón, 9, 29005 Málaga",
+      "avatar": "assets/businesses/kima-logo.jpg",
+      "coverImage": "https://estaticos-cdn.prensaiberica.es/clip/406688f8-fe13-4e3a-9f0e-05b19c8a97df_16-9-discover-aspect-ratio_default_0.jpg",
+      "isGoodCafe": true,
+      "isTrending": true,
+      "isBusiness": true,
+      "rating": 4.9,
+      "reviewCount": 145,
+      "neighborhood": "Centro",
+      "categories": [
+        "specialty coffee",
+        "roaster",
+        "café"
+      ],
+      "priceRange": "$$",
+      "location": "Málaga, Spain"
     }
   ],
   "coffees": [
@@ -414,7 +519,7 @@
       "varietal": "Catuai",
       "process": "Lavado extended",
       "profile": "Cereza, cola, galletas y caramelo",
-      "price": 42.00,
+      "price": 42,
       "description": "Caranavi, ubicada en las altas montañas de la región de La Paz, en el oeste de Bolivia, se encuentra a las puertas de la Amazonía, a una altura de más de 1550 metros. Esta altitud, combinada con el suelo fértil de la región y el clima ideal, crea las condiciones perfectas para cultivar café de alta calidad. Roger Guzmán, un productor dedicado en Villa Rosario, cuida meticulosamente su finca, donde cultiva una mezcla de variedades Caturra y Catuai con precisión y cuidado.\n\nLa cosecha se realiza completamente a mano, lo que garantiza que solo se seleccionen las cerezas más maduras en su punto máximo. Una vez recolectadas, las cerezas se someten a un proceso de lavado, que comienza con una fermentación controlada de 48 horas en tanques de acero inoxidable. Este paso es crucial para desarrollar la claridad y complejidad del café, mejorando su perfil de sabor distintivo. Después de la fermentación, los granos se lavan a fondo y luego se secan utilizando un secador mecánico durante un período de 110 horas. Este proceso de secado lento y uniforme garantiza niveles óptimos de humedad y preserva las características inherentes del café.\n\nEl meticuloso enfoque de Roger Guzmán en el cultivo y procesamiento da como resultado una taza limpia y vibrante que encarna el terroir único de Caranavi. Su dedicación a la calidad y la precisión resalta los sabores excepcionales que esta región de gran altitud tiene para ofrecer.",
       "image": "https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728",
       "images": [
@@ -429,52 +534,223 @@
       }
     },
     {
-      "id": "coffee1",
-      "name": "Ethiopian Yirgacheffe",
-      "roaster": "Blue Bottle Coffee",
-      "roasterId": "business3",
-      "origin": "Ethiopia",
-      "process": "Washed",
-      "roastLevel": "Light",
-      "price": 20.00,
-      "description": "Bright acidity with floral notes. Very clean cup.",
-      "image": "https://images.unsplash.com/photo-1447933601403-0c6688de566e?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80",
+      "id": "coffee-pampojila",
+      "name": "Pampojila",
+      "roaster": "Kima Coffee",
+      "roasterId": "business-kima",
+      "origin": "Guatemala",
+      "region": "Atitlán",
+      "producer": "Alex Herrera",
+      "altitude": "1520-1630 msnm",
+      "varietal": "Caturra",
+      "process": "Natural Anaerobic",
+      "profile": "Fresa, plátano, jazmín y miel",
+      "price": 12.9,
+      "description": "Los mayas llamaron a esta tierra notable Pampojilá 'tierra donde se elevan las nubes brumosas'. La finca Pampojilá es rica en suelo volcánico en la parte alta del Volcán de Atitlán, elevándose sobre el Lago de Atitlán, donde el viento del sur casi a diario trae una cubierta de nubes húmedas, proporcionando sombra natural a los cafetos por la tarde. Pampojilá fue fundada y registrada formalmente a fines del siglo XIX. Durante más de 150 años, la finca ha estado en la producción de café en las hermosas montañas al sur del lago de Atitlán, y durante muchas décadas ha sido conocida por sus cafés de alta calidad. En 2012, la familia Herrera adquirió la finca y la renovó después de las inundaciones de la tormenta tropical Agatha.",
+      "image": "https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728",
+      "images": [
+        "https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728"
+      ],
       "stats": {
-        "acidity": 8,
-        "body": 5,
-        "sweetness": 7,
-        "complexity": 8
+        "acidity": 7,
+        "body": 7,
+        "sweetness": 8,
+        "complexity": 7
       }
     },
     {
-      "id": "coffee2",
-      "name": "Colombian Supremo",
-      "roaster": "Stumptown Coffee Roasters",
-      "roasterId": "business4",
+      "id": "coffee-campo-hermoso-sidra",
+      "name": "Campo Hermoso",
+      "roaster": "Kima Coffee",
+      "roasterId": "business-kima",
       "origin": "Colombia",
-      "process": "Washed",
-      "roastLevel": "Medium",
-      "price": 18.00,
-      "description": "Rich chocolate notes with a hint of caramel. Good body.",
-      "image": "https://images.unsplash.com/photo-1447933601403-0c6688de566e?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80",
+      "region": "Quindio",
+      "producer": "Edwin Noreña",
+      "altitude": "1750-1900 msnm",
+      "varietal": "Sidra",
+      "process": "Black Honey, Maceración Carbonica",
+      "profile": "Piña, mango, starfruit y eucalipto",
+      "price": 24.9,
+      "description": "Finca Campo Hermoso (1750-1900 m.s.n.m.) ubicada en Circasia, Quindío, Colombia, es una finca de 25 hectáreas conocida por sus cafés experimentales únicos. Liderada por Edwin Noreña, un agricultor de cuarta generación e innovador del café, la finca produce perfiles excepcionales y distintivos. Ha desarrollado una técnica única de co-fermentación inspirada en la industria de la cerveza artesanal. Al agregar compuestos como lúpulo y frutas deshidratadas a los tanques de fermentación, Edwin crea sabores distintivos que complementan el proceso de fermentación natural.",
+      "image": "https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728",
+      "images": [
+        "https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728"
+      ],
+      "stats": {
+        "acidity": 8,
+        "body": 7,
+        "sweetness": 8,
+        "complexity": 9
+      }
+    },
+    {
+      "id": "coffee-campo-hermoso-geisha",
+      "name": "Campo Hermoso",
+      "roaster": "Kima Coffee",
+      "roasterId": "business-kima",
+      "origin": "Colombia",
+      "region": "Quindio",
+      "producer": "Edwin Noreña",
+      "altitude": "1750 msnm",
+      "varietal": "Geisha",
+      "process": "Black Honey",
+      "profile": "Naranja, pomelo, manzana verde y flores",
+      "price": 24.9,
+      "description": "Finca Campo Hermoso ubicada en Quindío, Colombia, es una finca conocida por sus cafés experimentales únicos. Liderada por Edwin Noreña, un agricultor de cuarta generación e innovador del café, la finca produce perfiles excepcionales y distintivos con procesos de fermentación cuidadosamente controlados.",
+      "image": "https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728",
+      "images": [
+        "https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728"
+      ],
+      "stats": {
+        "acidity": 8,
+        "body": 6,
+        "sweetness": 8,
+        "complexity": 9
+      }
+    },
+    {
+      "id": "coffee-watermelon",
+      "name": "Watermelon",
+      "roaster": "Kima Coffee",
+      "roasterId": "business-kima",
+      "origin": "Colombia",
+      "region": "Quindio",
+      "producer": "Edwin Noreña",
+      "altitude": "1750 msnm",
+      "varietal": "Pink bourbon",
+      "process": "Honey Co-Fermented",
+      "profile": "Sandía, Melón, frutos rojos y melocotón",
+      "price": 21.9,
+      "description": "Finca Campo Hermoso (1750-1900 m.s.n.m.) ubicada en Circasia, Quindío, Colombia, es una finca de 25 hectáreas conocida por sus cafés experimentales únicos. Liderada por Edwin Noreña, un agricultor de cuarta generación e innovador del café, la finca produce perfiles excepcionales y distintivos. Ha desarrollado una técnica única de co-fermentación inspirada en la industria de la cerveza artesanal. Al agregar compuestos como lúpulo y frutas deshidratadas a los tanques de fermentación, Edwin crea sabores distintivos que complementan el proceso de fermentación natural.",
+      "image": "https://kimacoffee.com/cdn/shop/files/5E412E7D-61C3-4D30-954B-D0006A650261_900x.png?v=1742942792",
+      "images": [
+        "https://kimacoffee.com/cdn/shop/files/5E412E7D-61C3-4D30-954B-D0006A650261_900x.png?v=1742942792"
+      ],
+      "stats": {
+        "acidity": 8,
+        "body": 7,
+        "sweetness": 8,
+        "complexity": 7
+      }
+    },
+    {
+      "id": "coffee-el-romerillo",
+      "name": "El Romerillo",
+      "roaster": "Kima Coffee",
+      "roasterId": "business-kima",
+      "origin": "Perú",
+      "region": "Jaén",
+      "producer": "Cordova Mejía",
+      "altitude": "1400-1750 msnm",
+      "varietal": "Geisha",
+      "process": "Lavado",
+      "profile": "Albaricoque, jazmín, mandarina y miel",
+      "price": 17.9,
+      "description": "La finca El Romerillo se encuentra en la región cafetera de San Ignacio, en el norte de Perú, una zona conocida por su excelente calidad de café y gran actividad cafetera. A una altitud de 1.700 metros sobre el nivel del mar, El Romerillo se beneficia de un microclima único, con temperaturas frescas, suelos fértiles y una gran biodiversidad, lo que permite que se cultiven granos de café de la más alta calidad. La finca sigue prácticas agrícolas sostenibles para proteger el ecosistema de la región, que es ecológicamente sensible. Clever Córdova Mejía, el productor, se enfoca en cuidar el medio ambiente mientras produce café de especialidad, lo que lo hace aún más valioso para el mercado global.",
+      "image": "https://kimacoffee.com/cdn/shop/files/C9FA6F38-C909-4B10-BA79-B748A03B2B22_900x.png?v=1741639732",
+      "images": [
+        "https://kimacoffee.com/cdn/shop/files/C9FA6F38-C909-4B10-BA79-B748A03B2B22_900x.png?v=1741639732"
+      ],
       "stats": {
         "acidity": 6,
         "body": 8,
         "sweetness": 7,
-        "complexity": 6
+        "complexity": 7
       }
     },
     {
-      "id": "coffee3",
-      "name": "Kenya AA",
-      "roaster": "Blue Bottle Coffee",
-      "roasterId": "business3",
-      "origin": "Kenya",
-      "process": "Washed",
-      "roastLevel": "Light",
-      "price": 22.00,
-      "description": "Complex berry notes with a clean finish. Excellent!",
-      "image": "https://images.unsplash.com/photo-1447933601403-0c6688de566e?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80",
+      "id": "coffee-red-fruits",
+      "name": "Red Fruits",
+      "roaster": "Kima Coffee",
+      "roasterId": "business-kima",
+      "origin": "Colombia",
+      "region": "Quindio",
+      "producer": "Edwin Noreña",
+      "altitude": "1750 msnm",
+      "varietal": "Caturra",
+      "process": "Honey co-fermented",
+      "profile": "Fresas, moras, arándanos y cerezas",
+      "price": 21.9,
+      "description": "Finca Campo Hermoso (1750-1900 m.s.n.m.) ubicada en Circasia, Quindío, Colombia, es una finca de 25 hectáreas conocida por sus cafés experimentales únicos. Liderada por Edwin Noreña, un agricultor de cuarta generación e innovador del café, la finca produce perfiles excepcionales y distintivos. Ha desarrollado una técnica única de co-fermentación inspirada en la industria de la cerveza artesanal. Al agregar compuestos como lúpulo y frutas deshidratadas a los tanques de fermentación, Edwin crea sabores distintivos que complementan el proceso de fermentación natural.",
+      "image": "https://kimacoffee.com/cdn/shop/files/IMG-5851_900x.png?v=1742796767",
+      "images": [
+        "https://kimacoffee.com/cdn/shop/files/IMG-5851_900x.png?v=1742796767"
+      ],
+      "stats": {
+        "acidity": 8,
+        "body": 7,
+        "sweetness": 9,
+        "complexity": 7
+      }
+    },
+    {
+      "id": "coffee-kirunga",
+      "name": "Kirunga",
+      "roaster": "Kima Coffee",
+      "roasterId": "business-kima",
+      "origin": "Ruanda",
+      "region": "Nyamasheke",
+      "producer": "Rwamatamu Coffee",
+      "altitude": "1800-2000 msnm",
+      "varietal": "Red Bourbon",
+      "process": "Natural",
+      "profile": "Grosella roja, arándanos, frambuesa y chocolate",
+      "price": 13.9,
+      "description": "Rwamatamu Coffee fue fundada en 2015 por Laetitia Mukantwaza y Gaston Rutaganda, quienes ya contaban con 13 años de experiencia en el sector cafetalero de Ruanda. La empresa surgió con el objetivo de abordar la pobreza rural mediante salarios justos, empleo estable y el apoyo a las mujeres en el cultivo del café. En sus inicios, Rwamatamu operaba en Nyamasheke, junto al lago Kivu, pero con el tiempo ha expandido sus operaciones, estableciendo dos estaciones de lavado de café en el oeste de Ruanda. Las principales operaciones de Rwamatamu se encuentran en las tierras altas de Ruanda, a altitudes de entre 1600 y 2000 metros, donde las condiciones climáticas y los suelos volcánicos son ideales para el cultivo del café arábico.",
+      "image": "https://kimacoffee.com/cdn/shop/files/A40D5DFF-1058-43A3-9C31-F87C8482EDD8_900x.png?v=1741929637",
+      "images": [
+        "https://kimacoffee.com/cdn/shop/files/A40D5DFF-1058-43A3-9C31-F87C8482EDD8_900x.png?v=1741929637"
+      ],
+      "stats": {
+        "acidity": 8,
+        "body": 7,
+        "sweetness": 8,
+        "complexity": 8
+      }
+    },
+    {
+      "id": "coffee-ijen",
+      "name": "Ijen",
+      "roaster": "Kima Coffee",
+      "roasterId": "business-kima",
+      "origin": "Indonesia",
+      "region": "Bondowoso",
+      "producer": "Unknown",
+      "altitude": "Unknown",
+      "varietal": "Unknown",
+      "process": "Unknown",
+      "profile": "Unknown",
+      "price": 13.9,
+      "description": "Café de especialidad de Indonesia de la región de Bondowoso tostado por Kima Coffee en Málaga",
+      "image": "https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728",
+      "images": [
+        "https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728"
+      ],
+      "stats": {
+        "acidity": 5,
+        "body": 9,
+        "sweetness": 7,
+        "complexity": 7
+      }
+    },
+    {
+      "id": "coffee-kuria",
+      "name": "Kuria",
+      "roaster": "Kima Coffee",
+      "roasterId": "business-kima",
+      "origin": "Kenia",
+      "region": "Migori",
+      "producer": "Misadhi Coffee",
+      "altitude": "1400-1600 msnm",
+      "varietal": "SL28 & SL34",
+      "process": "Natural anaerobic",
+      "profile": "Frutos Rojos, ciruela pasa, dátiles y floral",
+      "price": 13.9,
+      "description": "Misadhi Coffee opera en las regiones de Kisii, Homa Bay, Migori y Nyamira, en Kenia. Colabora con más de 2.000 agricultores, brindándoles capacitación en técnicas agrícolas modernas, suministro de plantas de café de alta calidad y asistencia de un agrónomo certificado. las cerezas de café se recolectan en centros de compra distribuidos por todo el distrito, donde se clasifican y seleccionan antes de ser enviadas a las instalaciones de procesamiento de Misadhi en Rongo, Migori.",
+      "image": "https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728",
+      "images": [
+        "https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728"
+      ],
       "stats": {
         "acidity": 9,
         "body": 6,
@@ -483,43 +759,234 @@
       }
     },
     {
-      "id": "coffee4",
-      "name": "Guatemala Antigua",
-      "roaster": "Stumptown Coffee Roasters",
-      "roasterId": "business4",
-      "origin": "Guatemala",
-      "process": "Washed",
-      "roastLevel": "Medium",
-      "price": 19.00,
-      "description": "Nutty with a subtle sweetness. Very balanced.",
-      "image": "https://images.unsplash.com/photo-1447933601403-0c6688de566e?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80",
+      "id": "coffee-refisa-g1",
+      "name": "Refisa G1",
+      "roaster": "Toma Café",
+      "roasterId": "business-toma",
+      "origin": "Etiopía",
+      "region": "Guji",
+      "producer": "Refisa",
+      "altitude": "2000-2200 msnm",
+      "varietal": "Heirloom",
+      "process": "Natural",
+      "profile": "Frutos rojos, chocolate con leche, bergamota",
+      "price": 15.5,
+      "pricePerKg": 61,
+      "description": "De la región Guji, conocida por producir algunos de los cafés más elegantes de Etiopía. Este natural destaca por sus notas a frutos rojos, chocolate con leche y un toque cítrico de bergamota.",
+      "image": "https://cdn.shopify.com/s/files/1/0561/2172/1001/files/ET_REF_G1_800x.jpg?v=1738771773",
+      "images": [
+        "https://cdn.shopify.com/s/files/1/0561/2172/1001/files/ET_REF_G1_800x.jpg?v=1738771773"
+      ],
       "stats": {
-        "acidity": 5,
+        "acidity": 8,
+        "body": 7,
+        "sweetness": 8,
+        "complexity": 8
+      }
+    },
+    {
+      "id": "coffee-el-silencio",
+      "name": "El Silencio",
+      "roaster": "Toma Café",
+      "roasterId": "business-toma",
+      "origin": "Colombia",
+      "region": "Huila",
+      "producer": "Asociación El Silencio",
+      "altitude": "1700-1900 msnm",
+      "varietal": "Caturra, Colombia",
+      "process": "Lavado",
+      "profile": "Manzana roja, caramelo, chocolate negro",
+      "price": 14.5,
+      "pricePerKg": 55,
+      "description": "El Silencio es un café producido por una asociación de pequeños productores de la región de Huila, Colombia. Destaca por su perfil limpio y equilibrado con notas de manzana roja, caramelo y un final de chocolate negro.",
+      "image": "https://cdn.shopify.com/s/files/1/0561/2172/1001/files/COL_EL_SIL_800x.jpg?v=1740657660",
+      "images": [
+        "https://cdn.shopify.com/s/files/1/0561/2172/1001/files/COL_EL_SIL_800x.jpg?v=1740657660"
+      ],
+      "stats": {
+        "acidity": 7,
         "body": 7,
         "sweetness": 8,
         "complexity": 7
       }
     },
     {
-      "id": "coffee5",
-      "name": "Sumatra Mandheling",
-      "roaster": "The Fix",
-      "roasterId": "business2",
-      "origin": "Indonesia",
-      "process": "Wet-hulled",
-      "roastLevel": "Medium-Dark",
-      "price": 17.00,
-      "description": "Earthy with low acidity. Good for espresso-style drinks.",
-      "image": "https://images.unsplash.com/photo-1447933601403-0c6688de566e?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80",
+      "id": "coffee-benti-nenka",
+      "name": "Benti Nenka",
+      "roaster": "Toma Café",
+      "roasterId": "business-toma",
+      "origin": "Etiopía",
+      "region": "Sidama",
+      "producer": "Benti Nenka",
+      "altitude": "1900-2100 msnm",
+      "varietal": "Heirloom",
+      "process": "Anaeróbico",
+      "profile": "Frutas tropicales, floral, miel",
+      "price": 19.5,
+      "description": "Este excepcional café etíope procesado por el método anaeróbico ofrece un perfil intensamente afrutado con notas de frutas tropicales, flores y un dulzor a miel muy marcado. Un café verdaderamente especial.",
+      "image": "https://cdn.shopify.com/s/files/1/0561/2172/1001/files/ET_BENT_NENK_800x.jpg?v=1738772089",
+      "images": [
+        "https://cdn.shopify.com/s/files/1/0561/2172/1001/files/ET_BENT_NENK_800x.jpg?v=1738772089"
+      ],
       "stats": {
-        "acidity": 4,
+        "acidity": 9,
+        "body": 7,
+        "sweetness": 9,
+        "complexity": 9
+      }
+    },
+    {
+      "id": "coffee-titus-a",
+      "name": "Titus A",
+      "roaster": "Toma Café",
+      "roasterId": "business-toma",
+      "origin": "Ruanda",
+      "region": "Provincia Occidental",
+      "producer": "Cooperativa Titus",
+      "altitude": "1800-2000 msnm",
+      "varietal": "Red Bourbon",
+      "process": "Lavado",
+      "profile": "Frutos rojos, té negro, mandarina",
+      "price": 14.5,
+      "pricePerKg": 56,
+      "description": "Titus A es un excelente ejemplo de los cafés ruandeses de alta calidad. Producido por la cooperativa Titus, destaca por sus brillantes notas a frutos rojos, té negro y un toque cítrico a mandarina.",
+      "image": "https://cdn.shopify.com/s/files/1/0561/2172/1001/files/RUAN_TIT_fbc05869-95f3-47c4-9f73-09f1d290f3c6_800x.jpg?v=1741186794",
+      "images": [
+        "https://cdn.shopify.com/s/files/1/0561/2172/1001/files/RUAN_TIT_fbc05869-95f3-47c4-9f73-09f1d290f3c6_800x.jpg?v=1741186794"
+      ],
+      "stats": {
+        "acidity": 8,
+        "body": 7,
+        "sweetness": 8,
+        "complexity": 8
+      }
+    },
+    {
+      "id": "coffee-dipilto",
+      "name": "Dipilto",
+      "roaster": "Toma Café",
+      "roasterId": "business-toma",
+      "origin": "Nicaragua",
+      "region": "Dipilto, Nueva Segovia",
+      "producer": "Varias fincas",
+      "altitude": "1200-1400 msnm",
+      "varietal": "Catuai, Caturra",
+      "process": "Lavado",
+      "profile": "Chocolate con leche, nueces, caramelo",
+      "price": 14.5,
+      "pricePerKg": 55,
+      "description": "Dipilto es un café nicaragüense con un perfil clásico y equilibrado. Producido en las montañas de Nueva Segovia, ofrece notas a chocolate con leche, nueces y un dulzor a caramelo muy agradable.",
+      "image": "https://cdn.shopify.com/s/files/1/0561/2172/1001/files/NIC_DIP_TERR_800x.jpg?v=1741186743",
+      "images": [
+        "https://cdn.shopify.com/s/files/1/0561/2172/1001/files/NIC_DIP_TERR_800x.jpg?v=1741186743"
+      ],
+      "stats": {
+        "acidity": 6,
+        "body": 8,
+        "sweetness": 7,
+        "complexity": 6
+      }
+    },
+    {
+      "id": "coffee-la-primavera",
+      "name": "La Primavera",
+      "roaster": "Toma Café",
+      "roasterId": "business-toma",
+      "origin": "Colombia",
+      "region": "Nariño",
+      "producer": "Finca La Primavera",
+      "altitude": "1800-2000 msnm",
+      "varietal": "Castillo, Colombia",
+      "process": "Lavado",
+      "profile": "Naranja, panela, avellanas",
+      "price": 13.5,
+      "pricePerKg": 54,
+      "description": "La Primavera es un café colombiano de la región de Nariño con un perfil brillante y dulce. Destaca por sus notas a naranja, panela (azúcar de caña sin refinar) y un final a avellanas muy agradable.",
+      "image": "https://cdn.shopify.com/s/files/1/0561/2172/1001/files/COL_LA_PRIM_4000x.jpg?v=1744293547",
+      "images": [
+        "https://cdn.shopify.com/s/files/1/0561/2172/1001/files/COL_LA_PRIM_4000x.jpg?v=1744293547"
+      ],
+      "stats": {
+        "acidity": 7,
+        "body": 7,
+        "sweetness": 8,
+        "complexity": 7
+      }
+    },
+    {
+      "id": "coffee-gilbas-x",
+      "name": "Gilbas X",
+      "roaster": "Toma Café",
+      "roasterId": "business-toma",
+      "origin": "Indonesia",
+      "region": "Sumatra",
+      "producer": "Gilbas Collective",
+      "altitude": "1300-1500 msnm",
+      "varietal": "Ateng, Gayo",
+      "process": "Natural",
+      "profile": "Chocolate negro, especias, tabaco",
+      "price": 14.5,
+      "pricePerKg": 55,
+      "description": "Gilbas X es un café indonesio con el característico perfil de Sumatra pero con un procesado natural que le aporta mayor dulzor. Destaca por sus notas intensas a chocolate negro, especias y un sutil toque a tabaco.",
+      "image": "https://cdn.shopify.com/s/files/1/0561/2172/1001/files/IND_GAYO_800x.jpg?v=1744193921",
+      "images": [
+        "https://cdn.shopify.com/s/files/1/0561/2172/1001/files/IND_GAYO_800x.jpg?v=1744193921"
+      ],
+      "stats": {
+        "acidity": 5,
         "body": 9,
         "sweetness": 6,
         "complexity": 7
       }
+    },
+    {
+      "id": "coffee-sueno-decaf",
+      "name": "Sueño Decaf",
+      "roaster": "Toma Café",
+      "roasterId": "business-toma",
+      "origin": "México",
+      "region": "Veracruz",
+      "producer": "Varios productores",
+      "altitude": "1200-1400 msnm",
+      "varietal": "Typica, Bourbon",
+      "process": "Descafeinado - Agua de montaña",
+      "profile": "Chocolate, caramelo, nueces",
+      "price": 13.5,
+      "pricePerKg": 51,
+      "description": "Sueño es un descafeinado mexicano procesado mediante el método de agua de montaña, que conserva todo el sabor sin cafeína. Ofrece un perfil equilibrado con notas a chocolate, caramelo y nueces.",
+      "image": "https://cdn.shopify.com/s/files/1/0561/2172/1001/files/MEX_SUE-DECF_800x.jpg?v=1738771836",
+      "images": [
+        "https://cdn.shopify.com/s/files/1/0561/2172/1001/files/MEX_SUE-DECF_800x.jpg?v=1738771836"
+      ],
+      "stats": {
+        "acidity": 6,
+        "body": 7,
+        "sweetness": 7,
+        "complexity": 6
+      }
     }
   ],
   "coffeeSuggestions": [
+    {
+      "id": "coffee-refisa-g1",
+      "type": "coffee",
+      "name": "Refisa G1",
+      "roaster": "Toma Café",
+      "imageUrl": "https://cdn.shopify.com/s/files/1/0561/2172/1001/files/ET_REF_G1_800x.jpg?v=1738771773",
+      "rating": 4.9,
+      "price": 15.5,
+      "description": "Frutos rojos, chocolate con leche, bergamota."
+    },
+    {
+      "id": "coffee-benti-nenka",
+      "type": "coffee",
+      "name": "Benti Nenka (Anaeróbico)",
+      "roaster": "Toma Café",
+      "imageUrl": "https://cdn.shopify.com/s/files/1/0561/2172/1001/files/ET_BENT_NENK_800x.jpg?v=1738772089",
+      "rating": 4.8,
+      "price": 19.5,
+      "description": "Frutas tropicales, floral, miel."
+    },
     {
       "id": "coffee-villa-rosario",
       "type": "coffee",
@@ -527,84 +994,141 @@
       "roaster": "Kima Coffee",
       "imageUrl": "https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728",
       "rating": 4.9,
-      "price": 42.00,
+      "price": 42,
       "description": "Cereza, cola, galletas y caramelo."
     },
     {
-      "id": "coffee1",
+      "id": "coffee-kirunga",
       "type": "coffee",
-      "name": "Ethiopian Yirgacheffe",
-      "roaster": "Blue Bottle Coffee",
-      "imageUrl": "https://images.unsplash.com/photo-1447933601403-0c6688de566e?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80",
-      "rating": 4.8,
-      "price": 18.99,
-      "description": "Bright acidity with floral notes. Very clean cup."
-    },
-    {
-      "id": "coffee2",
-      "type": "coffee",
-      "name": "Colombian Supremo",
-      "roaster": "Stumptown Coffee",
-      "imageUrl": "https://images.unsplash.com/photo-1447933601403-0c6688de566e?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80",
-      "rating": 4.6,
-      "price": 16.99,
-      "description": "Rich chocolate notes with a hint of caramel."
-    },
-    {
-      "id": "coffee3",
-      "type": "coffee",
-      "name": "Kenya AA",
-      "roaster": "Intelligentsia Coffee",
-      "imageUrl": "https://images.unsplash.com/photo-1447933601403-0c6688de566e?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80",
+      "name": "Kirunga",
+      "roaster": "Kima Coffee",
+      "imageUrl": "https://kimacoffee.com/cdn/shop/files/A40D5DFF-1058-43A3-9C31-F87C8482EDD8_900x.png?v=1741929637",
       "rating": 4.9,
-      "price": 22.99,
-      "description": "Complex berry notes with a bright finish."
+      "price": 13.9,
+      "description": "Grosella roja, arándanos, frambuesa y chocolate."
     }
   ],
   "trendingCafes": [
     {
-      "id": "business-cafelab-murcia",
-      "type": "coffee_shop",
+      "id": "toma-cafe-1",
+      "name": "Toma Café 1",
+      "businessId": "business-toma",
+      "avatar": "assets/businesses/toma-logo.jpg",
+      "coverImage": "assets/businesses/toma-1-cover.jpg",
+      "isGoodCafe": true,
+      "isTrending": false,
+      "isBusiness": true,
+      "rating": 4.7,
+      "reviewCount": 122,
+      "neighborhood": "Malasaña",
+      "categories": ["specialty coffee", "café", "breakfast"],
+      "location": "Madrid, Spain"
+    },
+    {
+      "id": "toma-cafe-2",
+      "name": "Toma Café 2",
+      "businessId": "business-toma",
+      "avatar": "assets/businesses/toma-logo.jpg",
+      "coverImage": "assets/businesses/toma-2-cover.jpg",
+      "isGoodCafe": true,
+      "isTrending": false,
+      "isBusiness": true,
+      "rating": 4.5,
+      "reviewCount": 98,
+      "neighborhood": "Almagro",
+      "categories": ["specialty coffee", "café", "breakfast"],
+      "location": "Madrid, Spain"
+    },
+    {
+      "id": "toma-cafe-3",
+      "name": "Toma Café 3 / Proper Sound",
+      "businessId": "business-toma",
+      "avatar": "assets/businesses/toma-logo.jpg",
+      "coverImage": "assets/businesses/toma-3-cover.jpg",
+      "isGoodCafe": true,
+      "isTrending": false,
+      "isBusiness": true,
+      "rating": 4.8,
+      "reviewCount": 156,
+      "neighborhood": "Trafalgar",
+      "categories": ["specialty coffee", "café", "roastery"],
+      "location": "Madrid, Spain"
+    },
+    {
+      "id": "kima-coffee",
+      "name": "Kima Coffee",
+      "businessId": "business-kima",
+      "address": "Calle Example 123, Málaga",
+      "avatar": "assets/businesses/kima-logo.jpg",
+      "coverImage": "https://estaticos-cdn.prensaiberica.es/clip/406688f8-fe13-4e3a-9f0e-05b19c8a97df_16-9-discover-aspect-ratio_default_0.jpg",
+      "isBusiness": true,
+      "rating": 4.9,
+      "reviewCount": 145,
+      "neighborhood": "Centro",
+      "categories": [
+        "specialty coffee",
+        "roaster",
+        "café"
+      ],
+      "priceRange": "$$",
+      "location": "Málaga, Spain"
+    },
+    {
+      "id": "vertigo-calambre",
+      "name": "Vértigo y Calambre",
+      "businessId": "business1",
+      "address": "Calle Example 456, Murcia",
+      "avatar": "assets/businesses/vertigo-logo.jpg",
+      "coverImage": "assets/businesses/vertigo-cover.jpg",
+      "isBusiness": true,
+      "rating": 4.9,
+      "reviewCount": 145,
+      "neighborhood": "Centro",
+      "categories": [
+        "specialty coffee",
+        "roaster",
+        "café"
+      ],
+      "priceRange": "$$",
+      "location": "Murcia, Spain"
+    },
+    {
+      "id": "cafelab-murcia",
       "name": "CaféLab Murcia",
-      "location": "Murcia, Spain",
-      "imageUrl": "assets/businesses/cafelab-murcia-cover.png",
-      "logo": "assets/businesses/cafelab-logo.png",
+      "businessId": "business-cafelab",
+      "address": "Calle Example 123, Murcia",
+      "avatar": "assets/businesses/cafelab-logo.png",
+      "coverImage": "assets/businesses/cafelab-murcia-cover.png",
+      "isBusiness": true,
       "rating": 4.8,
       "reviewCount": 132,
-      "description": "Especialistas en café de especialidad en el corazón de Murcia."
+      "neighborhood": "Centro",
+      "categories": [
+        "specialty coffee",
+        "café",
+        "breakfast"
+      ],
+      "priceRange": "$$",
+      "location": "Murcia, Spain"
     },
     {
-      "id": "business-cafelab-cartagena",
-      "type": "coffee_shop",
+      "id": "cafelab-cartagena",
       "name": "CaféLab Cartagena",
-      "location": "Cartagena, Spain",
-      "imageUrl": "assets/businesses/cafelab-cartagena-cover.png",
-      "logo": "assets/businesses/cafelab-logo.png",
+      "businessId": "business-cafelab",
+      "address": "Calle Example 456, Cartagena",
+      "avatar": "assets/businesses/cafelab-logo.png",
+      "coverImage": "assets/businesses/cafelab-cartagena-cover.png",
+      "isBusiness": true,
       "rating": 4.7,
       "reviewCount": 98,
-      "description": "Tu espacio de café de especialidad en Cartagena."
-    },
-    {
-      "id": "business-kima",
-      "type": "roaster_coffee_shop",
-      "name": "Kima Coffee",
-      "location": "Málaga, Spain",
-      "imageUrl": "https://estaticos-cdn.prensaiberica.es/clip/406688f8-fe13-4e3a-9f0e-05b19c8a97df_16-9-discover-aspect-ratio_default_0.jpg",
-      "logo": "https://cys-kimacoffee.com/wp-content/uploads/2024/10/Diseno-sin-titulo-1024x1024-removebg-preview.png",
-      "rating": 4.9,
-      "reviewCount": 145,
-      "description": "Specialty coffee roaster offering premium coffees from around the world."
-    },
-    {
-      "id": "user2",
-      "type": "cafe",
-      "name": "Vértigo y Calambre",
-      "location": "Murcia, Spain",
-      "imageUrl": "assets/businesses/vertigo-cover.jpg",
-      "logo": "assets/businesses/vertigo-logo.jpg",
-      "rating": 4.9,
-      "reviewCount": 145,
-      "description": "Specialty coffee roaster offering premium coffees from around the world."
+      "neighborhood": "Centro",
+      "categories": [
+        "specialty coffee",
+        "café",
+        "breakfast"
+      ],
+      "priceRange": "$$",
+      "location": "Cartagena, Spain"
     }
   ],
   "sellers": {
@@ -612,7 +1136,97 @@
       {
         "id": "business-kima",
         "name": "Kima Coffee",
-        "avatar": "https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728",
+        "avatar": "assets/businesses/kima-logo.jpg",
+        "location": "Málaga, Spain",
+        "isRoaster": true,
+        "businessAccount": true
+      }
+    ],
+    "coffee-pampojila": [
+      {
+        "id": "business-kima",
+        "name": "Kima Coffee",
+        "avatar": "assets/businesses/kima-logo.jpg",
+        "location": "Málaga, Spain",
+        "isRoaster": true,
+        "businessAccount": true
+      }
+    ],
+    "coffee-campo-hermoso-sidra": [
+      {
+        "id": "business-kima",
+        "name": "Kima Coffee",
+        "avatar": "assets/businesses/kima-logo.jpg",
+        "location": "Málaga, Spain",
+        "isRoaster": true,
+        "businessAccount": true
+      }
+    ],
+    "coffee-campo-hermoso-geisha": [
+      {
+        "id": "business-kima",
+        "name": "Kima Coffee",
+        "avatar": "assets/businesses/kima-logo.jpg",
+        "location": "Málaga, Spain",
+        "isRoaster": true,
+        "businessAccount": true
+      }
+    ],
+    "coffee-watermelon": [
+      {
+        "id": "business-kima",
+        "name": "Kima Coffee",
+        "avatar": "assets/businesses/kima-logo.jpg",
+        "location": "Málaga, Spain",
+        "isRoaster": true,
+        "businessAccount": true
+      }
+    ],
+    "coffee-el-romerillo": [
+      {
+        "id": "business-kima",
+        "name": "Kima Coffee",
+        "avatar": "assets/businesses/kima-logo.jpg",
+        "location": "Málaga, Spain",
+        "isRoaster": true,
+        "businessAccount": true
+      }
+    ],
+    "coffee-red-fruits": [
+      {
+        "id": "business-kima",
+        "name": "Kima Coffee",
+        "avatar": "assets/businesses/kima-logo.jpg",
+        "location": "Málaga, Spain",
+        "isRoaster": true,
+        "businessAccount": true
+      }
+    ],
+    "coffee-kirunga": [
+      {
+        "id": "business-kima",
+        "name": "Kima Coffee",
+        "avatar": "assets/businesses/kima-logo.jpg",
+        "location": "Málaga, Spain",
+        "isRoaster": true,
+        "businessAccount": true
+      }
+    ],
+    "coffee-ijen": [
+      {
+        "id": "business-kima",
+        "name": "Kima Coffee",
+        "avatar": "assets/businesses/kima-logo.jpg",
+        "location": "Málaga, Spain",
+        "isRoaster": true,
+        "businessAccount": true
+      }
+    ],
+    "coffee-kuria": [
+      {
+        "id": "business-kima",
+        "name": "Kima Coffee",
+        "avatar": "assets/businesses/kima-logo.jpg",
         "location": "Málaga, Spain",
         "isRoaster": true,
         "businessAccount": true
@@ -743,15 +1357,224 @@
         "isRoaster": false,
         "businessAccount": false
       }
+    ],
+    "coffee-refisa-g1": [
+      {
+        "id": "business-toma",
+        "name": "Toma Café",
+        "avatar": "assets/businesses/toma-logo.jpg",
+        "location": "Madrid, Spain",
+        "isRoaster": true,
+        "businessAccount": true
+      },
+      {
+        "id": "user2",
+        "name": "Vértigo y Calambre",
+        "avatar": "assets/businesses/vertigo-logo.jpg",
+        "location": "Murcia, Spain",
+        "isRoaster": false,
+        "businessAccount": true
+      }
+    ],
+    "coffee-el-silencio": [
+      {
+        "id": "business-toma",
+        "name": "Toma Café",
+        "avatar": "assets/businesses/toma-logo.jpg",
+        "location": "Madrid, Spain",
+        "isRoaster": true,
+        "businessAccount": true
+      },
+      {
+        "id": "user2",
+        "name": "Vértigo y Calambre",
+        "avatar": "assets/businesses/vertigo-logo.jpg",
+        "location": "Murcia, Spain",
+        "isRoaster": false,
+        "businessAccount": true
+      }
+    ],
+    "coffee-benti-nenka": [
+      {
+        "id": "business-toma",
+        "name": "Toma Café",
+        "avatar": "assets/businesses/toma-logo.jpg",
+        "location": "Madrid, Spain",
+        "isRoaster": true,
+        "businessAccount": true
+      }
+    ],
+    "coffee-titus-a": [
+      {
+        "id": "business-toma",
+        "name": "Toma Café",
+        "avatar": "assets/businesses/toma-logo.jpg",
+        "location": "Madrid, Spain",
+        "isRoaster": true,
+        "businessAccount": true
+      },
+      {
+        "id": "user2",
+        "name": "Vértigo y Calambre",
+        "avatar": "assets/businesses/vertigo-logo.jpg",
+        "location": "Murcia, Spain",
+        "isRoaster": false,
+        "businessAccount": true
+      }
+    ],
+    "coffee-dipilto": [
+      {
+        "id": "business-toma",
+        "name": "Toma Café",
+        "avatar": "assets/businesses/toma-logo.jpg",
+        "location": "Madrid, Spain",
+        "isRoaster": true,
+        "businessAccount": true
+      }
+    ],
+    "coffee-la-primavera": [
+      {
+        "id": "business-toma",
+        "name": "Toma Café",
+        "avatar": "assets/businesses/toma-logo.jpg",
+        "location": "Madrid, Spain",
+        "isRoaster": true,
+        "businessAccount": true
+      },
+      {
+        "id": "user2",
+        "name": "Vértigo y Calambre",
+        "avatar": "assets/businesses/vertigo-logo.jpg",
+        "location": "Murcia, Spain",
+        "isRoaster": false,
+        "businessAccount": true
+      }
+    ],
+    "coffee-gilbas-x": [
+      {
+        "id": "business-toma",
+        "name": "Toma Café",
+        "avatar": "assets/businesses/toma-logo.jpg",
+        "location": "Madrid, Spain",
+        "isRoaster": true,
+        "businessAccount": true
+      }
+    ],
+    "coffee-sueno-decaf": [
+      {
+        "id": "business-toma",
+        "name": "Toma Café",
+        "avatar": "assets/businesses/toma-logo.jpg",
+        "location": "Madrid, Spain",
+        "isRoaster": true,
+        "businessAccount": true
+      },
+      {
+        "id": "user2",
+        "name": "Vértigo y Calambre",
+        "avatar": "assets/businesses/vertigo-logo.jpg",
+        "location": "Murcia, Spain",
+        "isRoaster": false,
+        "businessAccount": true
+      }
     ]
   },
   "coffeeEvents": [
     {
+      "id": "event-user2-1",
+      "coffeeId": "coffee-refisa-g1",
+      "coffeeName": "Refisa G1",
+      "roaster": "Toma Café",
+      "imageUrl": "https://cdn.shopify.com/s/files/1/0561/2172/1001/files/ET_REF_G1_800x.jpg?v=1738771773",
+      "rating": 4.5,
+      "date": "2023-12-12T11:00:00Z",
+      "brewingMethod": "Espresso",
+      "grindSize": "Fine",
+      "amount": 20,
+      "waterVolume": 60,
+      "brewTime": "0:32",
+      "notes": "We're serving this as our feature espresso this week! Beautiful frutos rojos and chocolate notes with elegant bergamota acidity.",
+      "userId": "user2",
+      "userName": "Vértigo y Calambre",
+      "userAvatar": "assets/businesses/vertigo-logo.jpg"
+    },
+    {
+      "id": "event-latte-art-1",
+      "type": "latte_art",
+      "imageUrl": "https://images.unsplash.com/photo-1534805644434-35e208239701",
+      "date": "2023-12-11T10:15:00Z",
+      "notes": "Finally nailed this tulip after weeks of practice! Using our house espresso blend from Toma Café.",
+      "userId": "user2",
+      "userName": "Vértigo y Calambre",
+      "userAvatar": "assets/businesses/vertigo-logo.jpg"
+    },
+    {
+      "id": "event-workshop-1",
+      "type": "workshop",
+      "title": "Espresso Masterclass",
+      "location": "Vértigo y Calambre, Murcia",
+      "imageUrl": "assets/businesses/vertigo-cover.jpg",
+      "date": "2023-11-25T17:00:00Z",
+      "notes": "Just announced our December Espresso Masterclass featuring Toma Café's El Silencio! Limited spots available, sign up on our website.",
+      "userId": "user2",
+      "userName": "Vértigo y Calambre",
+      "userAvatar": "assets/businesses/vertigo-logo.jpg"
+    },
+    {
+      "id": "event-vertigo-toma-1",
+      "coffeeId": "coffee-titus-a",
+      "coffeeName": "Titus A",
+      "roaster": "Toma Café",
+      "imageUrl": "https://cdn.shopify.com/s/files/1/0561/2172/1001/files/RUAN_TIT_fbc05869-95f3-47c4-9f73-09f1d290f3c6_800x.jpg?v=1741186794",
+      "rating": 4.8,
+      "date": "2023-11-20T09:30:00Z",
+      "brewingMethod": "V60",
+      "grindSize": "Medium",
+      "amount": 15,
+      "waterVolume": 250,
+      "brewTime": "2:45",
+      "notes": "Just got our latest shipment from Toma Café! This Ruandan coffee is exceptional through V60 - pronounced frutos rojos and té negro notes.",
+      "userId": "user2",
+      "userName": "Vértigo y Calambre",
+      "userAvatar": "assets/businesses/vertigo-logo.jpg"
+    },
+    {
+      "id": "event-vertigo-toma-2",
+      "coffeeId": "coffee-la-primavera",
+      "coffeeName": "La Primavera",
+      "roaster": "Toma Café",
+      "imageUrl": "https://cdn.shopify.com/s/files/1/0561/2172/1001/files/COL_LA_PRIM_4000x.jpg?v=1744293547",
+      "rating": 4.7,
+      "date": "2023-11-15T14:00:00Z",
+      "brewingMethod": "AeroPress",
+      "grindSize": "Medium-Fine",
+      "amount": 16,
+      "waterVolume": 230,
+      "brewTime": "1:30",
+      "notes": "We're offering this Colombian gem from Toma Café through AeroPress and it's delightful! The naranja and panela notes are so well-balanced.",
+      "userId": "user2",
+      "userName": "Vértigo y Calambre",
+      "userAvatar": "assets/businesses/vertigo-logo.jpg"
+    },
+    {
+      "id": "event-vertigo-new-toma",
+      "type": "coffee_announcement",
+      "coffeeId": "coffee-sueno-decaf",
+      "coffeeName": "Sueño Decaf",
+      "roaster": "Toma Café",
+      "imageUrl": "https://cdn.shopify.com/s/files/1/0561/2172/1001/files/MEX_SUE-DECF_800x.jpg?v=1738771836",
+      "date": "2023-11-10T11:00:00Z",
+      "notes": "We're excited to announce we're now offering Sueño - a delicious decaf option from Toma Café! Finally a decaf that actually tastes amazing.",
+      "userId": "user2",
+      "userName": "Vértigo y Calambre",
+      "userAvatar": "assets/businesses/vertigo-logo.jpg"
+    },
+    {
       "id": "event-user1-private",
-      "coffeeId": "coffee5",
-      "coffeeName": "Sumatra Mandheling",
-      "roaster": "The Fix",
-      "imageUrl": "https://images.unsplash.com/photo-1447933601403-0c6688de566e?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80",
+      "coffeeId": "coffee-ijen",
+      "coffeeName": "Ijen",
+      "roaster": "Kima Coffee",
+      "imageUrl": "https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728",
       "rating": 3,
       "date": "2023-12-17T08:45:00Z",
       "brewingMethod": "AeroPress",
@@ -771,12 +1594,12 @@
     {
       "id": "event-added-to-collection-1",
       "type": "added_to_collection",
-      "coffeeId": "coffee2",
-      "coffeeName": "Colombian Supremo",
-      "roaster": "Stumptown Coffee Roasters",
-      "imageUrl": "https://images.unsplash.com/photo-1447933601403-0c6688de566e?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80",
+      "coffeeId": "coffee-red-fruits",
+      "coffeeName": "Red Fruits",
+      "roaster": "Kima Coffee",
+      "imageUrl": "https://kimacoffee.com/cdn/shop/files/IMG-5851_900x.png?v=1742796767",
       "date": "2023-12-16T14:30:00Z",
-      "notes": "Finally tried this coffee. The chocolate notes are amazing!",
+      "notes": "Finally tried this coffee. The frutos rojos flavor profile is outstanding!",
       "userId": "user1",
       "userName": "Ivo Vilches",
       "userAvatar": "assets/users/ivo-vilches.jpg"
@@ -784,10 +1607,10 @@
     {
       "id": "event-added-to-wishlist-1",
       "type": "added_to_wishlist",
-      "coffeeId": "coffee3",
-      "coffeeName": "Kenya AA",
-      "roaster": "Blue Bottle Coffee",
-      "imageUrl": "https://images.unsplash.com/photo-1447933601403-0c6688de566e?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80",
+      "coffeeId": "coffee-kirunga",
+      "coffeeName": "Kirunga",
+      "roaster": "Kima Coffee",
+      "imageUrl": "https://kimacoffee.com/cdn/shop/files/A40D5DFF-1058-43A3-9C31-F87C8482EDD8_900x.png?v=1741929637",
       "date": "2023-12-15T16:45:00Z",
       "userId": "user3",
       "userName": "Carlos Hernández",
@@ -798,11 +1621,11 @@
       "type": "saved_recipe",
       "recipeId": "recipe1",
       "recipeName": "Perfect V60 Method",
-      "coffeeId": "coffee1",
-      "coffeeName": "Ethiopian Yirgacheffe",
+      "coffeeId": "coffee-villa-rosario",
+      "coffeeName": "Villa Rosario",
       "creatorId": "user7",
       "creatorName": "Sophia Miller",
-      "imageUrl": "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085",
+      "imageUrl": "https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728",
       "date": "2023-12-14T10:15:00Z",
       "userId": "user1",
       "userName": "Ivo Vilches",
@@ -834,7 +1657,7 @@
       "userAvatar": "https://randomuser.me/api/portraits/women/33.jpg"
     },
     {
-      "id": "event-added-to-gear-wishlist-1",
+      "id": "event-added-to-gear_wishlist-1",
       "type": "added_to_gear_wishlist",
       "gearId": "gear1",
       "gearName": "Fellow Stagg EKG",
@@ -866,7 +1689,7 @@
     {
       "id": "event-cafe-visit-1",
       "type": "cafe_visit",
-      "cafeId": "business-cafelab-murcia",
+      "cafeId": "cafelab-murcia",
       "cafeName": "CaféLab Murcia",
       "imageUrl": "assets/businesses/cafelab-murcia-cover.png",
       "date": "2023-12-14T15:00:00Z",
@@ -877,39 +1700,11 @@
       "userAvatar": "assets/users/ivo-vilches.jpg"
     },
     {
-      "id": "event-user2-1",
-      "coffeeId": "coffee1",
-      "coffeeName": "Ethiopian Yirgacheffe",
-      "roaster": "Blue Bottle Coffee",
-      "imageUrl": "https://images.unsplash.com/photo-1447933601403-0c6688de566e?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80",
-      "rating": 4.5,
-      "date": "2023-12-12T11:00:00Z",
-      "brewingMethod": "Espresso",
-      "grindSize": "Fine",
-      "amount": 20,
-      "waterVolume": 60,
-      "brewTime": "0:32",
-      "notes": "We're serving this as our feature espresso this week! Beautiful floral notes with a bright acidity.",
-      "userId": "user2",
-      "userName": "Vértigo y Calambre",
-      "userAvatar": "assets/businesses/vertigo-logo.jpg"
-    },
-    {
-      "id": "event-latte-art-1",
-      "type": "latte_art",
-      "imageUrl": "https://images.unsplash.com/photo-1534805644434-35e208239701",
-      "date": "2023-12-11T10:15:00Z",
-      "notes": "Finally nailed this tulip after weeks of practice! Using our house espresso blend.",
-      "userId": "user2",
-      "userName": "Vértigo y Calambre",
-      "userAvatar": "assets/businesses/vertigo-logo.jpg"
-    },
-    {
       "id": "event-user6-1",
-      "coffeeId": "coffee2",
-      "coffeeName": "Colombian Supremo",
-      "roaster": "Stumptown Coffee Roasters",
-      "imageUrl": "https://images.unsplash.com/photo-1447933601403-0c6688de566e?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80",
+      "coffeeId": "coffee-pampojila",
+      "coffeeName": "Pampojila",
+      "roaster": "Kima Coffee",
+      "imageUrl": "https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728",
       "rating": 4,
       "date": "2023-12-11T08:15:00Z",
       "brewingMethod": "AeroPress",
@@ -917,7 +1712,7 @@
       "amount": 17,
       "waterVolume": 250,
       "brewTime": "1:15",
-      "notes": "Shot this coffee for my latest editorial. The caramel notes come through beautifully in this photo and in the cup!",
+      "notes": "Shot this coffee for my latest editorial. The strawberry notes come through beautifully in this photo and in the cup!",
       "userId": "user6",
       "userName": "David Kim",
       "userAvatar": "https://randomuser.me/api/portraits/men/45.jpg"
@@ -935,10 +1730,10 @@
     },
     {
       "id": "event-user7-1",
-      "coffeeId": "coffee3",
-      "coffeeName": "Kenya AA",
-      "roaster": "Blue Bottle Coffee",
-      "imageUrl": "https://images.unsplash.com/photo-1447933601403-0c6688de566e?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80",
+      "coffeeId": "coffee-el-romerillo",
+      "coffeeName": "El Romerillo",
+      "roaster": "Kima Coffee",
+      "imageUrl": "https://kimacoffee.com/cdn/shop/files/C9FA6F38-C909-4B10-BA79-B748A03B2B22_900x.png?v=1741639732",
       "rating": 5,
       "date": "2023-12-08T16:45:00Z",
       "brewingMethod": "V60",
@@ -946,7 +1741,7 @@
       "amount": 22,
       "waterVolume": 350,
       "brewTime": "3:15",
-      "notes": "Used this in my brewing workshop yesterday. Students were amazed by the complex berry notes!",
+      "notes": "Used this in my brewing workshop yesterday. Students were amazed by the complex apricot and jasmine notes!",
       "userId": "user7",
       "userName": "Sophia Miller",
       "userAvatar": "https://randomuser.me/api/portraits/women/68.jpg"
@@ -954,20 +1749,20 @@
     {
       "id": "event-coffee-roast-1",
       "type": "coffee_roasting",
-      "beanOrigin": "Ethiopia, Yirgacheffe",
+      "beanOrigin": "Colombia, Campo Hermoso",
       "imageUrl": "https://images.unsplash.com/photo-1501747315918-9d0c6a51f822",
       "date": "2023-12-07T14:20:00Z",
-      "notes": "First time roasting this Ethiopian bean. Aimed for a light roast to preserve the floral notes. Very pleased with the results!",
+      "notes": "First time roasting this Colombian bean. Aimed for a medium roast to preserve the fruit notes. Very pleased with the results!",
       "userId": "user1",
       "userName": "Ivo Vilches",
       "userAvatar": "assets/users/ivo-vilches.jpg"
     },
     {
       "id": "event-user8-1",
-      "coffeeId": "coffee4",
-      "coffeeName": "Guatemala Antigua",
-      "roaster": "Stumptown Coffee Roasters",
-      "imageUrl": "https://images.unsplash.com/photo-1447933601403-0c6688de566e?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80",
+      "coffeeId": "coffee-watermelon",
+      "coffeeName": "Watermelon",
+      "roaster": "Kima Coffee",
+      "imageUrl": "https://kimacoffee.com/cdn/shop/files/5E412E7D-61C3-4D30-954B-D0006A650261_900x.png?v=1742942792",
       "rating": 4,
       "date": "2023-12-05T07:30:00Z",
       "brewingMethod": "French Press",
@@ -975,17 +1770,17 @@
       "amount": 30,
       "waterVolume": 500,
       "brewTime": "4:00",
-      "notes": "Just brought this back from my sourcing trip. The nutty notes are more pronounced than last year's harvest.",
+      "notes": "Just brought this back from my sourcing trip. The watermelon notes are more pronounced than I expected.",
       "userId": "user8",
       "userName": "James Wilson",
       "userAvatar": "https://randomuser.me/api/portraits/men/22.jpg"
     },
     {
       "id": "event-user9-1",
-      "coffeeId": "coffee5",
-      "coffeeName": "Sumatra Mandheling",
-      "roaster": "The Fix",
-      "imageUrl": "https://images.unsplash.com/photo-1447933601403-0c6688de566e?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80",
+      "coffeeId": "coffee-kuria",
+      "coffeeName": "Kuria",
+      "roaster": "Kima Coffee",
+      "imageUrl": "https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728",
       "rating": 4.5,
       "date": "2023-12-03T14:20:00Z",
       "brewingMethod": "Moka Pot",
@@ -993,17 +1788,17 @@
       "amount": 15,
       "waterVolume": 200,
       "brewTime": "2:30",
-      "notes": "This pairs amazingly with my chocolate almond biscotti! The earthy notes complement the nuttiness of the biscotti.",
+      "notes": "This pairs amazingly with my chocolate almond biscotti! The red fruits complement the nuttiness of the biscotti.",
       "userId": "user9",
       "userName": "Olivia Taylor",
       "userAvatar": "https://randomuser.me/api/portraits/women/12.jpg"
     },
     {
       "id": "event-user10-1",
-      "coffeeId": "coffee1",
-      "coffeeName": "Ethiopian Yirgacheffe",
-      "roaster": "Blue Bottle Coffee",
-      "imageUrl": "https://images.unsplash.com/photo-1447933601403-0c6688de566e?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80",
+      "coffeeId": "coffee-campo-hermoso-sidra",
+      "coffeeName": "Campo Hermoso",
+      "roaster": "Kima Coffee",
+      "imageUrl": "https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728",
       "rating": 4,
       "date": "2023-11-30T10:00:00Z",
       "brewingMethod": "Cold Brew",
@@ -1011,7 +1806,7 @@
       "amount": 80,
       "waterVolume": 1000,
       "brewTime": "16:00",
-      "notes": "Made a nitro version of this - the floral notes combined with the creamy texture is incredible!",
+      "notes": "Made a nitro version of this - the tropical fruit notes combined with the creamy texture is incredible!",
       "userId": "user10",
       "userName": "Lucas Brown",
       "userAvatar": "https://randomuser.me/api/portraits/men/55.jpg"
@@ -1032,19 +1827,7 @@
       "notes": "We're so excited to introduce our latest micro-lot from Bolivia! This coffee showcases the incredible work of Roger Guzmán.",
       "userId": "business-kima",
       "userName": "Kima Coffee",
-      "userAvatar": "https://cys-kimacoffee.com/wp-content/uploads/2024/10/Diseno-sin-titulo-1024x1024-removebg-preview.png"
-    },
-    {
-      "id": "event-workshop-1",
-      "type": "workshop",
-      "title": "Espresso Masterclass",
-      "location": "Vértigo y Calambre, Murcia",
-      "imageUrl": "assets/businesses/vertigo-cover.jpg",
-      "date": "2023-11-25T17:00:00Z",
-      "notes": "Just announced our December Espresso Masterclass! Limited spots available, sign up on our website.",
-      "userId": "user2",
-      "userName": "Vértigo y Calambre",
-      "userAvatar": "assets/businesses/vertigo-logo.jpg"
+      "userAvatar": "assets/businesses/kima-logo.jpg"
     }
   ],
   "notifications": [
@@ -1057,7 +1840,7 @@
       "targetUserId": "user1",
       "eventId": "event-user1-0",
       "eventType": "coffee_log",
-      "coffeeName": "Ethiopian Yirgacheffe",
+      "coffeeName": "Villa Rosario",
       "date": "2023-12-16T09:15:00Z",
       "read": false
     },
@@ -1070,7 +1853,7 @@
       "targetUserId": "user1",
       "eventId": "event-user1-1",
       "eventType": "coffee_log",
-      "coffeeName": "Colombian Supremo",
+      "coffeeName": "Red Fruits",
       "date": "2023-12-15T14:30:00Z",
       "read": false
     },
@@ -1082,10 +1865,10 @@
       "userAvatar": "https://randomuser.me/api/portraits/women/12.jpg",
       "targetUserId": "user1",
       "recipeId": "recipe-coffee-0-1",
-      "recipeName": "Ethiopian Yirgacheffe V60",
+      "recipeName": "Villa Rosario V60",
       "date": "2023-12-16T11:25:00Z",
       "read": false,
-      "message": "Olivia Taylor saved your recipe for Ethiopian Yirgacheffe V60"
+      "message": "Olivia Taylor saved your recipe for Villa Rosario V60"
     },
     {
       "id": "notification-8",
@@ -1120,12 +1903,12 @@
       "userAvatar": "https://randomuser.me/api/portraits/men/55.jpg",
       "targetUserId": "user1",
       "originalRecipeId": "recipe-coffee-0-1",
-      "originalRecipeName": "Ethiopian Yirgacheffe V60",
+      "originalRecipeName": "Villa Rosario V60",
       "newRecipeId": "recipe-new-1",
-      "newRecipeName": "Lucas's Yirgacheffe Method",
+      "newRecipeName": "Lucas's Villa Rosario Method",
       "date": "2023-12-14T13:15:00Z",
       "read": true,
-      "message": "Lucas Brown created a recipe based on your Ethiopian Yirgacheffe V60"
+      "message": "Lucas Brown created a recipe based on your Villa Rosario V60"
     },
     {
       "id": "notification-3",
@@ -1136,7 +1919,7 @@
       "targetUserId": "user1",
       "eventId": "event-user1-2",
       "eventType": "coffee_log",
-      "coffeeName": "Kenya AA",
+      "coffeeName": "Kirunga",
       "date": "2023-12-15T08:45:00Z",
       "read": true
     },
@@ -1175,7 +1958,7 @@
       "targetUserId": "user1",
       "eventId": "event-user1-0",
       "eventType": "coffee_log",
-      "coffeeName": "Ethiopian Yirgacheffe",
+      "coffeeName": "Villa Rosario",
       "comment": "I love this coffee too! Have you tried it as espresso?",
       "date": "2023-12-12T19:05:00Z",
       "read": true
@@ -1185,9 +1968,9 @@
     {
       "id": "recipe1",
       "name": "Perfect V60 Method",
-      "coffeeId": "coffee1",
-      "coffeeName": "Ethiopian Yirgacheffe",
-      "roaster": "Blue Bottle Coffee",
+      "coffeeId": "coffee-villa-rosario",
+      "coffeeName": "Villa Rosario",
+      "roaster": "Kima Coffee",
       "creatorId": "user7",
       "creatorName": "Sophia Miller",
       "creatorAvatar": "https://randomuser.me/api/portraits/women/68.jpg",
@@ -1205,7 +1988,7 @@
         "Final pour to 350g total",
         "Let drawdown complete (around 3:15 total)"
       ],
-      "notes": "This recipe brings out the floral notes beautifully",
+      "notes": "This recipe brings out the cherry notes beautifully",
       "likes": 124,
       "saves": 87,
       "savedUsers": [
@@ -1225,7 +2008,7 @@
           "avatar": "https://randomuser.me/api/portraits/women/12.jpg"
         }
       ],
-      "imageUrl": "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085",
+      "imageUrl": "https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728",
       "date": "2023-11-20T14:30:00Z"
     },
     {
@@ -1258,7 +2041,7 @@
         {
           "id": "user2",
           "name": "Vértigo y Calambre",
-          "avatar": "assets/businesses/vertigo-logo.jpg" 
+          "avatar": "assets/businesses/vertigo-logo.jpg"
         },
         {
           "id": "user1",
@@ -1277,9 +2060,9 @@
     {
       "id": "recipe3",
       "name": "Cold Brew Concentrate",
-      "coffeeId": "coffee5",
-      "coffeeName": "Sumatra Mandheling",
-      "roaster": "The Fix",
+      "coffeeId": "coffee-kuria",
+      "coffeeName": "Kuria",
+      "roaster": "Kima Coffee",
       "creatorId": "user10",
       "creatorName": "Lucas Brown",
       "creatorAvatar": "https://randomuser.me/api/portraits/men/55.jpg",
@@ -1298,7 +2081,7 @@
         "Filter through paper filter",
         "Dilute 1:1 with water when serving"
       ],
-      "notes": "This coffee's low acidity and full body make it perfect for cold brew",
+      "notes": "This coffee's vibrant red fruit notes make it perfect for cold brew",
       "likes": 156,
       "saves": 110,
       "savedUsers": [
@@ -1318,7 +2101,7 @@
           "avatar": "assets/users/carlos-hernandez.jpg"
         }
       ],
-      "imageUrl": "https://images.unsplash.com/photo-1517701604599-bb29b565090c",
+      "imageUrl": "https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728",
       "date": "2023-11-28T12:00:00Z"
     }
   ],
@@ -1340,7 +2123,10 @@
       "rating": 4.8,
       "reviewCount": 1245,
       "imageUrl": "https://images.unsplash.com/photo-1564890369478-c89ca6d9cde9",
-      "relatedGear": ["gear4", "gear5"]
+      "relatedGear": [
+        "gear4",
+        "gear5"
+      ]
     },
     {
       "id": "gear2",
@@ -1359,7 +2145,9 @@
       "rating": 4.7,
       "reviewCount": 3200,
       "imageUrl": "https://images.unsplash.com/photo-1606855637090-c6b478ca2635",
-      "relatedGear": ["gear3"]
+      "relatedGear": [
+        "gear3"
+      ]
     },
     {
       "id": "gear3",
@@ -1378,7 +2166,9 @@
       "rating": 4.9,
       "reviewCount": 850,
       "imageUrl": "https://images.unsplash.com/photo-1575441347544-11725ca18b26",
-      "relatedGear": ["gear2"]
+      "relatedGear": [
+        "gear2"
+      ]
     },
     {
       "id": "gear4",
@@ -1397,7 +2187,10 @@
       "rating": 4.8,
       "reviewCount": 4500,
       "imageUrl": "https://images.unsplash.com/photo-1544233726-9f1d2b27be8b",
-      "relatedGear": ["gear1", "gear5"]
+      "relatedGear": [
+        "gear1",
+        "gear5"
+      ]
     },
     {
       "id": "gear5",
@@ -1416,7 +2209,10 @@
       "rating": 4.9,
       "reviewCount": 780,
       "imageUrl": "https://images.unsplash.com/photo-1575441347548-0e745b37a5b8",
-      "relatedGear": ["gear1", "gear4"]
+      "relatedGear": [
+        "gear1",
+        "gear4"
+      ]
     },
     {
       "id": "gear6",
@@ -1435,7 +2231,10 @@
       "rating": 4.8,
       "reviewCount": 8700,
       "imageUrl": "https://images.unsplash.com/photo-1544233726-31d3ca8ce470",
-      "relatedGear": ["gear2", "gear5"]
+      "relatedGear": [
+        "gear2",
+        "gear5"
+      ]
     }
   ]
 }

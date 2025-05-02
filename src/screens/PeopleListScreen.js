@@ -69,7 +69,9 @@ const PeopleListScreen = ({ navigation }) => {
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color="#000000" />
+          <Text>
+            <Ionicons name="arrow-back" size={24} color="#000000" />
+          </Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>People</Text>
         <View style={{ width: 40 }} /> {/* Placeholder for balance */}
@@ -109,15 +111,16 @@ const styles = StyleSheet.create({
   },
   usersList: {
     padding: 0,
+    paddingVertical: 8,
   },
   userCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    // borderBottomWidth: 1,
+    // borderBottomColor: '#E0E0E0',
     padding: 12,
+    paddingVertical: 8,
   },
   userAvatar: {
     width: 60,

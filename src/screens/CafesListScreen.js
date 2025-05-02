@@ -354,7 +354,7 @@ const CafesListScreen = ({ navigation }) => {
         <View style={styles.cafeContent}>
           <View style={styles.cafeHeader}>
             <AppImage 
-              source={item.logo} 
+              source={item.avatar || item.logo} 
               style={styles.cafeLogo}
               resizeMode="cover"
             />

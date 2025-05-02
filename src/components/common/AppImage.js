@@ -4,18 +4,23 @@ import { Ionicons } from '@expo/vector-icons';
 
 // Local asset mapping
 const localAssets = {
-  // Vértigo y Calambre
+  // Users
+  'assets/users/ivo-vilches.jpg': require('../../../assets/users/ivo-vilches.jpg'),
+  'assets/users/carlos-hernandez.jpg': require('../../../assets/users/carlos-hernandez.jpg'),
+  // Vértigo
   'assets/businesses/vertigo-logo.jpg': require('../../../assets/businesses/vertigo-logo.jpg'),
   'assets/businesses/vertigo-cover.jpg': require('../../../assets/businesses/vertigo-cover.jpg'),
-  
   // CaféLab
   'assets/businesses/cafelab-logo.png': require('../../../assets/businesses/cafelab-logo.png'),
   'assets/businesses/cafelab-murcia-cover.png': require('../../../assets/businesses/cafelab-murcia-cover.png'),
   'assets/businesses/cafelab-cartagena-cover.png': require('../../../assets/businesses/cafelab-cartagena-cover.png'),
-
-  // User avatars
-  'assets/users/carlos-hernandez.jpg': require('../../../assets/users/carlos-hernandez.jpg'),
-  'assets/users/ivo-vilches.jpg': require('../../../assets/users/ivo-vilches.jpg')
+  // Toma Café
+  'assets/businesses/toma-logo.jpg': require('../../../assets/businesses/toma-logo.jpg'),
+  'assets/businesses/toma-1-cover.jpg': require('../../../assets/businesses/toma-1-cover.jpg'),
+  'assets/businesses/toma-2-cover.jpg': require('../../../assets/businesses/toma-2-cover.jpg'),
+  'assets/businesses/toma-3-cover.jpg': require('../../../assets/businesses/toma-3-cover.jpg'),
+  // Kima Coffee
+  'assets/businesses/kima-logo.jpg': require('../../../assets/businesses/kima-logo.jpg'),
 };
 
 const AppImage = ({ 
@@ -83,6 +88,9 @@ const AppImage = ({
   // Handle different source types
   let imageSource;
   
+  // Add debugging for the current source
+  console.log('[AppImage] Loading image source:', typeof source === 'string' ? source : (typeof source === 'number' ? 'require() asset' : JSON.stringify(source)));
+  
   // Handle local assets (require)
   if (typeof source === 'number') {
     imageSource = source;
@@ -92,6 +100,22 @@ const AppImage = ({
     // First check if the exact path exists in our mapping
     if (localAssets[source]) {
       imageSource = localAssets[source];
+      console.log('[AppImage] Found local asset match:', source);
+    }
+    // Handle Instagram URLs - use local Toma logo instead as Instagram blocks direct embedding
+    else if (source && (
+      source.includes('instagram.') || 
+      source.includes('fbcdn.net') || 
+      source.includes('fna.fbcdn.net') ||
+      source.includes('stp=dst-jpg'))) {
+      console.log('[AppImage] Instagram URL detected, using local Toma logo');
+      // For Toma Café, use our local asset
+      if (source.includes('1442763115778809')) {
+        imageSource = localAssets['assets/businesses/toma-logo.jpg'];
+      } else {
+        // For other Instagram URLs, use direct URI approach
+        imageSource = { uri: source };
+      }
     }
     // Then check if it's a path that might be a typo or variation
     else if (source.startsWith('assets/') || source.startsWith('./assets/')) {
@@ -102,6 +126,7 @@ const AppImage = ({
       
       if (matchingKey) {
         imageSource = localAssets[matchingKey];
+        console.log('[AppImage] Found partial match for local asset:', source, '=>', matchingKey);
       } else {
         console.log('[AppImage] Local asset not found:', source);
         // Show a more visible error for easier debugging
@@ -114,6 +139,7 @@ const AppImage = ({
     } else {
       // For URLs and other paths
       imageSource = { uri: source };
+      console.log('[AppImage] Using URL:', source);
     }
   } 
   // If source is already shaped like { uri: 'path' }
@@ -164,6 +190,7 @@ const styles = StyleSheet.create({
   image: {
     width: '100%',
     height: '100%',
+    alignSelf: 'center',
   },
   placeholder: {
     backgroundColor: '#f5f5f5',
