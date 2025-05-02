@@ -212,10 +212,8 @@ export default function BottomTabNavigator() {
             tabBarBadge: unreadCount > 0 ? unreadCount : null,
             tabBarBadgeStyle: {
               backgroundColor: '#000000',
-              marginRight: -2,
+              marginRight: -4,
               marginTop: 4,
-              right: -8,
-              transform: [{ translateX: 8 }],
             },
           }}
           listeners={{
