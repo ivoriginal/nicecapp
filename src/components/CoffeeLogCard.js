@@ -1,9 +1,13 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ActionSheetIOS, Share, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AppImage from './common/AppImage';
 
-const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress }) => {
+const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress, onOptionsPress, onLikePress, currentUserId }) => {
+  // Local state to handle UI updates before backend sync
+  const [isLiked, setIsLiked] = useState(event.isLiked || false);
+  const [likeCount, setLikeCount] = useState(event.likes || 0);
+
   // Ensure we have a valid event object
   if (!event) {
     return null;
@@ -29,6 +33,74 @@ const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress }) => 
                            event.userName.includes('Café') ||
                            event.userId?.startsWith('business-');
 
+  // Check if this is the current user's post
+  const isCurrentUserPost = event.userId === currentUserId;
+
+  // Handle options menu press
+  const handleOptionsPress = () => {
+    // Different options based on if it's the current user's post
+    const options = isCurrentUserPost 
+      ? ['Delete Post', 'Edit Post', 'Share this post', 'Cancel']
+      : ['Unfollow User', 'Report', 'Share this post', 'Cancel'];
+    
+    const destructiveButtonIndex = isCurrentUserPost ? 0 : null;
+    const cancelButtonIndex = isCurrentUserPost ? 3 : 3;
+    
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options,
+          destructiveButtonIndex,
+          cancelButtonIndex,
+        },
+        (buttonIndex) => {
+          if (isCurrentUserPost && buttonIndex === 0) {
+            // Delete post
+            Alert.alert("Delete Post", "Are you sure you want to delete this post?", [
+              { text: "Cancel", style: "cancel" },
+              { text: "Delete", style: "destructive", onPress: () => onOptionsPress && onOptionsPress(event, 'delete') }
+            ]);
+          } else if (buttonIndex === options.indexOf('Share this post')) {
+            handleShare();
+          } else if (!isCurrentUserPost && buttonIndex === options.indexOf('Unfollow User')) {
+            onOptionsPress && onOptionsPress(event, 'unfollowUser');
+          }
+        }
+      );
+    } else {
+      // For non-iOS platforms, we would implement a custom ActionSheet component
+      // For now, we'll just trigger the options callback with the event
+      onOptionsPress && onOptionsPress(event, isCurrentUserPost ? 'options' : 'options');
+    }
+  };
+
+  // Handle share button press
+  const handleShare = async () => {
+    try {
+      const coffeeDetails = event.coffeeName 
+        ? `Check out this coffee: ${event.coffeeName} from ${event.roaster || event.roasterName || 'Unknown Roaster'}`
+        : 'Check out this post from Nice Coffee App!';
+        
+      await Share.share({
+        message: coffeeDetails,
+        // url: event.imageUrl, // App would have a shareable link in production
+      });
+    } catch (error) {
+      console.error('Error sharing post:', error);
+    }
+  };
+
+  // Handle like button press
+  const handleLikePress = () => {
+    // Update local UI state immediately
+    const newIsLiked = !isLiked;
+    setIsLiked(newIsLiked);
+    setLikeCount(prevCount => newIsLiked ? prevCount + 1 : Math.max(0, prevCount - 1));
+    
+    // Call the parent component's handler
+    onLikePress && onLikePress(event.id, newIsLiked);
+  };
+
   // Get event type icon
   const getEventTypeIcon = () => {
     const type = event.type || 'coffee_log';
@@ -44,9 +116,265 @@ const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress }) => 
         return 'flame';
       case 'workshop':
         return 'school';
+      case 'added_to_collection':
+        return 'bookmark';
+      case 'added_to_wishlist':
+        return 'heart';
+      case 'saved_recipe':
+        return 'newspaper';
+      case 'followed_user':
+        return 'person-add';
+      case 'created_recipe':
+        return 'create';
+      case 'added_to_gear_wishlist':
+        return 'cart';
       default:
         return 'cafe';
     }
+  };
+
+  // Get event type label based on the event type
+  const getEventTypeLabel = () => {
+    const type = event.type || 'coffee_log';
+    
+    switch (type) {
+      case 'coffee_log':
+        return 'brewed';
+      case 'cafe_visit':
+        return 'visited';
+      case 'latte_art':
+        return 'created latte art';
+      case 'gear_purchase':
+        return 'purchased';
+      case 'coffee_roasting':
+        return 'roasted';
+      case 'workshop':
+        return 'hosted';
+      case 'added_to_collection':
+        return 'added to collection';
+      case 'added_to_wishlist':
+        return 'added to wishlist';
+      case 'saved_recipe':
+        return 'saved recipe';
+      case 'followed_user':
+        return 'followed';
+      case 'created_recipe':
+        return 'created recipe';
+      case 'added_to_gear_wishlist':
+        return 'added to gear wishlist';
+      default:
+        return 'brewed';
+    }
+  };
+
+  // Render recipe creator info
+  const renderRecipeCreatorInfo = () => {
+    // If the recipe is part of a regular brew log
+    if (!event.type || event.type === 'coffee_log') {
+      // Check if recipe has a different creator than the logger
+      if (event.recipeCreatorId && event.recipeCreatorId !== event.userId) {
+        if (event.recipeCreatorDeleted) {
+          return (
+            <View style={styles.recipeCreatorRow}>
+              <View style={styles.creatorAvatarContainer}>
+                <Ionicons name="person" size={16} color="#666666" style={styles.creatorAvatar} />
+              </View>
+              <Text style={styles.recipeCreatorText}>
+                Recipe that was deleted
+              </Text>
+            </View>
+          );
+        }
+        return (
+          <View style={styles.recipeCreatorRow}>
+            <AppImage 
+              source={event.recipeCreatorAvatar}
+              style={styles.creatorAvatar}
+              placeholder="person"
+            />
+            <Text style={styles.recipeCreatorText}>
+              Recipe by {event.recipeCreatorName || 'Unknown'}
+            </Text>
+          </View>
+        );
+      }
+      
+      // If the recipe is based on another recipe
+      if (event.basedOnRecipeBy) {
+        if (event.basedOnRecipeDeleted) {
+          return (
+            <View style={styles.recipeCreatorRow}>
+              <View style={styles.creatorAvatarContainer}>
+                <Ionicons name="git-branch" size={16} color="#666666" style={styles.creatorAvatar} />
+              </View>
+              <Text style={styles.recipeCreatorText}>
+                Based on a recipe that was deleted
+              </Text>
+            </View>
+          );
+        }
+        return (
+          <View style={styles.recipeCreatorRow}>
+            <AppImage 
+              source={event.basedOnRecipeAvatar}
+              style={styles.creatorAvatar}
+              placeholder="person"
+            />
+            <Text style={styles.recipeCreatorText}>
+              Based on a recipe by {event.basedOnRecipeBy}
+            </Text>
+          </View>
+        );
+      }
+
+      return (
+        <View style={styles.recipeCreatorRow}>
+          <AppImage 
+            source={event.userAvatar}
+            style={styles.creatorAvatar}
+            placeholder="person"
+          />
+          <Text style={styles.recipeCreatorText}>
+            {isCurrentUserPost ? 'Your recipe' : `${event.userName}'s recipe`}
+          </Text>
+        </View>
+      );
+    }
+    
+    // For specific recipe events like created_recipe or saved_recipe
+    if (event.type === 'created_recipe' || event.type === 'saved_recipe') {
+      const creatorName = event.creatorName || 'Unknown';
+      
+      if (event.basedOnRecipeBy) {
+        if (event.basedOnRecipeDeleted) {
+          return (
+            <View style={styles.recipeCreatorRow}>
+              <View style={styles.creatorAvatarContainer}>
+                <Ionicons name="git-branch" size={16} color="#666666" style={styles.creatorAvatar} />
+              </View>
+              <Text style={styles.recipeCreatorText}>
+                Based on a recipe that was deleted
+              </Text>
+            </View>
+          );
+        }
+        return (
+          <View style={styles.recipeCreatorRow}>
+            <AppImage 
+              source={event.basedOnRecipeAvatar}
+              style={styles.creatorAvatar}
+              placeholder="person"
+            />
+            <Text style={styles.recipeCreatorText}>
+              Based on a recipe by {event.basedOnRecipeBy}
+            </Text>
+          </View>
+        );
+      }
+      
+      if (event.type === 'saved_recipe' && event.creatorId !== event.userId) {
+        if (event.creatorDeleted) {
+          return (
+            <View style={styles.recipeCreatorRow}>
+              <View style={styles.creatorAvatarContainer}>
+                <Ionicons name="person" size={16} color="#666666" style={styles.creatorAvatar} />
+              </View>
+              <Text style={styles.recipeCreatorText}>
+                Recipe by a deleted user
+              </Text>
+            </View>
+          );
+        }
+        return (
+          <View style={styles.recipeCreatorRow}>
+            <AppImage 
+              source={event.creatorAvatar}
+              style={styles.creatorAvatar}
+              placeholder="person"
+            />
+            <Text style={styles.recipeCreatorText}>
+              Recipe by {creatorName}
+            </Text>
+          </View>
+        );
+      }
+
+      // Default case - creator is the same as logger
+      return (
+        <View style={styles.recipeCreatorRow}>
+          <AppImage 
+            source={event.userAvatar}
+            style={styles.creatorAvatar}
+            placeholder="person"
+          />
+          <Text style={styles.recipeCreatorText}>
+            {isCurrentUserPost ? 'Your recipe' : `${event.userName}'s recipe`}
+          </Text>
+        </View>
+      );
+    }
+    
+    return null;
+  };
+
+  // Render saved count with avatars
+  const renderSavedCount = () => {
+    const savedCount = event.savedCount || event.saves || 0;
+    const savedUsers = event.savedUsers || [];
+    
+    if (savedCount === 0) {
+      return null;
+    }
+    
+    return (
+      <View style={styles.savedCountContainer}>
+        <View style={styles.savedAvatarsContainer}>
+          {savedUsers.slice(0, 3).map((user, index) => (
+            <AppImage 
+              key={`saved-user-${index}`}
+              source={user.avatar}
+              style={[
+                styles.savedUserAvatar,
+                { marginLeft: index > 0 ? -8 : 0 }
+              ]}
+              placeholder="person"
+            />
+          ))}
+        </View>
+        <Text style={styles.savedCountText}>
+          {savedCount} {savedCount === 1 ? 'save' : 'saves'}
+        </Text>
+      </View>
+    );
+  };
+
+  // Render rating stars
+  const renderRating = () => {
+    if (!event.rating && event.rating !== 0) {
+      return null;
+    }
+    
+    const rating = Math.min(Math.max(0, event.rating), 5);
+    const stars = [];
+    
+    for (let i = 1; i <= 5; i++) {
+      const iconName = i <= rating ? "star" : "star-outline";
+      stars.push(
+        <Ionicons 
+          key={`star-${i}`} 
+          name={iconName} 
+          size={16} 
+          color="#FFC107" 
+          style={{ marginRight: 2 }}
+        />
+      );
+    }
+    
+    return (
+      <View style={styles.ratingContainer}>
+        {stars}
+      </View>
+    );
   };
 
   // Render different event types
@@ -56,114 +384,195 @@ const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress }) => 
     // Default coffee log - has coffeeId, coffeeName and no explicit type
     if (!type || type === 'coffee_log' || (!event.type && event.coffeeId && event.coffeeName)) {
       return (
-        <>
-          {/* Coffee image and details */}
-          <TouchableOpacity 
-            style={styles.coffeeContainer}
-            onPress={() => onCoffeePress && onCoffeePress(event)}
-            activeOpacity={0.7}
-          >
-            <View style={styles.coffeeImageContainer}>
-              {event.imageUrl ? (
-                <AppImage source={event.imageUrl} style={styles.coffeeImage} placeholder="coffee" />
-              ) : (
-                <View style={styles.placeholderImage}>
-                  <Ionicons name="cafe" size={24} color="#666" />
-                </View>
-              )}
-            </View>
-            <View style={styles.coffeeInfo}>
-              <Text style={styles.coffeeName}>{event.coffeeName || 'Unknown Coffee'}</Text>
-              <Text style={styles.roasterName}>{event.roaster || event.roasterName || 'Unknown Roaster'}</Text>
-            </View>
-          </TouchableOpacity>
+        <View style={styles.contentContainer}>
+          {/* Combined container for coffee and recipe */}
+          <View style={styles.combinedContainer}>
+            {/* Coffee image and details */}
+            <TouchableOpacity 
+              style={styles.coffeeContainer}
+              onPress={() => onCoffeePress && onCoffeePress(event)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.coffeeImageContainer}>
+                {event.imageUrl ? (
+                  <AppImage source={event.imageUrl} style={styles.coffeeImage} placeholder="coffee" />
+                ) : (
+                  <View style={styles.placeholderImage}>
+                    <Ionicons name="cafe" size={24} color="#666" />
+                  </View>
+                )}
+              </View>
+              <View style={styles.coffeeInfo}>
+                <Text style={styles.coffeeName}>{event.coffeeName || 'Unknown Coffee'}</Text>
+                <Text style={styles.roasterName}>{event.roaster || event.roasterName || 'Unknown Roaster'}</Text>
+              </View>
+            </TouchableOpacity>
 
-          {/* Recipe details - now clickable */}
-          <TouchableOpacity 
-            style={styles.recipeContainer}
-            onPress={() => onRecipePress && onRecipePress(event)}
-            activeOpacity={0.7}
-          >
-            <View style={styles.recipeHeader}>
-              <View style={styles.methodContainer}>
-                <Ionicons name="cafe" size={20} color="#000000" />
-                <Text style={styles.methodText}>{event.method || event.brewingMethod || 'Unknown Method'}</Text>
+            {/* Recipe details - now clickable */}
+            <TouchableOpacity 
+              style={styles.recipeContainer}
+              onPress={() => onRecipePress && onRecipePress(event)}
+              activeOpacity={0.7}
+            >
+              {/* Recipe creator info - moved before method */}
+              {renderRecipeCreatorInfo()}
+              
+              <View style={styles.recipeHeader}>
+                <View style={styles.methodContainer}>
+                  <Ionicons name="cafe" size={20} color="#000000" />
+                  <Text style={styles.methodText}>{event.method || event.brewingMethod || 'Unknown Method'}</Text>
+                </View>
               </View>
-              <Ionicons name="chevron-forward" size={20} color="#666666" />
-            </View>
-            <View style={styles.recipeDetails}>
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Coffee</Text>
-                <Text style={styles.detailValue}>{event.amount || '18'}g</Text>
+              
+              <View style={styles.recipeDetails}>
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Coffee</Text>
+                  <Text style={styles.detailValue}>{event.amount || '18'}g</Text>
+                </View>
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Grind Size</Text>
+                  <Text style={styles.detailValue}>{event.grindSize || 'Medium'}</Text>
+                </View>
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Water</Text>
+                  <Text style={styles.detailValue}>{event.waterVolume || '300'}ml</Text>
+                </View>
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Brew Time</Text>
+                  <Text style={styles.detailValue}>{event.brewTime || '3:30'}</Text>
+                </View>
               </View>
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Grind Size</Text>
-                <Text style={styles.detailValue}>{event.grindSize || 'Medium'}</Text>
-              </View>
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Water</Text>
-                <Text style={styles.detailValue}>{event.waterVolume || '300'}ml</Text>
-              </View>
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Brew Time</Text>
-                <Text style={styles.detailValue}>{event.brewTime || '3:30'}</Text>
-              </View>
-            </View>
+
+              {/* Saved count with avatars */}
+              {renderSavedCount()}
+            </TouchableOpacity>
+          </View>
+          
+          {/* Notes and rating outside the recipe container */}
+          <View style={styles.notesContainer}>
+            {renderRating()}
             {event.notes && (
-              <Text style={styles.notesText} numberOfLines={2}>
+              <Text style={styles.notesText} numberOfLines={3}>
                 {event.notes}
               </Text>
             )}
-          </TouchableOpacity>
-        </>
+          </View>
+        </View>
       );
     }
     
     // Other event types
     return (
-      <View style={styles.genericEventContainer}>
-        <View style={styles.eventImageContainer}>
-          {event.imageUrl ? (
-            <AppImage source={event.imageUrl} style={styles.eventImage} placeholder={getEventTypeIcon()} />
-          ) : (
-            <View style={styles.placeholderImage}>
-              <Ionicons name={getEventTypeIcon()} size={24} color="#666" />
-            </View>
-          )}
+      <View style={styles.contentContainer}>
+        <View style={styles.genericEventContainer}>
+          <View style={styles.eventImageContainer}>
+            {event.imageUrl ? (
+              <AppImage source={event.imageUrl} style={styles.eventImage} placeholder={getEventTypeIcon()} />
+            ) : (
+              <View style={styles.placeholderImage}>
+                <Ionicons name={getEventTypeIcon()} size={24} color="#666" />
+              </View>
+            )}
+          </View>
+          
+          <View style={styles.eventContent}>
+            {event.title && <Text style={styles.eventTitle}>{event.title}</Text>}
+            {event.location && (
+              <View style={styles.locationContainer}>
+                <Ionicons name="location" size={16} color="#666666" />
+                <Text style={styles.locationText}>{event.location}</Text>
+              </View>
+            )}
+            {event.gearName && (
+              <View style={styles.genericInfoRow}>
+                <Ionicons name="hardware-chip" size={16} color="#666666" />
+                <Text style={styles.genericInfoText}>{event.gearName}</Text>
+              </View>
+            )}
+            {event.cafeId && event.cafeName && (
+              <View style={styles.genericInfoRow}>
+                <Ionicons name="storefront" size={16} color="#666666" />
+                <Text style={styles.genericInfoText}>{event.cafeName}</Text>
+              </View>
+            )}
+            {event.beanOrigin && (
+              <View style={styles.genericInfoRow}>
+                <Ionicons name="globe" size={16} color="#666666" />
+                <Text style={styles.genericInfoText}>{event.beanOrigin}</Text>
+              </View>
+            )}
+            {event.recipeName && (
+              <View style={styles.genericInfoRow}>
+                <Ionicons name="document-text" size={16} color="#666666" />
+                <Text style={styles.genericInfoText}>{event.recipeName}</Text>
+              </View>
+            )}
+            {event.followedUserName && (
+              <View style={styles.genericInfoRow}>
+                <Ionicons name="person" size={16} color="#666666" />
+                <Text style={styles.genericInfoText}>{event.followedUserName}</Text>
+              </View>
+            )}
+            {event.coffeeName && type !== 'coffee_log' && (
+              <View style={styles.genericInfoRow}>
+                <Ionicons name="cafe" size={16} color="#666666" />
+                <Text style={styles.genericInfoText}>{event.coffeeName}</Text>
+              </View>
+            )}
+            
+            {/* Recipe creator info for created_recipe or saved_recipe events */}
+            {(type === 'created_recipe' || type === 'saved_recipe') && renderRecipeCreatorInfo()}
+            
+            {/* Saved count with avatars */}
+            {renderSavedCount()}
+            
+            {event.notes && (
+              <Text style={styles.notesText} numberOfLines={3}>
+                {event.notes}
+              </Text>
+            )}
+          </View>
         </View>
-        
-        <View style={styles.eventContent}>
-          {event.title && <Text style={styles.eventTitle}>{event.title}</Text>}
-          {event.location && (
-            <View style={styles.locationContainer}>
-              <Ionicons name="location" size={16} color="#666666" />
-              <Text style={styles.locationText}>{event.location}</Text>
-            </View>
-          )}
-          {event.gearName && (
-            <View style={styles.genericInfoRow}>
-              <Ionicons name="hardware-chip" size={16} color="#666666" />
-              <Text style={styles.genericInfoText}>{event.gearName}</Text>
-            </View>
-          )}
-          {event.cafeId && event.cafeName && (
-            <View style={styles.genericInfoRow}>
-              <Ionicons name="storefront" size={16} color="#666666" />
-              <Text style={styles.genericInfoText}>{event.cafeName}</Text>
-            </View>
-          )}
-          {event.beanOrigin && (
-            <View style={styles.genericInfoRow}>
-              <Ionicons name="globe" size={16} color="#666666" />
-              <Text style={styles.genericInfoText}>{event.beanOrigin}</Text>
-            </View>
-          )}
-          {event.notes && (
-            <Text style={styles.notesText} numberOfLines={3}>
-              {event.notes}
+      </View>
+    );
+  };
+
+  // Render action buttons (like, comment, etc.)
+  const renderActionButtons = () => {
+    return (
+      <View style={styles.actionButtons}>
+        <TouchableOpacity 
+          style={styles.actionButton}
+          onPress={handleLikePress}
+          activeOpacity={0.7}
+        >
+          <Ionicons
+            name={isLiked ? "heart" : "heart-outline"}
+            size={22}
+            color={isLiked ? "#F44336" : "#666666"}
+          />
+          {likeCount > 0 && (
+            <Text style={styles.actionButtonText}>
+              {likeCount}
             </Text>
           )}
-        </View>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={styles.actionButton}
+          onPress={() => {}}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="chatbubble-outline" size={20} color="#666666" />
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={styles.actionButton}
+          onPress={handleShare}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="share-outline" size={22} color="#666666" />
+        </TouchableOpacity>
       </View>
     );
   };
@@ -184,15 +593,30 @@ const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress }) => 
             ]}
             placeholder="person"
           />
-          <Text style={styles.userName}>{event.userName || 'Unknown User'}</Text>
+          <View style={styles.userNameContainer}>
+            <Text style={styles.userName}>{event.userName || 'Unknown User'}</Text>
+            <Text style={styles.userAction}>{getEventTypeLabel()}</Text>
+          </View>
         </TouchableOpacity>
-        <Text style={styles.timestamp}>
-          {formatDate(event.timestamp || event.date || new Date())}
-        </Text>
+        <View style={styles.headerActionsContainer}>
+          {event.isPrivate && (
+            <Ionicons name="lock-closed" size={18} color="#666666" style={styles.privateIcon} />
+          )}
+          <TouchableOpacity
+            onPress={handleOptionsPress}
+            style={styles.optionsButton}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="ellipsis-horizontal" size={20} color="#666666" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Event content - either coffee log or other event type */}
       {renderEventContent()}
+      
+      {/* Action buttons - hidden for now */}
+      {/* {renderActionButtons()} */}
     </View>
   );
 };
@@ -206,17 +630,36 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
   },
+  contentContainer: {
+    padding: 12,
+    paddingTop: 0,
+  },
   headerContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    // borderBottomWidth: 1,
+    // borderBottomColor: '#F0F0F0',
   },
   userInfoContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  userNameContainer: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+  },
+  userName: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#000000',
+    marginRight: 5,
+  },
+  userAction: {
+    fontSize: 14,
+    fontWeight: '400',
+    color: '#666666',
   },
   userAvatar: {
     width: 32,
@@ -234,10 +677,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E0E0E0'
   },
-  userName: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#000000',
+  headerActionsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  privateIcon: {
+    marginRight: 8,
+  },
+  optionsButton: {
+    padding: 4,
   },
   timestamp: {
     fontSize: 12,
@@ -246,8 +694,10 @@ const styles = StyleSheet.create({
   coffeeContainer: {
     flexDirection: 'row',
     padding: 12,
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#F0F0F0',
+    borderRadius: 0,
   },
   coffeeImageContainer: {
     width: 60,
@@ -260,6 +710,10 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     resizeMode: 'cover',
+  },
+  ratingContainer: {
+    flexDirection: 'row',
+    marginBottom: 6,
   },
   placeholderImage: {
     width: '100%',
@@ -285,27 +739,81 @@ const styles = StyleSheet.create({
   },
   recipeContainer: {
     padding: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F8F8F8',
+    borderRadius: 0,
+    borderWidth: 0,
   },
   recipeHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
     alignItems: 'center',
     marginBottom: 8,
   },
   methodContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8F8F8',
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#EBEBEB',
   },
   methodText: {
     marginLeft: 4,
     fontSize: 14,
     fontWeight: '500',
     color: '#000000',
+  },
+  recipeCreatorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  creatorAvatar: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  creatorAvatarContainer: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#F0F0F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+  },
+  recipeCreatorText: {
+    fontSize: 13,
+    color: '#666666',
+    marginLeft: 4,
+  },
+  savedCountContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#EBEBEB',
+  },
+  savedAvatarsContainer: {
+    flexDirection: 'row',
+    marginRight: 8,
+  },
+  savedUserAvatar: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#FFFFFF',
+  },
+  savedCountText: {
+    fontSize: 12,
+    color: '#666666',
   },
   recipeDetails: {
     flexDirection: 'row',
@@ -325,15 +833,20 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#000000',
   },
+  notesContainer: {
+    marginVertical: 8,
+  },
   notesText: {
-    fontSize: 14,
+    fontSize: 16,
     color: '#666666',
-    fontStyle: 'italic',
   },
   // New styles for generic events
   genericEventContainer: {
     padding: 12,
     backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
   },
   eventImageContainer: {
     width: '100%',
@@ -376,7 +889,29 @@ const styles = StyleSheet.create({
     color: '#666666',
     marginLeft: 4,
     fontWeight: '500',
-  }
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 24,
+  },
+  actionButtonText: {
+    fontSize: 14,
+    color: '#666666',
+    marginLeft: 6,
+  },
+  combinedContainer: {
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
+    borderRadius: 8,
+    overflow: 'hidden',
+    marginBottom: 12,
+  },
 });
 
 export default CoffeeLogCard; 

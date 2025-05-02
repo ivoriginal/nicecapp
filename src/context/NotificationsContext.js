@@ -1,4 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
+import mockData from '../data/mockData.json';
 
 // Create the context
 const NotificationsContext = createContext();
@@ -17,6 +18,21 @@ export function NotificationsProvider({ children }) {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
+  // Initialize notifications from mock data
+  useEffect(() => {
+    // Filter out like and comment notifications
+    const filteredNotifications = mockData.notifications.filter(
+      notification => notification.type !== 'like' && notification.type !== 'comment'
+    );
+    
+    // Use only notifications targeted to user1 (Ivo Vilches)
+    const userNotifications = filteredNotifications.filter(
+      notification => notification.targetUserId === 'user1'
+    );
+    
+    setNotifications(userNotifications);
+  }, []);
+
   // Calculate unread count whenever notifications change
   useEffect(() => {
     const count = notifications.filter(notification => !notification.read).length;
@@ -27,7 +43,7 @@ export function NotificationsProvider({ children }) {
   const addNotification = (notification) => {
     const newNotification = {
       id: Date.now().toString(),
-      timestamp: new Date().toLocaleString(),
+      timestamp: new Date().toISOString(),
       read: false,
       ...notification
     };
@@ -62,22 +78,6 @@ export function NotificationsProvider({ children }) {
     setNotifications([]);
   };
 
-  // Load notifications (simulated for development)
-  const loadNotifications = async () => {
-    // Simulate loading notifications from a server
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        // For development, we'll just add a new notification
-        addNotification({
-          type: 'brew',
-          title: 'New Coffee Logged',
-          message: 'You logged a new coffee brewing session.'
-        });
-        resolve();
-      }, 1000);
-    });
-  };
-
   const value = {
     notifications,
     unreadCount,
@@ -85,8 +85,7 @@ export function NotificationsProvider({ children }) {
     markAsRead,
     markAllAsRead,
     deleteNotification,
-    clearNotifications,
-    loadNotifications
+    clearNotifications
   };
 
   return (

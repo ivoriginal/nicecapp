@@ -23,7 +23,7 @@ export default function BottomTabNavigator() {
   const insets = useSafeAreaInsets();
   const [shouldSave, setShouldSave] = useState(false);
   const [selectedCoffee, setSelectedCoffee] = useState(null);
-  const { unreadCount } = useNotifications();
+  const { unreadCount, markAllAsRead } = useNotifications();
   const { accounts, currentAccount, switchAccount } = useCoffee();
 
   // Remove the bottom sheet ref and snap points
@@ -212,8 +212,16 @@ export default function BottomTabNavigator() {
             tabBarBadge: unreadCount > 0 ? unreadCount : null,
             tabBarBadgeStyle: {
               backgroundColor: '#000000',
-              marginRight: 8,
+              marginRight: -2,
+              marginTop: 4,
+              right: -8,
+              transform: [{ translateX: 8 }],
             },
+          }}
+          listeners={{
+            tabPress: () => {
+              markAllAsRead();
+            }
           }}
         />
         <BottomTab.Screen

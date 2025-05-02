@@ -747,6 +747,105 @@
   },
   "coffeeEvents": [
     {
+      "id": "event-user1-private",
+      "coffeeId": "coffee5",
+      "coffeeName": "Sumatra Mandheling",
+      "roaster": "The Fix",
+      "imageUrl": "https://images.unsplash.com/photo-1447933601403-0c6688de566e?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80",
+      "rating": 3,
+      "date": "2023-12-17T08:45:00Z",
+      "brewingMethod": "AeroPress",
+      "grindSize": "Medium-Fine",
+      "amount": 18,
+      "waterVolume": 230,
+      "brewTime": "1:10",
+      "notes": "Not sharing this one with the community. Still experimenting with the recipe.",
+      "userId": "user1",
+      "userName": "Ivo Vilches",
+      "userAvatar": "assets/users/ivo-vilches.jpg",
+      "isPrivate": true,
+      "recipeCreatorId": "user1",
+      "recipeCreatorName": "Ivo Vilches",
+      "recipeCreatorAvatar": "assets/users/ivo-vilches.jpg"
+    },
+    {
+      "id": "event-added-to-collection-1",
+      "type": "added_to_collection",
+      "coffeeId": "coffee2",
+      "coffeeName": "Colombian Supremo",
+      "roaster": "Stumptown Coffee Roasters",
+      "imageUrl": "https://images.unsplash.com/photo-1447933601403-0c6688de566e?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80",
+      "date": "2023-12-16T14:30:00Z",
+      "notes": "Finally tried this coffee. The chocolate notes are amazing!",
+      "userId": "user1",
+      "userName": "Ivo Vilches",
+      "userAvatar": "assets/users/ivo-vilches.jpg"
+    },
+    {
+      "id": "event-added-to-wishlist-1",
+      "type": "added_to_wishlist",
+      "coffeeId": "coffee3",
+      "coffeeName": "Kenya AA",
+      "roaster": "Blue Bottle Coffee",
+      "imageUrl": "https://images.unsplash.com/photo-1447933601403-0c6688de566e?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80",
+      "date": "2023-12-15T16:45:00Z",
+      "userId": "user3",
+      "userName": "Carlos Hernández",
+      "userAvatar": "assets/users/carlos-hernandez.jpg"
+    },
+    {
+      "id": "event-saved-recipe-1",
+      "type": "saved_recipe",
+      "recipeId": "recipe1",
+      "recipeName": "Perfect V60 Method",
+      "coffeeId": "coffee1",
+      "coffeeName": "Ethiopian Yirgacheffe",
+      "creatorId": "user7",
+      "creatorName": "Sophia Miller",
+      "imageUrl": "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085",
+      "date": "2023-12-14T10:15:00Z",
+      "userId": "user1",
+      "userName": "Ivo Vilches",
+      "userAvatar": "assets/users/ivo-vilches.jpg"
+    },
+    {
+      "id": "event-followed-user-1",
+      "type": "followed_user",
+      "followedUserId": "user3",
+      "followedUserName": "Carlos Hernández",
+      "followedUserAvatar": "assets/users/carlos-hernandez.jpg",
+      "date": "2023-12-13T09:20:00Z",
+      "userId": "user1",
+      "userName": "Ivo Vilches",
+      "userAvatar": "assets/users/ivo-vilches.jpg"
+    },
+    {
+      "id": "event-created-recipe-1",
+      "type": "created_recipe",
+      "recipeId": "recipe2",
+      "recipeName": "15g AeroPress Recipe",
+      "coffeeId": "coffee-villa-rosario",
+      "coffeeName": "Villa Rosario",
+      "imageUrl": "https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728",
+      "brewingMethod": "AeroPress",
+      "date": "2023-12-12T15:30:00Z",
+      "userId": "user5",
+      "userName": "Emma Garcia",
+      "userAvatar": "https://randomuser.me/api/portraits/women/33.jpg"
+    },
+    {
+      "id": "event-added-to-gear-wishlist-1",
+      "type": "added_to_gear_wishlist",
+      "gearId": "gear1",
+      "gearName": "Fellow Stagg EKG",
+      "gearType": "Kettle",
+      "imageUrl": "https://images.unsplash.com/photo-1564890369478-c89ca6d9cde9",
+      "date": "2023-12-11T11:50:00Z",
+      "userId": "user1",
+      "userName": "Ivo Vilches",
+      "userAvatar": "assets/users/ivo-vilches.jpg"
+    },
+    {
       "id": "event-user5-1",
       "coffeeId": "coffee-villa-rosario",
       "coffeeName": "Villa Rosario",
@@ -946,6 +1045,397 @@
       "userId": "user2",
       "userName": "Vértigo y Calambre",
       "userAvatar": "assets/businesses/vertigo-logo.jpg"
+    }
+  ],
+  "notifications": [
+    {
+      "id": "notification-1",
+      "type": "like",
+      "userId": "user5",
+      "userName": "Emma Garcia",
+      "userAvatar": "https://randomuser.me/api/portraits/women/33.jpg",
+      "targetUserId": "user1",
+      "eventId": "event-user1-0",
+      "eventType": "coffee_log",
+      "coffeeName": "Ethiopian Yirgacheffe",
+      "date": "2023-12-16T09:15:00Z",
+      "read": false
+    },
+    {
+      "id": "notification-2",
+      "type": "like",
+      "userId": "user7",
+      "userName": "Sophia Miller",
+      "userAvatar": "https://randomuser.me/api/portraits/women/68.jpg",
+      "targetUserId": "user1",
+      "eventId": "event-user1-1",
+      "eventType": "coffee_log",
+      "coffeeName": "Colombian Supremo",
+      "date": "2023-12-15T14:30:00Z",
+      "read": false
+    },
+    {
+      "id": "notification-7",
+      "type": "saved_recipe",
+      "userId": "user9",
+      "userName": "Olivia Taylor",
+      "userAvatar": "https://randomuser.me/api/portraits/women/12.jpg",
+      "targetUserId": "user1",
+      "recipeId": "recipe-coffee-0-1",
+      "recipeName": "Ethiopian Yirgacheffe V60",
+      "date": "2023-12-16T11:25:00Z",
+      "read": false,
+      "message": "Olivia Taylor saved your recipe for Ethiopian Yirgacheffe V60"
+    },
+    {
+      "id": "notification-8",
+      "type": "added_to_gear_wishlist",
+      "userId": "user6",
+      "userName": "David Kim",
+      "userAvatar": "https://randomuser.me/api/portraits/men/45.jpg",
+      "targetUserId": "user1",
+      "friendStatus": "following",
+      "gearId": "gear2",
+      "gearName": "Baratza Encore",
+      "date": "2023-12-16T10:05:00Z",
+      "read": false,
+      "message": "Your friend David Kim added Baratza Encore to their wishlist"
+    },
+    {
+      "id": "notification-9",
+      "type": "followed",
+      "userId": "user8",
+      "userName": "James Wilson",
+      "userAvatar": "https://randomuser.me/api/portraits/men/22.jpg",
+      "targetUserId": "user1",
+      "date": "2023-12-15T18:40:00Z",
+      "read": false,
+      "message": "James Wilson started following you"
+    },
+    {
+      "id": "notification-10",
+      "type": "remixed_recipe",
+      "userId": "user10",
+      "userName": "Lucas Brown",
+      "userAvatar": "https://randomuser.me/api/portraits/men/55.jpg",
+      "targetUserId": "user1",
+      "originalRecipeId": "recipe-coffee-0-1",
+      "originalRecipeName": "Ethiopian Yirgacheffe V60",
+      "newRecipeId": "recipe-new-1",
+      "newRecipeName": "Lucas's Yirgacheffe Method",
+      "date": "2023-12-14T13:15:00Z",
+      "read": true,
+      "message": "Lucas Brown created a recipe based on your Ethiopian Yirgacheffe V60"
+    },
+    {
+      "id": "notification-3",
+      "type": "like",
+      "userId": "user2",
+      "userName": "Vértigo y Calambre",
+      "userAvatar": "assets/businesses/vertigo-logo.jpg",
+      "targetUserId": "user1",
+      "eventId": "event-user1-2",
+      "eventType": "coffee_log",
+      "coffeeName": "Kenya AA",
+      "date": "2023-12-15T08:45:00Z",
+      "read": true
+    },
+    {
+      "id": "notification-4",
+      "type": "like",
+      "userId": "user6",
+      "userName": "David Kim",
+      "userAvatar": "https://randomuser.me/api/portraits/men/45.jpg",
+      "targetUserId": "user1",
+      "eventId": "event-followed-user-1",
+      "eventType": "followed_user",
+      "followedUserName": "Carlos Hernández",
+      "date": "2023-12-14T17:20:00Z",
+      "read": true
+    },
+    {
+      "id": "notification-5",
+      "type": "like",
+      "userId": "user10",
+      "userName": "Lucas Brown",
+      "userAvatar": "https://randomuser.me/api/portraits/men/55.jpg",
+      "targetUserId": "user1",
+      "eventId": "event-saved-recipe-1",
+      "eventType": "saved_recipe",
+      "recipeName": "Perfect V60 Method",
+      "date": "2023-12-13T11:10:00Z",
+      "read": false
+    },
+    {
+      "id": "notification-6",
+      "type": "comment",
+      "userId": "user9",
+      "userName": "Olivia Taylor",
+      "userAvatar": "https://randomuser.me/api/portraits/women/12.jpg",
+      "targetUserId": "user1",
+      "eventId": "event-user1-0",
+      "eventType": "coffee_log",
+      "coffeeName": "Ethiopian Yirgacheffe",
+      "comment": "I love this coffee too! Have you tried it as espresso?",
+      "date": "2023-12-12T19:05:00Z",
+      "read": true
+    }
+  ],
+  "recipes": [
+    {
+      "id": "recipe1",
+      "name": "Perfect V60 Method",
+      "coffeeId": "coffee1",
+      "coffeeName": "Ethiopian Yirgacheffe",
+      "roaster": "Blue Bottle Coffee",
+      "creatorId": "user7",
+      "creatorName": "Sophia Miller",
+      "creatorAvatar": "https://randomuser.me/api/portraits/women/68.jpg",
+      "brewingMethod": "Pour Over",
+      "grindSize": "Medium",
+      "coffeeAmount": 22,
+      "waterAmount": 350,
+      "waterTemperature": 93,
+      "brewTime": "3:15",
+      "steps": [
+        "Start timer and add 50g of water for blooming",
+        "Let bloom for 30 seconds",
+        "Pour water in spirals until 150g total",
+        "Pour water in spirals until 250g total",
+        "Final pour to 350g total",
+        "Let drawdown complete (around 3:15 total)"
+      ],
+      "notes": "This recipe brings out the floral notes beautifully",
+      "likes": 124,
+      "saves": 87,
+      "savedUsers": [
+        {
+          "id": "user1",
+          "name": "Ivo Vilches",
+          "avatar": "assets/users/ivo-vilches.jpg"
+        },
+        {
+          "id": "user5",
+          "name": "Emma Garcia",
+          "avatar": "https://randomuser.me/api/portraits/women/33.jpg"
+        },
+        {
+          "id": "user9",
+          "name": "Olivia Taylor",
+          "avatar": "https://randomuser.me/api/portraits/women/12.jpg"
+        }
+      ],
+      "imageUrl": "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085",
+      "date": "2023-11-20T14:30:00Z"
+    },
+    {
+      "id": "recipe2",
+      "name": "15g AeroPress Recipe",
+      "coffeeId": "coffee-villa-rosario",
+      "coffeeName": "Villa Rosario",
+      "roaster": "Kima Coffee",
+      "creatorId": "user5",
+      "creatorName": "Emma Garcia",
+      "creatorAvatar": "https://randomuser.me/api/portraits/women/33.jpg",
+      "brewingMethod": "AeroPress",
+      "grindSize": "Medium-Fine",
+      "coffeeAmount": 15,
+      "waterAmount": 230,
+      "waterTemperature": 88,
+      "brewTime": "1:45",
+      "steps": [
+        "Rinse filter and preheat AeroPress",
+        "Add coffee to inverted AeroPress",
+        "Start timer and add 230g water",
+        "Stir for 15 seconds",
+        "Attach filter cap and let brew until 1:15",
+        "Flip and press slowly for 30 seconds"
+      ],
+      "notes": "Quick and delicious way to highlight this coffee's caramel notes",
+      "likes": 89,
+      "saves": 62,
+      "savedUsers": [
+        {
+          "id": "user2",
+          "name": "Vértigo y Calambre",
+          "avatar": "assets/businesses/vertigo-logo.jpg" 
+        },
+        {
+          "id": "user1",
+          "name": "Ivo Vilches",
+          "avatar": "assets/users/ivo-vilches.jpg"
+        },
+        {
+          "id": "user6",
+          "name": "David Kim",
+          "avatar": "https://randomuser.me/api/portraits/men/45.jpg"
+        }
+      ],
+      "imageUrl": "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd",
+      "date": "2023-12-12T15:30:00Z"
+    },
+    {
+      "id": "recipe3",
+      "name": "Cold Brew Concentrate",
+      "coffeeId": "coffee5",
+      "coffeeName": "Sumatra Mandheling",
+      "roaster": "The Fix",
+      "creatorId": "user10",
+      "creatorName": "Lucas Brown",
+      "creatorAvatar": "https://randomuser.me/api/portraits/men/55.jpg",
+      "brewingMethod": "Cold Brew",
+      "grindSize": "Coarse",
+      "coffeeAmount": 120,
+      "waterAmount": 1000,
+      "waterTemperature": "Room temperature",
+      "brewTime": "16:00",
+      "steps": [
+        "Grind coffee coarsely",
+        "Add coffee to container",
+        "Add room temperature filtered water",
+        "Stir gently to ensure all grounds are wet",
+        "Cover and let steep for 16 hours in refrigerator",
+        "Filter through paper filter",
+        "Dilute 1:1 with water when serving"
+      ],
+      "notes": "This coffee's low acidity and full body make it perfect for cold brew",
+      "likes": 156,
+      "saves": 110,
+      "savedUsers": [
+        {
+          "id": "user7",
+          "name": "Sophia Miller",
+          "avatar": "https://randomuser.me/api/portraits/women/68.jpg"
+        },
+        {
+          "id": "user9",
+          "name": "Olivia Taylor",
+          "avatar": "https://randomuser.me/api/portraits/women/12.jpg"
+        },
+        {
+          "id": "user3",
+          "name": "Carlos Hernández",
+          "avatar": "assets/users/carlos-hernandez.jpg"
+        }
+      ],
+      "imageUrl": "https://images.unsplash.com/photo-1517701604599-bb29b565090c",
+      "date": "2023-11-28T12:00:00Z"
+    }
+  ],
+  "gear": [
+    {
+      "id": "gear1",
+      "name": "Fellow Stagg EKG",
+      "type": "Kettle",
+      "brand": "Fellow",
+      "price": 149.99,
+      "description": "Electric pour-over kettle with variable temperature control, 1200 watt quick-heating element, and a precision pour spout. Perfect for pour-over coffee brewing.",
+      "features": [
+        "Variable temperature control",
+        "1200 watt heating element",
+        "Hold mode keeps water at your set temperature for 60 minutes",
+        "LCD display",
+        "Precision pour spout"
+      ],
+      "rating": 4.8,
+      "reviewCount": 1245,
+      "imageUrl": "https://images.unsplash.com/photo-1564890369478-c89ca6d9cde9",
+      "relatedGear": ["gear4", "gear5"]
+    },
+    {
+      "id": "gear2",
+      "name": "Baratza Encore",
+      "type": "Grinder",
+      "brand": "Baratza",
+      "price": 139.99,
+      "description": "Entry-level conical burr grinder with 40 grind settings. Perfect for beginners looking to improve their coffee game with consistent grinds.",
+      "features": [
+        "40mm conical burrs",
+        "40 grind settings",
+        "450 RPM motor",
+        "Easy front-mounted pulse button",
+        "Simple ON/OFF switch"
+      ],
+      "rating": 4.7,
+      "reviewCount": 3200,
+      "imageUrl": "https://images.unsplash.com/photo-1606855637090-c6b478ca2635",
+      "relatedGear": ["gear3"]
+    },
+    {
+      "id": "gear3",
+      "name": "Comandante C40 MK4",
+      "type": "Grinder",
+      "brand": "Comandante",
+      "price": 299.99,
+      "description": "Premium hand grinder featuring high-nitrogen stainless steel burrs for consistent grind quality across all brew methods.",
+      "features": [
+        "High-nitrogen stainless steel burrs",
+        "Consistent grind distribution",
+        "Hardwood handle",
+        "Glass collection jar",
+        "Compact and portable design"
+      ],
+      "rating": 4.9,
+      "reviewCount": 850,
+      "imageUrl": "https://images.unsplash.com/photo-1575441347544-11725ca18b26",
+      "relatedGear": ["gear2"]
+    },
+    {
+      "id": "gear4",
+      "name": "Hario V60",
+      "type": "Pour Over",
+      "brand": "Hario",
+      "price": 24.99,
+      "description": "Iconic cone-shaped pour-over dripper with spiral ribs for optimal coffee extraction and flavor.",
+      "features": [
+        "Ceramic material retains heat",
+        "Spiral ribs allow air to escape during brewing",
+        "Large single hole for controlled flow rate",
+        "Available in multiple sizes",
+        "Compatible with standard V60 filters"
+      ],
+      "rating": 4.8,
+      "reviewCount": 4500,
+      "imageUrl": "https://images.unsplash.com/photo-1544233726-9f1d2b27be8b",
+      "relatedGear": ["gear1", "gear5"]
+    },
+    {
+      "id": "gear5",
+      "name": "Acaia Pearl",
+      "type": "Scale",
+      "brand": "Acaia",
+      "price": 149.99,
+      "description": "Professional-grade coffee scale with built-in timer, Bluetooth connectivity, and real-time weight monitoring for precision brewing.",
+      "features": [
+        "0.1g precision measurement",
+        "Built-in timer",
+        "Bluetooth connectivity",
+        "Flow rate indicator",
+        "Water-resistant coating"
+      ],
+      "rating": 4.9,
+      "reviewCount": 780,
+      "imageUrl": "https://images.unsplash.com/photo-1575441347548-0e745b37a5b8",
+      "relatedGear": ["gear1", "gear4"]
+    },
+    {
+      "id": "gear6",
+      "name": "AeroPress",
+      "type": "Brewer",
+      "brand": "Aerobie",
+      "price": 29.99,
+      "description": "Versatile coffee maker that uses pressure for quick brewing. Makes American-style coffee or espresso-style concentrate.",
+      "features": [
+        "Lightweight and portable design",
+        "Quick brew time (1-2 minutes)",
+        "Easy to clean",
+        "Microfilter eliminates grit",
+        "Gentle air pressure brewing system"
+      ],
+      "rating": 4.8,
+      "reviewCount": 8700,
+      "imageUrl": "https://images.unsplash.com/photo-1544233726-31d3ca8ce470",
+      "relatedGear": ["gear2", "gear5"]
     }
   ]
 }
