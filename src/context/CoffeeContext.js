@@ -3,15 +3,14 @@ import {
   saveCoffeeEvent, 
   getCoffeeEvents, 
   saveToCollection, 
-  removeFromCollection as removeFromCollectionSupabase,
+  removeFromCollection,
   getCollection,
   saveToWishlist,
-  removeFromWishlist as removeFromWishlistSupabase,
+  removeFromWishlist,
   getWishlist,
   saveFavorites,
-  getFavorites,
-  supabase
-} from '../lib/supabase';
+  getFavorites
+} from '../lib/dataProvider';
 import mockData from '../data/mockData.json';
 
 // Create the context with a default value
@@ -689,6 +688,24 @@ export const CoffeeProvider = ({ children }) => {
     return mockRecipes[coffeeId] || [];
   };
 
+  // Add function to remove a coffee event (if it doesn't exist already)
+  const removeCoffeeEvent = (eventId) => {
+    console.log('Removing coffee event with ID:', eventId);
+    // Remove from coffeeEvents state
+    setCoffeeEvents(prevEvents => prevEvents.filter(event => event.id !== eventId));
+    // Remove from allEvents state too
+    setAllEvents(prevEvents => prevEvents.filter(event => event.id !== eventId));
+    
+    // Update accountData too if needed
+    if (accountData[currentAccount] && accountData[currentAccount].coffeeEvents) {
+      accountData[currentAccount].coffeeEvents = accountData[currentAccount].coffeeEvents.filter(
+        event => event.id !== eventId
+      );
+    }
+    
+    return true;
+  };
+
   return (
     <CoffeeContext.Provider
       value={{
@@ -705,7 +722,7 @@ export const CoffeeProvider = ({ children }) => {
         followers,
         allEvents, // Add all events to the context
         addCoffeeEvent,
-        removeCoffeeEvent: () => {},
+        removeCoffeeEvent,
         hideEvent: () => {},
         unhideEvent: () => {},
         isEventHidden: () => false,

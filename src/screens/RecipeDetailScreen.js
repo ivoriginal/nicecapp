@@ -17,6 +17,7 @@ import Toast from '../components/Toast';
 import eventEmitter from '../utils/EventEmitter';
 import mockData from '../data/mockData.json';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import AppImage from '../components/common/AppImage';
 
 export default function RecipeDetailScreen() {
   const { 
@@ -60,7 +61,7 @@ export default function RecipeDetailScreen() {
         
         // Check if a recipe was passed directly in route params
         if (routeRecipe) {
-          console.log('Using recipe from route params:', routeRecipe.name);
+          console.log('Using recipe from route params:', routeRecipe.name || routeRecipe.coffeeName);
           setRecipe(routeRecipe);
           
           // Use coffee info from route params
@@ -69,9 +70,19 @@ export default function RecipeDetailScreen() {
               id: coffeeId,
               name: coffeeName,
               roaster: route.params?.roaster || 'Coffee Roaster',
-              image: route.params?.coffeeImage || 'https://images.unsplash.com/photo-1447933601403-0c6688de566e'
+              image: route.params?.imageUrl || routeRecipe.imageUrl || 'https://images.unsplash.com/photo-1447933601403-0c6688de566e'
             });
           }
+          
+          // Check if this coffee is in collection or wishlist
+          const isInCol = coffeeCollection.some(c => c.id === coffeeId);
+          const isInWish = coffeeWishlist.some(c => c.id === coffeeId);
+          const isFav = favorites.includes(coffeeId);
+          
+          setIsInCollection(isInCol);
+          setIsInWishlist(isInWish);
+          setIsFavorite(isFav);
+          
           setLoading(false);
           return;
         }
@@ -119,8 +130,8 @@ export default function RecipeDetailScreen() {
           if (event) {
             const recipeFromEvent = {
               id: event.id,
-              name: `${event.coffeeName} ${event.method}`,
-              method: event.method,
+              name: `${event.coffeeName} ${event.method || event.brewingMethod}`,
+              method: event.method || event.brewingMethod,
               amount: event.amount,
               grindSize: event.grindSize,
               waterVolume: event.waterVolume,
@@ -141,8 +152,8 @@ export default function RecipeDetailScreen() {
             setCoffee({
               id: event.coffeeId,
               name: event.coffeeName,
-              roaster: event.roaster,
-              image: event.image
+              roaster: event.roaster || event.roasterName,
+              image: event.imageUrl
             });
           } else {
             // Fallback to mock data if recipe not found
@@ -175,6 +186,16 @@ export default function RecipeDetailScreen() {
             });
           }
         }
+        
+        // Check if this coffee is in collection or wishlist
+        const isInCol = coffeeCollection.some(c => c.id === coffeeId);
+        const isInWish = coffeeWishlist.some(c => c.id === coffeeId);
+        const isFav = favorites.includes(coffeeId);
+        
+        setIsInCollection(isInCol);
+        setIsInWishlist(isInWish);
+        setIsFavorite(isFav);
+        
       } catch (error) {
         console.error('Error fetching recipe:', error);
       } finally {
@@ -186,7 +207,7 @@ export default function RecipeDetailScreen() {
   }, [recipeId, coffeeCollection, coffeeWishlist, favorites, recipes, coffeeEvents, coffeeId, coffeeName, route.params]);
 
   const navigateToUserProfile = (userId) => {
-    navigation.navigate('Profile', { userId, skipAuth: true });
+    navigation.navigate('UserProfileBridge', { userId, skipAuth: true });
   };
 
   const navigateToCoffeeDetail = () => {
@@ -322,6 +343,14 @@ export default function RecipeDetailScreen() {
     setToastVisible(true);
   };
 
+  // Check if this is a business account (like Vértigo y Calambre)
+  const isBusinessAccount = recipe && (
+    recipe.userName === 'Vértigo y Calambre' || 
+    recipe.userName === 'Kima Coffee' ||
+    recipe.userName?.includes('Café') ||
+    recipe.userId?.startsWith('business-')
+  );
+
   if (loading) {
     return (
       <View style={styles.container}>
@@ -360,9 +389,9 @@ export default function RecipeDetailScreen() {
         <View style={styles.header}>
           <View style={styles.methodContainer}>
             <Ionicons name="cafe" size={24} color="#000000" />
-            <Text style={styles.methodText}>{recipe.method}</Text>
+            <Text style={styles.methodText}>{recipe && (recipe.method || recipe.brewingMethod || 'Pour Over')}</Text>
           </View>
-          {recipe.rating && (
+          {recipe && recipe.rating && (
             <View style={styles.ratingContainer}>
               <Ionicons name="star" size={20} color="#000000" />
               <Text style={styles.ratingText}>{recipe.rating.toFixed(1)}</Text>
@@ -371,21 +400,24 @@ export default function RecipeDetailScreen() {
         </View>
 
         {/* User Info */}
-        <TouchableOpacity 
-          style={styles.userContainer}
-          onPress={() => navigateToUserProfile(recipe.userId)}
-        >
-          <Image 
-            source={{ uri: recipe.userAvatar || 'https://via.placeholder.com/40' }} 
-            style={styles.userAvatar} 
-          />
-          <View style={styles.userInfo}>
-            <Text style={styles.userName}>{recipe.userName}</Text>
-            <Text style={styles.timestamp}>
-              {new Date(recipe.timestamp).toLocaleDateString()}
-            </Text>
-          </View>
-        </TouchableOpacity>
+        {recipe && recipe.userName && (
+          <TouchableOpacity 
+            style={styles.userContainer}
+            onPress={() => recipe.userId && navigateToUserProfile(recipe.userId)}
+          >
+            <AppImage 
+              source={recipe.userAvatar} 
+              style={[
+                styles.userAvatar,
+                isBusinessAccount && styles.businessUserAvatar
+              ]} 
+              placeholder="person"
+            />
+            <View style={styles.userInfo}>
+              <Text style={styles.userName}>{recipe.userName}</Text>
+            </View>
+          </TouchableOpacity>
+        )}
 
         {/* Associated Coffee */}
         {coffee && (
@@ -399,9 +431,10 @@ export default function RecipeDetailScreen() {
             </View>
             <View style={styles.coffeeInfo}>
               {coffee.image && (
-                <Image 
-                  source={{ uri: coffee.image }} 
-                  style={styles.coffeeImage} 
+                <AppImage 
+                  source={coffee.image}
+                  style={styles.coffeeImage}
+                  placeholder="coffee"
                 />
               )}
               <View style={styles.coffeeDetails}>
@@ -415,60 +448,67 @@ export default function RecipeDetailScreen() {
         )}
 
         {/* Recipe Details */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Recipe Details</Text>
-          <View style={styles.detailsGrid}>
-            <View style={styles.detailItem}>
-              <Text style={styles.detailLabel}>Coffee</Text>
-              <Text style={styles.detailValue}>{recipe.amount}g</Text>
-            </View>
-            <View style={styles.detailItem}>
-              <Text style={styles.detailLabel}>Grind Size</Text>
-              <Text style={styles.detailValue}>{recipe.grindSize}</Text>
-            </View>
-            <View style={styles.detailItem}>
-              <Text style={styles.detailLabel}>Water</Text>
-              <Text style={styles.detailValue}>{recipe.waterVolume}ml</Text>
-            </View>
-            <View style={styles.detailItem}>
-              <Text style={styles.detailLabel}>Brew Time</Text>
-              <Text style={styles.detailValue}>{recipe.brewTime}</Text>
+        {recipe && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Recipe Details</Text>
+            <View style={styles.detailsGrid}>
+              <View style={styles.detailItem}>
+                <Text style={styles.detailLabel}>Coffee</Text>
+                <Text style={styles.detailValue}>{recipe.amount || '18'}g</Text>
+              </View>
+              <View style={styles.detailItem}>
+                <Text style={styles.detailLabel}>Grind Size</Text>
+                <Text style={styles.detailValue}>{recipe.grindSize || 'Medium'}</Text>
+              </View>
+              <View style={styles.detailItem}>
+                <Text style={styles.detailLabel}>Water</Text>
+                <Text style={styles.detailValue}>{recipe.waterVolume || '300'}ml</Text>
+              </View>
+              <View style={styles.detailItem}>
+                <Text style={styles.detailLabel}>Brew Time</Text>
+                <Text style={styles.detailValue}>{recipe.brewTime || '3:00'}</Text>
+              </View>
             </View>
           </View>
-        </View>
+        )}
 
         {/* Brewing Steps */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Brewing Steps</Text>
-          {recipe.steps && recipe.steps.map((step, index) => (
-            <View key={index} style={styles.stepItem}>
-              <View style={styles.stepNumber}>
-                <Text style={styles.stepNumberText}>{index + 1}</Text>
+        {recipe && recipe.steps && recipe.steps.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Brewing Steps</Text>
+            {recipe.steps.map((step, index) => (
+              <View key={index} style={styles.stepItem}>
+                <View style={styles.stepNumber}>
+                  <Text style={styles.stepNumberText}>{index + 1}</Text>
+                </View>
+                <Text style={styles.stepText}>{step.action}</Text>
+                {step.time && (
+                  <Text style={styles.stepTime}>{step.time}</Text>
+                )}
               </View>
-              <Text style={styles.stepText}>{step.action}</Text>
-              {step.time && (
-                <Text style={styles.stepTime}>{step.time}</Text>
-              )}
-            </View>
-          ))}
-        </View>
+            ))}
+          </View>
+        )}
 
         {/* Tips */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Tips</Text>
-          {recipe.tips && recipe.tips.map((tip, index) => (
-            <View key={index} style={styles.tipItem}>
-              <Ionicons name="bulb" size={16} color="#000000" style={styles.tipIcon} />
-              <Text style={styles.tipText}>{tip}</Text>
-            </View>
-          ))}
-          {(!recipe.tips || recipe.tips.length === 0) && (
-            <Text style={styles.emptyText}>No tips available for this recipe.</Text>
-          )}
-        </View>
+        {recipe && recipe.tips && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Tips</Text>
+            {recipe.tips.length > 0 ? (
+              recipe.tips.map((tip, index) => (
+                <View key={index} style={styles.tipItem}>
+                  <Ionicons name="bulb" size={16} color="#000000" style={styles.tipIcon} />
+                  <Text style={styles.tipText}>{tip}</Text>
+                </View>
+              ))
+            ) : (
+              <Text style={styles.emptyText}>No tips available for this recipe.</Text>
+            )}
+          </View>
+        )}
 
         {/* Notes */}
-        {recipe.notes && (
+        {recipe && recipe.notes && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Notes</Text>
             <Text style={styles.notesText}>{recipe.notes}</Text>
@@ -483,6 +523,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F2F2F7',
+    paddingBottom: 32,
   },
   loadingContainer: {
     flex: 1,
@@ -555,6 +596,11 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
   },
+  businessUserAvatar: {
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
   userInfo: {
     marginLeft: 12,
   },
@@ -562,11 +608,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
     color: '#000000',
-  },
-  timestamp: {
-    fontSize: 14,
-    color: '#666666',
-    marginTop: 2,
   },
   section: {
     backgroundColor: '#FFFFFF',
@@ -648,11 +689,10 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   coffeeContainer: {
-    backgroundColor: '#F8F8F8',
-    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+
     padding: 16,
-    marginHorizontal: 16,
-    marginTop: 16,
+    marginTop: 8,
   },
   coffeeHeader: {
     flexDirection: 'row',

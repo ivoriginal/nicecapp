@@ -3,10 +3,11 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert, ActionSheetIOS, Share,
 import { Ionicons } from '@expo/vector-icons';
 import AppImage from './common/AppImage';
 
-const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress, onOptionsPress, onLikePress, currentUserId }) => {
+const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress, onOptionsPress, onLikePress, currentUserId, showToast }) => {
   // Local state to handle UI updates before backend sync
   const [isLiked, setIsLiked] = useState(event.isLiked || false);
   const [likeCount, setLikeCount] = useState(event.likes || 0);
+  const [isPrivate, setIsPrivate] = useState(event.isPrivate || false);
 
   // Ensure we have a valid event object
   if (!event) {
@@ -33,6 +34,14 @@ const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress, onOpt
                            event.userName.includes('Café') ||
                            event.userId?.startsWith('business-');
 
+  // Helper function to check if a user name is a business account
+  const isBusinessName = (name) => {
+    return name === 'Vértigo y Calambre' || 
+           name === 'Kima Coffee' ||
+           name?.includes('Café') ||
+           name?.startsWith('Business-');
+  };
+
   // Check if this is the current user's post
   const isCurrentUserPost = event.userId === currentUserId;
 
@@ -40,11 +49,20 @@ const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress, onOpt
   const handleOptionsPress = () => {
     // Different options based on if it's the current user's post
     const options = isCurrentUserPost 
-      ? ['Delete Post', 'Edit Post', 'Share this post', 'Cancel']
-      : ['Unfollow User', 'Report', 'Share this post', 'Cancel'];
+      ? [
+          isPrivate ? 'Make Public' : 'Make Private', 
+          'Share this post',
+          'Delete', 
+          'Cancel'
+        ]
+      : [
+          'Report', 
+          'Share this post', 
+          'Cancel'
+        ];
     
-    const destructiveButtonIndex = isCurrentUserPost ? 0 : null;
-    const cancelButtonIndex = isCurrentUserPost ? 3 : 3;
+    const destructiveButtonIndex = isCurrentUserPost ? 2 : null;
+    const cancelButtonIndex = isCurrentUserPost ? 3 : 2;
     
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
@@ -55,22 +73,107 @@ const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress, onOpt
         },
         (buttonIndex) => {
           if (isCurrentUserPost && buttonIndex === 0) {
-            // Delete post
-            Alert.alert("Delete Post", "Are you sure you want to delete this post?", [
-              { text: "Cancel", style: "cancel" },
-              { text: "Delete", style: "destructive", onPress: () => onOptionsPress && onOptionsPress(event, 'delete') }
-            ]);
-          } else if (buttonIndex === options.indexOf('Share this post')) {
+            // Toggle private/public
+            const newVisibility = isPrivate ? 'public' : 'private';
+            // Update local UI state
+            setIsPrivate(!isPrivate);
+            // Call parent handler
+            onOptionsPress && onOptionsPress(event, newVisibility);
+            // Use showToast prop instead of direct Toast.show
+            showToast && showToast('Visibility changed');
+          } else if (buttonIndex === 1) {
             handleShare();
-          } else if (!isCurrentUserPost && buttonIndex === options.indexOf('Unfollow User')) {
-            onOptionsPress && onOptionsPress(event, 'unfollowUser');
+          } else if (!isCurrentUserPost && buttonIndex === 0) {
+            // Report
+            onOptionsPress && onOptionsPress(event, 'report');
+          } else if (isCurrentUserPost && buttonIndex === 2) {
+            // Delete post (now at index 2)
+            // Show confirmation dialog
+            Alert.alert(
+              "Delete Post",
+              "Are you sure you want to delete this post?",
+              [
+                { text: "Cancel", style: "cancel" },
+                { 
+                  text: "Delete", 
+                  style: "destructive", 
+                  onPress: () => {
+                    // Call parent handler to update state/refresh
+                    onOptionsPress && onOptionsPress(event, 'delete');
+                    // Use showToast prop instead of direct Toast.show
+                    showToast && showToast('Post deleted');
+                  }
+                }
+              ]
+            );
           }
         }
       );
     } else {
-      // For non-iOS platforms, we would implement a custom ActionSheet component
-      // For now, we'll just trigger the options callback with the event
-      onOptionsPress && onOptionsPress(event, isCurrentUserPost ? 'options' : 'options');
+      // For non-iOS platforms, we use Alert
+      Alert.alert(
+        "Post Options",
+        "Select an option",
+        isCurrentUserPost ? [
+          { 
+            text: isPrivate ? "Make Public" : "Make Private", 
+            onPress: () => {
+              const newVisibility = isPrivate ? 'public' : 'private';
+              // Update local UI state
+              setIsPrivate(!isPrivate);
+              // Call parent handler
+              onOptionsPress && onOptionsPress(event, newVisibility);
+              // Use showToast prop instead of direct Toast.show
+              showToast && showToast('Visibility changed');
+            }
+          },
+          { 
+            text: "Share this post", 
+            onPress: handleShare
+          },
+          { 
+            text: "Delete", 
+            style: "destructive", 
+            onPress: () => {
+              // Show confirmation dialog for deletion
+              Alert.alert(
+                "Delete Post",
+                "Are you sure you want to delete this post?",
+                [
+                  { text: "Cancel", style: "cancel" },
+                  { 
+                    text: "Delete", 
+                    style: "destructive", 
+                    onPress: () => {
+                      // Call parent handler to update state/refresh
+                      onOptionsPress && onOptionsPress(event, 'delete');
+                      // Use showToast prop instead of direct Toast.show
+                      showToast && showToast('Post deleted');
+                    }
+                  }
+                ]
+              );
+            }
+          },
+          { 
+            text: "Cancel", 
+            style: "cancel" 
+          },
+        ] : [
+          { 
+            text: "Report", 
+            onPress: () => onOptionsPress && onOptionsPress(event, 'report') 
+          },
+          { 
+            text: "Share this post", 
+            onPress: handleShare 
+          },
+          { 
+            text: "Cancel", 
+            style: "cancel" 
+          },
+        ]
+      );
     }
   };
 
@@ -185,11 +288,20 @@ const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress, onOpt
             </View>
           );
         }
+        
+        // Check if recipe creator is a business account
+        const recipeCreatorIsBusiness = 
+          event.recipeCreatorId?.startsWith('business-') || 
+          isBusinessName(event.recipeCreatorName);
+        
         return (
           <View style={styles.recipeCreatorRow}>
             <AppImage 
               source={event.recipeCreatorAvatar}
-              style={styles.creatorAvatar}
+              style={[
+                styles.creatorAvatar,
+                recipeCreatorIsBusiness ? styles.businessCreatorAvatar : null
+              ]}
               placeholder="person"
             />
             <Text style={styles.recipeCreatorText}>
@@ -213,11 +325,18 @@ const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress, onOpt
             </View>
           );
         }
+        
+        // Check if the based-on recipe creator is a business
+        const basedOnCreatorIsBusiness = isBusinessName(event.basedOnRecipeBy);
+        
         return (
           <View style={styles.recipeCreatorRow}>
             <AppImage 
               source={event.basedOnRecipeAvatar}
-              style={styles.creatorAvatar}
+              style={[
+                styles.creatorAvatar,
+                basedOnCreatorIsBusiness ? styles.businessCreatorAvatar : null
+              ]}
               placeholder="person"
             />
             <Text style={styles.recipeCreatorText}>
@@ -231,7 +350,10 @@ const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress, onOpt
         <View style={styles.recipeCreatorRow}>
           <AppImage 
             source={event.userAvatar}
-            style={styles.creatorAvatar}
+            style={[
+              styles.creatorAvatar,
+              isBusinessAccount ? styles.businessCreatorAvatar : null
+            ]}
             placeholder="person"
           />
           <Text style={styles.recipeCreatorText}>
@@ -258,11 +380,18 @@ const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress, onOpt
             </View>
           );
         }
+        
+        // Check if the based-on recipe creator is a business
+        const basedOnCreatorIsBusiness = isBusinessName(event.basedOnRecipeBy);
+        
         return (
           <View style={styles.recipeCreatorRow}>
             <AppImage 
               source={event.basedOnRecipeAvatar}
-              style={styles.creatorAvatar}
+              style={[
+                styles.creatorAvatar,
+                basedOnCreatorIsBusiness ? styles.businessCreatorAvatar : null
+              ]}
               placeholder="person"
             />
             <Text style={styles.recipeCreatorText}>
@@ -285,11 +414,20 @@ const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress, onOpt
             </View>
           );
         }
+        
+        // Check if creator is a business account
+        const creatorIsBusiness = 
+          event.creatorId?.startsWith('business-') || 
+          isBusinessName(event.creatorName);
+        
         return (
           <View style={styles.recipeCreatorRow}>
             <AppImage 
               source={event.creatorAvatar}
-              style={styles.creatorAvatar}
+              style={[
+                styles.creatorAvatar,
+                creatorIsBusiness ? styles.businessCreatorAvatar : null
+              ]}
               placeholder="person"
             />
             <Text style={styles.recipeCreatorText}>
@@ -304,7 +442,10 @@ const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress, onOpt
         <View style={styles.recipeCreatorRow}>
           <AppImage 
             source={event.userAvatar}
-            style={styles.creatorAvatar}
+            style={[
+              styles.creatorAvatar,
+              isBusinessAccount ? styles.businessCreatorAvatar : null
+            ]}
             placeholder="person"
           />
           <Text style={styles.recipeCreatorText}>
@@ -599,7 +740,7 @@ const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress, onOpt
           </View>
         </TouchableOpacity>
         <View style={styles.headerActionsContainer}>
-          {event.isPrivate && (
+          {isPrivate && (
             <Ionicons name="lock-closed" size={18} color="#666666" style={styles.privateIcon} />
           )}
           <TouchableOpacity
@@ -777,6 +918,9 @@ const styles = StyleSheet.create({
     marginRight: 8,
     borderWidth: 1,
     borderColor: '#E0E0E0',
+  },
+  businessCreatorAvatar: {
+    borderRadius: 6,
   },
   creatorAvatarContainer: {
     width: 24,

@@ -570,7 +570,6 @@ export default function CoffeeDetailScreen() {
               style={styles.createRecipeButton}
               onPress={navigateToCreateRecipe}
             >
-              <Ionicons name="add-circle-outline" size={20} color="#000000" />
               <Text style={styles.createRecipeText}>Create Recipe</Text>
             </TouchableOpacity>
           </View>
@@ -732,10 +731,6 @@ const styles = StyleSheet.create({
   createRecipeButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F2F2F7',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
   },
   createRecipeText: {
     fontSize: 14,
@@ -921,7 +916,9 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   sellersContainer: {
-    margin: 16,
+    padding: 16,
+    backgroundColor: '#FFFFFF',
+    marginTop: 8,
   },
   sellerItem: {
     flexDirection: 'row',

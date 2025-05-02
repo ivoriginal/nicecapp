@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, FlatList, RefreshControl, ActivityIndicator, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useCoffee } from '../context/CoffeeContext';
@@ -7,7 +7,7 @@ import CoffeeLogCard from '../components/CoffeeLogCard';
 import Toast from '../components/Toast';
 
 export default function HomeScreen({ navigation }) {
-  const { allEvents, isLoading, loadData, recipes, addRecipe } = useCoffee();
+  const { allEvents, isLoading, loadData, recipes, addRecipe, currentAccount, removeCoffeeEvent } = useCoffee();
   const insets = useSafeAreaInsets();
   const [refreshing, setRefreshing] = useState(false);
   const [toastVisible, setToastVisible] = useState(false);
@@ -37,6 +37,12 @@ export default function HomeScreen({ navigation }) {
     }
   }, [loadData]);
 
+  // Function to show toast messages
+  const showToast = (message) => {
+    setToastMessage(message);
+    setToastVisible(true);
+  };
+
   const handleCoffeePress = (event) => {
     navigation.navigate('CoffeeDetail', { 
       coffeeId: event.coffeeId,
@@ -45,54 +51,44 @@ export default function HomeScreen({ navigation }) {
   };
 
   const handleRecipePress = (event) => {
-    // Create a recipe object from the event data
-    const recipe = {
-      id: `recipe-${event.id}`,
-      name: `${event.coffeeName} ${event.method || event.brewingMethod}`,
-      method: event.method || event.brewingMethod,
-      amount: event.amount,
-      grindSize: event.grindSize,
-      waterVolume: event.waterVolume,
-      brewTime: event.brewTime,
-      notes: event.notes,
-      userId: event.userId,
-      userName: event.userName,
-      userAvatar: event.userAvatar,
-      coffeeId: event.coffeeId,
-      coffeeName: event.coffeeName,
-      roaster: event.roaster,
-      timestamp: event.timestamp,
-      steps: [
-        { time: '0:00', action: 'Rinse filter and warm vessel', water: 0 },
-        { time: '0:00', action: `Add ${event.amount}g coffee (${event.grindSize} grind)`, water: 0 },
-        { time: '0:00', action: `Add ${Math.round(event.amount * 2)}g water for bloom`, water: Math.round(event.amount * 2) },
-        { time: '0:30', action: 'Gently stir bloom', water: 0 },
-        { time: '0:45', action: `Add water to ${Math.round(event.waterVolume * 0.3)}g`, water: Math.round(event.waterVolume * 0.3) },
-        { time: '1:15', action: `Add water to ${Math.round(event.waterVolume * 0.5)}g`, water: Math.round(event.waterVolume * 0.5) },
-        { time: '1:45', action: `Add water to ${Math.round(event.waterVolume * 0.7)}g`, water: Math.round(event.waterVolume * 0.7) },
-        { time: '2:15', action: `Add water to ${event.waterVolume}g`, water: event.waterVolume },
-        { time: event.brewTime, action: 'Drawdown complete', water: 0 }
-      ],
-      tips: [
-        'Use filtered water for the best results',
-        'Grind your coffee just before brewing',
-        'Keep your equipment clean for consistent results',
-        'Use a scale to measure your coffee and water precisely',
-        'Maintain a consistent water temperature throughout the brew'
-      ]
-    };
-
-    // Add the recipe to the recipes array if it doesn't exist
-    if (!recipes.find(r => r.id === recipe.id)) {
-      addRecipe(recipe);
+    // Ensure we have a valid event object before proceeding
+    if (!event || !event.id) {
+      console.error('Invalid event object passed to handleRecipePress:', event);
+      return;
     }
 
-    // Navigate to the RecipeDetail screen with the recipe ID and coffee information
+    // Navigate to the RecipeDetail screen with the original event as the recipe
     navigation.navigate('RecipeDetail', { 
-      recipeId: recipe.id,
+      recipeId: event.id,
       coffeeId: event.coffeeId,
       coffeeName: event.coffeeName,
-      roaster: event.roaster
+      roaster: event.roaster || event.roasterName,
+      recipe: {
+        ...event,
+        // Only generate steps if they don't already exist
+        steps: event.steps || [
+          { time: '0:00', action: 'Rinse filter and warm vessel', water: 0 },
+          { time: '0:00', action: `Add ${event.amount || 18}g coffee (${event.grindSize || 'Medium'} grind)`, water: 0 },
+          { time: '0:00', action: `Add ${Math.round((event.amount || 18) * 2)}g water for bloom`, water: Math.round((event.amount || 18) * 2) },
+          { time: '0:30', action: 'Gently stir bloom', water: 0 },
+          { time: '0:45', action: `Add water to ${Math.round((event.waterVolume || 300) * 0.3)}g`, water: Math.round((event.waterVolume || 300) * 0.3) },
+          { time: '1:15', action: `Add water to ${Math.round((event.waterVolume || 300) * 0.5)}g`, water: Math.round((event.waterVolume || 300) * 0.5) },
+          { time: '1:45', action: `Add water to ${Math.round((event.waterVolume || 300) * 0.7)}g`, water: Math.round((event.waterVolume || 300) * 0.7) },
+          { time: '2:15', action: `Add water to ${event.waterVolume || 300}g`, water: (event.waterVolume || 300) },
+          { time: event.brewTime || '3:00', action: 'Drawdown complete', water: 0 }
+        ],
+        // Only add tips if they don't already exist
+        tips: event.tips || [
+          'Use filtered water for the best results',
+          'Grind your coffee just before brewing',
+          'Keep your equipment clean for consistent results',
+          'Use a scale to measure your coffee and water precisely',
+          'Maintain a consistent water temperature throughout the brew'
+        ],
+        // Ensure method is properly set
+        method: event.method || event.brewingMethod || 'Pour Over'
+      },
+      imageUrl: event.imageUrl
     });
   };
 
@@ -102,6 +98,32 @@ export default function HomeScreen({ navigation }) {
       userName: event.userName,
       skipAuth: true
     });
+  };
+
+  const handleOptionsPress = (event, action) => {
+    console.log('Options action:', action, 'for event:', event.id);
+    // Handle different actions like delete, edit, etc.
+    if (action === 'delete') {
+      // Delete the event and refresh list
+      if (removeCoffeeEvent) {
+        removeCoffeeEvent(event.id);
+        // Show delete success toast
+        showToast('Post deleted');
+      } else {
+        // Fallback if function isn't available: reload data
+        loadData();
+      }
+    } else if (action === 'public' || action === 'private') {
+      // Toggle visibility
+      console.log('Changing visibility to:', action);
+      // Show visibility change toast
+      showToast(`Visibility changed to ${action}`);
+    }
+  };
+
+  const handleLikePress = (eventId, isLiked) => {
+    console.log('Like pressed:', eventId, isLiked);
+    // Handle liking/unliking
   };
 
   if (isLoading) {
@@ -122,6 +144,10 @@ export default function HomeScreen({ navigation }) {
             onCoffeePress={handleCoffeePress}
             onRecipePress={handleRecipePress}
             onUserPress={handleUserPress}
+            onOptionsPress={handleOptionsPress}
+            onLikePress={handleLikePress}
+            currentUserId={currentAccount}
+            showToast={showToast}
           />
         )}
         keyExtractor={item => `${item.id}-${item.timestamp || Date.now()}`}
