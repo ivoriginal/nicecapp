@@ -62,7 +62,8 @@ export default function ProfileScreen() {
     recipes, 
     loadData,
     removeFromCollection,
-    removeFromWishlist 
+    removeFromWishlist,
+    removeCoffeeEvent
   } = useCoffee();
   
   // Track current account locally with persistence in state
@@ -327,16 +328,17 @@ export default function ProfileScreen() {
   };
 
   // Handle recipe press
-  const handleRecipePress = (recipeId, coffeeId, coffeeName, roaster, imageUrl, userId, userName, userAvatar) => {
+  const handleRecipePress = (item) => {
     navigation.navigate('RecipeDetail', {
-      recipeId,
-      coffeeId,
-      coffeeName,
-      roaster,
-      imageUrl,
-      userId,
-      userName,
-      userAvatar
+      recipeId: item.id,
+      coffeeId: item.coffeeId,
+      coffeeName: item.coffeeName || item.name,
+      roaster: item.roaster || item.roasterName,
+      imageUrl: item.imageUrl,
+      recipe: item,
+      userId: item.userId,
+      userName: item.userName,
+      userAvatar: item.userAvatar
     });
   };
 
@@ -360,17 +362,11 @@ export default function ProfileScreen() {
         <CoffeeLogCard
           event={item}
           onCoffeePress={() => handleCoffeePress(item)}
-          onRecipePress={() => handleRecipePress(
-            `recipe-${item.id}`,
-            item.coffeeId,
-            item.coffeeName,
-            item.roaster,
-            item.imageUrl,
-            item.userId,
-            item.userName,
-            item.userAvatar
-          )}
+          onRecipePress={() => handleRecipePress(item)}
           onUserPress={() => handleUserPress(item)}
+          onOptionsPress={handleCoffeeOptionsPress}
+          onLikePress={handleCoffeeLikePress}
+          currentUserId={currentAccount}
         />
       </View>
     );
@@ -426,16 +422,7 @@ export default function ProfileScreen() {
   const renderRecipeItem = ({ item }) => (
     <TouchableOpacity
       style={[styles.recipeItem, styles.coffeeItemContainer]}
-      onPress={() => handleRecipePress(
-        item.id,
-        item.coffeeId,
-        item.name,
-        item.roaster,
-        item.imageUrl,
-        item.userId,
-        item.userName,
-        item.userAvatar
-      )}
+      onPress={() => handleRecipePress(item)}
     >
       <Image
         source={{ uri: item.imageUrl || 'https://images.unsplash.com/photo-1447933601403-0c6688de566e' }}
@@ -817,6 +804,31 @@ export default function ProfileScreen() {
       }
     }
   }, [user, currentAccount, accounts]);
+
+  // Handle coffee options
+  const handleCoffeeOptionsPress = (event, action) => {
+    console.log('Coffee options action:', action, 'for event:', event.id);
+    if (action === 'delete') {
+      // Use the context function to delete the coffee log
+      if (removeCoffeeEvent) {
+        removeCoffeeEvent(event.id);
+      }
+      // No need for Alert since Toast is shown by the component
+    } else if (action === 'public' || action === 'private') {
+      // Toggle visibility status
+      console.log(`Changed visibility to ${action}`);
+      // Note: Toast is handled by the CoffeeLogCard component
+    } else if (action === 'edit') {
+      // Navigate to edit screen
+      navigation.navigate('EditCoffeeLog', { eventId: event.id });
+    }
+  };
+
+  // Handle coffee like
+  const handleCoffeeLikePress = (eventId, isLiked) => {
+    console.log('Coffee like:', eventId, isLiked);
+    // Call API to like/unlike the coffee log
+  };
 
   return (
     <View style={styles.container}>

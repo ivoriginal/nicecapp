@@ -25,7 +25,7 @@ export default function UserProfileScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const { userId } = route.params || { userId: 'user1' }; // Default to Ivo Vilches
-  const { allEvents, following, followers, loadData } = useCoffee();
+  const { allEvents, following, followers, loadData, currentAccount, removeCoffeeEvent } = useCoffee();
   
   const [user, setUser] = useState(null);
   const [userCoffees, setUserCoffees] = useState([]);
@@ -221,11 +221,12 @@ export default function UserProfileScreen() {
       event={item}
       onCoffeePress={() => navigation.navigate('CoffeeDetail', { coffeeId: item.coffeeId, skipAuth: true })}
       onRecipePress={() => navigation.navigate('RecipeDetail', { 
-        recipeId: `recipe-${item.id}`,
+        recipeId: item.id,
         coffeeId: item.coffeeId,
         coffeeName: item.coffeeName,
-        roaster: item.roaster,
+        roaster: item.roaster || item.roasterName,
         imageUrl: item.imageUrl,
+        recipe: item,
         userId: item.userId,
         userName: item.userName,
         userAvatar: item.userAvatar
@@ -234,8 +235,35 @@ export default function UserProfileScreen() {
         userId: item.userId,
         skipAuth: true 
       })}
+      onOptionsPress={handleOptionsPress}
+      onLikePress={handleLikePress}
+      currentUserId={currentAccount}
     />
   );
+
+  // Handle options button press
+  const handleOptionsPress = (event, action) => {
+    console.log('Options action:', action, 'for event:', event.id);
+    if (action === 'delete') {
+      // Use the context function to delete the post
+      if (removeCoffeeEvent) {
+        removeCoffeeEvent(event.id);
+      }
+      // No need for Alert since Toast is shown by the component
+    } else if (action === 'public' || action === 'private') {
+      // Handle visibility change - Toast is shown by the component
+      console.log('Changed visibility to:', action);
+    } else if (action === 'report') {
+      // Handle report
+      Alert.alert('Report Submitted', 'Thank you for your report. We will review this content.');
+    }
+  };
+
+  // Handle like button press
+  const handleLikePress = (eventId, isLiked) => {
+    console.log('Like toggled:', eventId, isLiked);
+    // API call would happen here
+  };
 
   return (
     <View style={styles.container}>
