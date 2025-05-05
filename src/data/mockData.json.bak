@@ -183,7 +183,7 @@
       "joinedDate": "2022-07-10T00:00:00Z"
     },
     {
-      "id": "user11",
+      "id": "user-elias",
       "email": "elias.veris@example.com",
       "userName": "Elias Veris",
       "userAvatar": "assets/users/elias-veris.jpg",
@@ -210,8 +210,7 @@
       "userAvatar": "https://randomuser.me/api/portraits/women/33.jpg",
       "bio": "Coffee shop owner and latte art enthusiast. Love connecting with fellow coffee lovers!",
       "location": "Austin, TX",
-      "mutualFriends": 2,
-      "type": "user"
+      "mutualFriends": 2
     },
     {
       "id": "user7",
@@ -219,8 +218,7 @@
       "userAvatar": "https://randomuser.me/api/portraits/women/68.jpg",
       "bio": "Coffee educator and brewing competition judge. Always learning and sharing knowledge.",
       "location": "Chicago, IL",
-      "mutualFriends": 4,
-      "type": "user"
+      "mutualFriends": 4
     },
     {
       "id": "user9",
@@ -228,8 +226,7 @@
       "userAvatar": "https://randomuser.me/api/portraits/women/12.jpg",
       "bio": "Coffee and pastry pairing expert. Finding the perfect match for every brew.",
       "location": "Boston, MA",
-      "mutualFriends": 1,
-      "type": "user"
+      "mutualFriends": 1
     }
   ],
   "businesses": [
@@ -247,11 +244,7 @@
       "rating": 4.9,
       "reviewCount": 145,
       "neighborhood": "Centro",
-      "categories": [
-        "specialty coffee",
-        "roaster",
-        "café"
-      ],
+      "categories": ["specialty coffee", "roaster", "café"],
       "priceRange": "$$",
       "website": "https://kima.coffee"
     },
@@ -266,11 +259,7 @@
       "rating": 4.9,
       "reviewCount": 145,
       "neighborhood": "Centro",
-      "categories": [
-        "specialty coffee",
-        "roaster",
-        "café"
-      ],
+      "categories": ["specialty coffee", "roaster", "café"],
       "priceRange": "$$",
       "location": "Murcia, Spain"
     },
@@ -554,12 +543,7 @@
       "rating": 4.8,
       "reviewCount": 115,
       "neighborhood": "Chueca",
-      "categories": [
-        "specialty coffee",
-        "roaster",
-        "café",
-        "barista tools"
-      ],
+      "categories": ["specialty coffee", "roaster", "café", "barista tools"],
       "priceRange": "$$",
       "website": "https://www.thefixmadrid.com",
       "instagram": "@thefixmadrid",
@@ -1097,7 +1081,7 @@
       "varietal": "Bourbon, Caturra",
       "process": "Honey",
       "profile": "Honey, dark chocolate, red apple, sugarcane",
-      "price": 14,
+      "price": 14.0,
       "pricePerKg": 56,
       "description": "This honey processed coffee from the renowned Santa Clara estate in Antigua, Guatemala offers a wonderful balance of sweetness and complexity. The cup profile features pronounced honey and sugarcane sweetness, complemented by rich dark chocolate notes and a pleasant red apple acidity.",
       "image": "https://cdn.shopify.com/s/files/1/0553/4603/1271/files/guatemala_santa_clara_honey_1500x.png?v=1688634814",
@@ -1167,11 +1151,7 @@
       "rating": 4.7,
       "reviewCount": 122,
       "neighborhood": "Malasaña",
-      "categories": [
-        "specialty coffee",
-        "café",
-        "breakfast"
-      ],
+      "categories": ["specialty coffee", "café", "breakfast"],
       "location": "Madrid, Spain"
     },
     {
@@ -1186,11 +1166,7 @@
       "rating": 4.5,
       "reviewCount": 98,
       "neighborhood": "Almagro",
-      "categories": [
-        "specialty coffee",
-        "café",
-        "breakfast"
-      ],
+      "categories": ["specialty coffee", "café", "breakfast"],
       "location": "Madrid, Spain"
     },
     {
@@ -1205,11 +1181,7 @@
       "rating": 4.8,
       "reviewCount": 156,
       "neighborhood": "Trafalgar",
-      "categories": [
-        "specialty coffee",
-        "café",
-        "roastery"
-      ],
+      "categories": ["specialty coffee", "café", "roastery"],
       "location": "Madrid, Spain"
     },
     {
@@ -1229,9 +1201,7 @@
         "café"
       ],
       "priceRange": "$$",
-      "location": "Málaga, Spain",
-      "isGoodCafe": true,
-      "isTrending": true
+      "location": "Málaga, Spain"
     },
     {
       "id": "vertigo-calambre",
@@ -1416,6 +1386,14 @@
     ],
     "coffee1": [
       {
+        "id": "business3",
+        "name": "Blue Bottle Coffee",
+        "avatar": "https://images.unsplash.com/photo-1554118811-1e0d58224f24",
+        "location": "San Francisco, CA",
+        "isRoaster": true,
+        "businessAccount": true
+      },
+      {
         "id": "user2",
         "name": "Vértigo y Calambre",
         "avatar": "assets/businesses/vertigo-logo.jpg",
@@ -1424,17 +1402,105 @@
         "businessAccount": true
       }
     ],
+    "coffee2": [
+      {
+        "id": "business4",
+        "name": "Stumptown Coffee Roasters",
+        "avatar": "https://images.unsplash.com/photo-1554118811-1e0d58224f24",
+        "location": "Portland, OR",
+        "isRoaster": true,
+        "businessAccount": true
+      }
+    ],
+    "coffee3": [
+      {
+        "id": "business3",
+        "name": "Blue Bottle Coffee",
+        "avatar": "https://images.unsplash.com/photo-1554118811-1e0d58224f24",
+        "location": "San Francisco, CA",
+        "isRoaster": true,
+        "businessAccount": true
+      }
+    ],
+    "coffee4": [
+      {
+        "id": "business4",
+        "name": "Stumptown Coffee Roasters",
+        "avatar": "https://images.unsplash.com/photo-1554118811-1e0d58224f24",
+        "location": "Portland, OR",
+        "isRoaster": true,
+        "businessAccount": true
+      }
+    ],
+    "coffee5": [
+      {
+        "id": "business2",
+        "name": "The Fix",
+        "avatar": "https://images.unsplash.com/photo-1554118811-1e0d58224f24",
+        "location": "Austin, TX",
+        "isRoaster": true,
+        "businessAccount": true
+      }
+    ],
     "coffee-0": [
       {
-        "id": "business-thefix", 
-        "name": "The Fix",
-        "avatar": "assets/businesses/thefix-logo.jpg",
-        "location": "Madrid, Spain",
+        "id": "business3",
+        "name": "Blue Bottle Coffee",
+        "avatar": "https://images.unsplash.com/photo-1554118811-1e0d58224f24",
+        "location": "San Francisco, CA",
+        "isRoaster": true,
+        "businessAccount": true
+      }
+    ],
+    "coffee-1": [
+      {
+        "id": "business4",
+        "name": "Stumptown Coffee Roasters",
+        "avatar": "https://images.unsplash.com/photo-1554118811-1e0d58224f24",
+        "location": "Portland, OR",
+        "isRoaster": true,
+        "businessAccount": true
+      }
+    ],
+    "coffee-2": [
+      {
+        "id": "business3",
+        "name": "Intelligentsia Coffee",
+        "avatar": "https://images.unsplash.com/photo-1554118811-1e0d58224f24",
+        "location": "Chicago, IL",
+        "isRoaster": true,
+        "businessAccount": true
+      }
+    ],
+    "coffee-3": [
+      {
+        "id": "business4",
+        "name": "Counter Culture Coffee",
+        "avatar": "https://images.unsplash.com/photo-1554118811-1e0d58224f24",
+        "location": "Durham, NC",
+        "isRoaster": true,
+        "businessAccount": true
+      }
+    ],
+    "coffee-4": [
+      {
+        "id": "business2",
+        "name": "Starbucks Reserve",
+        "avatar": "https://images.unsplash.com/photo-1554118811-1e0d58224f24",
+        "location": "Seattle, WA",
         "isRoaster": true,
         "businessAccount": true
       }
     ],
     "mock1": [
+      {
+        "id": "business3",
+        "name": "Blue Bottle Coffee",
+        "avatar": "https://images.unsplash.com/photo-1554118811-1e0d58224f24",
+        "location": "San Francisco, CA",
+        "isRoaster": true,
+        "businessAccount": true
+      },
       {
         "id": "user5",
         "name": "Emma Garcia",
@@ -1563,7 +1629,7 @@
         "isRoaster": false,
         "businessAccount": true
       }
-    ],
+    },
     "coffee-thefix-ethiopia": [
       {
         "id": "business-thefix",
@@ -1584,7 +1650,7 @@
         "businessAccount": true
       },
       {
-        "id": "user11",
+        "id": "user-elias",
         "name": "Elias Veris",
         "avatar": "assets/users/elias-veris.jpg",
         "location": "Madrid, Spain",
@@ -1618,6 +1684,28 @@
       "waterVolume": 60,
       "brewTime": "0:32",
       "notes": "We're serving this as our feature espresso this week! Beautiful frutos rojos and chocolate notes with elegant bergamota acidity.",
+      "userId": "user2",
+      "userName": "Vértigo y Calambre",
+      "userAvatar": "assets/businesses/vertigo-logo.jpg"
+    },
+    {
+      "id": "event-latte-art-1",
+      "type": "latte_art",
+      "imageUrl": "https://images.unsplash.com/photo-1534805644434-35e208239701",
+      "date": "2023-12-11T10:15:00Z",
+      "notes": "Finally nailed this tulip after weeks of practice! Using our house espresso blend from Toma Café.",
+      "userId": "user2",
+      "userName": "Vértigo y Calambre",
+      "userAvatar": "assets/businesses/vertigo-logo.jpg"
+    },
+    {
+      "id": "event-workshop-1",
+      "type": "workshop",
+      "title": "Espresso Masterclass",
+      "location": "Vértigo y Calambre, Murcia",
+      "imageUrl": "assets/businesses/vertigo-cover.jpg",
+      "date": "2023-11-25T17:00:00Z",
+      "notes": "Just announced our December Espresso Masterclass featuring Toma Café's El Silencio! Limited spots available, sign up on our website.",
       "userId": "user2",
       "userName": "Vértigo y Calambre",
       "userAvatar": "assets/businesses/vertigo-logo.jpg"
@@ -1820,13 +1908,12 @@
       "userAvatar": "https://randomuser.me/api/portraits/men/45.jpg"
     },
     {
-      "id": "event-gear-added-1",
-      "type": "gear_added",
+      "id": "event-gear-purchase-1",
+      "type": "gear_purchase",
       "gearName": "Fellow Stagg EKG",
-      "gearBrand": "Fellow",
-      "imageUrl": "https://hola.coffee/cdn/shop/files/FELLOW-STAGG_1024x1024@2x.jpg?v=1732719228",
+      "imageUrl": "https://images.unsplash.com/photo-1564890369478-c89ca6d9cde9",
       "date": "2023-12-09T16:30:00Z",
-      "notes": "Finally added the Fellow Stagg EKG to my gear collection! The temperature control is a game changer for my pour-overs.",
+      "notes": "Finally upgraded to the Fellow Stagg EKG! The temperature control is a game changer for my pour-overs.",
       "userId": "user7",
       "userName": "Sophia Miller",
       "userAvatar": "https://randomuser.me/api/portraits/women/68.jpg"
@@ -1946,7 +2033,7 @@
       "waterVolume": 250,
       "brewTime": "2:50",
       "notes": "Perfect morning brew with my Fellow Stagg EKG. The temperature control really brings out the red berry notes in this Pink Bourbon!",
-      "userId": "user11",
+      "userId": "user-elias",
       "userName": "Elias Veris",
       "userAvatar": "assets/users/elias-veris.jpg"
     }
@@ -2130,9 +2217,7 @@
         }
       ],
       "imageUrl": "https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728",
-      "date": "2023-11-20T14:30:00Z",
-      "isTrending": true,
-      "type": "recipe"
+      "date": "2023-11-20T14:30:00Z"
     },
     {
       "id": "recipe2",
@@ -2178,9 +2263,7 @@
         }
       ],
       "imageUrl": "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd",
-      "date": "2023-12-12T15:30:00Z",
-      "isTrending": true,
-      "type": "recipe"
+      "date": "2023-12-12T15:30:00Z"
     },
     {
       "id": "recipe3",
@@ -2227,9 +2310,7 @@
         }
       ],
       "imageUrl": "https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728",
-      "date": "2023-11-28T12:00:00Z",
-      "isTrending": true,
-      "type": "recipe"
+      "date": "2023-11-28T12:00:00Z"
     }
   ],
   "gear": [
@@ -2238,7 +2319,7 @@
       "name": "Fellow Stagg EKG",
       "type": "Kettle",
       "brand": "Fellow",
-      "price": 170,
+      "price": 170.00,
       "description": "Electric pour-over kettle with variable temperature control, 1200 watt quick-heating element, and a precision pour spout. Perfect for pour-over coffee brewing.",
       "features": [
         "Variable temperature control (40-100°C)",
@@ -2273,7 +2354,7 @@
       ],
       "rating": 4.7,
       "reviewCount": 3200,
-      "imageUrl": "https://ecafe.es/tienda/2089-large_default/baratza-encore-esp.jpg",
+      "imageUrl": "https://images.unsplash.com/photo-1606855637090-c6b478ca2635",
       "relatedGear": [
         "gear3"
       ]
@@ -2457,7 +2538,7 @@
       "name": "Fellow Opus",
       "type": "Grinder",
       "brand": "Fellow",
-      "price": 195,
+      "price": 195.00,
       "description": "The Fellow Opus is a premium electric conical burr grinder with precision grinding capabilities for consistent and flavorful coffee.",
       "features": [
         "40mm conical stainless steel burrs",

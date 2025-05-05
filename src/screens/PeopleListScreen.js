@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import mockData from '../data/mockData.json';
@@ -38,29 +38,61 @@ const PeopleListScreen = ({ navigation }) => {
     !filteredSuggestedUsers.some(suggestedUser => suggestedUser.id === user.id)
   )];
   
-  const renderUserItem = ({ item }) => (
-    <TouchableOpacity 
-      style={styles.userCard}
-      onPress={() => navigation.navigate('UserProfileBridge', { 
-        userId: item.id, 
-        userName: item.userName || item.name,
-        skipAuth: true 
-      })}
-    >
-      <AppImage 
-        source={item.userAvatar || item.avatar} 
-        style={styles.userAvatar}
-        placeholder="person"
-      />
-      <View style={styles.userInfo}>
-        <Text style={styles.userName}>{item.userName || item.name}</Text>
-        <Text style={styles.userBio} numberOfLines={2}>{item.bio}</Text>
-      </View>
-      <TouchableOpacity style={styles.followButton}>
-        <Text style={styles.followButtonText}>Follow</Text>
+  const renderUserItem = ({ item }) => {
+    // Handle avatar source based on user
+    let avatar;
+    
+    if (item.id === 'user11') {
+      // Use the AppImage component with the string path which it knows how to handle
+      return (
+        <TouchableOpacity 
+          style={styles.userCard}
+          onPress={() => navigation.navigate('UserProfileBridge', { 
+            userId: item.id, 
+            userName: item.userName || item.name,
+            skipAuth: true 
+          })}
+        >
+          <AppImage 
+            source="assets/users/elias-veris.jpg" 
+            style={styles.userAvatar}
+            placeholder="person"
+          />
+          <View style={styles.userInfo}>
+            <Text style={styles.userName}>{item.userName || item.name}</Text>
+            <Text style={styles.userBio} numberOfLines={2}>{item.bio}</Text>
+          </View>
+          <TouchableOpacity style={styles.followButton}>
+            <Text style={styles.followButtonText}>Follow</Text>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      );
+    }
+    
+    return (
+      <TouchableOpacity 
+        style={styles.userCard}
+        onPress={() => navigation.navigate('UserProfileBridge', { 
+          userId: item.id, 
+          userName: item.userName || item.name,
+          skipAuth: true 
+        })}
+      >
+        <AppImage 
+          source={item.userAvatar || item.avatar} 
+          style={styles.userAvatar}
+          placeholder="person"
+        />
+        <View style={styles.userInfo}>
+          <Text style={styles.userName}>{item.userName || item.name}</Text>
+          <Text style={styles.userBio} numberOfLines={2}>{item.bio}</Text>
+        </View>
+        <TouchableOpacity style={styles.followButton}>
+          <Text style={styles.followButtonText}>Follow</Text>
+        </TouchableOpacity>
       </TouchableOpacity>
-    </TouchableOpacity>
-  );
+    );
+  };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>

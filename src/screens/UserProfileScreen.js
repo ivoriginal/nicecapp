@@ -357,6 +357,11 @@ export default function UserProfileScreen() {
         userProfile.location = 'Madrid, Spain';
       }
       
+      // Ensure Elias Veris has the correct avatar path
+      if (userProfile.id === 'user11') {
+        userProfile.userAvatar = 'assets/users/elias-veris.jpg';
+      }
+      
       return userProfile;
     }
     
@@ -507,45 +512,6 @@ export default function UserProfileScreen() {
     }
   }, [userId, allEvents, loading]);
 
-  const renderGearModule = () => {
-    // Make sure we have proper gear data
-    const displayGear = user?.gear || [];
-    const displayWishlist = user?.gearWishlist || [];
-    
-    return (
-      <View style={styles.gearContainer}>
-        <View style={styles.gearTitleRow}>
-          <Text style={styles.gearTitle}>Gear</Text>
-          
-          <TouchableOpacity onPress={handleGearWishlistPress}>
-            <Text style={styles.gearWishlistToggle}>
-              {displayWishlist.length > 0 ? 'Wishlist' : 'View Wishlist'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-        
-        <View style={styles.gearGrid}>
-          {displayGear.length > 0 ? (
-            displayGear.map((item, index) => (
-              <TouchableOpacity 
-                key={index} 
-                style={styles.gearItemChip}
-                onPress={() => handleGearPress(item)}
-              >
-                <Ionicons name="hardware-chip-outline" size={16} color="#666666" style={styles.gearIcon} />
-                <Text style={styles.gearItemText}>{item}</Text>
-              </TouchableOpacity>
-            ))
-          ) : (
-            <Text style={styles.emptyGearText}>
-              No gear added yet
-            </Text>
-          )}
-        </View>
-      </View>
-    );
-  };
-
   return (
     <View style={[styles.container]}>
       {loading ? (
@@ -597,6 +563,7 @@ export default function UserProfileScreen() {
               )}
             </View>
             
+            {/* Hide profile stats for now
             <View style={styles.profileStats}>
               <View style={styles.statItem}>
                 <Text style={styles.statNumber}>{userCoffees.length}</Text>
@@ -615,9 +582,44 @@ export default function UserProfileScreen() {
             {user?.bio && (
               <Text style={styles.profileBio}>{user.bio}</Text>
             )}
+            */}
             
             {/* Display gear module for all user profiles except roasters */}
-            {!user?.isRoaster && renderGearModule()}
+            {!user?.isRoaster && (
+              <View style={styles.gearContainer}>
+                <View style={styles.gearTitleRow}>
+                  <Text style={styles.gearTitle}>Gear</Text>
+                  
+                  <TouchableOpacity onPress={handleGearWishlistPress}>
+                    <Text style={styles.gearWishlistToggle}>
+                      {user?.gearWishlist?.length > 0 ? 'Wishlist' : 'View Wishlist'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+                
+                <ScrollView 
+                  horizontal 
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.gearScrollContainer}
+                >
+                  {user?.gear && user.gear.length > 0 ? (
+                    user.gear.map((item, index) => (
+                      <TouchableOpacity 
+                        key={index} 
+                        style={styles.gearItem}
+                        onPress={() => handleGearPress(item)}
+                      >
+                        <Text style={styles.gearItemText}>{item}</Text>
+                      </TouchableOpacity>
+                    ))
+                  ) : (
+                    <Text style={styles.emptyGearText}>
+                      No gear added yet
+                    </Text>
+                  )}
+                </ScrollView>
+              </View>
+            )}
             
             <View style={styles.tabsContainer}>
               {getTabs().map((tab) => (
@@ -768,10 +770,6 @@ export default function UserProfileScreen() {
               {/* Collection tab (for regular users) */}
               {!user?.isRoaster && activeTab === 'collection' && (
                 <View style={styles.collectionSection}>
-                  <View style={styles.sectionHeader}>
-                    <Text style={styles.sectionTitle}>Collection</Text>
-                    <Text style={styles.collectionCount}>{collectionCoffees.length} {collectionCoffees.length === 1 ? 'coffee' : 'coffees'}</Text>
-                  </View>
                   
                   <FlatList
                     data={collectionCoffees}
@@ -1001,37 +999,38 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   gearContainer: {
-    padding: 16,
     backgroundColor: '#FFFFFF',
-    marginBottom: 8,
+    padding: 16,
+    paddingTop: 4,
+    paddingRight: 0,
+    paddingBottom: 12,
   },
   gearTitleRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 6,
+    paddingRight: 16,
   },
   gearTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#000000',
   },
-  gearGrid: {
+  gearScrollContainer: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    paddingVertical: 5,
+    paddingLeft: 0,
+    paddingRight: 16,
   },
-  gearItemChip: {
+  gearItem: {
     backgroundColor: '#F5F5F7',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 16,
-    marginRight: 8,
-    marginBottom: 8,
+    marginRight: 10,
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  gearIcon: {
-    marginRight: 6,
   },
   gearItemText: {
     fontSize: 14,

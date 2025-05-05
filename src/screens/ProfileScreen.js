@@ -759,6 +759,49 @@ export default function ProfileScreen() {
           <View style={styles.sectionContainer}>
             {console.log('Rendering recipes tab')}
             <View style={styles.collectionSection}>
+              <View style={styles.recipeFilterContainer}>
+                <View style={styles.segmentedControl}>
+                  <TouchableOpacity
+                    style={[
+                      styles.segment,
+                      recipeFilter === 'all' && styles.segmentActive
+                    ]}
+                    onPress={() => setRecipeFilter('all')}
+                  >
+                    <Text style={[
+                      styles.segmentText,
+                      recipeFilter === 'all' && styles.segmentTextActive
+                    ]}>All</Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity
+                    style={[
+                      styles.segment,
+                      recipeFilter === 'created' && styles.segmentActive
+                    ]}
+                    onPress={() => setRecipeFilter('created')}
+                  >
+                    <Text style={[
+                      styles.segmentText,
+                      recipeFilter === 'created' && styles.segmentTextActive
+                    ]}>Mine</Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity
+                    style={[
+                      styles.segment,
+                      recipeFilter === 'saved' && styles.segmentActive
+                    ]}
+                    onPress={() => setRecipeFilter('saved')}
+                  >
+                    <Text style={[
+                      styles.segmentText,
+                      recipeFilter === 'saved' && styles.segmentTextActive
+                    ]}>Saved</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+              
               <FlatList
                 data={getFilteredRecipes()}
                 renderItem={renderRecipeItem}
@@ -767,7 +810,7 @@ export default function ProfileScreen() {
                 columnWrapperStyle={styles.collectionCardRow}
                 showsVerticalScrollIndicator={false}
                 scrollEnabled={false}
-                contentContainerStyle={{paddingHorizontal: 16, paddingTop: 16, paddingBottom: 60}}
+                contentContainerStyle={{paddingHorizontal: 16, paddingTop: 16, paddingBottom: 16}}
                 ListEmptyComponent={() => (
                   <View style={styles.emptyFilterContainer}>
                     <Text style={styles.emptyText}>
@@ -776,63 +819,6 @@ export default function ProfileScreen() {
                   </View>
                 )}
               />
-              
-              <View style={styles.recipeFilterContainer}>
-                <View style={styles.recipeFilterSegment}>
-                  <TouchableOpacity
-                    style={[
-                      styles.recipeFilterButton,
-                      recipeFilter === 'all' && styles.recipeFilterButtonActive,
-                      { borderTopLeftRadius: 8, borderBottomLeftRadius: 8 }
-                    ]}
-                    onPress={() => setRecipeFilter('all')}
-                  >
-                    <Text 
-                      style={[
-                        styles.recipeFilterText,
-                        recipeFilter === 'all' && styles.recipeFilterTextActive
-                      ]}
-                    >
-                      All
-                    </Text>
-                  </TouchableOpacity>
-                  
-                  <TouchableOpacity
-                    style={[
-                      styles.recipeFilterButton,
-                      recipeFilter === 'created' && styles.recipeFilterButtonActive
-                    ]}
-                    onPress={() => setRecipeFilter('created')}
-                  >
-                    <Text 
-                      style={[
-                        styles.recipeFilterText,
-                        recipeFilter === 'created' && styles.recipeFilterTextActive
-                      ]}
-                    >
-                      Created
-                    </Text>
-                  </TouchableOpacity>
-                  
-                  <TouchableOpacity
-                    style={[
-                      styles.recipeFilterButton,
-                      recipeFilter === 'saved' && styles.recipeFilterButtonActive,
-                      { borderTopRightRadius: 8, borderBottomRightRadius: 8 }
-                    ]}
-                    onPress={() => setRecipeFilter('saved')}
-                  >
-                    <Text 
-                      style={[
-                        styles.recipeFilterText,
-                        recipeFilter === 'saved' && styles.recipeFilterTextActive
-                      ]}
-                    >
-                      Saved
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
             </View>
           </View>
         )}
@@ -985,7 +971,11 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
         
-        <View style={styles.gearGrid}>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.gearScrollContainer}
+        >
           {gearToDisplay.length > 0 ? (
             gearToDisplay.map((item, index) => {
               console.log('RENDERING GEAR ITEM:', item);
@@ -995,7 +985,6 @@ export default function ProfileScreen() {
                   style={styles.gearItem}
                   onPress={() => handleGearPress(item)}
                 >
-                  <Ionicons name="hardware-chip-outline" size={16} color="#666666" style={styles.gearIcon} />
                   <Text style={styles.gearItemText}>{item}</Text>
                 </TouchableOpacity>
               );
@@ -1005,7 +994,7 @@ export default function ProfileScreen() {
               No gear added yet
             </Text>
           )}
-        </View>
+        </ScrollView>
       </View>
     );
   };
@@ -1407,15 +1396,19 @@ const styles = StyleSheet.create({
   gearContainer: {
     backgroundColor: '#FFFFFF',
     padding: 16,
+    paddingTop: 8,
+    paddingRight: 0,
+    paddingBottom: 12,
   },
   gearTitleRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 6,
+    paddingRight: 16,
   },
   gearTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#000000',
   },
@@ -1423,11 +1416,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#0066CC',
     fontWeight: '500',
-    padding: 5,
+    padding: 0,
   },
-  gearGrid: {
+  gearScrollContainer: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    paddingVertical: 5,
+    paddingLeft: 0,
+    paddingRight: 16,
   },
   gearItem: {
     backgroundColor: '#F5F5F7',
@@ -1435,7 +1430,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 16,
     marginRight: 10,
-    marginBottom: 10,
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -1512,44 +1506,40 @@ const styles = StyleSheet.create({
     // No additional styling needed
   },
   recipeFilterContainer: {
-    position: 'absolute',
-    bottom: 20,
-    left: 0,
-    right: 0,
+    position: 'relative',
+    margin: 16,
+    marginBottom: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 20,
     zIndex: 10,
   },
-  recipeFilterSegment: {
+  segmentedControl: {
     flexDirection: 'row',
-    backgroundColor: '#F2F2F2',
+    backgroundColor: '#F2F2F7',
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 4,
+    padding: 4,
   },
-  recipeFilterButton: {
+  segment: {
     flex: 1,
-    paddingVertical: 10,
+    paddingVertical: 8,
     alignItems: 'center',
-    justifyContent: 'center',
+    borderRadius: 6,
   },
-  recipeFilterButtonActive: {
-    backgroundColor: '#000000',
+  segmentActive: {
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
-  recipeFilterText: {
+  segmentText: {
     fontSize: 14,
     fontWeight: '500',
     color: '#666666',
   },
-  recipeFilterTextActive: {
-    color: '#FFFFFF',
+  segmentTextActive: {
+    color: '#000000',
   },
   emptyFilterContainer: {
     padding: 60,

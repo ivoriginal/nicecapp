@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { View, Text, FlatList, StyleSheet, TouchableOpacity, ScrollView, Modal, TouchableWithoutFeedback } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -17,6 +17,26 @@ const CoffeeDiscoveryScreen = ({ navigation, route }) => {
   const [sortModalVisible, setSortModalVisible] = useState(false);
   const [sellersList, setSellersList] = useState([]);
   
+  // Check if any filters are active
+  const hasActiveFilters = Object.values(activeFilters).some(filters => filters.length > 0) || activeFilter;
+
+  // Configure navigation header
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerShown: true,
+      title: sortOrder === 'popularity' ? 'All Coffee' : (activeFilter ? `${activeFilter.label} Coffees` : 'All Coffee'),
+      headerBackTitle: 'Back',
+      headerRight: () => hasActiveFilters ? (
+        <TouchableOpacity 
+          style={{ marginRight: 16 }}
+          onPress={clearAllFilters}
+        >
+          <Text style={{ color: '#007AFF', fontSize: 16 }}>Clear All</Text>
+        </TouchableOpacity>
+      ) : null
+    });
+  }, [navigation, sortOrder, activeFilter, hasActiveFilters]);
+
   // Available filter options
   const filterCategories = [
     {
@@ -92,9 +112,6 @@ const CoffeeDiscoveryScreen = ({ navigation, route }) => {
     return option ? option.label : 'Sort';
   };
 
-  // Check if any filters are active
-  const hasActiveFilters = Object.values(activeFilters).some(filters => filters.length > 0) || activeFilter;
-
   useEffect(() => {
     // Get all coffees from mockData
     let filteredCoffees = [...mockData.coffees];
@@ -160,9 +177,20 @@ const CoffeeDiscoveryScreen = ({ navigation, route }) => {
         switch(category) {
           case 'roastLevel':
             filteredCoffees = filteredCoffees.filter(coffee => 
-              selectedOptions.some(option => 
-                coffee.roastLevel && coffee.roastLevel.toLowerCase().includes(option.toLowerCase())
-              )
+              selectedOptions.some(option => {
+                // If coffee doesn't have a roastLevel, default to "Medium"
+                const coffeeRoastLevel = coffee.roastLevel ? coffee.roastLevel.toLowerCase() : "medium";
+                const filterOption = option.toLowerCase();
+                
+                // More flexible matching for roast levels
+                return coffeeRoastLevel.includes(filterOption) || 
+                      (filterOption === 'light' && coffeeRoastLevel.includes('claro')) ||
+                      (filterOption === 'medium' && (coffeeRoastLevel.includes('medio') || 
+                                                     coffeeRoastLevel.includes('medium') || 
+                                                     !coffee.roastLevel)) || // Default to medium if not specified
+                      (filterOption === 'dark' && (coffeeRoastLevel.includes('oscuro') || 
+                                                  coffeeRoastLevel.includes('dark')));
+              })
             );
             break;
           case 'region':
@@ -198,15 +226,24 @@ const CoffeeDiscoveryScreen = ({ navigation, route }) => {
             });
             break;
           case 'tried':
-            // This would normally use user data to filter by tried/not tried
-            // For now, we'll just use a random condition as an example
+            // Check if the coffee is in the user's collection
+            // For this example, we'll use coffee events to determine if coffee has been tried
+            // In a real app, this would use a proper user collection database
             if (selectedOptions.includes('yes')) {
+              const triedCoffeeIds = mockData.coffeeEvents
+                .filter(event => event.userId === 'currentUser' || 
+                                 event.type === 'added_to_collection')
+                .map(event => event.coffeeId);
               filteredCoffees = filteredCoffees.filter(coffee => 
-                parseInt(coffee.id.replace(/[^0-9]/g, '')) % 2 === 0
+                triedCoffeeIds.includes(coffee.id)
               );
             } else if (selectedOptions.includes('no')) {
+              const triedCoffeeIds = mockData.coffeeEvents
+                .filter(event => event.userId === 'currentUser' || 
+                                 event.type === 'added_to_collection')
+                .map(event => event.coffeeId);
               filteredCoffees = filteredCoffees.filter(coffee => 
-                parseInt(coffee.id.replace(/[^0-9]/g, '')) % 2 !== 0
+                !triedCoffeeIds.includes(coffee.id)
               );
             }
             break;
@@ -558,59 +595,12 @@ const CoffeeDiscoveryScreen = ({ navigation, route }) => {
             {item.process && <Text style={styles.coffeeProcess}>{item.process}</Text>}
           </View>
         </TouchableOpacity>
-        
-        {sellers.length > 0 && (
-          <View style={styles.availableAtWrapper}>
-            <View style={styles.availableAtContainer}>
-              <Text style={styles.sellerLabel}>Available at:</Text>
-              <View style={styles.sellerList}>
-                {sellers.map((seller, index) => (
-                  <View key={seller.id} style={styles.sellerItem}>
-                    {seller.avatar && (
-                      <AppImage 
-                        source={seller.avatar} 
-                        style={styles.sellerAvatar}
-                        placeholder="business"
-                      />
-                    )}
-                    <Text style={styles.sellerName}>
-                      {seller.name}{index < sellers.length - 1 ? ', ' : ''}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-          </View>
-        )}
       </View>
     );
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Text>
-            <Ionicons name="arrow-back" size={24} color="#000000" />
-          </Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>
-          {sortOrder === 'popularity' ? 'All Coffee' : (activeFilter ? `${activeFilter.label} Coffees` : 'All Coffees')}
-        </Text>
-        {hasActiveFilters && (
-          <TouchableOpacity 
-            style={styles.clearFilterButton}
-            onPress={clearAllFilters}
-          >
-            <Text style={styles.clearFilterText}>Clear All</Text>
-          </TouchableOpacity>
-        )}
-        {!hasActiveFilters && <View style={{ width: 80 }} />} {/* Spacer for balance when no "Clear All" */}
-      </View>
-
+    <View style={styles.container}>
       <FlatList
         data={coffees}
         renderItem={renderCoffeeItem}
@@ -639,35 +629,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-  },
-  backButton: {
-    padding: 8,
-    width: 40,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    flex: 1,
-    textAlign: 'center',
-  },
-  clearFilterButton: {
-    padding: 8,
-    width: 80,
-    alignItems: 'center',
-  },
-  clearFilterText: {
-    color: '#007AFF',
-    fontSize: 16,
-    textAlign: 'center',
   },
   filterBarContainer: {
     flexDirection: 'row',
@@ -845,51 +806,6 @@ const styles = StyleSheet.create({
     color: '#666666',
     fontStyle: 'italic',
     marginBottom: 4,
-  },
-  availableAtWrapper: {
-    marginHorizontal: 12,
-    marginBottom: 8,
-    backgroundColor: '#F2F2F7',
-    borderRadius: 12,
-    display: 'flex',
-    paddingHorizontal: 0,
-    paddingVertical: 0,
-    marginTop: 4,
-    display: 'none',
-  },
-  availableAtContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 8,
-    paddingHorizontal: 12,
-  },
-  sellerLabel: {
-    fontSize: 14,
-    color: '#666666',
-    fontWeight: '500',
-    marginRight: 8,
-  },
-  sellerList: {
-    flex: 1,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  sellerItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 8,
-    marginBottom: 4,
-  },
-  sellerAvatar: {
-    width: 24,
-    height: 24,
-    borderRadius: 4,
-    marginRight: 4,
-  },
-  sellerName: {
-    fontSize: 14,
-    color: '#000000',
-    fontWeight: '400',
   },
   emptyContainer: {
     alignItems: 'center',

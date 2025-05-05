@@ -18,7 +18,7 @@ const gearData = {
   'Hario V60': {
     id: 'gear-v60',
     name: 'Hario V60 Ceramic Dripper',
-    image: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085',
+    image: 'https://www.hario-europe.com/cdn/shop/files/VDC-01R_web.png?v=1683548122&width=1400',
     description: 'The Hario V60 is a cone-shaped dripper with spiral ridges along the inner wall and a large single hole at the bottom, designed to produce a clean, flavorful cup of coffee.',
     price: 22.99,
     whereToBuy: [
@@ -38,7 +38,7 @@ const gearData = {
   'AeroPress': {
     id: 'gear-aeropress',
     name: 'AeroPress Coffee Maker',
-    image: 'https://images.unsplash.com/photo-1612095317136-36510eef4db5',
+    image: 'https://aeropress.com/cdn/shop/files/Hero_Original_87a4958c-7df9-43b6-af92-0edc12c126cf_900x.png?v=1744683381',
     description: 'The AeroPress is a versatile coffee maker that uses pressure to extract rich, smooth coffee quickly with low acidity and bitterness.',
     price: 29.99,
     whereToBuy: [
@@ -47,7 +47,7 @@ const gearData = {
       { name: 'Amazon', url: 'https://amazon.com', location: 'Online' },
     ],
     usedBy: [
-      { id: 'user3', name: 'Carlos Hernández', avatar: require('../../assets/users/carlos-hernandez.jpg') },
+      { id: 'user1', name: 'Ivo Vilches', avatar: require('../../assets/users/ivo-vilches.jpg') },
       { id: 'user6', name: 'David Kim', avatar: 'https://randomuser.me/api/portraits/men/45.jpg' }
     ],
     wantedBy: [
@@ -55,10 +55,70 @@ const gearData = {
       { id: 'user9', name: 'Olivia Taylor', avatar: 'https://randomuser.me/api/portraits/women/12.jpg' }
     ]
   },
+  'Chemex': {
+    id: 'gear-chemex',
+    name: 'Chemex 6-Cup Coffee Maker',
+    image: 'https://images.unsplash.com/photo-1544233726-9f1d2b27be8b',
+    description: 'The Chemex is an elegant, hourglass-shaped pour-over brewer that produces clean, bright coffee through its special bonded filters.',
+    price: 46.99,
+    whereToBuy: [
+      { name: 'Vértigo y Calambre', url: 'https://vertigoycalambre.com', location: 'Murcia, Spain' },
+      { name: 'Chemex', url: 'https://www.chemexcoffeemaker.com', location: 'Online' },
+      { name: 'Amazon', url: 'https://amazon.com', location: 'Online' },
+    ],
+    usedBy: [
+      { id: 'user1', name: 'Ivo Vilches', avatar: require('../../assets/users/ivo-vilches.jpg') },
+      { id: 'user5', name: 'Emma Garcia', avatar: 'https://randomuser.me/api/portraits/women/33.jpg' }
+    ],
+    wantedBy: [
+      { id: 'user3', name: 'Carlos Hernández', avatar: require('../../assets/users/carlos-hernandez.jpg') },
+      { id: 'user7', name: 'Sophia Miller', avatar: 'https://randomuser.me/api/portraits/women/68.jpg' }
+    ]
+  },
+  'Hario Ceramic Slim': {
+    id: 'gear-hario-slim',
+    name: 'Hario Ceramic Coffee Mill Slim',
+    image: 'https://images.unsplash.com/photo-1544713300-6b5a2817d25f',
+    description: 'The Hario Ceramic Slim is a compact hand grinder with ceramic burrs for consistent grinding, perfect for travel or small kitchens.',
+    price: 34.99,
+    whereToBuy: [
+      { name: 'Vértigo y Calambre', url: 'https://vertigoycalambre.com', location: 'Murcia, Spain' },
+      { name: 'Hario', url: 'https://www.hario.com', location: 'Online' },
+      { name: 'Amazon', url: 'https://amazon.com', location: 'Online' },
+    ],
+    usedBy: [
+      { id: 'user1', name: 'Ivo Vilches', avatar: require('../../assets/users/ivo-vilches.jpg') },
+      { id: 'user3', name: 'Carlos Hernández', avatar: require('../../assets/users/carlos-hernandez.jpg') }
+    ],
+    wantedBy: [
+      { id: 'user7', name: 'Sophia Miller', avatar: 'https://randomuser.me/api/portraits/women/68.jpg' },
+      { id: 'user10', name: 'Lucas Brown', avatar: 'https://randomuser.me/api/portraits/men/55.jpg' }
+    ]
+  },
+  'Hario Range Server': {
+    id: 'gear-hario-server',
+    name: 'Hario Range Server 600ml',
+    image: 'https://images.unsplash.com/photo-1544713297-9acff35e418e',
+    description: 'The Hario Range Server is a heat-resistant glass server perfect for pour-over coffee, designed to complement the V60 dripper.',
+    price: 19.99,
+    whereToBuy: [
+      { name: 'Vértigo y Calambre', url: 'https://vertigoycalambre.com', location: 'Murcia, Spain' },
+      { name: 'Hario', url: 'https://www.hario.com', location: 'Online' },
+      { name: 'Amazon', url: 'https://amazon.com', location: 'Online' },
+    ],
+    usedBy: [
+      { id: 'user1', name: 'Ivo Vilches', avatar: require('../../assets/users/ivo-vilches.jpg') },
+      { id: 'user5', name: 'Emma Garcia', avatar: 'https://randomuser.me/api/portraits/women/33.jpg' }
+    ],
+    wantedBy: [
+      { id: 'user3', name: 'Carlos Hernández', avatar: require('../../assets/users/carlos-hernandez.jpg') },
+      { id: 'user9', name: 'Olivia Taylor', avatar: 'https://randomuser.me/api/portraits/women/12.jpg' }
+    ]
+  },
   'Comandante C40': {
     id: 'gear-comandante',
     name: 'Comandante C40 MK3 Grinder',
-    image: 'https://images.unsplash.com/photo-1596822531007-90042301c391',
+    image: 'https://images.unsplash.com/photo-1575441347544-11725ca18b26',
     description: 'The Comandante C40 is a high-precision hand grinder with stainless steel burrs, known for its consistency and build quality.',
     price: 249.99,
     whereToBuy: [
@@ -77,7 +137,7 @@ const gearData = {
   'Fellow Stagg EKG': {
     id: 'gear-stagg',
     name: 'Fellow Stagg EKG Electric Kettle',
-    image: 'https://images.unsplash.com/photo-1584589167171-541ce45f1eea',
+    image: 'https://hola.coffee/cdn/shop/files/FELLOW-STAGG_1024x1024@2x.jpg?v=1732719228',
     description: 'The Fellow Stagg EKG is a precision electric pour-over kettle with variable temperature control and a sleek design.',
     price: 149.99,
     whereToBuy: [
@@ -86,18 +146,18 @@ const gearData = {
       { name: 'Amazon', url: 'https://amazon.com', location: 'Online' },
     ],
     usedBy: [
-      { id: 'user1', name: 'Ivo Vilches', avatar: require('../../assets/users/ivo-vilches.jpg') },
-      { id: 'user7', name: 'Sophia Miller', avatar: 'https://randomuser.me/api/portraits/women/68.jpg' }
+      { id: 'user7', name: 'Sophia Miller', avatar: 'https://randomuser.me/api/portraits/women/68.jpg' },
+      { id: 'user5', name: 'Emma Garcia', avatar: 'https://randomuser.me/api/portraits/women/33.jpg' }
     ],
     wantedBy: [
-      { id: 'user6', name: 'David Kim', avatar: 'https://randomuser.me/api/portraits/men/45.jpg' },
+      { id: 'user1', name: 'Ivo Vilches', avatar: require('../../assets/users/ivo-vilches.jpg') },
       { id: 'user9', name: 'Olivia Taylor', avatar: 'https://randomuser.me/api/portraits/women/12.jpg' }
     ]
   },
   'Baratza Encore': {
     id: 'gear-encore',
     name: 'Baratza Encore Coffee Grinder',
-    image: 'https://images.unsplash.com/photo-1575413033883-a477b531ca4c',
+    image: 'https://images.unsplash.com/photo-1606855637090-c6b478ca2635',
     description: 'The Baratza Encore is an entry-level burr grinder that provides consistent grounds for a variety of brewing methods.',
     price: 169.99,
     whereToBuy: [
@@ -106,12 +166,69 @@ const gearData = {
       { name: 'Amazon', url: 'https://amazon.com', location: 'Online' },
     ],
     usedBy: [
-      { id: 'user1', name: 'Ivo Vilches', avatar: require('../../assets/users/ivo-vilches.jpg') },
-      { id: 'user9', name: 'Olivia Taylor', avatar: 'https://randomuser.me/api/portraits/women/12.jpg' }
+      { id: 'user9', name: 'Olivia Taylor', avatar: 'https://randomuser.me/api/portraits/women/12.jpg' },
+      { id: 'user5', name: 'Emma Garcia', avatar: 'https://randomuser.me/api/portraits/women/33.jpg' }
     ],
     wantedBy: [
       { id: 'user3', name: 'Carlos Hernández', avatar: require('../../assets/users/carlos-hernandez.jpg') },
       { id: 'user10', name: 'Lucas Brown', avatar: 'https://randomuser.me/api/portraits/men/55.jpg' }
+    ]
+  },
+  '9Barista': {
+    id: 'gear-9barista',
+    name: '9Barista Espresso Maker',
+    image: 'https://9barista.com/wp-content/uploads/2022/10/9Barista-espresso-machine-front-800x800.jpg',
+    description: 'The 9Barista is a revolutionary stovetop espresso machine that delivers true 9 bar pressure for authentic espresso at home.',
+    price: 349.99,
+    whereToBuy: [
+      { name: '9Barista', url: 'https://9barista.com', location: 'Online' },
+      { name: 'Specialty Coffee Shops', url: '', location: 'Various Locations' }
+    ],
+    usedBy: [
+      { id: 'user7', name: 'Sophia Miller', avatar: 'https://randomuser.me/api/portraits/women/68.jpg' },
+      { id: 'user6', name: 'David Kim', avatar: 'https://randomuser.me/api/portraits/men/45.jpg' }
+    ],
+    wantedBy: [
+      { id: 'user1', name: 'Ivo Vilches', avatar: require('../../assets/users/ivo-vilches.jpg') },
+      { id: 'user2', name: 'Vértigo y Calambre', avatar: require('../../assets/businesses/vertigo-logo.jpg') }
+    ]
+  },
+  'Fellow Opus': {
+    id: 'gear-fellow-opus',
+    name: 'Fellow Opus Conical Burr Grinder',
+    image: 'https://fellowproducts.com/cdn/shop/products/FellowProducts_OpusConicalBurrGrinder_MatteBlack_01.png',
+    description: 'The Fellow Opus is a premium electric burr grinder with precision grinding capabilities for consistent and flavorful coffee.',
+    price: 195.00,
+    whereToBuy: [
+      { name: 'Fellow Products', url: 'https://fellowproducts.com', location: 'Online' },
+      { name: 'Specialty Coffee Shops', url: '', location: 'Various Locations' }
+    ],
+    usedBy: [
+      { id: 'user9', name: 'Olivia Taylor', avatar: 'https://randomuser.me/api/portraits/women/12.jpg' },
+      { id: 'user7', name: 'Sophia Miller', avatar: 'https://randomuser.me/api/portraits/women/68.jpg' }
+    ],
+    wantedBy: [
+      { id: 'user1', name: 'Ivo Vilches', avatar: require('../../assets/users/ivo-vilches.jpg') },
+      { id: 'user5', name: 'Emma Garcia', avatar: 'https://randomuser.me/api/portraits/women/33.jpg' }
+    ]
+  },
+  'Acaia Pearl': {
+    id: 'gear-acaia-pearl',
+    name: 'Acaia Pearl Scale',
+    image: 'https://images.unsplash.com/photo-1575441347548-0e745b37a5b8',
+    description: 'The Acaia Pearl is a high-precision coffee scale with Bluetooth connectivity and brewing features for consistent coffee every time.',
+    price: 149.99,
+    whereToBuy: [
+      { name: 'Acaia', url: 'https://acaia.co', location: 'Online' },
+      { name: 'Specialty Coffee Shops', url: '', location: 'Various Locations' }
+    ],
+    usedBy: [
+      { id: 'user7', name: 'Sophia Miller', avatar: 'https://randomuser.me/api/portraits/women/68.jpg' },
+      { id: 'user2', name: 'Vértigo y Calambre', avatar: require('../../assets/businesses/vertigo-logo.jpg') }
+    ],
+    wantedBy: [
+      { id: 'user1', name: 'Ivo Vilches', avatar: require('../../assets/users/ivo-vilches.jpg') },
+      { id: 'user5', name: 'Emma Garcia', avatar: 'https://randomuser.me/api/portraits/women/33.jpg' }
     ]
   },
 };
@@ -199,9 +316,9 @@ export default function GearDetailScreen() {
             onPress={toggleWishlist}
           >
             <Ionicons 
-              name={inWishlist ? "heart" : "heart-outline"} 
+              name={inWishlist ? "bookmark" : "bookmark-outline"} 
               size={28} 
-              color={inWishlist ? "#FF3B30" : "#FFFFFF"} 
+              color={inWishlist ? "#007AFF" : "#FFFFFF"} 
             />
           </TouchableOpacity>
         </View>
@@ -285,6 +402,7 @@ const styles = StyleSheet.create({
   imageContainer: {
     position: 'relative',
     height: 300,
+    width: '100%',
   },
   image: {
     width: '100%',
@@ -303,6 +421,9 @@ const styles = StyleSheet.create({
   },
   detailsContainer: {
     padding: 20,
+    width: '100%',
+    maxWidth: 500,
+    alignSelf: 'center',
   },
   name: {
     fontSize: 24,
@@ -324,6 +445,7 @@ const styles = StyleSheet.create({
   },
   section: {
     marginBottom: 24,
+    width: '100%',
   },
   sectionTitle: {
     fontSize: 18,
@@ -341,6 +463,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#E5E5EA',
+    width: '100%',
   },
   shopInfo: {
     flex: 1,
@@ -361,6 +484,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#E5E5EA',
+    width: '100%',
   },
   userAvatar: {
     width: 40,
@@ -369,6 +493,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
     borderWidth: 1,
     borderColor: '#F0F0F0',
+    backgroundColor: '#E5E5EA',
   },
   userName: {
     flex: 1,

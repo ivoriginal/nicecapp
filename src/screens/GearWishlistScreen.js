@@ -15,9 +15,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import mockData from '../data/mockData.json';
 import { useCoffee } from '../context/CoffeeContext';
+import GearCard from '../components/GearCard';
+
+// Import gear details with usedBy data
+import gearDetails from '../data/gearDetails';
 
 const { width } = Dimensions.get('window');
-const cardWidth = width / 2 - 24; // 2 cards per row with spacing
 
 export default function GearWishlistScreen() {
   const route = useRoute();
@@ -62,50 +65,78 @@ export default function GearWishlistScreen() {
     loadUserData();
   }, [userId, userName, isCurrentUser, currentUser]);
 
-  const handleGearPress = (item) => {
-    console.log('Navigating to GearDetail with:', item);
+  // Find gear details from mockData.gear array and enhance with usedBy data
+  const getGearDetails = (gearName) => {
+    if (!gearName) return null;
+    
+    // First try to find gear in mockData.gear
+    const mockGear = mockData.gear.find(gear => gear.name === gearName);
+    
+    // Then check if we have detailed gear data with usedBy information
+    const detailedGear = gearDetails && gearDetails[gearName];
+    
+    // Combine the data, prioritizing detailed gear data
+    if (detailedGear) {
+      return {
+        ...mockGear || {},
+        ...detailedGear,
+        usedBy: detailedGear.usedBy || []
+      };
+    }
+    
+    return mockGear;
+  };
+
+  const handleGearPress = (gearName) => {
+    console.log('Navigating to GearDetail with:', gearName);
     navigation.navigate('GearDetail', {
-      gearName: item
+      gearName: gearName
     });
   };
 
-  const renderWishlistItem = ({ item }) => (
-    <TouchableOpacity 
-      style={styles.card}
-      onPress={() => handleGearPress(item)}
-    >
-      <View style={styles.cardIconContainer}>
-        <Text>
-          <Ionicons name="hardware-chip-outline" size={28} color="#666666" />
-        </Text>
-      </View>
-      <View style={styles.cardContent}>
-        <Text style={styles.cardTitle} numberOfLines={2}>{item}</Text>
-        
-        <View style={styles.cardActions}>
-          <View style={styles.cardTag}>
-            <Text style={styles.cardTagText}>Wishlist</Text>
-          </View>
-          <Text>
-            <Ionicons name="chevron-forward" size={16} color="#999999" />
-          </Text>
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
+  const renderWishlistItem = ({ item }) => {
+    const gearDetails = getGearDetails(item);
+    
+    // Convert string gear name to object with required properties for GearCard
+    const gearObject = gearDetails || {
+      id: `gear-${item}`,
+      name: item,
+      imageUrl: null,
+      brand: '',
+      type: 'Unknown',
+      price: 0,
+      usedBy: [] // Add empty usedBy array for consistency
+    };
+    
+    // Log the gear object to verify usedBy data
+    console.log(`Rendering wishlist item ${item}:`, gearObject.usedBy);
+    
+    return (
+      <GearCard 
+        item={gearObject}
+        isWishlist={true}
+        showAvatars={true}
+        onPress={() => handleGearPress(item)}
+        onWishlistToggle={() => {
+          // Here you would handle the wishlist toggle
+          console.log('Toggle wishlist for:', item);
+        }}
+      />
+    );
+  };
 
   // Return customized empty state based on whether it's current user or someone else
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
       <Text>
-        <Ionicons name="heart-outline" size={60} color="#CCCCCC" />
+        <Ionicons name="bookmark-outline" size={60} color="#CCCCCC" />
       </Text>
       <Text style={styles.emptyText}>
         {isCurrentUser ? 'Your wishlist is empty' : `${userName}'s wishlist is empty`}
       </Text>
       <Text style={styles.emptySubtext}>
         {isCurrentUser 
-          ? 'Items marked as wishlist from the Gear Detail page will appear here'
+          ? 'Items bookmarked from the Gear Detail page will appear here'
           : 'This user has not added any gear to their wishlist yet'}
       </Text>
       <TouchableOpacity 
@@ -118,24 +149,8 @@ export default function GearWishlistScreen() {
   );
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container]}>
       <StatusBar barStyle="dark-content" />
-      
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Text>
-            <Ionicons name="arrow-back" size={24} color="#000000" />
-          </Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>
-          {isCurrentUser ? 'My Gear Wishlist' : `${userName}'s Gear Wishlist`}
-        </Text>
-        <View style={styles.placeholder} />
-      </View>
       
       {loading ? (
         <View style={styles.loadingContainer}>
@@ -167,28 +182,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
-  header: {
-    backgroundColor: '#FFFFFF',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-  },
-  backButton: {
-    padding: 4,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#000000',
-  },
-  placeholder: {
-    width: 32,
-    height: 32,
-  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -200,7 +193,7 @@ const styles = StyleSheet.create({
     color: '#666666',
   },
   listContainer: {
-    padding: 16,
+    padding: 12,
     paddingBottom: 32,
   },
   sectionTitle: {
@@ -208,83 +201,41 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#666666',
     marginBottom: 16,
+    marginLeft: 4,
   },
   columnWrapper: {
     justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  card: {
-    width: cardWidth,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    overflow: 'hidden',
-  },
-  cardIconContainer: {
-    backgroundColor: '#F8F8F8',
-    padding: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: 90,
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
-  },
-  cardContent: {
-    padding: 12,
-  },
-  cardTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#000000',
-    marginBottom: 12,
-    height: 36,
-  },
-  cardActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  cardTag: {
-    backgroundColor: '#F0F0F0',
-    paddingVertical: 3,
-    paddingHorizontal: 8,
-    borderRadius: 10,
-  },
-  cardTagText: {
-    fontSize: 12,
-    color: '#666666',
+    paddingHorizontal: 4,
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 60,
+    paddingHorizontal: 32,
+    paddingVertical: 64,
   },
   emptyText: {
     fontSize: 18,
-    fontWeight: '500',
-    color: '#999999',
-    marginTop: 16,
+    fontWeight: '600',
+    color: '#000000',
+    textAlign: 'center',
+    marginVertical: 12,
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#999999',
-    marginTop: 8,
+    color: '#666666',
     textAlign: 'center',
+    marginBottom: 24,
   },
   emptyButton: {
     backgroundColor: '#000000',
-    padding: 12,
-    borderRadius: 10,
-    marginTop: 16,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
   },
   emptyButtonText: {
     fontSize: 16,
-    fontWeight: 'bold',
     color: '#FFFFFF',
+    fontWeight: '600',
   },
 }); 

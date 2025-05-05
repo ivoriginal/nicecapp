@@ -10,6 +10,7 @@ import UserProfileScreen from './src/screens/UserProfileScreen';
 import UserProfileBridge from './src/screens/UserProfileBridge';
 import GearDetailScreen from './src/screens/GearDetailScreen';
 import GearWishlistScreen from './src/screens/GearWishlistScreen';
+import GearListScreen from './src/screens/GearListScreen';
 import CoffeeDiscoveryScreen from './src/screens/CoffeeDiscoveryScreen';
 import RecipesListScreen from './src/screens/RecipesListScreen';
 import PeopleListScreen from './src/screens/PeopleListScreen';
@@ -95,7 +96,16 @@ export default function App() {
               <Stack.Screen 
                 name="GearWishlist" 
                 component={GearWishlistScreen} 
-                options={{ headerShown: false }} 
+                options={({ route }) => ({ 
+                  headerShown: true, 
+                  title: route.params?.isCurrentUser ? 'My Gear Wishlist' : `${route.params?.userName}'s Gear Wishlist`,
+                  headerBackTitle: 'Back'
+                })} 
+              />
+              <Stack.Screen 
+                name="GearList" 
+                component={GearListScreen} 
+                options={{ headerShown: true, title: 'Coffee Gear', headerBackTitle: 'Back' }} 
               />
               <Stack.Screen 
                 name="CoffeeDiscovery" 

@@ -335,6 +335,19 @@ const CafesListScreen = ({ navigation }) => {
   const renderCafeItem = ({ item }) => {
     const isOpen = isCafeOpen(item);
     
+    // Special handling for The Fix
+    let coverImageSource;
+    let logoImageSource;
+    
+    if (item.name === 'The Fix' || item.id === 'thefix-madrid' || item.businessId === 'business-thefix') {
+      // Use string paths instead of require() - AppImage will handle these properly
+      coverImageSource = 'assets/businesses/thefix-cover.jpg';
+      logoImageSource = 'assets/businesses/thefix-logo.jpg';
+    } else {
+      coverImageSource = item.coverImage || item.imageUrl;
+      logoImageSource = item.avatar || item.logo;
+    }
+    
     return (
       <TouchableOpacity 
         style={styles.cafeCard}
@@ -347,14 +360,14 @@ const CafesListScreen = ({ navigation }) => {
         }}
       >
         <AppImage 
-          source={item.coverImage || item.imageUrl} 
+          source={coverImageSource} 
           style={styles.cafeImage}
           resizeMode="cover"
         />
         <View style={styles.cafeContent}>
           <View style={styles.cafeHeader}>
             <AppImage 
-              source={item.avatar || item.logo} 
+              source={logoImageSource} 
               style={styles.cafeLogo}
               resizeMode="cover"
             />

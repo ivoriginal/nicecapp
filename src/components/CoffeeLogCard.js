@@ -211,14 +211,10 @@ const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress, onOpt
     switch (type) {
       case 'cafe_visit':
         return 'storefront';
-      case 'latte_art':
-        return 'color-palette';
-      case 'gear_purchase':
-        return 'hardware-chip';
+      case 'coffee_announcement':
+        return 'megaphone';
       case 'coffee_roasting':
         return 'flame';
-      case 'workshop':
-        return 'school';
       case 'added_to_collection':
         return 'bookmark';
       case 'added_to_wishlist':
@@ -231,6 +227,8 @@ const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress, onOpt
         return 'create';
       case 'added_to_gear_wishlist':
         return 'cart';
+      case 'gear_added':
+        return 'hardware-chip';
       default:
         return 'cafe';
     }
@@ -245,14 +243,10 @@ const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress, onOpt
         return 'brewed';
       case 'cafe_visit':
         return 'visited';
-      case 'latte_art':
-        return 'created latte art';
-      case 'gear_purchase':
-        return 'purchased';
+      case 'coffee_announcement':
+        return 'added';
       case 'coffee_roasting':
         return 'roasted';
-      case 'workshop':
-        return 'hosted';
       case 'added_to_collection':
         return 'added to collection';
       case 'added_to_wishlist':
@@ -265,6 +259,8 @@ const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress, onOpt
         return 'created recipe';
       case 'added_to_gear_wishlist':
         return 'added to gear wishlist';
+      case 'gear_added':
+        return 'added gear';
       default:
         return 'brewed';
     }
@@ -523,7 +519,8 @@ const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress, onOpt
     const type = event.type || 'coffee_log';
     
     // Default coffee log - has coffeeId, coffeeName and no explicit type
-    if (!type || type === 'coffee_log' || (!event.type && event.coffeeId && event.coffeeName)) {
+    if (!type || type === 'coffee_log' || 
+        ((!event.type || event.type === 'coffee_announcement') && event.coffeeId && event.coffeeName)) {
       return (
         <View style={styles.contentContainer}>
           {/* Combined container for coffee and recipe */}
@@ -547,46 +544,54 @@ const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress, onOpt
                 <Text style={styles.coffeeName}>{event.coffeeName || 'Unknown Coffee'}</Text>
                 <Text style={styles.roasterName}>{event.roaster || event.roasterName || 'Unknown Roaster'}</Text>
               </View>
+              {event.type === 'coffee_announcement' && (
+                <View style={styles.announcementBadge}>
+                  <Ionicons name="megaphone" size={12} color="#FFFFFF" />
+                  <Text style={styles.announcementText}>New in shop</Text>
+                </View>
+              )}
             </TouchableOpacity>
 
             {/* Recipe details - now clickable */}
-            <TouchableOpacity 
-              style={styles.recipeContainer}
-              onPress={() => onRecipePress && onRecipePress(event)}
-              activeOpacity={0.7}
-            >
-              {/* Recipe creator info - moved before method */}
-              {renderRecipeCreatorInfo()}
-              
-              <View style={styles.recipeHeader}>
-                <View style={styles.methodContainer}>
-                  <Ionicons name="cafe" size={20} color="#000000" />
-                  <Text style={styles.methodText}>{event.method || event.brewingMethod || 'Unknown Method'}</Text>
+            {!event.type || event.type !== 'coffee_announcement' ? (
+              <TouchableOpacity 
+                style={styles.recipeContainer}
+                onPress={() => onRecipePress && onRecipePress(event)}
+                activeOpacity={0.7}
+              >
+                {/* Recipe creator info - moved before method */}
+                {renderRecipeCreatorInfo()}
+                
+                <View style={styles.recipeHeader}>
+                  <View style={styles.methodContainer}>
+                    <Ionicons name="cafe" size={20} color="#000000" />
+                    <Text style={styles.methodText}>{event.method || event.brewingMethod || 'Unknown Method'}</Text>
+                  </View>
                 </View>
-              </View>
-              
-              <View style={styles.recipeDetails}>
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Coffee</Text>
-                  <Text style={styles.detailValue}>{event.amount || '18'}g</Text>
+                
+                <View style={styles.recipeDetails}>
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Coffee</Text>
+                    <Text style={styles.detailValue}>{event.amount || '18'}g</Text>
+                  </View>
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Grind Size</Text>
+                    <Text style={styles.detailValue}>{event.grindSize || 'Medium'}</Text>
+                  </View>
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Water</Text>
+                    <Text style={styles.detailValue}>{event.waterVolume || '300'}ml</Text>
+                  </View>
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Brew Time</Text>
+                    <Text style={styles.detailValue}>{event.brewTime || '3:30'}</Text>
+                  </View>
                 </View>
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Grind Size</Text>
-                  <Text style={styles.detailValue}>{event.grindSize || 'Medium'}</Text>
-                </View>
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Water</Text>
-                  <Text style={styles.detailValue}>{event.waterVolume || '300'}ml</Text>
-                </View>
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Brew Time</Text>
-                  <Text style={styles.detailValue}>{event.brewTime || '3:30'}</Text>
-                </View>
-              </View>
 
-              {/* Saved count with avatars */}
-              {renderSavedCount()}
-            </TouchableOpacity>
+                {/* Saved count with avatars */}
+                {renderSavedCount()}
+              </TouchableOpacity>
+            ) : null}
           </View>
           
           {/* Notes and rating outside the recipe container */}
@@ -630,6 +635,21 @@ const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress, onOpt
                 <Text style={styles.genericInfoText}>{event.gearName}</Text>
               </View>
             )}
+            {event.type === 'gear_added' && event.gearName && (
+              <View style={styles.gearAddedContainer}>
+                <AppImage 
+                  source={event.gearImage || event.imageUrl}
+                  style={styles.gearImage}
+                  placeholder="hardware-chip"
+                />
+                <View style={styles.gearInfo}>
+                  <Text style={styles.gearName}>{event.gearName}</Text>
+                  {event.gearBrand && (
+                    <Text style={styles.gearBrand}>{event.gearBrand}</Text>
+                  )}
+                </View>
+              </View>
+            )}
             {event.cafeId && event.cafeName && (
               <View style={styles.genericInfoRow}>
                 <Ionicons name="storefront" size={16} color="#666666" />
@@ -652,6 +672,18 @@ const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress, onOpt
               <View style={styles.genericInfoRow}>
                 <Ionicons name="person" size={16} color="#666666" />
                 <Text style={styles.genericInfoText}>{event.followedUserName}</Text>
+              </View>
+            )}
+            {event.type === 'followed_user' && event.followedUserAvatar && (
+              <View style={styles.followedUserContainer}>
+                <AppImage 
+                  source={event.followedUserAvatar}
+                  style={styles.followedUserAvatar}
+                  placeholder="person"
+                />
+                <Text style={styles.followedUserText}>
+                  {isBusinessName(event.followedUserName) ? 'Business profile' : 'User profile'}
+                </Text>
               </View>
             )}
             {event.coffeeName && type !== 'coffee_log' && (
@@ -768,8 +800,9 @@ const styles = StyleSheet.create({
     marginHorizontal: 0,
     marginVertical: 0,
     overflow: 'hidden',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    // borderBottomWidth: 1,
+    // borderBottomColor: '#E0E0E0',
+    marginBottom: 8,
   },
   contentContainer: {
     padding: 12,
@@ -835,10 +868,17 @@ const styles = StyleSheet.create({
   coffeeContainer: {
     flexDirection: 'row',
     padding: 12,
+    // paddingVertical: 8,
     backgroundColor: '#FFFFFF',
+    // outlineWidth: 1,
+    // outlineColor: '#E0E0E0',
+    // borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderColor: '#F1F1F1',
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-    borderRadius: 0,
+    borderBottomColor: '#F1F1F1',
+    // borderRadius: 12,
+    position: 'relative',
   },
   coffeeImageContainer: {
     width: 60,
@@ -876,13 +916,15 @@ const styles = StyleSheet.create({
   roasterName: {
     fontSize: 14,
     color: '#666666',
-    marginBottom: 4,
   },
   recipeContainer: {
-    padding: 12,
-    backgroundColor: '#F8F8F8',
+    padding: 16,
+    paddingTop: 12,
+    paddingBottom: 2,
     borderRadius: 0,
-    borderWidth: 0,
+    // borderBottomWidth: 1,
+    // borderBottomColor: '#F1F1F1',
+    marginTop: 1,
   },
   recipeHeader: {
     flexDirection: 'row',
@@ -934,7 +976,6 @@ const styles = StyleSheet.create({
   recipeCreatorText: {
     fontSize: 13,
     color: '#666666',
-    marginLeft: 4,
   },
   savedCountContainer: {
     flexDirection: 'row',
@@ -979,9 +1020,10 @@ const styles = StyleSheet.create({
   },
   notesContainer: {
     marginVertical: 8,
+    marginTop: 12,
   },
   notesText: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#666666',
   },
   // New styles for generic events
@@ -1051,11 +1093,80 @@ const styles = StyleSheet.create({
   },
   combinedContainer: {
     borderWidth: 1,
-    borderColor: '#F0F0F0',
-    borderRadius: 8,
+    borderColor: '#E0E0E0',
+    borderColor: '#F1F1F1',
+    // backgroundColor: '#F1F1F1',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
     overflow: 'hidden',
-    marginBottom: 12,
+    // marginBottom: 12,
+    // padding: 8,
+  },
+  followedUserContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  followedUserAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    marginRight: 12,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  followedUserText: {
+    fontSize: 14,
+    color: '#666666',
+  },
+  announcementBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    position: 'absolute',
+    right: 12,
+    top: '50%',
+    transform: [{ translateY: -12 }],
+  },
+  announcementText: {
+    fontSize: 11,
+    color: '#FFFFFF',
+    fontWeight: '600',
+    marginLeft: 4,
+  },
+  gearAddedContainer: {
+    flexDirection: 'row',
+    padding: 12,
+    backgroundColor: '#F8F8F8',
+    borderRadius: 8,
+    marginVertical: 8,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  gearImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    marginRight: 12,
+  },
+  gearInfo: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  gearName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000000',
+    marginBottom: 4,
+  },
+  gearBrand: {
+    fontSize: 14,
+    color: '#666666',
   },
 });
 
-export default CoffeeLogCard; 
+export default CoffeeLogCard;
