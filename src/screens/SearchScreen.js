@@ -1,15 +1,42 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, FlatList, TouchableOpacity, ScrollView, Image, Dimensions } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TextInput,
+  TouchableOpacity,
+  Image,
+  ScrollView,
+  Dimensions,
+  StatusBar,
+  Animated,
+  RefreshControl,
+  Platform,
+  Pressable
+} from 'react-native';
+import { Ionicons, MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation, CommonActions } from '@react-navigation/native';
-import mockData from '../data/mockData.json';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import RecipeCard from '../components/RecipeCard';
 import AppImage from '../components/common/AppImage';
+import TasteProfile from '../components/TasteProfile';
+import { COLORS, SIZES, FONTS } from '../constants';
+import mockRecipesData from '../data/mockRecipes.json';
+import mockCoffees from '../data/mockCoffees.json';
+import mockUsers from '../data/mockUsers.json';
+import mockCafes from '../data/mockCafes.json';
+import mockGear from '../data/mockGear.json';
+import mockRecipes from '../data/mockRecipes.json';
+import RecipeCard from '../components/RecipeCard';
 import GearCard from '../components/GearCard';
 import gearDetails from '../data/gearDetails';
 import { useCoffee } from '../context/CoffeeContext';
+
+// Import the gearData from GearDetailScreen for consistency
+// This is the object used in GearDetailScreen.js to look up gear by name
+import { gearData } from './GearDetailScreen';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = width * 0.8;
@@ -30,28 +57,18 @@ export default function SearchScreen() {
   const searchInputRef = useRef(null);
   const navigation = useNavigation();
   const isFirstMount = useRef(true);
-  const [suggestedUsers, setSuggestedUsers] = useState(mockData.suggestedUsers);
+  const [suggestedUsers, setSuggestedUsers] = useState(mockUsers.suggestedUsers);
   
-  // Use recipes from mockData.json instead of hardcoded data
-  const [popularRecipes, setPopularRecipes] = useState(mockData.recipes || []);
+  // Use recipes from mockRecipes.json instead of hardcoded data
+  const [popularRecipes, setPopularRecipes] = useState(mockRecipes.recipes || []);
   
   // Get gear from mock data
   const [popularGear, setPopularGear] = useState([]);
 
   // Get coffee suggestions and trending cafés from mock data
-  const coffeeSuggestions = mockData.coffeeSuggestions;
-  const trendingCafes = mockData.trendingCafes;
+  const coffeeSuggestions = mockCoffees.coffeeSuggestions;
+  const trendingCafes = mockCafes.trendingCafes;
   
-  // Get coffee events for the "People You Might Know" section from mockData
-  const suggestedEvents = mockData.coffeeEvents
-    .filter(event => 
-      // Only include coffee brewing events, not other event types
-      !event.type && 
-      // Only include events from suggested users
-      mockData.suggestedUsers.some(user => user.id === event.userId)
-    )
-    .slice(0, 3); // Take first 3 matching events
-
   // Load recent searches from AsyncStorage
   useEffect(() => {
     const loadRecentSearches = async () => {
@@ -68,8 +85,8 @@ export default function SearchScreen() {
     loadRecentSearches();
     
     // Enhance gear with usedBy data
-    if (mockData.gear && mockData.gear.length > 0) {
-      console.log('Loading gear from mockData...');
+    if (mockGear.gear && mockGear.gear.length > 0) {
+      console.log('Loading gear from mockGear...');
       
       // Check if gearDetails has entries for Carlos and CaféLab
       console.log('Checking for Carlos Hernández and CaféLab in gearDetails:');
@@ -84,7 +101,7 @@ export default function SearchScreen() {
         }
       });
       
-      const enhancedGear = mockData.gear.map(item => {
+      const enhancedGear = mockGear.gear.map(item => {
         const detailedItem = gearDetails[item.name];
         if (detailedItem) {
           console.log(`Enhanced gear for ${item.name} with usedBy data:`, detailedItem.usedBy);
@@ -174,7 +191,7 @@ export default function SearchScreen() {
     
     // Simulate search results
     if (text.length > 0) {
-      // Create search results with proper IDs from mockData
+      // Create search results with proper IDs from split files (mockCoffees, mockRecipes, mockUsers, etc.)
       let mockResults = [];
       // Track names to avoid duplicates
       const addedNames = new Set();
@@ -183,38 +200,74 @@ export default function SearchScreen() {
       const cleanSearchText = text.toLowerCase().replace('@', '');
       
       // Add coffees
-      mockData.coffees.forEach(coffee => {
+      mockCoffees.coffees.forEach(coffee => {
         if (coffee.name.toLowerCase().includes(cleanSearchText) || 
             coffee.roaster.toLowerCase().includes(cleanSearchText)) {
+          
+          // If ID doesn't already have 'coffee-' prefix, add it
+          const formattedId = coffee.id.startsWith('coffee-') ? coffee.id : `coffee-${coffee.id}`;
+          
           mockResults.push({
-            id: `coffee-${coffee.id}`,
-            coffeeId: coffee.id,
+            id: formattedId,
+            coffeeId: coffee.id, // The original ID should be preserved as coffeeId
             name: coffee.name,
             roaster: coffee.roaster,
             type: 'coffee',
-            image: coffee.image
+            image: coffee.image || coffee.imageUrl,
+            imageUrl: coffee.image || coffee.imageUrl
+          });
+          addedNames.add(coffee.name.toLowerCase());
+        }
+      });
+      
+      // Also check coffeeSuggestions
+      mockCoffees.coffeeSuggestions.forEach(coffee => {
+        if (!addedNames.has(coffee.name.toLowerCase()) && 
+            (coffee.name.toLowerCase().includes(cleanSearchText) || 
+            coffee.roaster.toLowerCase().includes(cleanSearchText))) {
+          
+          // If ID doesn't already have 'coffee-' prefix, add it
+          const formattedId = coffee.id.startsWith('coffee-') ? coffee.id : `coffee-${coffee.id}`;
+          
+          mockResults.push({
+            id: formattedId,
+            coffeeId: coffee.id, // The original ID should be preserved as coffeeId
+            name: coffee.name,
+            roaster: coffee.roaster,
+            type: 'coffee',
+            image: coffee.image || coffee.imageUrl,
+            imageUrl: coffee.image || coffee.imageUrl
           });
           addedNames.add(coffee.name.toLowerCase());
         }
       });
       
       // Add coffee gear with user avatars (NEW)
-      mockData.gear.forEach(gear => {
+      mockGear.gear.forEach(gear => {
         if ((gear.name && gear.name.toLowerCase().includes(cleanSearchText)) || 
             (gear.brand && gear.brand.toLowerCase().includes(cleanSearchText)) ||
             (gear.type && gear.type.toLowerCase().includes(cleanSearchText))) {
           
+          // Find detailed gear info if available
+          const detailedGear = Object.keys(gearDetails).find(
+            gearName => gearName.toLowerCase().includes(gear.name.toLowerCase())
+          );
+          
+          const gearDetail = detailedGear ? gearDetails[detailedGear] : null;
+          
           mockResults.push({
             id: gear.id,
+            gearId: gear.id, // Store the original ID as gearId
             name: gear.name,
             brand: gear.brand,
             type: gear.type || "Gear",
             price: gear.price,
-            imageUrl: gear.imageUrl || gear.image,
+            imageUrl: gear.imageUrl || (gearDetail ? gearDetail.image : null) || gear.image,
             rating: gear.rating,
             reviewCount: gear.reviewCount,
             description: gear.description,
-            type: 'gear'
+            type: 'gear',
+            usedBy: gearDetail ? gearDetail.usedBy : []
           });
           addedNames.add(gear.name.toLowerCase());
         }
@@ -222,8 +275,8 @@ export default function SearchScreen() {
       
       // Add businesses/cafés/roasters - search through different sources
       // First, trendingCafés
-      if (mockData.trendingCafes) {
-        mockData.trendingCafes.forEach(business => {
+      if (mockCafes.trendingCafes) {
+        mockCafes.trendingCafes.forEach(business => {
           if (business.name && !addedNames.has(business.name.toLowerCase()) && 
               (business.name.toLowerCase().includes(cleanSearchText) || 
               (business.location && business.location.toLowerCase().includes(cleanSearchText)))) {
@@ -246,13 +299,14 @@ export default function SearchScreen() {
                 cafeLabId = 'cafe-cafelab-cartagena';
               }
               
+              // The main issue - ensure avatar and logo are explicitly set to cafeLabAvatar
               mockResults.push({
                 id: cafeLabId,
                 businessId: 'business-cafelab',
                 name: business.name,
                 location: business.location || 'Unknown location',
-                type: 'roaster',
-                isRoaster: true,
+                type: cafeLabId === 'business-cafelab' ? 'roaster' : 'cafe',
+                isRoaster: cafeLabId === 'business-cafelab',
                 logo: cafeLabAvatar,
                 avatar: cafeLabAvatar,
                 imageUrl: cafeLabAvatar
@@ -278,8 +332,8 @@ export default function SearchScreen() {
       }
       
       // Then through businesses
-      if (mockData.businesses) {
-        mockData.businesses.forEach(business => {
+      if (mockCafes.businesses) {
+        mockCafes.businesses.forEach(business => {
           if (business.name && !addedNames.has(business.name.toLowerCase()) && 
               (business.name.toLowerCase().includes(cleanSearchText) || 
               (business.location && business.location.toLowerCase().includes(cleanSearchText)))) {
@@ -307,7 +361,7 @@ export default function SearchScreen() {
       // Special case for roasters
       const roasterIds = ['business-toma', 'business-kima', 'business-cafelab'];
       roasterIds.forEach(roasterId => {
-        const roaster = mockData.businesses.find(b => b.id === roasterId);
+        const roaster = mockCafes.businesses.find(b => b.id === roasterId);
         if (roaster && !addedNames.has(roaster.name.toLowerCase()) &&
             (cleanSearchText === '' || // Always include main roasters in empty searches
              roaster.name.toLowerCase().includes(cleanSearchText) ||
@@ -328,7 +382,7 @@ export default function SearchScreen() {
       });
       
       // Add users
-      mockData.users.forEach(user => {
+      mockUsers.users.forEach(user => {
         // Generate username (handle) for matching
         const userHandle = user.userName?.toLowerCase().replace(/\s+/g, '');
         
@@ -342,9 +396,13 @@ export default function SearchScreen() {
             (user.location && user.location.toLowerCase().includes(cleanSearchText)))) ||
             // Also search by username (handle)
             (userHandle && userHandle.includes(cleanSearchText))) {
+          
+          // Important: user ID should not be prefixed with "user-" if it already contains "user"
+          const userId = user.id.startsWith('user') ? user.id : `user-${user.id}`;
+          
           mockResults.push({
-            id: `user-${user.id}`,
-            userId: user.id,
+            id: userId,
+            userId: user.id, // Keep the original ID without prefix as a separate property
             name: user.userName,
             username: userHandle,
             location: user.location,
@@ -376,6 +434,72 @@ export default function SearchScreen() {
         }
       }
       
+      // Special handling for The Fix
+      if (cleanSearchText === '' || 'the fix'.includes(cleanSearchText) || 'madrid'.includes(cleanSearchText)) {
+        // Always add The Fix as both a roaster and café
+        if (!addedNames.has('the fix')) {
+          console.log('Adding The Fix to search results with proper profile data');
+          
+          // Add The Fix as a roaster (business profile)
+          mockResults.push({
+            id: 'business-thefix',
+            businessId: 'business-thefix',
+            name: 'The Fix',
+            location: 'Madrid, Spain',
+            type: 'roaster',
+            isRoaster: true,
+            isBusinessAccount: true,
+            logo: 'assets/businesses/thefix-logo.jpg',
+            avatar: 'assets/businesses/thefix-logo.jpg',
+            imageUrl: 'assets/businesses/thefix-logo.jpg'
+          });
+          
+          // Also add The Fix as a café location
+          mockResults.push({
+            id: 'cafe-thefix-madrid',
+            businessId: 'business-thefix',
+            name: 'The Fix Madrid',
+            location: 'Madrid, Spain',
+            type: 'cafe',
+            isRoaster: false,
+            isBusinessAccount: true,
+            logo: 'assets/businesses/thefix-logo.jpg',
+            avatar: 'assets/businesses/thefix-logo.jpg',
+            imageUrl: 'assets/businesses/thefix-logo.jpg'
+          });
+          
+          addedNames.add('the fix');
+          addedNames.add('the fix madrid');
+        }
+      }
+      
+      // Special handling for Vértigo y Calambre
+      if (cleanSearchText === '' || 
+          'vertigo'.includes(cleanSearchText) || 
+          'calambre'.includes(cleanSearchText) || 
+          'murcia'.includes(cleanSearchText)) {
+        
+        if (!addedNames.has('vértigo y calambre')) {
+          console.log('Adding Vértigo y Calambre to search results with proper profile data');
+          
+          // Always use the business account for Vértigo profile
+          mockResults.push({
+            id: 'business1',
+            businessId: 'business1',
+            name: 'Vértigo y Calambre',
+            location: 'Murcia, Spain', // Correct location
+            type: 'cafe',
+            isRoaster: false,
+            isBusinessAccount: true,
+            logo: 'assets/businesses/vertigo-logo.jpg',
+            avatar: 'assets/businesses/vertigo-logo.jpg',
+            imageUrl: 'assets/businesses/vertigo-logo.jpg'
+          });
+          
+          addedNames.add('vértigo y calambre');
+        }
+      }
+      
       // Log the results for debugging
       console.log('Search results:', mockResults.map(r => r.name));
       
@@ -403,62 +527,76 @@ export default function SearchScreen() {
     return item.type === activeFilter;
   });
 
-  // Helper function to handle both remote and local image sources
-  const getImageSource = (imageUrl) => {
-    if (!imageUrl) {
-      console.log('No image URL provided for search result card');
-      return null;
+  /**
+   * Convert image paths to actual source objects
+   * Handles both remote URLs and local asset references
+   */
+  const getImageSource = (url) => {
+    if (!url) {
+      console.log('No image URL provided for search result');
+      return { uri: 'https://images.unsplash.com/photo-1447933601403-0c6688de566e' }; // Default coffee image
     }
     
-    if (typeof imageUrl !== 'string') return imageUrl;
+    if (typeof url !== 'string') return url;
     
     // If it's already a URL, use as is
-    if (imageUrl.startsWith('http')) {
-      return { uri: imageUrl };
+    if (url.startsWith('http')) {
+      return { uri: url };
     }
     
     // For local assets, we need to resolve the path
-    if (imageUrl.includes('assets/')) {
-      if (imageUrl.includes('ivo-vilches.jpg')) {
+    if (url.includes('assets/')) {
+      if (url.includes('ivo-vilches.jpg')) {
         return require('../../assets/users/ivo-vilches.jpg');
-      } else if (imageUrl.includes('carlos-hernandez.jpg')) {
+      } else if (url.includes('carlos-hernandez.jpg')) {
         return require('../../assets/users/carlos-hernandez.jpg');
-      } else if (imageUrl.includes('elias-veris.jpg')) {
+      } else if (url.includes('elias-veris.jpg')) {
         return require('../../assets/users/elias-veris.jpg');
-      } else if (imageUrl.includes('vertigo-logo.jpg')) {
+      } else if (url.includes('vertigo-logo.jpg')) {
         return require('../../assets/businesses/vertigo-logo.jpg');
-      } else if (imageUrl.includes('cafelab-logo.png')) {
+      } else if (url.includes('cafelab-logo.png')) {
         return require('../../assets/businesses/cafelab-logo.png');
-      } else if (imageUrl.includes('cafelab-murcia-cover.png')) {
+      } else if (url.includes('cafelab-murcia-cover.png')) {
         return require('../../assets/businesses/cafelab-murcia-cover.png');
-      } else if (imageUrl.includes('cafelab-cartagena-cover.png')) {
+      } else if (url.includes('cafelab-cartagena-cover.png')) {
         return require('../../assets/businesses/cafelab-cartagena-cover.png');
-      } else if (imageUrl.includes('toma-logo.jpg')) {
+      } else if (url.includes('toma-logo.jpg')) {
         return require('../../assets/businesses/toma-logo.jpg');
-      } else if (imageUrl.includes('toma-1-cover.jpg')) {
+      } else if (url.includes('toma-1-cover.jpg')) {
         return require('../../assets/businesses/toma-1-cover.jpg');
-      } else if (imageUrl.includes('toma-2-cover.jpg')) {
+      } else if (url.includes('toma-2-cover.jpg')) {
         return require('../../assets/businesses/toma-2-cover.jpg');
-      } else if (imageUrl.includes('toma-3-cover.jpg')) {
+      } else if (url.includes('toma-3-cover.jpg')) {
         return require('../../assets/businesses/toma-3-cover.jpg');
+      } else if (url.includes('kima-logo.jpg')) {
+        return require('../../assets/businesses/kima-logo.jpg');
       }
+      // If we can't find a matching asset, return a default image URL
+      console.log('Unknown local asset path:', url);
+      return { uri: 'https://images.unsplash.com/photo-1447933601403-0c6688de566e' };
     }
     
     // Add support for Toma Café coffee images
-    if (imageUrl.includes('ET_REF_G1') || 
-        imageUrl.includes('COL_EL_SIL') || 
-        imageUrl.includes('ET_BENT_NENK') || 
-        imageUrl.includes('RUAN_TIT') || 
-        imageUrl.includes('NIC_DIP_TERR') || 
-        imageUrl.includes('COL_LA_PRIM') ||
-        imageUrl.includes('IND_GAYO') ||
-        imageUrl.includes('MEX_SUE-DECF')) {
-      console.log('Loading Toma Café coffee image:', imageUrl);
-      return { uri: imageUrl };
+    if (url.includes('ET_REF_G1') || 
+        url.includes('COL_EL_SIL') || 
+        url.includes('ET_BENT_NENK') || 
+        url.includes('RUAN_TIT') || 
+        url.includes('NIC_DIP_TERR') || 
+        url.includes('COL_LA_PRIM') ||
+        url.includes('IND_GAYO') ||
+        url.includes('MEX_SUE-DECF')) {
+      console.log('Loading Toma Café coffee image:', url);
+      return { uri: url };
+    }
+    
+    // Add support for Kima Coffee images
+    if (url.includes('kimacoffee.com')) {
+      console.log('Loading Kima Coffee image:', url);
+      return { uri: url };
     }
     
     // Default fallback
-    return { uri: imageUrl };
+    return { uri: url };
   };
 
   const renderSearchResult = ({ item }) => {
@@ -473,12 +611,29 @@ export default function SearchScreen() {
       }
     }
     
+    // Special handling for Kima Coffee - always treat as a roaster
+    if (item.name === 'Kima Coffee' || 
+        item.id === 'kima-coffee' || 
+        item.id === 'business-kima' || 
+        item.businessId === 'business-kima') {
+      console.log(`Found Kima Coffee in search results:`, item);
+      item.type = 'roaster';
+      item.isRoaster = true;
+      if (!item.avatar && !item.logo) {
+        item.avatar = 'assets/businesses/kima-logo.jpg';
+      }
+    }
+    
     // Special handling for Vértigo y Calambre - always treat as a café
     if (item.name === 'Vértigo y Calambre') {
       item.type = 'cafe';
       item.isRoaster = false;
       if (!item.avatar && !item.logo) {
         item.avatar = 'assets/businesses/vertigo-logo.jpg';
+      }
+      // Ensure proper location is set
+      if (!item.location) {
+        item.location = 'Murcia, Spain';
       }
     }
     
@@ -504,8 +659,28 @@ export default function SearchScreen() {
     const isRoasterLocation = isBusiness && isRoaster;
     const isCafeLocation = (isBusiness && !isRoaster) || isVertigoItem;
     
-    // Use avatar or logo for business image, fallback to coverImage
+    // If it's a coffee item, check mockCoffees.json for the proper image
     let imageUrl = item.avatar || item.logo || item.imageUrl || item.coverImage;
+    
+    if (isCoffeeItem) {
+      // Try to find the coffee in mockCoffees data
+      const coffeeId = item.coffeeId || item.id;
+      
+      // First check in coffees array
+      const matchedCoffee = mockCoffees.coffees.find(c => c.id === coffeeId);
+      // If not found, check in coffeeSuggestions
+      const matchedSuggestion = !matchedCoffee ? mockCoffees.coffeeSuggestions.find(c => c.id === coffeeId) : null;
+      
+      if (matchedCoffee) {
+        console.log(`Found coffee ${coffeeId} in mockCoffees.coffees`);
+        // Use the image from mockCoffees.json
+        imageUrl = matchedCoffee.image || matchedCoffee.imageUrl || imageUrl;
+      } else if (matchedSuggestion) {
+        console.log(`Found coffee ${coffeeId} in mockCoffees.coffeeSuggestions`);
+        // Use the image from mockCoffees.coffeeSuggestions
+        imageUrl = matchedSuggestion.imageUrl || matchedSuggestion.image || imageUrl;
+      }
+    }
     
     // Make sure CaféLab uses the logo
     if (isCafeLabItem) {
@@ -533,34 +708,85 @@ export default function SearchScreen() {
       console.log('Search result pressed:', item);
       
       if (isCoffeeItem) {
-        // For coffee items, extract the coffee ID and navigate to coffee detail
-        // Make sure to preserve the full coffee ID
-        let coffeeId;
+        // For coffee items, extract the coffee ID 
+        // We want to use the coffeeId property directly if available (non-prefixed version)
+        // Otherwise, get the ID from the item.id property, removing the prefix if needed
+        let coffeeId = item.coffeeId;
         
-        // Check if coffeeId is provided directly
-        if (item.coffeeId) {
-          coffeeId = item.coffeeId;
-        }
-        // Check if id includes the full coffee ID, like 'coffee-coffee-campo-hermoso-sidra'
-        else if (item.id && item.id.startsWith('coffee-coffee-')) {
-          coffeeId = item.id.replace('coffee-', '');
-        }
-        // Handle normal coffee IDs like 'coffee-villa-rosario'
-        else if (item.id && item.id.startsWith('coffee-')) {
-          coffeeId = item.id;
-        }
-        // Use the ID as is if none of the above apply
-        else {
-          coffeeId = item.id;
+        if (!coffeeId && item.id) {
+          if (item.id.startsWith('coffee-')) {
+            coffeeId = item.id;
+          } else {
+            coffeeId = `coffee-${item.id}`;
+          }
         }
         
         console.log(`Navigating to coffee detail for ${coffeeId}`);
         navigation.navigate('CoffeeDetail', { coffeeId });
       } else if (isGearItem) {
         // For gear items, navigate to gear detail
-        const gearId = item.id;
-        console.log(`Navigating to gear detail for ${gearId}`);
-        navigation.navigate('GearDetail', { gearId });
+        // The GearDetailScreen only looks for gearName in the route.params
+        const gearName = item.name;
+        
+        console.log(`Navigating to gear detail for ${gearName}`);
+        console.log('Complete gear item data:', JSON.stringify(item, null, 2));
+        
+        // We need to find the exact key in gearData that corresponds to this gear
+        // GearDetailScreen looks up gear using gearData[gearName]
+        
+        // First check if we have a direct match with a gearData key (e.g. "Baratza Encore")
+        const exactMatchKey = Object.keys(gearData).find(key => 
+          key.toLowerCase() === gearName.toLowerCase()
+        );
+        
+        // If we have an exact match, use that key
+        if (exactMatchKey) {
+          console.log(`Found exact match in gearData: ${exactMatchKey}`);
+          navigation.navigate('GearDetail', { 
+            gearName: exactMatchKey 
+          });
+          return;
+        }
+        
+        // Try to find a partial match in gearData keys
+        const partialMatchKey = Object.keys(gearData).find(key => {
+          // Try matching in both directions to handle cases like "Baratza Encore" and "Encore"
+          return key.toLowerCase().includes(gearName.toLowerCase()) || 
+                 gearName.toLowerCase().includes(key.toLowerCase());
+        });
+        
+        if (partialMatchKey) {
+          console.log(`Found partial match in gearData: ${partialMatchKey}`);
+          navigation.navigate('GearDetail', { 
+            gearName: partialMatchKey
+          });
+          return;
+        }
+        
+        // If we still don't have a match, try some special cases
+        // For "Baratza Encore Coffee Grinder", the key in gearData is "Baratza Encore"
+        if (gearName.includes("Baratza Encore")) {
+          console.log("Special case: Navigating to Baratza Encore");
+          navigation.navigate('GearDetail', { 
+            gearName: "Baratza Encore"
+          });
+          return;
+        }
+        
+        // For AeroPress, match to "AeroPress"
+        if (gearName.toLowerCase().includes("aeropress")) {
+          console.log("Special case: Navigating to AeroPress");
+          navigation.navigate('GearDetail', { 
+            gearName: "AeroPress"
+          });
+          return;
+        }
+        
+        // Fallback to the original approach - just using the item name directly
+        console.log(`No match found in gearData, using name directly: ${gearName}`);
+        navigation.navigate('GearDetail', { 
+          gearName: gearName 
+        });
       } else if (isCafeLabItem) {
         // Handle CaféLab items specially
         if (item.name.includes("Murcia") || item.name.includes("Cartagena")) {
@@ -573,98 +799,68 @@ export default function SearchScreen() {
             userId: locationId,
             userName: item.name,
             isLocation: true,
-            parentBusinessId: 'business-cafelab'
+            parentBusinessId: 'business-cafelab',
+            skipAuth: true
           });
         } else {
           // For main CaféLab, navigate to the business profile
           console.log('Navigating to main CaféLab business profile');
           navigation.navigate('UserProfileBridge', {
             userId: 'business-cafelab',
-            userName: 'CaféLab'
+            userName: 'CaféLab',
+            isBusinessAccount: true,
+            isRoaster: true,
+            skipAuth: true
           });
         }
+      } else if (item.name === 'Kima Coffee' || 
+                item.id === 'kima-coffee' || 
+                item.id === 'business-kima' || 
+                item.businessId === 'business-kima') {
+        // Special handling for Kima Coffee - always navigate to roaster profile
+        console.log('Navigating to Kima Coffee roaster profile');
+        navigation.navigate('UserProfileBridge', {
+          userId: 'business-kima',
+          userName: 'Kima Coffee',
+          isBusinessAccount: true,
+          isRoaster: true,
+          skipAuth: true
+        });
       } else if (isVertigoItem) {
         // Special handling for Vértigo y Calambre - always navigate to café profile
         console.log('Navigating to Vértigo y Calambre café profile');
-        navigation.navigate('UserProfileBridge', {
-          userId: 'cafe-vertigo-calambre',
+        navigation.navigate('UserProfileBridge', { 
+          userId: 'user2', // Use user2 ID to match mockEvents.json and ensure data is found 
           userName: 'Vértigo y Calambre',
-          skipAuth: true
+          skipAuth: true,
+          isBusinessAccount: true,
+          isRoaster: false, // Mark as café not roaster
+          location: 'Murcia, Spain'
         });
       } else if (isRoasterLocation || isCafeLocation) {
         // For other businesses, navigate to user profile
         console.log(`Navigating to business profile for ${item.id}`);
         navigation.navigate('UserProfileBridge', {
           userId: item.id,
-          userName: item.name
+          userName: item.name,
+          isBusinessAccount: true,
+          isRoaster: isRoasterLocation,
+          skipAuth: true
         });
       } else {
-        // For users and other items, navigate to user profile
-        console.log(`Navigating to user profile for ${item.id}`);
+        // For users, use the userId property (without prefix) if available, otherwise use the id property
+        const userId = item.userId || item.id;
+        console.log(`Navigating to user profile for ${userId}`);
         navigation.navigate('UserProfileBridge', {
-          userId: item.id,
-          userName: item.name
+          userId: userId,
+          userName: item.name,
+          skipAuth: true
         });
       }
     };
     
-    // Convert the passed image to a source object
-    const getCardImageSource = (url) => {
-      if (!url) {
-        console.log('No image URL provided for search result card');
-        return null;
-      }
-      
-      if (typeof url !== 'string') return url;
-      
-      // If it's already a URL, use as is
-      if (url.startsWith('http')) {
-        return { uri: url };
-      }
-      
-      // For local assets, we need to resolve the path
-      if (url.includes('assets/')) {
-        if (url.includes('ivo-vilches.jpg')) {
-          return require('../../assets/users/ivo-vilches.jpg');
-        } else if (url.includes('carlos-hernandez.jpg')) {
-          return require('../../assets/users/carlos-hernandez.jpg');
-        } else if (url.includes('elias-veris.jpg')) {
-          return require('../../assets/users/elias-veris.jpg');
-        } else if (url.includes('vertigo-logo.jpg')) {
-          return require('../../assets/businesses/vertigo-logo.jpg');
-        } else if (url.includes('cafelab-logo.png')) {
-          return require('../../assets/businesses/cafelab-logo.png');
-        } else if (url.includes('cafelab-murcia-cover.png')) {
-          return require('../../assets/businesses/cafelab-murcia-cover.png');
-        } else if (url.includes('cafelab-cartagena-cover.png')) {
-          return require('../../assets/businesses/cafelab-cartagena-cover.png');
-        } else if (url.includes('toma-logo.jpg')) {
-          return require('../../assets/businesses/toma-logo.jpg');
-        } else if (url.includes('toma-1-cover.jpg')) {
-          return require('../../assets/businesses/toma-1-cover.jpg');
-        } else if (url.includes('toma-2-cover.jpg')) {
-          return require('../../assets/businesses/toma-2-cover.jpg');
-        } else if (url.includes('toma-3-cover.jpg')) {
-          return require('../../assets/businesses/toma-3-cover.jpg');
-        }
-      }
-      
-      // Add support for Toma Café coffee images
-      if (url.includes('ET_REF_G1') || 
-          url.includes('COL_EL_SIL') || 
-          url.includes('ET_BENT_NENK') || 
-          url.includes('RUAN_TIT') || 
-          url.includes('NIC_DIP_TERR') || 
-          url.includes('COL_LA_PRIM') ||
-          url.includes('IND_GAYO') ||
-          url.includes('MEX_SUE-DECF')) {
-        console.log('Loading Toma Café coffee image:', url);
-        return { uri: url };
-      }
-      
-      // Default fallback
-      return { uri: url };
-    };
+    // Use the function to get the proper image source
+    const imageSource = getImageSource(imageUrl);
     
     return (
       <TouchableOpacity 
@@ -672,7 +868,7 @@ export default function SearchScreen() {
         onPress={handlePress}
       >
         <Image 
-          source={getCardImageSource(imageUrl)}
+          source={imageSource}
           style={isGearItem ? styles.resultCoffeeImage : 
                  isCoffeeItem ? styles.resultCoffeeImage : 
                  isRoaster || isCafeLocation ? styles.resultBusinessImage : 
@@ -760,35 +956,39 @@ export default function SearchScreen() {
         </TouchableOpacity>
       );
     } else if (item.type === 'coffee') {
-      // Coffee already has image from the search results - use image property from mockData.json
+      // Coffee already has image from the search results - use image property from mockCoffees.json
       const imageUrl = item.image || item.imageUrl || 'https://images.unsplash.com/photo-1447933601403-0c6688de566e';
       
-      // Extract the coffee ID from the id field if it's in the format 'coffee-X'
+      // Extract the coffee ID correctly
       let coffeeId;
       
-      // Check if coffeeId is provided directly
-      if (item.coffeeId) {
+      // First try to use the direct ID from the coffee object if available
+      if (item.id && typeof item.id === 'string') {
+        // If id is something like "coffee-pampojila", preserve it exactly
+        coffeeId = item.id;
+      }
+      // If there's a separate coffeeId property, use that
+      else if (item.coffeeId) {
         coffeeId = item.coffeeId;
       }
-      // Check if id includes the full coffee ID, like 'coffee-coffee-campo-hermoso-sidra'
-      else if (item.id && item.id.startsWith('coffee-coffee-')) {
-        coffeeId = item.id.replace('coffee-', '');
-      }
-      // Handle normal coffee IDs like 'coffee-villa-rosario'
-      else if (item.id && item.id.startsWith('coffee-')) {
-        coffeeId = item.id;
-      }
-      // Use the ID as is if none of the above apply
+      // Fallback to just the name for search purposes
       else {
-        coffeeId = item.id;
+        coffeeId = item.name;
       }
+      
+      // Debug the ID to make sure it's being passed correctly
+      console.log(`Navigating to coffee with ID: ${coffeeId}, name: ${item.name}`);
       
       return (
         <TouchableOpacity 
           style={styles.resultItem}
           onPress={() => {
+            // Pass the exact coffeeId and also include the coffee object for direct use
             console.log(`Navigating to coffee detail for ${item.name} with ID: ${coffeeId}`);
-            navigation.navigate('CoffeeDetail', { coffeeId: coffeeId });
+            navigation.navigate('CoffeeDetail', { 
+              coffeeId, 
+              coffee: item // Pass the entire coffee object as a fallback
+            });
           }}
         >
           <Image 
@@ -830,12 +1030,14 @@ export default function SearchScreen() {
                 }
               }
               
+              // Explicitly set avatar for the navigation
               navigation.navigate('UserProfileBridge', {
                 userId: locationId,
                 userName: item.name,
                 skipAuth: true,
                 isLocation: true,
-                parentBusinessId: 'business-cafelab'
+                parentBusinessId: 'business-cafelab',
+                avatar: 'assets/businesses/cafelab-logo.png' // Explicitly pass avatar
               });
               return;
             }
@@ -845,7 +1047,21 @@ export default function SearchScreen() {
               navigation.navigate('UserProfileBridge', { 
                 userId: 'business-cafelab',
                 userName: 'CaféLab',
-                skipAuth: true 
+                skipAuth: true,
+                isBusinessAccount: true,
+                isRoaster: true
+              });
+              return;
+            }
+            
+            // Special case for Kima Coffee
+            if (item.name === 'Kima Coffee' || item.id === 'business-kima' || item.businessId === 'business-kima') {
+              navigation.navigate('UserProfileBridge', { 
+                userId: 'business-kima',
+                userName: 'Kima Coffee',
+                skipAuth: true,
+                isBusinessAccount: true,
+                isRoaster: true
               });
               return;
             }
@@ -855,7 +1071,9 @@ export default function SearchScreen() {
             navigation.navigate('UserProfileBridge', { 
               userId: roasterId, 
               userName: item.name,
-              skipAuth: true 
+              skipAuth: true,
+              isBusinessAccount: true,
+              isRoaster: true
             });
           }}
         >
@@ -897,20 +1115,25 @@ export default function SearchScreen() {
                 parentBusinessId: 'business-toma'
               });
             } else if (item.name && item.name === 'Toma Café') {
-              // For the main Toma Café profile
+              // For the main Toma Café, navigate as a café not a roaster
               navigation.navigate('UserProfileBridge', { 
-                userId: 'business-toma',
+                userId: 'cafe-toma',
                 userName: 'Toma Café',
-                skipAuth: true
+                skipAuth: true,
+                isBusinessAccount: true,
+                isRoaster: false // Changed to false for cafés
               });
             } else if ((item.name && item.name === 'Vértigo y Calambre') ||
                      (item.id === 'vertigo-calambre') ||
                      (item.businessId === 'business1')) {
-              // For Vértigo y Calambre - use the café profile ID
+              // For Vértigo y Calambre, we need to use user2 ID to match mockEvents.json
               navigation.navigate('UserProfileBridge', { 
-                userId: 'cafe-vertigo-calambre',
+                userId: 'user2', // Use user2 ID to match mockEvents.json
                 userName: 'Vértigo y Calambre',
-                skipAuth: true
+                skipAuth: true,
+                isBusinessAccount: true,
+                isRoaster: false, // Explicitly set as café, not roaster
+                location: 'Murcia, Spain'
               });
             }
             // Handle The Fix profile
@@ -920,7 +1143,21 @@ export default function SearchScreen() {
               navigation.navigate('UserProfileBridge', { 
                 userId: 'business-thefix',
                 userName: 'The Fix',
-                skipAuth: true
+                skipAuth: true,
+                isBusinessAccount: true,
+                isRoaster: true
+              });
+            }
+            // Special case for Kima Coffee
+            else if (item.name === 'Kima Coffee' || 
+                    item.id === 'kima-coffee' || 
+                    item.businessId === 'business-kima') {
+              navigation.navigate('UserProfileBridge', { 
+                userId: 'business-kima',
+                userName: 'Kima Coffee',
+                skipAuth: true,
+                isBusinessAccount: true,
+                isRoaster: true
               });
             }
             // Special handling for CaféLab locations
@@ -934,7 +1171,9 @@ export default function SearchScreen() {
                 navigation.navigate('UserProfileBridge', { 
                   userId: 'business-cafelab',
                   userName: 'CaféLab',
-                  skipAuth: true
+                  skipAuth: true,
+                  isBusinessAccount: true,
+                  isRoaster: true
                 });
                 return;
               }
@@ -972,7 +1211,8 @@ export default function SearchScreen() {
               navigation.navigate('UserProfileBridge', { 
                 userId: item.id,
                 userName: item.name,
-                skipAuth: true
+                skipAuth: true,
+                isBusinessAccount: true
               });
             }
           }}
@@ -1152,29 +1392,42 @@ export default function SearchScreen() {
     );
   };
   
-  const renderGearCarousel = (title, data, showViewMore = false, viewMoreDestination = null, viewMoreParams = {}) => {
-    if (!data || data.length === 0) return null;
-    
+  // Handle gear item press - navigate to gear detail
+  const handleGearPress = (item) => {
+    navigation.navigate('GearDetail', { 
+      gearId: item.id,
+      gearName: item.name,
+      gear: item
+    });
+  };
+
+  const renderGearCarousel = ({ title, items, seeAllRoute, onPress }) => {
     return (
-      <View style={styles.carouselSection}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.carouselSectionTitle}>{title}</Text>
-          {showViewMore && (
-            <TouchableOpacity 
-              onPress={() => navigation.navigate(viewMoreDestination, viewMoreParams)}
-            >
-              <Text style={styles.viewAllText}>View more</Text>
-            </TouchableOpacity>
-          )}
+      <View style={styles.carouselContainer}>
+        <View style={styles.carouselHeader}>
+          <Text style={styles.carouselTitle}>{title}</Text>
+          <TouchableOpacity 
+            style={styles.seeAllButton}
+            onPress={() => navigation.navigate(seeAllRoute || 'GearList')}
+          >
+            <Text style={styles.seeAllText}>See all</Text>
+          </TouchableOpacity>
         </View>
-        <FlatList
-          data={data}
-          renderItem={renderGearCard}
-          keyExtractor={item => item.id}
+        
+        <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.carouselContainer}
-        />
+          contentContainerStyle={styles.carouselScrollContent}
+        >
+          {items.map((item, index) => (
+            <GearCard 
+              key={`${item.id || index}`}
+              item={item}
+              onPress={() => onPress(item)}
+              style={styles.carouselCard}
+            />
+          ))}
+        </ScrollView>
       </View>
     );
   };
@@ -1214,44 +1467,85 @@ export default function SearchScreen() {
               <TouchableOpacity 
                 style={styles.cafeListCard}
                 onPress={() => {
-                  // Handle special cases similar to renderCarouselItem for cafe type
+                  // Handle special cases - corrected for proper business profile handling
                   if (item.name && item.name.includes('Toma Café') && item.name !== 'Toma Café') {
-                    const locationId = item.id.startsWith('cafe-') ? item.id.replace('cafe-', '') : item.id;
+                    // For Toma Café locations (like Toma Café 1), navigate to the specific location
+                    const locationId = item.id;
                     navigation.navigate('UserProfileBridge', { 
                       userId: locationId,
                       userName: item.name,
                       skipAuth: true,
                       isLocation: true,
+                      isBusinessAccount: true, // Add business account flag
                       parentBusinessId: 'business-toma'
                     });
                   } else if (item.name && item.name === 'Toma Café') {
+                    // For main Toma Café, navigate as a business
                     navigation.navigate('UserProfileBridge', { 
                       userId: 'business-toma',
                       userName: 'Toma Café',
-                      skipAuth: true
+                      skipAuth: true,
+                      isBusinessAccount: true,
+                      isRoaster: true
                     });
                   } else if ((item.name && item.name === 'Vértigo y Calambre') ||
                            (item.id === 'vertigo-calambre') ||
                            (item.businessId === 'business1')) {
+                    // For Vértigo y Calambre, we need to use user2 ID to match mockEvents.json
                     navigation.navigate('UserProfileBridge', { 
-                      userId: 'cafe-vertigo-calambre',
+                      userId: 'user2', // Use user2 ID to match mockEvents.json
                       userName: 'Vértigo y Calambre',
-                      skipAuth: true
+                      skipAuth: true,
+                      isBusinessAccount: true,
+                      isRoaster: false, // Explicitly set as café, not roaster
+                      location: 'Murcia, Spain'
                     });
                   } else if ((item.name && item.name === 'The Fix') ||
                            (item.id === 'thefix-madrid') ||
                            (item.businessId === 'business-thefix')) {
+                    // For The Fix, ensure we're going to a café profile from Good Cafés
                     navigation.navigate('UserProfileBridge', { 
-                      userId: 'business-thefix',
+                      userId: 'cafe-thefix-madrid', // Use café ID
                       userName: 'The Fix',
-                      skipAuth: true
+                      skipAuth: true,
+                      isBusinessAccount: true, // It's a business account
+                      isLocation: true, // It's a location
+                      parentBusinessId: 'business-thefix' // With a parent business
+                    });
+                  } else if (item.name === 'Kima Coffee' || 
+                            item.id === 'kima-coffee' || 
+                            item.businessId === 'business-kima') {
+                    // For Kima Coffee, navigate to the specific café location, not the roaster
+                    navigation.navigate('UserProfileBridge', { 
+                      userId: 'kima-coffee', // Correct café ID
+                      userName: 'Kima Coffee Málaga',
+                      skipAuth: true,
+                      isBusinessAccount: true,
+                      isLocation: true,
+                      parentBusinessId: 'business-kima',
+                      type: 'cafe',
+                      isRoaster: false
                     });
                   } else {
-                    navigation.navigate('UserProfileBridge', { 
-                      userId: item.id,
+                    // For other cafés - use business ID if available
+                    const cafeId = item.id;
+                    const businessId = item.businessId;
+                    
+                    // Prepare complete data for navigation
+                    const cafeData = {
+                      userId: cafeId,
                       userName: item.name,
-                      skipAuth: true
-                    });
+                      skipAuth: true,
+                      isBusinessAccount: true,
+                      isLocation: !!businessId,
+                      parentBusinessId: businessId,
+                      location: item.location
+                    };
+                    
+                    // Debug what we're passing
+                    console.log(`Navigating to café profile with data:`, cafeData);
+                    
+                    navigation.navigate('UserProfileBridge', cafeData);
                   }
                 }}
               >
@@ -1298,7 +1592,7 @@ export default function SearchScreen() {
 
   const renderRecipesForYouSection = () => {
     // Filter recipes that have isTrending flag set to true
-    const trendingRecipes = mockData.recipes.filter(recipe => recipe.isTrending === true);
+    const trendingRecipes = mockRecipesData.recipes.filter(recipe => recipe.isTrending === true);
     
     if (!trendingRecipes || trendingRecipes.length === 0) return null;
     
@@ -1315,7 +1609,19 @@ export default function SearchScreen() {
           renderItem={({ item }) => (
             <TouchableOpacity 
               style={styles.recipeCard}
-              onPress={() => navigation.navigate('RecipeDetail', { recipeId: item.id })}
+              onPress={() => navigation.navigate('RecipeDetail', { 
+                recipeId: item.id,
+                coffeeId: item.coffeeId,
+                coffeeName: item.coffeeName,
+                roaster: item.roaster,
+                imageUrl: item.imageUrl,
+                // Pass the full recipe object for direct rendering
+                recipe: item,
+                // Include creator details
+                userId: item.creatorId,
+                userName: item.creatorName,
+                userAvatar: item.creatorAvatar
+              })}
             >
               <Image 
                 source={{ uri: item.imageUrl }} 
@@ -1498,10 +1804,37 @@ export default function SearchScreen() {
           contentContainerStyle={styles.discoveryContentContainer}
           showsVerticalScrollIndicator={false}
         >
-          {renderPopularCoffeeCarousel('Discover Coffee', mockData.coffees, true, 'CoffeeDiscovery', { sortBy: 'popularity' })}
+          {renderPopularCoffeeCarousel('Discover Coffee', mockCoffees.coffees, true, 'CoffeeDiscovery', { sortBy: 'popularity' })}
           {renderGoodCafesSection()}
           {renderRecipesForYouSection()}
-          {renderGearCarousel('Coffee Gear', popularGear, true, 'GearList', { category: 'all' })}
+          
+          {/* Coffee Gear Section */}
+          {popularGear.length > 0 && (
+            <View style={styles.carouselSection}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.carouselSectionTitle}>Coffee Gear</Text>
+                <TouchableOpacity onPress={() => navigation.navigate('GearList')}>
+                  <Text style={styles.viewAllText}>View more</Text>
+                </TouchableOpacity>
+              </View>
+              <FlatList
+                data={popularGear.slice(0, 4)}
+                renderItem={({ item, index }) => (
+                  <View style={{ marginRight: index < popularGear.slice(0, 4).length - 1 ? 12 : 0 }}>
+                    <GearCard
+                      item={item}
+                      onPress={() => handleGearPress(item)}
+                    />
+                  </View>
+                )}
+                keyExtractor={item => item.id}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.carouselContainer}
+              />
+            </View>
+          )}
+          
           {renderPeopleYouMightKnowSection()}
         </ScrollView>
       )}
@@ -1528,11 +1861,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingHorizontal: 12,
     height: 48,
-    // shadowColor: '#000',
-    // shadowOffset: { width: 0, height: 1 },
-    // shadowOpacity: 0.1,
-    // shadowRadius: 2,
-    // elevation: 2,
+    // No shadow or elevation
   },
   searchIcon: {
     marginRight: 8,
@@ -1641,12 +1970,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   carouselCard: {
-    width: CARD_WIDTH,
-    height: CARD_HEIGHT,
-    borderRadius: 12,
-    marginRight: 12,
+    width: 160,
+    borderRadius: 8,
     overflow: 'hidden',
     backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+    marginRight: 12,
   },
   carouselImage: {
     width: '100%',
@@ -1850,8 +2180,10 @@ const styles = StyleSheet.create({
   },
   viewAllText: {
     fontSize: 14,
-    color: '#007AFF',
-    fontWeight: '500',
+    // color: '#007AFF',
+    fontWeight: '600',
+    borderBottomWidth: 1,
+    borderBottomColor: '#000000',
   },
   cafeLogo: {
     width: 40,
@@ -2077,7 +2409,7 @@ const styles = StyleSheet.create({
   cafeListCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    marginRight: 16,
+    marginRight: 12,
     width: 280,
     overflow: 'hidden',
     borderWidth: 1,
@@ -2239,5 +2571,29 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '500',
     color: '#666666',
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#000000',
+    marginHorizontal: 4,
+  },
+  viewMoreButton: {
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    marginLeft: 8,
+  },
+  viewMoreText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  gearCard: {
+    marginRight: 12,
+    width: 160,
+    borderRadius: 8,
+    overflow: 'hidden',
   },
 }); 

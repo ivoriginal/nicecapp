@@ -1,6 +1,11 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import AppImage from './common/AppImage';
+
+const { width } = Dimensions.get('window');
+// Adjust the width calculation to work better with the parent container sizing
+const CARD_WIDTH = (width - 40) / 2; // For 2 columns with adequate spacing
 
 /**
  * GearCard - Reusable component for displaying coffee gear items
@@ -14,409 +19,221 @@ import { Ionicons } from '@expo/vector-icons';
  * @param {Function} props.onWishlistToggle - Function to call when wishlist button is toggled
  */
 const GearCard = ({ 
-  item, 
-  onPress, 
-  isWishlist = false, 
-  compact = false,
-  showAvatars = true,
-  onWishlistToggle
+  item,
+  onPress,
+  onUserPress,
+  isWishlist = false,
+  showAvatars = true
 }) => {
-  // Debug log to check item data
-  console.log(`GearCard rendering ${item.name}:`, {
-    usedBy: item.usedBy ? item.usedBy.map(u => ({ id: u.id, name: u.name })) : null,
-    avatarsVisible: showAvatars,
-    compact
-  });
-  
-  // Get users who own this gear
-  const usersOwning = item.usedBy && Array.isArray(item.usedBy) ? item.usedBy : [];
-  
-  if (usersOwning.length > 0) {
-    console.log(`${item.name} is owned by ${usersOwning.length} users:`, 
-      usersOwning.map(u => `${u.name} (avatar: ${typeof u.avatar === 'string' ? u.avatar : 'object'})`));
-  }
-  
-  // Helper function to handle both remote and local image sources
-  const getImageSource = (imageUrl) => {
-    if (!imageUrl) {
-      console.log('GearCard: No image URL provided');
+  if (!item) return null;
+
+  // Ensure we have the data structure we need
+  const {
+    name,
+    brand,
+    imageUrl,
+    rating,
+    reviewCount,
+    usedBy = []
+  } = item;
+
+  // Debug log to check usedBy data
+  console.log(`GearCard for ${name}, usedBy data:`, usedBy ? JSON.stringify(usedBy.slice(0, 2)) : 'none');
+
+  // Render avatars of users who own this gear
+  const renderAvatars = () => {
+    if (!showAvatars || !usedBy || usedBy.length === 0) {
+      console.log(`No avatars to show for ${name}`);
       return null;
     }
     
-    // Add debugging log to see what's being processed
-    console.log('GearCard processing avatar:', imageUrl);
+    console.log(`Rendering ${usedBy.length} avatars for ${name}`);
     
-    // If it's already an object (from require), return it directly
-    if (typeof imageUrl !== 'string') return imageUrl;
-    
-    // For remote URLs that start with http
-    if (imageUrl.startsWith('http')) {
-      return { uri: imageUrl };
-    }
-    
-    // For local assets, we need to resolve the path
-    // Use a mapping for local assets
-    if (imageUrl.includes('assets/')) {
-      // Common local assets
-      if (imageUrl.includes('ivo-vilches.jpg')) {
-        return require('../../assets/users/ivo-vilches.jpg');
-      } else if (imageUrl.includes('carlos-hernandez.jpg')) {
-        return require('../../assets/users/carlos-hernandez.jpg');
-      } else if (imageUrl.includes('elias-veris.jpg')) {
-        return require('../../assets/users/elias-veris.jpg');
-      } else if (imageUrl.includes('vertigo-logo.jpg')) {
-        return require('../../assets/businesses/vertigo-logo.jpg');
-      } else if (imageUrl.includes('cafelab-logo.png')) {
-        return require('../../assets/businesses/cafelab-logo.png');
-      } else if (imageUrl.includes('cafelab-murcia-cover.png')) {
-        return require('../../assets/businesses/cafelab-murcia-cover.png');
-      } else if (imageUrl.includes('cafelab-cartagena-cover.png')) {
-        return require('../../assets/businesses/cafelab-cartagena-cover.png');
-      } else if (imageUrl.includes('toma-cafe-logo.jpg') || imageUrl.includes('toma-cafe-logo.png')) {
-        // Use the actual file name that exists in the assets directory
-        console.log('Attempting to load Toma Café logo');
-        return require('../../assets/businesses/toma-logo.jpg');
-      } else if (imageUrl.includes('toma-cafe-1-cover.jpg') || imageUrl.includes('toma-cafe-1-cover.png')) {
-        return require('../../assets/businesses/toma-1-cover.jpg');
-      } else if (imageUrl.includes('toma-cafe-2-cover.jpg') || imageUrl.includes('toma-cafe-2-cover.png')) {
-        return require('../../assets/businesses/toma-2-cover.jpg');
-      } else if (imageUrl.includes('toma-cafe-3-cover.jpg') || imageUrl.includes('toma-cafe-3-cover.png')) {
-        return require('../../assets/businesses/toma-3-cover.jpg');
-      }
-      // Add more mappings as needed
-      
-      // Log when we can't find a mapping
-      console.log('GearCard: No mapping found for asset:', imageUrl);
-    }
-    
-    // Default fallback
-    return { uri: imageUrl };
+    return (
+      <View style={styles.avatarsSection}>
+        <Text style={styles.avatarsLabel}>Owned by</Text>
+        <View style={styles.avatarsContainer}>
+          {usedBy.slice(0, 3).map((user, index) => {
+            // Handle both URL and relative path images
+            const isRemoteImage = user.avatar && (
+              user.avatar.startsWith('http') || 
+              user.avatar.startsWith('https')
+            );
+            
+            // For debugging
+            console.log(`Avatar for user ${user.name || user.id}:`, {
+              avatar: user.avatar,
+              isRemote: isRemoteImage
+            });
+            
+            return (
+              <TouchableOpacity
+                key={`${user.id || index}-${index}`}
+                style={[styles.avatarWrapper, { zIndex: 10 - index }]}
+                onPress={() => onUserPress && onUserPress(user.id)}
+              >
+                <View style={styles.avatar}>
+                  {/* Use a default background color as fallback */}
+                  <View style={styles.avatarFallback}>
+                    <Text style={styles.avatarFallbackText}>
+                      {(user.name || user.id || '?').charAt(0).toUpperCase()}
+                    </Text>
+                  </View>
+                  <AppImage
+                    source={user.avatar}
+                    style={styles.avatarImage}
+                    placeholder="user"
+                  />
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+          {usedBy.length > 3 && (
+            <View style={[styles.avatarWrapper, styles.moreAvatars]}>
+              <Text style={styles.moreAvatarsText}>+{usedBy.length - 3}</Text>
+            </View>
+          )}
+        </View>
+      </View>
+    );
   };
 
-  // For compact mode, we need to adjust the layout to fit avatars
-  const compactWithAvatars = compact && showAvatars && usersOwning.length > 0;
-
-  console.log(`GearCard for ${item.name} has ${usersOwning.length} users and showAvatars=${showAvatars}`);
-
   return (
-    <TouchableOpacity 
-      style={[
-        styles.gearCard,
-        compact && styles.compactCard,
-        compactWithAvatars && styles.compactCardWithAvatars
-      ]}
-      onPress={onPress}
+    <TouchableOpacity
+      style={styles.card}
+      onPress={() => onPress && onPress(item)}
+      activeOpacity={0.8}
     >
+      {/* Image */}
       <View style={styles.imageContainer}>
-        <Image 
-          source={getImageSource(item.imageUrl)} 
-          style={styles.gearImage} 
-          resizeMode="cover"
+        <AppImage
+          source={imageUrl}
+          style={styles.image}
+          placeholder="gear"
         />
-        {/* Wishlist bookmark icon */}
-        <TouchableOpacity 
-          style={styles.wishlistButton}
-          onPress={() => onWishlistToggle && onWishlistToggle(item)}
-        >
-          <Ionicons 
-            name={isWishlist ? "bookmark" : "bookmark-outline"} 
-            size={22} 
-            color={isWishlist ? "#FF9500" : "#FFFFFF"} 
-          />
-        </TouchableOpacity>
-
-        {/* Show avatars overlaid on the image in bottom right corner */}
-        {showAvatars && usersOwning.length > 0 && compact && (
-          <View style={styles.imageOverlayAvatars}>
-            {usersOwning.slice(0, 2).map((user, index) => (
-              <View key={index} style={[styles.overlayAvatarContainer, { marginLeft: index > 0 ? -8 : 0 }]}>
-                {user?.avatar ? (
-                  <Image 
-                    source={getImageSource(user.avatar)} 
-                    style={styles.overlayAvatar}
-                    defaultSource={{ uri: 'https://randomuser.me/api/portraits/men/1.jpg' }}
-                  />
-                ) : (
-                  <View style={styles.overlayAvatarFallback}>
-                    <Text style={styles.overlayAvatarText}>{user?.name?.charAt(0) || '?'}</Text>
-                  </View>
-                )}
-              </View>
-            ))}
-            {usersOwning.length > 2 && (
-              <View style={[styles.overlayAvatarContainer, { marginLeft: -8 }]}>
-                <View style={styles.overlayMoreContainer}>
-                  <Text style={styles.overlayMoreText}>+{usersOwning.length - 2}</Text>
-                </View>
-              </View>
-            )}
-          </View>
-        )}
       </View>
-      
-      <View style={styles.gearContent}>
-        <View>
-          <Text style={styles.gearName} numberOfLines={1}>{item.name}</Text>
-          
-          {/* Brand and type */}
-          <View style={styles.brandContainer}>
-            <Text style={styles.gearBrand}>{item.brand}</Text>
-            <Text style={styles.gearType}>{item.type}</Text>
-          </View>
-        </View>
+
+      {/* Content */}
+      <View style={styles.contentContainer}>
+        {brand && <Text style={styles.brand}>{brand}</Text>}
+        <Text style={styles.name} numberOfLines={1}>{name}</Text>
         
-        {!compact && (
-          <View style={styles.gearMetadata}>
-            {/* Reviews in their own row */}
-            <View style={styles.gearReviews}>
-              <Ionicons name="star" size={16} color="#FFD700" />
-              <Text style={styles.gearRating}>{(item.rating || 4.0).toFixed(1)}</Text>
-              <Text style={styles.gearReviewCount}>({item.reviewCount || 0})</Text>
-            </View>
-            
-            {/* Price in its own row */}
-            <View style={styles.priceContainer}>
-              <Text style={styles.gearPrice}>${(item.price || 0).toFixed(2)}</Text>
-            </View>
+        {/* Rating */}
+        {rating > 0 && (
+          <View style={styles.ratingContainer}>
+            <Ionicons name="star" size={14} color="#FFD700" />
+            <Text style={styles.rating}>
+              {rating.toFixed(1)} ({reviewCount || 0})
+            </Text>
           </View>
         )}
-        
-        {compact && (
-          <View style={styles.compactBottom}>
-            <Text style={styles.gearPrice}>${(item.price || 0).toFixed(2)}</Text>
-          </View>
-        )}
-        
-        {usersOwning.length > 0 && !compact && showAvatars && (
-          <View style={styles.gearUsers}>
-            <Text style={styles.gearUsersText}>Owned by: </Text>
-            <View style={styles.gearAvatarsRow}>
-              {usersOwning.slice(0, 3).map((user, index) => (
-                <View key={index} style={[styles.gearUserAvatarContainer, { marginLeft: index > 0 ? -10 : 0 }]}>
-                  {user?.avatar ? (
-                    <Image 
-                      source={getImageSource(user.avatar)} 
-                      style={styles.gearUserAvatar}
-                      defaultSource={{ uri: 'https://randomuser.me/api/portraits/men/1.jpg' }}
-                    />
-                  ) : (
-                    <View style={styles.avatarFallback}>
-                      <Text style={styles.avatarFallbackText}>{user?.name?.charAt(0) || '?'}</Text>
-                    </View>
-                  )}
-                </View>
-              ))}
-              {usersOwning.length > 3 && (
-                <View style={styles.moreUsersCircle}>
-                  <Text style={styles.moreUsersText}>+{usersOwning.length - 3}</Text>
-                </View>
-              )}
-            </View>
-          </View>
-        )}
+
+        {/* Avatars section - renders only when showAvatars is true */}
+        {renderAvatars()}
       </View>
     </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
-  gearCard: {
-    width: '46%',
-    margin: 8,
-    height: 300,
+  card: {
+    width: CARD_WIDTH,
+    backgroundColor: 'white',
     borderRadius: 12,
     overflow: 'hidden',
-    backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#E5E5EA',
-  },
-  compactCard: {
-    width: 220,
-    height: 240,
-    margin: 0,
-    marginRight: 12,
-  },
-  compactCardWithAvatars: {
-    height: 260,
+    minHeight: 220, // Minimum height to ensure consistency
   },
   imageContainer: {
-    position: 'relative',
-  },
-  gearImage: {
     width: '100%',
-    height: 160,
-    backgroundColor: '#F2F2F7',
-  },
-  wishlistButton: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    height: CARD_WIDTH - 10,
+    backgroundColor: '#F5F5F5',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  gearContent: {
+  image: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  contentContainer: {
     padding: 12,
-    flex: 1,
-    justifyContent: 'space-between',
+    height: 110, // Fixed height for all content
   },
-  gearName: {
+  brand: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 2,
+  },
+  name: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#000000',
-    marginBottom: 4,
+    marginBottom: 8,
   },
-  brandContainer: {
+  ratingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 8,
   },
-  gearBrand: {
-    fontSize: 14,
-    color: '#333333',
-    marginRight: 8,
-  },
-  gearType: {
+  rating: {
     fontSize: 12,
-    color: '#666666',
-    backgroundColor: '#F2F2F7',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  gearMetadata: {
-    marginTop: 8,
-  },
-  gearReviews: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  gearRating: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#000000',
+    color: '#666',
     marginLeft: 4,
   },
-  gearReviewCount: {
-    fontSize: 12,
-    color: '#666666',
-    marginLeft: 4,
-  },
-  priceContainer: {
-    marginTop: 4,
-  },
-  gearPrice: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#000000',
-  },
-  compactBottom: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  avatarsSection: {
     marginTop: 8,
   },
-  gearUsers: {
-    marginTop: 12,
-  },
-  gearUsersText: {
-    fontSize: 12,
-    color: '#666666',
+  avatarsLabel: {
+    fontSize: 11,
+    color: '#666',
     marginBottom: 4,
   },
-  gearAvatarsRow: {
+  avatarsContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
   },
-  imageOverlayAvatars: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    padding: 8,
-  },
-  overlayAvatarContainer: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-    overflow: 'hidden',
-    backgroundColor: '#E5E5EA',
-  },
-  overlayAvatar: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 14,
-  },
-  overlayAvatarFallback: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: '#007AFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  overlayAvatarText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  overlayMoreContainer: {
+  avatarWrapper: {
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#E5E5EA',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  overlayMoreText: {
-    fontSize: 9,
-    fontWeight: '600',
-    color: '#666666',
-  },
-  gearUserAvatarContainer: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
+    marginRight: -8,
+    borderWidth: 1,
+    borderColor: 'white',
     overflow: 'hidden',
-    backgroundColor: '#E5E5EA',
   },
-  gearUserAvatar: {
+  avatar: {
     width: '100%',
     height: '100%',
-    borderRadius: 14,
+    position: 'relative',
   },
-  moreUsersCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#E5E5EA',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: -10,
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-  },
-  moreUsersText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#666666',
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    position: 'absolute',
+    top: 0,
+    left: 0,
   },
   avatarFallback: {
     width: '100%',
     height: '100%',
-    backgroundColor: '#007AFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#E0E0E0',
+  },
+  avatarFallbackText: {
+    fontSize: 12,
+    color: '#666',
+    fontWeight: '600',
+  },
+  moreAvatars: {
+    backgroundColor: '#E0E0E0',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  avatarFallbackText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: 'bold',
+  moreAvatarsText: {
+    fontSize: 8,
+    color: '#666',
+    fontWeight: '600',
   },
 });
 

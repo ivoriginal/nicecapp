@@ -102,7 +102,7 @@ const AppImage = ({
   }, [source]);
 
   const handleError = (e) => {
-    console.log('[AppImage] Error loading image:', typeof source === 'string' ? source : 'non-string-source');
+    // console.log('[AppImage] Error loading image:', typeof source === 'string' ? source : 'non-string-source');
     setHasError(true);
     setIsLoadingImage(false);
     if (onError) onError(e);
@@ -135,13 +135,13 @@ const AppImage = ({
     // Check for CaféLab images
     if (cleanPath.includes('cafelab') || src.includes('CaféLab')) {
       if (cleanPath.includes('murcia') || src.includes('Murcia')) {
-        console.log('[AppImage] Using CaféLab Murcia image');
+        // console.log('[AppImage] Using CaféLab Murcia image');
         return require('../../../assets/businesses/cafelab-murcia-cover.png');
       } else if (cleanPath.includes('cartagena') || src.includes('Cartagena')) {
-        console.log('[AppImage] Using CaféLab Cartagena image');
+        // console.log('[AppImage] Using CaféLab Cartagena image');
         return require('../../../assets/businesses/cafelab-cartagena-cover.png');
       } else {
-        console.log('[AppImage] Using CaféLab logo');
+        // console.log('[AppImage] Using CaféLab logo');
         return require('../../../assets/businesses/cafelab-logo.png');
       }
     }
@@ -150,16 +150,16 @@ const AppImage = ({
     if (cleanPath.includes('toma') || src.includes('Toma')) {
       // Check for specific location
       if (cleanPath.includes('toma-1') || cleanPath.includes('toma-cafe-1') || src.includes('Toma Café 1')) {
-        console.log('[AppImage] Using Toma Café 1 image');
+        // console.log('[AppImage] Using Toma Café 1 image');
         return require('../../../assets/businesses/toma-1-cover.jpg');
       } else if (cleanPath.includes('toma-2') || cleanPath.includes('toma-cafe-2') || src.includes('Toma Café 2')) {
-        console.log('[AppImage] Using Toma Café 2 image');
+        // console.log('[AppImage] Using Toma Café 2 image');
         return require('../../../assets/businesses/toma-2-cover.jpg');
       } else if (cleanPath.includes('toma-3') || cleanPath.includes('toma-cafe-3') || src.includes('Toma Café 3')) {
-        console.log('[AppImage] Using Toma Café 3 image');
+        // console.log('[AppImage] Using Toma Café 3 image');
         return require('../../../assets/businesses/toma-3-cover.jpg');
       } else {
-        console.log('[AppImage] Using Toma Café logo');
+        // console.log('[AppImage] Using Toma Café logo');
         return require('../../../assets/businesses/toma-logo.jpg');
       }
     }
@@ -168,7 +168,7 @@ const AppImage = ({
   };
   
   // Add debugging for the current source
-  console.log('[AppImage] Loading image source:', typeof source === 'string' ? source : (typeof source === 'number' ? 'require() asset' : JSON.stringify(source)));
+  // console.log('[AppImage] Loading image source:', typeof source === 'string' ? source : (typeof source === 'number' ? 'require() asset' : JSON.stringify(source)));
   
   // Process the source based on its type
   if (typeof source === 'number') {
@@ -188,24 +188,24 @@ const AppImage = ({
       
       // First try exact match
       if (localAssets[source]) {
-        console.log('[AppImage] Found exact match for local asset:', source);
+        // console.log('[AppImage] Found exact match for local asset:', source);
         imageSource = localAssets[source];
       }
       // Then try just the filename
       else if (fileName && localAssets[fileName]) {
-        console.log('[AppImage] Found match for local asset by filename:', fileName);
+        // console.log('[AppImage] Found match for local asset by filename:', fileName);
         imageSource = localAssets[fileName];
       }
       // Then check for URL
       else if (source.startsWith('http')) {
-        console.log('[AppImage] Using URL:', source);
+        // console.log('[AppImage] Using URL:', source);
         imageSource = { uri: source };
       }
       // Check for Instagram URLs and substitute
       else if (source && (
         source.includes('instagram.') || 
         source.includes('fbcdn.net'))) {
-        console.log('[AppImage] Instagram URL detected');
+        // console.log('[AppImage] Instagram URL detected');
         
         // For Toma Café Instagram, use our local asset
         if (source.includes('1442763115778809')) {
@@ -216,13 +216,13 @@ const AppImage = ({
       }
       // Last resort - just use as URI
       else {
-        console.log('[AppImage] Using string as URI:', source);
+        // console.log('[AppImage] Using string as URI:', source);
         imageSource = { uri: source };
       }
     }
   } else if (typeof source === 'object' && source.uri) {
     // If source is already shaped like { uri: 'path' }
-    console.log('[AppImage] Using URI object:', source.uri);
+    // console.log('[AppImage] Using URI object:', source.uri);
     
     // Check if the URI needs special handling
     const specialUri = resolveSpecialSources(source.uri);
@@ -235,7 +235,7 @@ const AppImage = ({
     }
   } else {
     // Fallback for unknown source types
-    console.log('[AppImage] Unknown source type:', source);
+    // console.log('[AppImage] Unknown source type:', source);
     return (
       <View style={[styles.placeholder, style]}>
         <Ionicons name={placeholder} size={24} color="#666" />

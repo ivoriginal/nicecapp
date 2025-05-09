@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNotifications } from '../context/NotificationsContext';
+import { useFocusEffect } from '@react-navigation/native';
 
 const NotificationItem = ({ notification, onPress, isLast }) => {
   const formatDate = (dateString) => {
@@ -44,6 +45,12 @@ const NotificationItem = ({ notification, onPress, isLast }) => {
   };
 
   const getNotificationMessage = () => {
+    // If a custom message is provided, use it
+    if (notification.message) {
+      return notification.message;
+    }
+    
+    // Otherwise, generate a message based on notification type
     switch (notification.type) {
       case 'saved_recipe':
         return `${notification.userName} saved your recipe for ${notification.recipeName}`;
@@ -54,7 +61,7 @@ const NotificationItem = ({ notification, onPress, isLast }) => {
       case 'remixed_recipe':
         return `${notification.userName} created a recipe based on your ${notification.originalRecipeName}`;
       default:
-        return notification.message || 'You have a new notification';
+        return 'You have a new notification';
     }
   };
 
@@ -73,6 +80,11 @@ const NotificationItem = ({ notification, onPress, isLast }) => {
 
   const secondaryText = getSecondaryText();
 
+  // Handle avatar press separately to navigate to user profile
+  const handleAvatarPress = () => {
+    onPress(notification, true); // Pass true to indicate avatar press
+  };
+
   return (
     <TouchableOpacity
       style={[
@@ -82,7 +94,10 @@ const NotificationItem = ({ notification, onPress, isLast }) => {
       ]}
       onPress={() => onPress(notification)}
     >
-      <View style={styles.notificationIconContainer}>
+      <TouchableOpacity 
+        style={styles.notificationIconContainer}
+        onPress={handleAvatarPress}
+      >
         <Image
           source={{ uri: notification.userAvatar }}
           style={styles.userAvatar}
@@ -90,7 +105,7 @@ const NotificationItem = ({ notification, onPress, isLast }) => {
         <View style={styles.notificationTypeIconContainer}>
           {getNotificationIcon()}
         </View>
-      </View>
+      </TouchableOpacity>
       <View style={styles.notificationContent}>
         <Text style={styles.notificationMessage}>
           {getNotificationMessage()}
@@ -104,34 +119,158 @@ const NotificationItem = ({ notification, onPress, isLast }) => {
 };
 
 const NotificationsScreen = ({ navigation }) => {
-  const { notifications, markAsRead } = useNotifications();
+  const { notifications, markAsRead, markAllAsRead, getNotificationData } = useNotifications();
   const [loading, setLoading] = useState(true);
+  const [screenFocused, setScreenFocused] = useState(false);
+
+  // Mark notifications as read when navigating away
+  useFocusEffect(
+    React.useCallback(() => {
+      // When screen comes into focus
+      setScreenFocused(true);
+      
+      return () => {
+        // When screen loses focus (navigating away)
+        setScreenFocused(false);
+        
+        // Mark all notifications as read when navigating away
+        markAllAsRead();
+      };
+    }, [markAllAsRead])
+  );
 
   useEffect(() => {
     // Set loading to false once we have notifications
     setLoading(false);
+    
+    // Debug log to check notifications
+    console.log('Current notifications:', 
+      notifications.map(n => ({
+        id: n.id,
+        type: n.type,
+        user: n.userName,
+        message: n.message || `${n.type} notification`,
+        read: n.read
+      }))
+    );
+    
   }, [notifications]);
 
-  const handleNotificationPress = (notification) => {
+  const handleNotificationPress = (notification, isAvatarPress = false) => {
     // Mark the notification as read
     markAsRead(notification.id);
+
+    if (isAvatarPress) {
+      // Navigate to user profile when avatar is pressed
+      navigation.navigate('UserProfileBridge', { 
+        userId: notification.userId, 
+        skipAuth: true 
+      });
+      return;
+    }
+
+    // Use the getNotificationData function to get complete data
+    const { recipeData, userData } = getNotificationData(notification);
 
     // Navigate based on notification type
     switch (notification.type) {
       case 'saved_recipe':
-        // navigation.navigate('RecipeDetail', { recipeId: notification.recipeId });
+        // Always navigate to RecipeDetail, even if recipe not found
+        navigation.navigate('RecipeDetail', { 
+          recipeId: notification.recipeId,
+          recipe: recipeData || {
+            id: notification.recipeId,
+            name: notification.recipeName || 'Deleted Recipe',
+            deleted: true
+          },
+          userId: userData?.id,
+          userName: userData?.name || notification.userName,
+          userAvatar: userData?.avatar || notification.userAvatar,
+          skipAuth: true
+        });
         break;
+        
       case 'added_to_gear_wishlist':
-        // navigation.navigate('GearDetail', { gearId: notification.gearId });
+        // Navigate to GearDetailScreen with proper parameters
+        navigation.navigate('GearDetail', { 
+          gearId: notification.gearId,
+          gearName: notification.gearName,
+          skipAuth: true
+        });
         break;
+        
       case 'followed':
-        // navigation.navigate('UserProfileBridge', { userId: notification.userId });
+        navigation.navigate('UserProfileBridge', { 
+          userId: notification.userId,
+          skipAuth: true
+        });
         break;
+        
       case 'remixed_recipe':
-        // navigation.navigate('RecipeDetail', { recipeId: notification.newRecipeId });
+        // Always navigate, showing fallback recipe if needed
+        navigation.navigate('RecipeDetail', { 
+          recipeId: recipeData?.recipe?.id || notification.newRecipeId,
+          recipe: recipeData?.recipe || {
+            id: notification.newRecipeId,
+            name: notification.newRecipeName || 'Deleted Recipe',
+            deleted: true
+          },
+          basedOnRecipe: recipeData?.basedOnRecipe,
+          userId: userData?.id || notification.userId,
+          userName: userData?.name || notification.userName,
+          userAvatar: userData?.avatar || notification.userAvatar,
+          skipAuth: true
+        });
         break;
+        
       default:
-        // navigation.navigate('Home');
+        // Handle custom notification types with message field
+        if (notification.message && notification.message.includes("recipe based on your")) {
+          // Always navigate to recipe detail
+          navigation.navigate('RecipeDetail', { 
+            recipeId: recipeData?.recipe?.id || 'recipe-not-found',
+            recipe: recipeData?.recipe || {
+              id: 'recipe-not-found',
+              name: `${notification.userName}'s Recipe`,
+              deleted: true,
+              userId: notification.userId,
+              userName: notification.userName,
+              userAvatar: notification.userAvatar
+            },
+            basedOnRecipe: recipeData?.basedOnRecipe,
+            userId: userData?.id || notification.userId,
+            userName: userData?.name || notification.userName,
+            userAvatar: userData?.avatar || notification.userAvatar,
+            skipAuth: true
+          });
+        } else if (notification.recipeId) {
+          // Use mockRecipes directly without redundant require
+          const mockRecipes = require('../data/mockRecipes.json').recipes;
+          const recipe = mockRecipes.find(r => r.id === notification.recipeId);
+          
+          // Always navigate to recipe screen
+          navigation.navigate('RecipeDetail', { 
+            recipeId: notification.recipeId,
+            recipe: recipe || {
+              id: notification.recipeId,
+              name: 'Deleted Recipe',
+              deleted: true,
+              userId: notification.userId,
+              userName: notification.userName,
+              userAvatar: notification.userAvatar
+            },
+            userId: notification.userId,
+            userName: notification.userName,
+            userAvatar: notification.userAvatar,
+            skipAuth: true
+          });
+        } else if (notification.userId) {
+          // Navigate to user profile as fallback
+          navigation.navigate('UserProfileBridge', { 
+            userId: notification.userId,
+            skipAuth: true
+          });
+        }
         break;
     }
   };
@@ -205,7 +344,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#F0F0F0',
   },
   unreadNotification: {
-    backgroundColor: '#F9F9FB',
+    backgroundColor: '#E6F2FF', // Light blue background for unread notifications
   },
   notificationIconContainer: {
     width: 40,

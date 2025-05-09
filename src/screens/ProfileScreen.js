@@ -21,6 +21,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect, CommonActions } from '@react-navigation/native';
 import CoffeeLogCard from '../components/CoffeeLogCard';
 import eventEmitter from '../utils/EventEmitter';
+import mockGear from '../data/mockGear.json';
+import mockUsers from '../data/mockUsers.json';
+import mockRecipes from '../data/mockRecipes.json';
+import mockCoffeesData from '../data/mockCoffees.json';
+import gearDetails from '../data/gearDetails';
+import { businessCoffees } from '../data/businessProducts';
+import AppImage from '../components/common/AppImage';
 
 // Loading and error components with safe default insets
 const LoadingView = ({ insets }) => {
@@ -89,6 +96,10 @@ export default function ProfileScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [activeTab, setActiveTab] = useState('coffee');
   const [recipeFilter, setRecipeFilter] = useState('all'); // 'all', 'created', 'saved'
+  const [enableRefreshControl, setEnableRefreshControl] = useState(false);
+  const [loadCount, setLoadCount] = useState(0);
+  const scrollViewRef = useRef(null);
+  const [shopFilter, setShopFilter] = useState('coffee'); // 'coffee' or 'gear'
 
   // Default user data for when we don't have loaded data yet
   const defaultUsers = {
@@ -100,8 +111,8 @@ export default function ProfileScreen() {
       email: 'ivo.vilches@example.com',
       location: 'Murcia, Spain',
       isBusinessAccount: false,
-      gear: ["Hario V60", "Baratza Encore", "Fellow Stagg EKG", "Acaia Pearl Scale"],
-      gearWishlist: ["La Marzocco Linea Mini", "Weber Workshops EG-1", "Comandante C40", "Decent DE1"]
+      gear: ["AeroPress", "Chemex", "Hario V60", "Hario Ceramic Slim", "Hario Range Server"],
+      gearWishlist: ["9Barista Espresso Machine Mk.1", "Fellow Stagg EKG"]
     },
     'user2': {
       id: 'user2',
@@ -152,12 +163,22 @@ export default function ProfileScreen() {
   // Only initialize once on mount with the current account
   useEffect(() => {
     initializeWithAccount(currentAccount);
+    
+    // Enable scrolling after initial render
+    setTimeout(() => {
+      setEnableRefreshControl(true);
+    }, 300);
   }, []);
   
   // Helper function to initialize with a specific account
   const initializeWithAccount = async (accountId) => {
     try {
       console.log(`Initializing with account: ${accountId}`);
+      
+      // Reset scroll position on account change
+      if (scrollViewRef.current) {
+        scrollViewRef.current.scrollTo({ x: 0, y: 0, animated: false });
+      }
       
       // Make sure we have default data immediately
       const defaultAccountData = defaultUsers[accountId] || defaultUsers['user1'];
@@ -212,6 +233,27 @@ export default function ProfileScreen() {
   // Navigation
   const navigation = useNavigation();
 
+  // Helper function to get the business gear for Vértigo y Calambre
+  const getBusinessGear = (userId, userName) => {
+    if (userId === 'user2' || userName === 'Vértigo y Calambre') {
+      return ['gear6', 'gear4', 'gear9', 'gear1', 'gear5', 'gear7', 'gear12', 'gear13'];
+    }
+    return [];
+  };
+
+  // Helper function to get business coffees
+  const getBusinessCoffees = (userId, userName) => {
+    // Check if this is a business user
+    if (userId === 'user2' || userName === 'Vértigo y Calambre') {
+      return businessCoffees["user2"] || [];
+    } else if (userId === 'business-kima') {
+      return businessCoffees["business-kima"] || [];
+    } else if (userId === 'business-toma') {
+      return businessCoffees["business-toma"] || [];
+    }
+    return [];
+  };
+
   // Load data on mount and when current account changes
   useEffect(() => {
     console.log('Current user updated:', user);
@@ -246,15 +288,52 @@ export default function ProfileScreen() {
     }, [currentAccount])
   );
 
-  // Attach long press handler to navigation tab
+  // Add the long press handler to the profile tab
   useEffect(() => {
-    // Add the long press handler to the profile tab
     navigation.setOptions({
-      tabBarLongPress: () => {
-        setModalVisible(true);
-      }
+      headerTitle: '',
+      headerLeft: () => (
+        <TouchableOpacity 
+          style={[styles.usernameContainer, { marginLeft: 16 }]}
+          onPress={() => setModalVisible(true)}
+        >
+          <Text style={styles.usernameText}>@{userHandle}</Text>
+          <Ionicons name="chevron-down" size={16} color="#000000" />
+        </TouchableOpacity>
+      ),
+      headerRight: () => (
+        <View style={[styles.headerRightContainer, { marginRight: 16 }]}>
+          <TouchableOpacity
+            style={styles.headerButton}
+            onPress={() => {
+              navigation.navigate('Saved');
+            }}
+          >
+            <Ionicons name="bookmark-outline" size={24} color="#000000" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.headerButton}
+            onPress={handleOptionsPress}
+          >
+            <Ionicons name="ellipsis-horizontal" size={24} color="#000000" />
+          </TouchableOpacity>
+        </View>
+      )
     });
-  }, [navigation]);
+  }, [navigation, userHandle, handleOptionsPress]);
+
+  // Listen for tab long press events
+  useEffect(() => {
+    const subscription = eventEmitter.addListener('profileTabLongPress', () => {
+      setModalVisible(true);
+    });
+    
+    return () => {
+      if (subscription && typeof subscription.remove === 'function') {
+        subscription.remove();
+      }
+    };
+  }, []);
 
   // Handle account switching
   const handleSwitchAccount = (accountId) => {
@@ -322,8 +401,11 @@ export default function ProfileScreen() {
 
   // Handle coffee press
   const handleCoffeePress = (item) => {
+    // If item is a reference to a coffee in mockCoffees.json (has coffeeId but no id)
+    const coffeeId = item.coffeeId || item.id;
+    
     navigation.navigate('CoffeeDetail', {
-      coffeeId: item.coffeeId || item.id,
+      coffeeId: coffeeId,
       skipAuth: true
     });
   };
@@ -359,146 +441,18 @@ export default function ProfileScreen() {
   // Filter recipes based on the selected filter
   const getFilteredRecipes = () => {
     console.log('Current account in getFilteredRecipes:', currentAccount);
-    console.log('Recipe filter:', recipeFilter);
-    console.log('Recipes from context:', recipes);
     
-    // If user has no recipes, use mock recipes for Ivo Vilches (user1)
+    // If user has no recipes, use recipes from mockRecipes.json for current user
     let userRecipes = recipes;
     if ((!userRecipes || userRecipes.length === 0) && currentAccount === 'user1') {
-      console.log('Using mock recipes for Ivo Vilches');
-      userRecipes = [
-        {
-          id: 'recipe1',
-          userId: 'user1',
-          name: 'My Perfect V60 Recipe',
-          coffeeName: 'Villa Rosario',
-          coffeeId: 'coffee-villa-rosario',
-          roaster: 'Kima Coffee',
-          brewingMethod: 'V60',
-          coffeeAmount: 22,
-          waterAmount: 350,
-          brewTime: '3:15',
-          grindSize: 'Medium',
-          temperature: 93,
-          imageUrl: 'https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728',
-          createdAt: '2023-06-15',
-          rating: 4.5,
-          notes: 'Brings out the cherry notes beautifully',
-          steps: ['Add 50g water for bloom', 'Wait 30 seconds', 'Pour to 150g total', 'Pour to 250g total', 'Final pour to 350g total'],
-          isSaved: true,
-          isCreated: true,
-          creatorName: 'Ivo Vilches',
-          creatorAvatar: require('../../assets/users/ivo-vilches.jpg'),
-          usageCount: 24
-        },
-        {
-          id: 'recipe2',
-          userId: 'user3',
-          name: 'AeroPress Concentrate',
-          coffeeName: 'Red Fruits',
-          coffeeId: 'coffee-red-fruits',
-          roaster: 'Kima Coffee',
-          brewingMethod: 'AeroPress',
-          coffeeAmount: 18,
-          waterAmount: 100,
-          brewTime: '1:30',
-          grindSize: 'Fine',
-          temperature: 85,
-          imageUrl: 'https://kimacoffee.com/cdn/shop/files/IMG-5851_900x.png?v=1742796767',
-          createdAt: '2023-07-20',
-          rating: 4.8,
-          notes: 'Concentrated method that intensifies the berry notes',
-          steps: ['Add coffee to inverted AeroPress', 'Add 100g water', 'Stir vigorously', 'Press after 1:30'],
-          isSaved: true,
-          isCreated: false,
-          creatorName: 'Carlos Hernández',
-          creatorAvatar: require('../../assets/users/carlos-hernandez.jpg'),
-          usageCount: 8
-        },
-        {
-          id: 'recipe3',
-          userId: 'user2',
-          name: 'Espresso Blend',
-          coffeeName: 'Kirunga',
-          coffeeId: 'coffee-kirunga',
-          roaster: 'Kima Coffee',
-          brewingMethod: 'Espresso',
-          coffeeAmount: 20,
-          waterAmount: 40,
-          brewTime: '0:25',
-          grindSize: 'Fine',
-          temperature: 94,
-          imageUrl: 'https://kimacoffee.com/cdn/shop/files/A40D5DFF-1058-43A3-9C31-F87C8482EDD8_900x.png?v=1741929637',
-          createdAt: '2023-08-05',
-          rating: 4.2,
-          notes: 'Rich crema, intense body',
-          steps: ['Grind fine', 'Tamp evenly', 'Extract for 25 seconds', 'Aim for 40ml yield'],
-          isSaved: true,
-          isCreated: false,
-          creatorName: 'Vértigo y Calambre',
-          creatorAvatar: require('../../assets/businesses/vertigo-logo.jpg'),
-          usageCount: 12
-        },
-        {
-          id: 'recipe4',
-          userId: 'user1',
-          name: 'Cold Brew Concentrate',
-          coffeeName: 'Kuria',
-          coffeeId: 'coffee-kuria',
-          roaster: 'Kima Coffee',
-          brewingMethod: 'Cold Brew',
-          coffeeAmount: 80,
-          waterAmount: 1000,
-          brewTime: '12:00',
-          grindSize: 'Coarse',
-          temperature: 20,
-          imageUrl: 'https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728',
-          createdAt: '2023-09-10',
-          rating: 4.7,
-          notes: 'Smooth and refreshing, great over ice',
-          steps: ['Coarse grind coffee', 'Add to container with water', 'Steep for 12 hours in refrigerator', 'Filter through paper filter'],
-          isSaved: false,
-          isCreated: true,
-          creatorName: 'Ivo Vilches',
-          creatorAvatar: require('../../assets/users/ivo-vilches.jpg'),
-          usageCount: 15
-        },
-        {
-          id: 'recipe5',
-          userId: 'business-toma',
-          name: "Toma's Signature V60",
-          coffeeName: 'Refisa G1',
-          coffeeId: 'coffee-refisa-g1',
-          roaster: 'Toma Café',
-          brewingMethod: 'V60',
-          coffeeAmount: 15,
-          waterAmount: 250,
-          brewTime: '2:45',
-          grindSize: 'Medium-Fine',
-          temperature: 92,
-          imageUrl: 'https://cdn.shopify.com/s/files/1/0561/2172/1001/files/ET_REF_G1_800x.jpg?v=1738771773',
-          createdAt: '2023-10-21',
-          rating: 4.9,
-          notes: 'Showcases the bergamot notes perfectly',
-          steps: ['30g bloom for 30s', 'Pour to 150g by 1:00', 'Pour to 250g by 1:45', 'Drawdown complete by 2:45'],
-          isSaved: true,
-          isCreated: false,
-          creatorName: 'Toma Café',
-          creatorAvatar: require('../../assets/businesses/toma-logo.jpg'),
-          usageCount: 32
-        }
-      ];
+      console.log('Using mock recipes from mockRecipes.json');
+      userRecipes = mockRecipes.recipes.filter(recipe => recipe.creatorId === 'user1' || recipe.userId === 'user1');
     }
     
-    if (recipeFilter === 'all') {
-      return userRecipes;
-    } else if (recipeFilter === 'created') {
-      return userRecipes.filter(recipe => recipe.userId === currentAccount || recipe.isCreated);
-    } else if (recipeFilter === 'saved') {
-      return userRecipes.filter(recipe => recipe.isSaved);
-    }
-    
-    return userRecipes;
+    // For profile, only return recipes created by the current user
+    return userRecipes.filter(recipe => recipe.userId === currentAccount || 
+                                        recipe.creatorId === currentAccount || 
+                                        recipe.isCreated);
   };
 
   // Render coffee item
@@ -636,15 +590,6 @@ export default function ProfileScreen() {
         </Text>
       </TouchableOpacity>
       
-      {!isBusinessAccount && (
-        <TouchableOpacity 
-          style={[styles.tabButton, activeTab === 'wishlist' && styles.activeTabButton]}
-          onPress={() => handleTabChange('wishlist')}
-        >
-          <Text style={[styles.tabText, activeTab === 'wishlist' && styles.activeTabText]}>Wishlist</Text>
-        </TouchableOpacity>
-      )}
-      
       <TouchableOpacity 
         style={[styles.tabButton, activeTab === 'recipes' && styles.activeTabButton]}
         onPress={() => handleTabChange('recipes')}
@@ -679,6 +624,13 @@ export default function ProfileScreen() {
         }
         showsVerticalScrollIndicator={false}
         style={{ flex: 1 }}
+        contentContainerStyle={{ paddingTop: 0 }}
+        scrollToOverflowEnabled={false}
+        automaticallyAdjustContentInsets={false}
+        scrollsToTop={true}
+        keyboardShouldPersistTaps="handled"
+        scrollEnabled={enableRefreshControl}
+        ref={scrollViewRef}
       >
         {/* Profile Header - Avatar, name, stats */}
         <View style={[styles.profileHeader]}>
@@ -720,7 +672,122 @@ export default function ProfileScreen() {
         
         {activeTab === (isBusinessAccount ? 'shop' : 'collection') && (
           <View style={styles.sectionContainer}>
-            {coffeeCollection && coffeeCollection.length > 0 ? (
+            {isBusinessAccount && (
+              <View style={styles.recipeFilterContainer}>
+                <View style={styles.segmentedControl}>
+                  <TouchableOpacity
+                    style={[
+                      styles.segment,
+                      shopFilter === 'coffee' && styles.segmentActive
+                    ]}
+                    onPress={() => setShopFilter('coffee')}
+                  >
+                    <Text style={[
+                      styles.segmentText,
+                      shopFilter === 'coffee' && styles.segmentTextActive
+                    ]}>Coffee</Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity
+                    style={[
+                      styles.segment,
+                      shopFilter === 'gear' && styles.segmentActive
+                    ]}
+                    onPress={() => setShopFilter('gear')}
+                  >
+                    <Text style={[
+                      styles.segmentText,
+                      shopFilter === 'gear' && styles.segmentTextActive
+                    ]}>Gear</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+            
+            {isBusinessAccount && shopFilter === 'gear' ? (
+              <View style={styles.collectionSection}>
+                <FlatList
+                  data={mockGear.gear.filter(gear => getBusinessGear(currentAccount, userData?.userName).includes(gear.id))}
+                  renderItem={({ item }) => (
+                    <TouchableOpacity 
+                      style={styles.collectionCard}
+                      onPress={() => handleGearPress(item.name)}
+                    >
+                      <Image
+                        source={{ uri: item.imageUrl || 'https://images.unsplash.com/photo-1575441347544-11725ca18b26' }}
+                        style={styles.collectionCardImage}
+                        resizeMode="cover"
+                      />
+                      <View style={styles.collectionCardInfo}>
+                        <Text style={styles.collectionCardName} numberOfLines={1}>{item.name}</Text>
+                        <Text style={styles.collectionCardRoaster} numberOfLines={1}>{item.brand}</Text>
+                        <Text style={styles.collectionCardPrice}>{typeof item.price === 'number' ? `€${item.price.toFixed(2)}` : item.price}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  )}
+                  numColumns={2}
+                  columnWrapperStyle={styles.collectionCardRow}
+                  showsVerticalScrollIndicator={false}
+                  scrollEnabled={false}
+                  contentContainerStyle={{paddingHorizontal: 16, paddingTop: 16}}
+                  ListEmptyComponent={() => (
+                    <View style={styles.emptyContainer}>
+                      <Text style={styles.emptyText}>No gear in shop</Text>
+                    </View>
+                  )}
+                />
+              </View>
+            ) : isBusinessAccount && shopFilter === 'coffee' ? (
+              <View style={styles.collectionSection}>
+                <FlatList
+                  data={getBusinessCoffees(currentAccount, userData?.userName)}
+                  keyExtractor={(item) => item.coffeeId || item.id}
+                  renderItem={({ item }) => {
+                    // If item is a reference to a coffee in mockCoffees.json
+                    // Our unified data model works by storing business-specific details (like price)
+                    // in businessProducts.js with coffeeId references to the core coffee data in mockCoffees.json
+                    // This keeps our data DRY and allows each business to set their own prices and availability
+                    const isReference = item.coffeeId && !item.name;
+                    
+                    // Find complete coffee data from mockCoffees.json if this is a reference
+                    const coffeeData = isReference 
+                      ? mockCoffeesData.coffees.find(coffee => coffee.id === item.coffeeId) 
+                      : item;
+                    
+                    // Only render if we have coffee data
+                    if (!coffeeData) return null;
+                    
+                    return (
+                      <TouchableOpacity 
+                        style={styles.collectionCard}
+                        onPress={() => handleCoffeePress(item)}
+                      >
+                        <Image
+                          source={{ uri: coffeeData.image || coffeeData.imageUrl || 'https://images.unsplash.com/photo-1447933601403-0c6688de566e' }}
+                          style={styles.collectionCardImage}
+                          resizeMode="cover"
+                        />
+                        <View style={styles.collectionCardInfo}>
+                          <Text style={styles.collectionCardName} numberOfLines={1}>{coffeeData.name}</Text>
+                          <Text style={styles.collectionCardRoaster} numberOfLines={1}>{coffeeData.roaster}</Text>
+                          <Text style={styles.collectionCardPrice}>{typeof item.price === 'number' ? `€${item.price.toFixed(2)}` : item.price}</Text>
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  }}
+                  numColumns={2}
+                  columnWrapperStyle={styles.collectionCardRow}
+                  showsVerticalScrollIndicator={false}
+                  scrollEnabled={false}
+                  contentContainerStyle={{paddingHorizontal: 16, paddingTop: 16}}
+                  ListEmptyComponent={() => (
+                    <View style={styles.emptyContainer}>
+                      <Text style={styles.emptyText}>No coffees in shop</Text>
+                    </View>
+                  )}
+                />
+              </View>
+            ) : coffeeCollection && coffeeCollection.length > 0 ? (
               <View style={styles.collectionSection}>
                 <FlatList
                   data={coffeeCollection}
@@ -739,69 +806,10 @@ export default function ProfileScreen() {
           </View>
         )}
         
-        {activeTab === 'wishlist' && (
-          <View style={styles.sectionContainer}>
-            {coffeeWishlist && coffeeWishlist.length > 0 ? (
-              <FlatList
-                data={coffeeWishlist}
-                renderItem={renderWishlistItem}
-                keyExtractor={(item) => item.id}
-                showsVerticalScrollIndicator={false}
-                scrollEnabled={false}
-              />
-            ) : (
-              renderEmptyState('No logs in wishlist yet')
-            )}
-          </View>
-        )}
-        
         {activeTab === 'recipes' && (
           <View style={styles.sectionContainer}>
             {console.log('Rendering recipes tab')}
             <View style={styles.collectionSection}>
-              <View style={styles.recipeFilterContainer}>
-                <View style={styles.segmentedControl}>
-                  <TouchableOpacity
-                    style={[
-                      styles.segment,
-                      recipeFilter === 'all' && styles.segmentActive
-                    ]}
-                    onPress={() => setRecipeFilter('all')}
-                  >
-                    <Text style={[
-                      styles.segmentText,
-                      recipeFilter === 'all' && styles.segmentTextActive
-                    ]}>All</Text>
-                  </TouchableOpacity>
-                  
-                  <TouchableOpacity
-                    style={[
-                      styles.segment,
-                      recipeFilter === 'created' && styles.segmentActive
-                    ]}
-                    onPress={() => setRecipeFilter('created')}
-                  >
-                    <Text style={[
-                      styles.segmentText,
-                      recipeFilter === 'created' && styles.segmentTextActive
-                    ]}>Mine</Text>
-                  </TouchableOpacity>
-                  
-                  <TouchableOpacity
-                    style={[
-                      styles.segment,
-                      recipeFilter === 'saved' && styles.segmentActive
-                    ]}
-                    onPress={() => setRecipeFilter('saved')}
-                  >
-                    <Text style={[
-                      styles.segmentText,
-                      recipeFilter === 'saved' && styles.segmentTextActive
-                    ]}>Saved</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-              
               <FlatList
                 data={getFilteredRecipes()}
                 renderItem={renderRecipeItem}
@@ -810,11 +818,10 @@ export default function ProfileScreen() {
                 columnWrapperStyle={styles.collectionCardRow}
                 showsVerticalScrollIndicator={false}
                 scrollEnabled={false}
-                contentContainerStyle={{paddingHorizontal: 16, paddingTop: 16, paddingBottom: 16}}
                 ListEmptyComponent={() => (
-                  <View style={styles.emptyFilterContainer}>
+                  <View style={styles.emptyContainer}>
                     <Text style={styles.emptyText}>
-                      No {recipeFilter === 'created' ? 'created' : recipeFilter === 'saved' ? 'saved' : ''} recipes found
+                      No recipes created yet
                     </Text>
                   </View>
                 )}
@@ -937,33 +944,43 @@ export default function ProfileScreen() {
 
   // Render the gear module
   const renderGearModule = () => {
-    // Make sure we always have gear data by using the default user's gear as a fallback
+    // Get the current user's data from mockUsers
+    const mockUserData = mockUsers.users.find(u => u.id === currentAccount);
+    
+    // Make sure we always have gear data by using the mock user's gear as a fallback
     const gearToDisplay = userGear && userGear.length > 0 
       ? userGear 
-      : defaultUsers[currentAccount]?.gear || [];
+      : mockUserData?.gear || [];
     
-    const wishlistToDisplay = currentUserData?.gearWishlist || defaultUsers[currentAccount]?.gearWishlist || [];
+    const wishlistToDisplay = currentUserData?.gearWishlist || mockUserData?.gearWishlist || [];
     const hasGear = gearToDisplay.length > 0;
     const hasWishlist = wishlistToDisplay.length > 0;
     
     const handleGearWishlistNavigate = () => {
-      // Navigate to gear wishlist screen
       navigation.navigate('GearWishlist', {
         userId: currentAccount, 
         userName: displayName,
         isCurrentUser: true
       });
     };
-    
-    console.log('RENDERING GEAR MODULE - GEAR TO DISPLAY:', gearToDisplay);
-    console.log('RENDERING GEAR MODULE - WISHLIST TO DISPLAY:', wishlistToDisplay);
+
+    // Helper function to get gear image
+    const getGearImage = (gearName) => {
+      // First try to find gear in mockGear.gear
+      const mockGearItem = mockGear.gear.find(g => g.name === gearName);
+      
+      // Then check if we have detailed gear data
+      const detailedGear = gearDetails[gearName];
+      
+      // Return the image URL from either source
+      return mockGearItem?.imageUrl || detailedGear?.image || null;
+    };
     
     return (
       <View style={styles.gearContainer}>
         <View style={styles.gearTitleRow}>
           <Text style={styles.gearTitle}>My gear</Text>
           
-          {/* Always show wishlist link, with different text based on content */}
           <TouchableOpacity onPress={handleGearWishlistNavigate}>
             <Text style={styles.gearWishlistToggle}>
               {hasWishlist ? 'Wishlist' : 'View Wishlist'}
@@ -976,15 +993,26 @@ export default function ProfileScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.gearScrollContainer}
         >
-          {gearToDisplay.length > 0 ? (
+          {gearToDisplay && gearToDisplay.length > 0 ? (
             gearToDisplay.map((item, index) => {
-              console.log('RENDERING GEAR ITEM:', item);
+              const gearImage = getGearImage(item);
+              
               return (
                 <TouchableOpacity 
                   key={index} 
                   style={styles.gearItem}
                   onPress={() => handleGearPress(item)}
                 >
+                  {gearImage && (
+                    <View style={styles.gearItemAvatarContainer}>
+                      <AppImage 
+                        source={{ uri: gearImage }}
+                        style={styles.gearItemAvatar}
+                        placeholder={null}
+                        resizeMode="cover"
+                      />
+                    </View>
+                  )}
                   <Text style={styles.gearItemText}>{item}</Text>
                 </TouchableOpacity>
               );
@@ -1072,27 +1100,30 @@ export default function ProfileScreen() {
     // Call API to like/unlike the coffee log
   };
 
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      // Only refresh data when coming from a screen that might have changed data
+      // This avoids refreshing when coming back from gear-related screens
+      const previousScreen = navigation.getState()?.routes?.[navigation.getState().index - 1]?.name;
+      const skipRefreshScreens = ['GearWishlist', 'GearDetail'];
+      
+      if (!skipRefreshScreens.includes(previousScreen)) {
+        // This ensures data is fresh when returning to this screen from non-gear screens
+        handleRefresh();
+      }
+    });
+    
+    // Cleanup
+    return () => {
+      if (unsubscribe && typeof unsubscribe === 'function') {
+        unsubscribe();
+      }
+    };
+  }, [currentAccount, handleRefresh, navigation]);
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" />
-
-      {/* Top Navigation Bar */}
-      <View style={[styles.topNavBar, { paddingTop: insets.top }]}>
-        <TouchableOpacity 
-          style={styles.usernameContainer}
-          onPress={() => setModalVisible(true)}
-        >
-          <Text style={styles.usernameText}>@{userHandle}</Text>
-          <Ionicons name="chevron-down" size={16} color="#000000" />
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={styles.optionsButton}
-          onPress={handleOptionsPress}
-        >
-          <Ionicons name="ellipsis-horizontal" size={24} color="#000000" />
-        </TouchableOpacity>
-      </View>
 
       {renderContent()}
       {renderAccountModal()}
@@ -1108,28 +1139,6 @@ const styles = StyleSheet.create({
   centerContent: {
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  topNavBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5E5',
-    backgroundColor: '#FFFFFF',
-  },
-  usernameContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  usernameText: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginRight: 5,
-  },
-  optionsButton: {
-    padding: 8,
   },
   header: {
     backgroundColor: '#FFFFFF',
@@ -1155,6 +1164,18 @@ const styles = StyleSheet.create({
   businessAvatar: {
     borderRadius: 12,
   },
+  usernameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  usernameText: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginRight: 5,
+  },
+  optionsButton: {
+    padding: 8,
+  },
   userInfo: {
     flex: 1,
   },
@@ -1176,16 +1197,17 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
   },
   emptyContainer: {
-    padding: 20,
+    padding: 24,
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 200,
+    backgroundColor: '#FFFFFF',
   },
   emptyText: {
     fontSize: 16,
     color: '#666666',
     textAlign: 'center',
-    marginTop: 10,
+    marginTop: 12,
   },
   coffeeItem: {
     flexDirection: 'row',
@@ -1213,8 +1235,15 @@ const styles = StyleSheet.create({
     color: '#666666',
   },
   removeButton: {
+    position: 'absolute',
+    top: 5,
+    right: 5,
+    backgroundColor: 'rgba(255,255,255,0.7)',
+    borderRadius: 12,
+    width: 24,
+    height: 24,
     justifyContent: 'center',
-    paddingLeft: 12,
+    alignItems: 'center',
   },
   recipeItem: {
     flexDirection: 'row',
@@ -1392,6 +1421,7 @@ const styles = StyleSheet.create({
   },
   sectionContainer: {
     padding: 0,
+    backgroundColor: '#F2F2F7',
   },
   gearContainer: {
     backgroundColor: '#FFFFFF',
@@ -1427,14 +1457,26 @@ const styles = StyleSheet.create({
   gearItem: {
     backgroundColor: '#F5F5F7',
     paddingHorizontal: 12,
+    paddingLeft: 8,
     paddingVertical: 8,
-    borderRadius: 16,
-    marginRight: 10,
+    borderRadius: 50,
+    marginRight: 8,
     flexDirection: 'row',
     alignItems: 'center',
   },
-  gearIcon: {
-    marginRight: 6,
+  gearItemAvatarContainer: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    overflow: 'hidden',
+    marginRight: 4,
+  },
+  gearItemAvatar: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 12,
   },
   gearItemText: {
     fontSize: 14,
@@ -1448,7 +1490,8 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   collectionSection: {
-    paddingBottom: 16,
+    backgroundColor: '#FFFFFF',
+    // paddingBottom: 16,
   },
   collectionCard: {
     width: '48%',
@@ -1488,30 +1531,27 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666666',
   },
+  collectionCardPrice: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#000000',
+    marginTop: 4,
+  },
   collectionCardRow: {
     justifyContent: 'space-between',
-  },
-  removeButton: {
-    position: 'absolute',
-    top: 5,
-    right: 5,
-    backgroundColor: 'rgba(255,255,255,0.7)',
-    borderRadius: 12,
-    width: 24,
-    height: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   removeIcon: {
     // No additional styling needed
   },
   recipeFilterContainer: {
     position: 'relative',
-    margin: 16,
     marginBottom: 0,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 10,
+    padding: 16,
+    paddingBottom: 0,
+    backgroundColor: '#FFFFFF',
   },
   segmentedControl: {
     flexDirection: 'row',
@@ -1540,11 +1580,6 @@ const styles = StyleSheet.create({
   },
   segmentTextActive: {
     color: '#000000',
-  },
-  emptyFilterContainer: {
-    padding: 60,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   recipeDetails: {
     marginTop: 4,
@@ -1663,5 +1698,13 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#666666',
     marginLeft: 4,
+  },
+  headerRightContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerButton: {
+    padding: 8,
+    marginLeft: 8,
   },
 }); 

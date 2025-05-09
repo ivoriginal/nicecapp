@@ -1,0 +1,288 @@
+{
+  "gear": [
+    {
+      "id": "gear1",
+      "name": "Fellow Stagg EKG",
+      "type": "Kettle",
+      "brand": "Fellow",
+      "price": 170,
+      "description": "Electric pour-over kettle with variable temperature control, 1200 watt quick-heating element, and a precision pour spout. Perfect for pour-over coffee brewing.",
+      "features": [
+        "Variable temperature control (40-100°C)",
+        "1200 watt heating element",
+        "Hold mode keeps water at your set temperature for 60 minutes",
+        "LCD display",
+        "Precision pour spout",
+        "Swan neck for controlled pouring",
+        "Elegant design with matte black finish"
+      ],
+      "rating": 4.8,
+      "reviewCount": 1245,
+      "imageUrl": "https://hola.coffee/cdn/shop/files/FELLOW-STAGG_1024x1024@2x.jpg?v=1732719228",
+      "relatedGear": [
+        "gear4",
+        "gear5"
+      ]
+    },
+    {
+      "id": "gear2",
+      "name": "Baratza Encore",
+      "type": "Grinder",
+      "brand": "Baratza",
+      "price": 139.99,
+      "description": "Entry-level conical burr grinder with 40 grind settings. Perfect for beginners looking to improve their coffee game with consistent grinds.",
+      "features": [
+        "40mm conical burrs",
+        "40 grind settings",
+        "450 RPM motor",
+        "Easy front-mounted pulse button",
+        "Simple ON/OFF switch"
+      ],
+      "rating": 4.7,
+      "reviewCount": 3200,
+      "imageUrl": "https://ecafe.es/tienda/2089-large_default/baratza-encore-esp.jpg",
+      "relatedGear": [
+        "gear3"
+      ]
+    },
+    {
+      "id": "gear3",
+      "name": "Comandante C40 MK4",
+      "type": "Grinder",
+      "brand": "Comandante",
+      "price": 299.99,
+      "description": "Premium hand grinder featuring high-nitrogen stainless steel burrs for consistent grind quality across all brew methods.",
+      "features": [
+        "High-nitrogen stainless steel burrs",
+        "Consistent grind distribution",
+        "Hardwood handle",
+        "Glass collection jar",
+        "Compact and portable design"
+      ],
+      "rating": 4.9,
+      "reviewCount": 850,
+      "imageUrl": "https://images.unsplash.com/photo-1575441347544-11725ca18b26",
+      "relatedGear": [
+        "gear2"
+      ]
+    },
+    {
+      "id": "gear4",
+      "name": "Hario V60",
+      "type": "Pour Over",
+      "brand": "Hario",
+      "price": 24.99,
+      "description": "Iconic cone-shaped pour-over dripper with spiral ribs for optimal coffee extraction and flavor.",
+      "features": [
+        "Ceramic material retains heat",
+        "Spiral ribs allow air to escape during brewing",
+        "Large single hole for controlled flow rate",
+        "Available in multiple sizes",
+        "Compatible with standard V60 filters"
+      ],
+      "rating": 4.8,
+      "reviewCount": 4500,
+      "imageUrl": "https://www.hario-europe.com/cdn/shop/files/VDC-01R_web.png?v=1683548122&width=1400",
+      "relatedGear": [
+        "gear1",
+        "gear5"
+      ]
+    },
+    {
+      "id": "gear5",
+      "name": "Acaia Pearl",
+      "type": "Scale",
+      "brand": "Acaia",
+      "price": 149.99,
+      "description": "Professional-grade coffee scale with built-in timer, Bluetooth connectivity, and real-time weight monitoring for precision brewing.",
+      "features": [
+        "0.1g precision measurement",
+        "Built-in timer",
+        "Bluetooth connectivity",
+        "Flow rate indicator",
+        "Water-resistant coating"
+      ],
+      "rating": 4.9,
+      "reviewCount": 780,
+      "imageUrl": "https://images.unsplash.com/photo-1575441347548-0e745b37a5b8",
+      "relatedGear": [
+        "gear1",
+        "gear4"
+      ]
+    },
+    {
+      "id": "gear6",
+      "name": "AeroPress",
+      "type": "Brewer",
+      "brand": "Aerobie",
+      "price": 29.99,
+      "description": "Versatile coffee maker that uses pressure for quick brewing. Makes American-style coffee or espresso-style concentrate.",
+      "features": [
+        "Lightweight and portable design",
+        "Quick brew time (1-2 minutes)",
+        "Easy to clean",
+        "Microfilter eliminates grit",
+        "Gentle air pressure brewing system"
+      ],
+      "rating": 4.8,
+      "reviewCount": 8700,
+      "imageUrl": "https://aeropress.com/cdn/shop/files/Hero_Original_87a4958c-7df9-43b6-af92-0edc12c126cf_900x.png?v=1744683381",
+      "relatedGear": [
+        "gear2",
+        "gear5"
+      ]
+    },
+    {
+      "id": "gear7",
+      "name": "Chemex",
+      "type": "Pour Over",
+      "brand": "Chemex",
+      "price": 46.99,
+      "description": "The Chemex is an elegant, hourglass-shaped pour-over brewer that produces clean, bright coffee through its special bonded filters.",
+      "features": [
+        "Elegant, timeless design",
+        "Non-porous glass construction",
+        "Proprietary bonded filters",
+        "Available in multiple sizes",
+        "Produces clean, bright coffee"
+      ],
+      "rating": 4.7,
+      "reviewCount": 3700,
+      "imageUrl": "https://images.unsplash.com/photo-1544233726-9f1d2b27be8b",
+      "relatedGear": [
+        "gear1",
+        "gear5"
+      ]
+    },
+    {
+      "id": "gear8",
+      "name": "Hario Ceramic Slim",
+      "type": "Grinder",
+      "brand": "Hario",
+      "price": 34.99,
+      "description": "The Hario Ceramic Slim is a compact hand grinder with ceramic burrs for consistent grinding, perfect for travel or small kitchens.",
+      "features": [
+        "Ceramic conical burrs",
+        "Compact, slim design",
+        "Adjustable grind settings",
+        "Ideal for travel",
+        "Durable construction"
+      ],
+      "rating": 4.5,
+      "reviewCount": 2100,
+      "imageUrl": "https://images.unsplash.com/photo-1544713300-6b5a2817d25f",
+      "relatedGear": [
+        "gear2",
+        "gear3"
+      ]
+    },
+    {
+      "id": "gear9",
+      "name": "Hario Range Server",
+      "type": "Accessories",
+      "brand": "Hario",
+      "price": 19.99,
+      "description": "The Hario Range Server is a heat-resistant glass server perfect for pour-over coffee, designed to complement the V60 dripper.",
+      "features": [
+        "Heat-resistant glass",
+        "600ml capacity",
+        "Ergonomic handle",
+        "Perfect pair for V60",
+        "Easy to clean"
+      ],
+      "rating": 4.6,
+      "reviewCount": 1850,
+      "imageUrl": "https://images.unsplash.com/photo-1544713297-9acff35e418e",
+      "relatedGear": [
+        "gear4"
+      ]
+    },
+    {
+      "id": "gear10",
+      "name": "9Barista Espresso Machine Mk.1",
+      "type": "Espresso Machine",
+      "brand": "9Barista",
+      "price": 349.99,
+      "description": "The 9Barista is a revolutionary stovetop espresso machine that delivers true 9 bar pressure for authentic espresso at home.",
+      "features": [
+        "True 9 bar pressure",
+        "Stovetop operation",
+        "No electricity required",
+        "Precision engineered",
+        "Made from high-quality materials"
+      ],
+      "rating": 4.9,
+      "reviewCount": 520,
+      "imageUrl": "https://9barista.com/cdn/shop/products/9Barista-unboxed2_1296x.jpg?v=1710943847",
+      "relatedGear": [
+        "gear2",
+        "gear3"
+      ]
+    },
+    {
+      "id": "gear11",
+      "name": "Fellow Opus",
+      "type": "Grinder",
+      "brand": "Fellow",
+      "price": 195,
+      "description": "The Fellow Opus is a premium electric conical burr grinder with precision grinding capabilities for consistent and flavorful coffee.",
+      "features": [
+        "40mm conical stainless steel burrs",
+        "41 grind settings",
+        "Anti-static technology",
+        "Single dose loading",
+        "Matte black finish"
+      ],
+      "rating": 4.8,
+      "reviewCount": 625,
+      "imageUrl": "https://fellowproducts.com/cdn/shop/products/FellowProducts_OpusConicalBurrGrinder_MatteBlack_01.png",
+      "relatedGear": [
+        "gear2",
+        "gear3"
+      ]
+    },
+    {
+      "id": "gear12",
+      "name": "Hario V60 Paper Filters",
+      "type": "Accessories",
+      "brand": "Hario",
+      "price": 8.99,
+      "description": "100 count of high-quality Hario V60 paper filters, designed for optimal extraction and clean flavor in pour-over brewing.",
+      "features": [
+        "100 count package",
+        "Made in Japan",
+        "Oxygen bleached",
+        "Designed for V60 dripper",
+        "Creates clean, sediment-free coffee"
+      ],
+      "rating": 4.9,
+      "reviewCount": 2500,
+      "imageUrl": "https://www.hario.co.uk/cdn/shop/products/VARIO_1200x1200.jpg?v=1609933351",
+      "relatedGear": [
+        "gear4",
+        "gear9"
+      ]
+    },
+    {
+      "id": "gear13",
+      "name": "AeroPress Paper Filters",
+      "type": "Accessories",
+      "brand": "Aerobie",
+      "price": 5.99,
+      "description": "350 count of genuine AeroPress paper filters, essential for brewing with your AeroPress coffee maker.",
+      "features": [
+        "350 count package",
+        "Micro-filtered for clean cup",
+        "Biodegradable",
+        "Designed for AeroPress",
+        "Removes fine particles and oils"
+      ],
+      "rating": 4.8,
+      "reviewCount": 1850,
+      "imageUrl": "https://aeropress.com/cdn/shop/products/AeroPress_Microfilters_1024x1024.jpg?v=1551222076",
+      "relatedGear": [
+        "gear6"
+      ]
+    }
+  ]
+} 

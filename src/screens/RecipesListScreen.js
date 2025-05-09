@@ -2,22 +2,118 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import mockData from '../data/mockData.json';
+import mockRecipes from '../data/mockRecipes.json';
+import mockUsers from '../data/mockUsers.json';
+import mockCoffees from '../data/mockCoffees.json';
 import AppImage from '../components/common/AppImage';
 
-const RecipesListScreen = ({ navigation }) => {
+const RecipesListScreen = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
-  // Use recipes from mockData.json instead of hard-coded recipes
-  const [allRecipes] = useState(mockData.recipes || []);
+  // Use recipes from mockRecipes.json instead of hard-coded recipes
+  const [allRecipes] = useState(mockRecipes.recipes || []);
   
   const [filteredRecipes, setFilteredRecipes] = useState([]);
+  const [screenTitle, setScreenTitle] = useState('Recipes for you');
 
-  // Mock user's gear and coffee collection - could also get from mockData
-  const userGear = mockData.users.find(u => u.id === 'currentUser')?.gear || ['V60', 'AeroPress'];
-  const userCoffeeCollection = mockData.coffees.slice(0, 2).map(c => c.name);
+  // Mock user's gear and coffee collection
+  const userGear = mockUsers.users.find(u => u.id === 'currentUser')?.gear || ['V60', 'AeroPress'];
+  const userCoffeeCollection = mockCoffees.coffees.slice(0, 2).map(c => c.name);
 
-  // Filter recipes based on user's gear and coffee collection
+  // Filter recipes based on route params and user's gear and coffee collection
   useEffect(() => {
+    const { type, recipeId, title } = route.params || {};
+    
+    // Set screen title if provided
+    if (title) {
+      setScreenTitle(title);
+    }
+    
+    // Handle different types of recipe lists
+    if (type === 'remixes' && recipeId) {
+      // Create mock remix recipes based on the original recipe
+      const originalRecipe = allRecipes.find(r => r.id === recipeId);
+      
+      if (originalRecipe) {
+        // Generate mock remixes for the original recipe
+        const remixes = [
+          {
+            id: `remix-${recipeId}-1`,
+            name: "Stronger V60 Method",
+            coffeeId: originalRecipe.coffeeId,
+            coffeeName: originalRecipe.coffeeName,
+            roaster: originalRecipe.roaster,
+            creatorId: "user10",
+            creatorName: "Lucas Brown",
+            creatorAvatar: "https://randomuser.me/api/portraits/men/55.jpg",
+            brewingMethod: originalRecipe.brewingMethod || "Pour Over",
+            grindSize: "Medium-Fine",
+            coffeeAmount: Number(originalRecipe.coffeeAmount || 22) + 3,
+            waterAmount: originalRecipe.waterAmount,
+            waterTemperature: originalRecipe.waterTemperature,
+            brewTime: originalRecipe.brewTime,
+            imageUrl: originalRecipe.imageUrl,
+            likes: 27,
+            saves: 8,
+            modifications: "+3g coffee, finer grind",
+            date: "3 days ago"
+          },
+          {
+            id: `remix-${recipeId}-2`,
+            name: "Lighter V60 Recipe",
+            coffeeId: originalRecipe.coffeeId,
+            coffeeName: originalRecipe.coffeeName,
+            roaster: originalRecipe.roaster,
+            creatorId: "user5",
+            creatorName: "Emma Garcia",
+            creatorAvatar: "https://randomuser.me/api/portraits/women/33.jpg",
+            brewingMethod: originalRecipe.brewingMethod || "Pour Over",
+            grindSize: originalRecipe.grindSize,
+            coffeeAmount: originalRecipe.coffeeAmount,
+            waterAmount: Number(originalRecipe.waterAmount || 350) - 30,
+            waterTemperature: 88,
+            brewTime: originalRecipe.brewTime,
+            imageUrl: originalRecipe.imageUrl,
+            likes: 34,
+            saves: 12,
+            modifications: "-30ml water, 88°C temperature",
+            date: "1 week ago"
+          },
+          {
+            id: `remix-${recipeId}-3`,
+            name: "Longer Brew Time Method",
+            coffeeId: originalRecipe.coffeeId,
+            coffeeName: originalRecipe.coffeeName,
+            roaster: originalRecipe.roaster,
+            creatorId: "user9",
+            creatorName: "Olivia Taylor",
+            creatorAvatar: "https://randomuser.me/api/portraits/women/12.jpg",
+            brewingMethod: originalRecipe.brewingMethod || "Pour Over",
+            grindSize: "Medium-Coarse",
+            coffeeAmount: originalRecipe.coffeeAmount,
+            waterAmount: originalRecipe.waterAmount,
+            waterTemperature: originalRecipe.waterTemperature,
+            brewTime: "4:00",
+            imageUrl: originalRecipe.imageUrl,
+            likes: 18,
+            saves: 5,
+            modifications: "Coarser grind, longer brew time",
+            date: "2 weeks ago"
+          }
+        ];
+        
+        // Set the remixes as the filtered recipes
+        setFilteredRecipes(remixes);
+        
+        // Set the screen title if not already set
+        if (!title) {
+          setScreenTitle(`Remixes of ${originalRecipe.name}`);
+        }
+        
+        return;
+      }
+    }
+    
+    // If no specific type or we couldn't find the original recipe,
     // Filter recipes that match user's gear AND coffee collection
     const personalizedRecipes = allRecipes.filter(recipe => 
       userGear.includes(recipe.brewingMethod) && 
@@ -26,9 +122,12 @@ const RecipesListScreen = ({ navigation }) => {
     
     // If no matching recipes, use all recipes
     setFilteredRecipes(personalizedRecipes.length > 0 ? personalizedRecipes : allRecipes);
-  }, [allRecipes]);
+  }, [allRecipes, route.params, userGear, userCoffeeCollection]);
 
   const renderRecipeItem = ({ item }) => {
+    // Determine if this is a remix
+    const isRemix = route.params?.type === 'remixes';
+    
     // Ensure all text values are strings
     const name = item.name || '';
     const userName = item.creatorName || item.userName || '';
@@ -48,6 +147,13 @@ const RecipesListScreen = ({ navigation }) => {
           userId: item.creatorId || item.userId || '',
           userName: userName,
           userAvatar: item.creatorAvatar || item.userAvatar || null,
+          recipe: item,
+          ...(isRemix && route.params?.recipeId ? {
+            basedOnRecipe: {
+              id: route.params.recipeId,
+              name: allRecipes.find(r => r.id === route.params.recipeId)?.name || 'Original Recipe'
+            }
+          } : {}),
           skipAuth: true
         })}
       >
@@ -65,6 +171,9 @@ const RecipesListScreen = ({ navigation }) => {
                 placeholder="person"
               />
               <Text style={styles.userName}>{userName}</Text>
+              {isRemix && item.date && (
+                <Text style={styles.recipeDate}>{item.date}</Text>
+              )}
             </View>
             <View style={styles.ratingContainer}>
               <Text>
@@ -76,6 +185,13 @@ const RecipesListScreen = ({ navigation }) => {
           
           <Text style={styles.recipeName}>{name}</Text>
           
+          {isRemix && item.modifications && (
+            <Text style={styles.modifications}>
+              <Text style={styles.modificationsLabel}>Changes: </Text>
+              <Text style={styles.modificationsHighlight}>{item.modifications}</Text>
+            </Text>
+          )}
+          
           <View style={styles.recipeDetails}>
             <View style={styles.coffeeInfo}>
               <Text style={styles.coffeeName}>{coffeeName}</Text>
@@ -85,6 +201,19 @@ const RecipesListScreen = ({ navigation }) => {
               <Text style={styles.method}>{method}</Text>
             </View>
           </View>
+          
+          {isRemix && (
+            <View style={styles.remixStats}>
+              <View style={styles.remixStat}>
+                <Ionicons name="arrow-up" size={14} color="#666666" />
+                <Text style={styles.remixStatText}>{item.likes || 0}</Text>
+              </View>
+              <View style={styles.remixStat}>
+                <Ionicons name="people-outline" size={14} color="#666666" />
+                <Text style={styles.remixStatText}>{item.saves || 0}</Text>
+              </View>
+            </View>
+          )}
         </View>
       </TouchableOpacity>
     );
@@ -101,7 +230,7 @@ const RecipesListScreen = ({ navigation }) => {
             <Ionicons name="arrow-back" size={24} color="#000000" />
           </Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Recipes for you</Text>
+        <Text style={styles.headerTitle}>{screenTitle}</Text>
         <View style={{ width: 40 }} /> {/* Placeholder for balance */}
       </View>
 
@@ -112,7 +241,7 @@ const RecipesListScreen = ({ navigation }) => {
         contentContainerStyle={styles.recipesList}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No recipes found for your gear and coffee collection</Text>
+            <Text style={styles.emptyText}>No recipes found</Text>
           </View>
         }
       />
@@ -182,6 +311,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
+  recipeDate: {
+    fontSize: 12,
+    color: '#666666',
+    marginLeft: 8,
+  },
   ratingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -209,27 +343,54 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   roasterName: {
-    fontSize: 14,
+    fontSize: 12,
     color: '#666666',
   },
   methodContainer: {
     backgroundColor: '#F2F2F7',
-    borderRadius: 16,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
   },
   method: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '500',
   },
   emptyContainer: {
-    alignItems: 'center',
+    flex: 1,
     justifyContent: 'center',
-    paddingVertical: 24,
+    alignItems: 'center',
+    padding: 20,
   },
   emptyText: {
     fontSize: 16,
+    textAlign: 'center',
     color: '#666666',
+  },
+  modifications: {
+    fontSize: 14,
+    color: '#333333',
+    marginBottom: 12,
+  },
+  modificationsLabel: {
+    fontWeight: '500',
+  },
+  modificationsHighlight: {
+    fontWeight: '600',
+  },
+  remixStats: {
+    flexDirection: 'row',
+    marginTop: 12,
+  },
+  remixStat: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  remixStatText: {
+    fontSize: 12,
+    color: '#666666',
+    marginLeft: 4,
   },
 });
 

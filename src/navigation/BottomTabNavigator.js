@@ -218,7 +218,9 @@ export default function BottomTabNavigator() {
           }}
           listeners={{
             tabPress: () => {
-              markAllAsRead();
+              // Do not mark notifications as read when tab is pressed
+              // This will be handled when the user leaves the screen instead
+              // This way notifications keep their blue background while viewing
             }
           }}
         />
@@ -226,7 +228,13 @@ export default function BottomTabNavigator() {
           name="Profile"
           component={ProfileScreen}
           options={{
-            headerShown: false,
+            headerShown: true,
+            headerStyle: {
+              backgroundColor: '#FFFFFF',
+              elevation: 0,
+              shadowOpacity: 0,
+              borderBottomWidth: 0
+            }
           }}
           initialParams={{ skipAuth: true }}
           listeners={{

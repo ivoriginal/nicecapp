@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   View, 
   Text, 
@@ -10,17 +10,34 @@ import {
   ActivityIndicator,
   Alert,
   TextInput,
-  Dimensions
+  Dimensions,
+  ImageBackground
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useCoffee } from '../context/CoffeeContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from '../components/Toast';
 import eventEmitter from '../utils/EventEmitter';
-import mockData from '../data/mockData.json';
+import mockCoffees from '../data/mockCoffees.json';
+import mockCafes from '../data/mockCafes.json';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import RecipeCard from '../components/RecipeCard';
 import AppImage from '../components/common/AppImage';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  interpolate,
+  Extrapolate,
+} from 'react-native-reanimated';
+import { BlurView } from 'expo-blur';
+import Heart from '../components/Heart';
+import { getStatusBarHeight } from 'react-native-status-bar-height';
+import CoffeeInfo from '../components/CoffeeInfo';
+import CoffeeStat from '../components/CoffeeStat';
+import UserAvatar from '../components/UserAvatar';
+import TasteProfile from '../components/TasteProfile';
+import ReviewStars from '../components/ReviewStars';
 
 export default function CoffeeDetailScreen() {
   const { 
@@ -45,7 +62,7 @@ export default function CoffeeDetailScreen() {
   const [relatedRecipes, setRelatedRecipes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isInCollection, setIsInCollection] = useState(false);
-  const [isInWishlist, setIsInWishlist] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
@@ -64,20 +81,21 @@ export default function CoffeeDetailScreen() {
         // First check if coffee was passed through route params
         if (route.params?.coffee) {
           const { coffee: routeCoffee } = route.params;
+          console.log('Using coffee object from route params:', routeCoffee.name);
           setCoffee(routeCoffee);
           setIsInCollection(routeCoffee.isInCollection);
-          setIsInWishlist(routeCoffee.isInWishlist);
+          setIsSaved(routeCoffee.isInCollection);
           if (routeCoffee.recipes) {
             setRelatedRecipes(routeCoffee.recipes);
           }
           
-          // Set sellers for this coffee from mockData
-          const sellersList = mockData.sellers[routeCoffee.id] || [];
+          // Set sellers for this coffee from mockCoffees
+          const sellersList = mockCoffees.sellers[routeCoffee.id] || [];
           
           // Enhance seller info with additional business data if available
           const enhancedSellers = sellersList.map(seller => {
             // Check if this is a business that has a corresponding entry in businesses
-            const businessData = mockData.businesses.find(b => b.id === seller.id);
+            const businessData = mockCafes.businesses.find(b => b.id === seller.id);
             if (businessData) {
               return {
                 ...seller,
@@ -94,36 +112,94 @@ export default function CoffeeDetailScreen() {
           return;
         }
 
+        console.log('Looking for coffee with ID:', coffeeId);
+        // Check if we can find the exact coffee in the mock data by ID
+        const exactCoffeeMatch = mockCoffees.coffees.find(c => 
+          c.id === coffeeId || 
+          `coffee-${c.id}` === coffeeId || 
+          c.id === coffeeId.replace('coffee-', '')
+        );
+        
+        if (exactCoffeeMatch) {
+          console.log('Found exact coffee match:', exactCoffeeMatch.name);
+          setCoffee(exactCoffeeMatch);
+          
+          // Set sellers
+          const sellersList = mockCoffees.sellers[exactCoffeeMatch.id] || [];
+          const enhancedSellers = sellersList.map(seller => {
+            const businessData = mockCafes.businesses.find(b => b.id === seller.id);
+            if (businessData) {
+              return {
+                ...seller,
+                avatar: businessData.avatar || businessData.logo || seller.avatar
+              };
+            }
+            return seller;
+          });
+          
+          setSellers(enhancedSellers);
+          setLoading(false);
+          return;
+        }
+        
+        // If no exact match, try to find a coffee by name
+        const coffeeByName = mockCoffees.coffees.find(c => 
+          c.name.toLowerCase() === coffeeId.toLowerCase() ||
+          c.name.toLowerCase().includes(coffeeId.toLowerCase())
+        );
+        
+        if (coffeeByName) {
+          console.log('Found coffee by name:', coffeeByName.name);
+          setCoffee(coffeeByName);
+          
+          // Set sellers
+          const sellersList = mockCoffees.sellers[coffeeByName.id] || [];
+          const enhancedSellers = sellersList.map(seller => {
+            const businessData = mockCafes.businesses.find(b => b.id === seller.id);
+            if (businessData) {
+              return {
+                ...seller,
+                avatar: businessData.avatar || businessData.logo || seller.avatar
+              };
+            }
+            return seller;
+          });
+          
+          setSellers(enhancedSellers);
+          setLoading(false);
+          return;
+        }
+
         // Otherwise try to find the coffee in the coffeeEvents
         const eventCoffee = coffeeEvents.find(event => event.coffeeId === coffeeId);
         
         if (eventCoffee) {
-          // Create a mapping for legacy coffee IDs to their proper entry in the mockData.coffees array
-          const legacyCoffeeMap = {
-            // Map legacy coffee IDs directly to their corresponding entries in mockData.coffees
-            // Instead of hard-coding these, get the actual IDs from mockData
-            'coffee-0': mockData.coffees[0].id,
-            'coffee-1': mockData.coffees[1].id, 
-            'coffee-2': mockData.coffees[2].id,
-            'coffee-3': mockData.coffees[3].id,
-            'coffee-4': mockData.coffees[4].id
+          // Create a mapping for legacy coffee IDs to their proper entry in the mockCoffees.coffees array
+          const coffeeIdMap = {
+            // Map legacy coffee IDs directly to their corresponding entries in mockCoffees.coffees
+            'coffee-0': mockCoffees.coffees[0].id,
+            'coffee-1': mockCoffees.coffees[1].id, 
+            'coffee-2': mockCoffees.coffees[2].id,
+            'coffee-3': mockCoffees.coffees[3].id,
+            'coffee-4': mockCoffees.coffees[4].id
           };
           
           // Check if this is a legacy coffee ID (from events) and map it to a real coffee
-          const mappedCoffeeId = legacyCoffeeMap[eventCoffee.coffeeId] || eventCoffee.coffeeId;
-          const matchedCoffee = mockData.coffees.find(c => c.id === mappedCoffeeId);
+          const mappedCoffeeId = coffeeIdMap[eventCoffee.coffeeId] || eventCoffee.coffeeId;
+          const matchedCoffee = mockCoffees.coffees.find(c => c.id === mappedCoffeeId);
           
           if (matchedCoffee) {
-            // If we found a matching coffee in the mockData, use that
+            // If we found a matching coffee in the mockCoffees, use that
+            console.log('Found coffee from events:', matchedCoffee.name);
             setCoffee(matchedCoffee);
             
-            // Set sellers for this coffee from mockData with enhanced info
-            const sellersList = mockData.sellers[matchedCoffee.id] || [];
+            // Set sellers for this coffee from mockCoffees with enhanced info
+            const sellersList = mockCoffees.sellers[matchedCoffee.id] || [];
             
             // Enhance seller info with additional business data if available
             const enhancedSellers = sellersList.map(seller => {
               // Check if this is a business that has a corresponding entry in businesses
-              const businessData = mockData.businesses.find(b => b.id === seller.id);
+              const businessData = mockCafes.businesses.find(b => b.id === seller.id);
               if (businessData) {
                 return {
                   ...seller,
@@ -137,6 +213,7 @@ export default function CoffeeDetailScreen() {
             setSellers(enhancedSellers);
           } else {
             // Otherwise use the event data
+            console.log('Creating coffee object from event data:', eventCoffee.coffeeName);
             setCoffee({
               id: eventCoffee.coffeeId,
               name: eventCoffee.coffeeName,
@@ -155,13 +232,13 @@ export default function CoffeeDetailScreen() {
               }
             });
             
-            // Set sellers for this coffee from mockData with enhanced info
-            const sellersList = mockData.sellers[eventCoffee.coffeeId] || [];
+            // Set sellers for this coffee from mockCoffees with enhanced info
+            const sellersList = mockCoffees.sellers[eventCoffee.coffeeId] || [];
             
             // Enhance seller info with additional business data if available
             const enhancedSellers = sellersList.map(seller => {
               // Check if this is a business that has a corresponding entry in businesses
-              const businessData = mockData.businesses.find(b => b.id === seller.id);
+              const businessData = mockCafes.businesses.find(b => b.id === seller.id);
               if (businessData) {
                 return {
                   ...seller,
@@ -175,17 +252,19 @@ export default function CoffeeDetailScreen() {
             setSellers(enhancedSellers);
           }
         } else {
-          // Otherwise find in mock data
-          const foundCoffee = mockData.coffees[0];
+          // As a last resort, use the first coffee in the mock data
+          // But log a warning to help with debugging
+          console.warn(`Coffee ID ${coffeeId} not found - defaulting to first coffee in mockCoffees`);
+          const foundCoffee = mockCoffees.coffees[0];
           setCoffee(foundCoffee);
           
-          // Set sellers for this coffee from mockData with enhanced info
-          const sellersList = mockData.sellers[foundCoffee.id] || [];
+          // Set sellers for this coffee from mockCoffees with enhanced info
+          const sellersList = mockCoffees.sellers[foundCoffee.id] || [];
           
           // Enhance seller info with additional business data if available
           const enhancedSellers = sellersList.map(seller => {
             // Check if this is a business that has a corresponding entry in businesses
-            const businessData = mockData.businesses.find(b => b.id === seller.id);
+            const businessData = mockCafes.businesses.find(b => b.id === seller.id);
             if (businessData) {
               return {
                 ...seller,
@@ -233,11 +312,11 @@ export default function CoffeeDetailScreen() {
     }
   }, [coffee, coffeeCollection]);
 
-  // Update wishlist state whenever coffee or wishlist changes
+  // Update saved state whenever coffee or wishlist changes
   useEffect(() => {
     if (coffee) {
       const wishlistArray = Array.isArray(coffeeWishlist) ? coffeeWishlist : [];
-      setIsInWishlist(wishlistArray.some(c => c.id === coffee.id));
+      setIsSaved(wishlistArray.some(c => c.id === coffee.id));
     }
   }, [coffee, coffeeWishlist]);
 
@@ -291,7 +370,7 @@ export default function CoffeeDetailScreen() {
       // First, check if the coffee has a roasterId
       if (coffee.roasterId) {
         // Find the business with matching ID
-        const businessRoaster = mockData.businesses.find(b => b.id === coffee.roasterId);
+        const businessRoaster = mockCafes.businesses.find(b => b.id === coffee.roasterId);
         if (businessRoaster) {
           setRoasterInfo({
             id: businessRoaster.id,
@@ -387,23 +466,23 @@ export default function CoffeeDetailScreen() {
     if (isInCollection) {
       removeFromCollection(coffee.id);
       setIsInCollection(false);
-      showToast('Removed from your collection');
+      showToast('Removed from saved');
     } else {
       addToCollection(coffee);
       setIsInCollection(true);
-      showToast('Added to your collection');
+      showToast('Saved');
     }
   };
 
-  const handleAddToWishlist = () => {
-    if (isInWishlist) {
+  const handleSave = () => {
+    if (isSaved) {
       removeFromWishlist(coffee.id);
-      setIsInWishlist(false);
-      showToast('Removed from your wishlist');
+      setIsSaved(false);
+      showToast('Removed from saved');
     } else {
       addToWishlist(coffee);
-      setIsInWishlist(true);
-      showToast('Added to your wishlist');
+      setIsSaved(true);
+      showToast('Saved', 'View Saved');
     }
   };
 
@@ -430,9 +509,19 @@ export default function CoffeeDetailScreen() {
       navigation.navigate('UserProfileBridge', { 
         userId: roasterInfo.id, 
         userName: roasterInfo.name,
-        skipAuth: true
+        skipAuth: true,
+        isBusinessAccount: roasterInfo.isBusinessAccount,
+        isRoaster: true
+      }, {
+        animation: 'slide_from_right' 
       });
     }
+  };
+
+  const navigateToSaved = () => {
+    navigation.navigate('Saved', {
+      type: 'coffee'
+    });
   };
 
   const renderRecipeItem = ({ item }) => (
@@ -524,7 +613,7 @@ export default function CoffeeDetailScreen() {
         visible={toastVisible}
         message={toastMessage}
         actionText={toastActionText}
-        onAction={toastActionText === 'View Collection' ? navigateToCollection : null}
+        onAction={toastActionText === 'View Collection' ? navigateToCollection : toastActionText === 'View Saved' ? navigateToSaved : null}
         onDismiss={() => setToastVisible(false)}
         duration={3000}
       />
@@ -622,20 +711,20 @@ export default function CoffeeDetailScreen() {
               <TouchableOpacity 
                 style={[
                   styles.actionButton, 
-                  isInWishlist ? styles.actionButtonActive : null
+                  isSaved ? styles.actionButtonActive : null
                 ]}
-                onPress={handleAddToWishlist}
+                onPress={handleSave}
               >
                 <Ionicons 
-                  name={isInWishlist ? "bookmark" : "bookmark-outline"} 
+                  name={isSaved ? "bookmark" : "bookmark-outline"} 
                   size={20} 
-                  color={isInWishlist ? "#FFFFFF" : "#000000"} 
+                  color={isSaved ? "#FFFFFF" : "#000000"} 
                 />
                 <Text style={[
                   styles.actionButtonText,
-                  isInWishlist ? styles.actionButtonTextActive : null
+                  isSaved ? styles.actionButtonTextActive : null
                 ]}>
-                  {isInWishlist ? "Wishlisted" : "Add to Wishlist"}
+                  {isSaved ? "Saved" : "Save"}
                 </Text>
               </TouchableOpacity>
             </View>

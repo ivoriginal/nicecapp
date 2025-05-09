@@ -1,0 +1,519 @@
+{
+  "coffees": [
+    {
+      "id": "coffee-villa-rosario",
+      "name": "Villa Rosario",
+      "roaster": "Kima Coffee",
+      "roasterId": "business-kima",
+      "origin": "Bolivia",
+      "region": "La Paz",
+      "producer": "Roger Guzmán",
+      "altitude": "1.550 msnm",
+      "varietal": "Catuai",
+      "process": "Lavado extended",
+      "profile": "Cereza, cola, galletas y caramelo",
+      "price": 42,
+      "description": "Caranavi, ubicada en las altas montañas de la región de La Paz, en el oeste de Bolivia, se encuentra a las puertas de la Amazonía, a una altura de más de 1550 metros. Esta altitud, combinada con el suelo fértil de la región y el clima ideal, crea las condiciones perfectas para cultivar café de alta calidad. Roger Guzmán, un productor dedicado en Villa Rosario, cuida meticulosamente su finca, donde cultiva una mezcla de variedades Caturra y Catuai con precisión y cuidado.\n\nLa cosecha se realiza completamente a mano, lo que garantiza que solo se seleccionen las cerezas más maduras en su punto máximo. Una vez recolectadas, las cerezas se someten a un proceso de lavado, que comienza con una fermentación controlada de 48 horas en tanques de acero inoxidable. Este paso es crucial para desarrollar la claridad y complejidad del café, mejorando su perfil de sabor distintivo. Después de la fermentación, los granos se lavan a fondo y luego se secan utilizando un secador mecánico durante un período de 110 horas. Este proceso de secado lento y uniforme garantiza niveles óptimos de humedad y preserva las características inherentes del café.\n\nEl meticuloso enfoque de Roger Guzmán en el cultivo y procesamiento da como resultado una taza limpia y vibrante que encarna el terroir único de Caranavi. Su dedicación a la calidad y la precisión resalta los sabores excepcionales que esta región de gran altitud tiene para ofrecer.",
+      "image": "https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728",
+      "images": [
+        "https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728",
+        "https://kimacoffee.com/cdn/shop/files/A1652AC8-0D08-4541-A63A-B0C837DFA1C4_1296x.jpg?v=1741928437"
+      ],
+      "stats": {
+        "acidity": 7,
+        "body": 8,
+        "sweetness": 8,
+        "complexity": 7
+      }
+    },
+    {
+      "id": "coffee-pampojila",
+      "name": "Pampojila",
+      "roaster": "Kima Coffee",
+      "roasterId": "business-kima",
+      "origin": "Guatemala",
+      "region": "Atitlán",
+      "producer": "Alex Herrera",
+      "altitude": "1520-1630 msnm",
+      "varietal": "Caturra",
+      "process": "Natural Anaerobic",
+      "profile": "Fresa, plátano, jazmín y miel",
+      "price": 12.9,
+      "description": "Los mayas llamaron a esta tierra notable Pampojilá 'tierra donde se elevan las nubes brumosas'. La finca Pampojilá es rica en suelo volcánico en la parte alta del Volcán de Atitlán, elevándose sobre el Lago de Atitlán, donde el viento del sur casi a diario trae una cubierta de nubes húmedas, proporcionando sombra natural a los cafetos por la tarde. Pampojilá fue fundada y registrada formalmente a fines del siglo XIX. Durante más de 150 años, la finca ha estado en la producción de café en las hermosas montañas al sur del lago de Atitlán, y durante muchas décadas ha sido conocida por sus cafés de alta calidad. En 2012, la familia Herrera adquirió la finca y la renovó después de las inundaciones de la tormenta tropical Agatha.",
+      "image": "https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728",
+      "images": [
+        "https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728"
+      ],
+      "stats": {
+        "acidity": 7,
+        "body": 7,
+        "sweetness": 8,
+        "complexity": 7
+      }
+    },
+    {
+      "id": "coffee-campo-hermoso-sidra",
+      "name": "Campo Hermoso",
+      "roaster": "Kima Coffee",
+      "roasterId": "business-kima",
+      "origin": "Colombia",
+      "region": "Quindio",
+      "producer": "Edwin Noreña",
+      "altitude": "1750-1900 msnm",
+      "varietal": "Sidra",
+      "process": "Black Honey, Maceración Carbonica",
+      "profile": "Piña, mango, starfruit y eucalipto",
+      "price": 24.9,
+      "description": "Finca Campo Hermoso (1750-1900 m.s.n.m.) ubicada en Circasia, Quindío, Colombia, es una finca de 25 hectáreas conocida por sus cafés experimentales únicos. Liderada por Edwin Noreña, un agricultor de cuarta generación e innovador del café, la finca produce perfiles excepcionales y distintivos. Ha desarrollado una técnica única de co-fermentación inspirada en la industria de la cerveza artesanal. Al agregar compuestos como lúpulo y frutas deshidratadas a los tanques de fermentación, Edwin crea sabores distintivos que complementan el proceso de fermentación natural.",
+      "image": "https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728",
+      "images": [
+        "https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728"
+      ],
+      "stats": {
+        "acidity": 8,
+        "body": 7,
+        "sweetness": 8,
+        "complexity": 9
+      }
+    },
+    {
+      "id": "coffee-campo-hermoso-geisha",
+      "name": "Campo Hermoso",
+      "roaster": "Kima Coffee",
+      "roasterId": "business-kima",
+      "origin": "Colombia",
+      "region": "Quindio",
+      "producer": "Edwin Noreña",
+      "altitude": "1750 msnm",
+      "varietal": "Geisha",
+      "process": "Black Honey",
+      "profile": "Naranja, pomelo, manzana verde y flores",
+      "price": 24.9,
+      "description": "Finca Campo Hermoso ubicada en Quindío, Colombia, es una finca conocida por sus cafés experimentales únicos. Liderada por Edwin Noreña, un agricultor de cuarta generación e innovador del café, la finca produce perfiles excepcionales y distintivos con procesos de fermentación cuidadosamente controlados.",
+      "image": "https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728",
+      "images": [
+        "https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728"
+      ],
+      "stats": {
+        "acidity": 8,
+        "body": 6,
+        "sweetness": 8,
+        "complexity": 9
+      }
+    },
+    {
+      "id": "coffee-watermelon",
+      "name": "Watermelon",
+      "roaster": "Kima Coffee",
+      "roasterId": "business-kima",
+      "origin": "Colombia",
+      "region": "Quindio",
+      "producer": "Edwin Noreña",
+      "altitude": "1750 msnm",
+      "varietal": "Pink bourbon",
+      "process": "Honey Co-Fermented",
+      "profile": "Sandía, Melón, frutos rojos y melocotón",
+      "price": 21.9,
+      "description": "Finca Campo Hermoso (1750-1900 m.s.n.m.) ubicada en Circasia, Quindío, Colombia, es una finca de 25 hectáreas conocida por sus cafés experimentales únicos. Liderada por Edwin Noreña, un agricultor de cuarta generación e innovador del café, la finca produce perfiles excepcionales y distintivos. Ha desarrollado una técnica única de co-fermentación inspirada en la industria de la cerveza artesanal. Al agregar compuestos como lúpulo y frutas deshidratadas a los tanques de fermentación, Edwin crea sabores distintivos que complementan el proceso de fermentación natural.",
+      "image": "https://kimacoffee.com/cdn/shop/files/5E412E7D-61C3-4D30-954B-D0006A650261_900x.png?v=1742942792",
+      "images": [
+        "https://kimacoffee.com/cdn/shop/files/5E412E7D-61C3-4D30-954B-D0006A650261_900x.png?v=1742942792"
+      ],
+      "stats": {
+        "acidity": 8,
+        "body": 7,
+        "sweetness": 8,
+        "complexity": 7
+      }
+    },
+    {
+      "id": "coffee-el-romerillo",
+      "name": "El Romerillo",
+      "roaster": "Kima Coffee",
+      "roasterId": "business-kima",
+      "origin": "Perú",
+      "region": "Jaén",
+      "producer": "Cordova Mejía",
+      "altitude": "1400-1750 msnm",
+      "varietal": "Geisha",
+      "process": "Lavado",
+      "profile": "Albaricoque, jazmín, mandarina y miel",
+      "price": 17.9,
+      "description": "La finca El Romerillo se encuentra en la región cafetera de San Ignacio, en el norte de Perú, una zona conocida por su excelente calidad de café y gran actividad cafetera. A una altitud de 1.700 metros sobre el nivel del mar, El Romerillo se beneficia de un microclima único, con temperaturas frescas, suelos fértiles y una gran biodiversidad, lo que permite que se cultiven granos de café de la más alta calidad. La finca sigue prácticas agrícolas sostenibles para proteger el ecosistema de la región, que es ecológicamente sensible. Clever Córdova Mejía, el productor, se enfoca en cuidar el medio ambiente mientras produce café de especialidad, lo que lo hace aún más valioso para el mercado global.",
+      "image": "https://kimacoffee.com/cdn/shop/files/C9FA6F38-C909-4B10-BA79-B748A03B2B22_900x.png?v=1741639732",
+      "images": [
+        "https://kimacoffee.com/cdn/shop/files/C9FA6F38-C909-4B10-BA79-B748A03B2B22_900x.png?v=1741639732"
+      ],
+      "stats": {
+        "acidity": 6,
+        "body": 8,
+        "sweetness": 7,
+        "complexity": 7
+      }
+    },
+    {
+      "id": "coffee-red-fruits",
+      "name": "Red Fruits",
+      "roaster": "Kima Coffee",
+      "roasterId": "business-kima",
+      "origin": "Colombia",
+      "region": "Quindio",
+      "producer": "Edwin Noreña",
+      "altitude": "1750 msnm",
+      "varietal": "Caturra",
+      "process": "Honey co-fermented",
+      "profile": "Fresas, moras, arándanos y cerezas",
+      "price": 21.9,
+      "description": "Finca Campo Hermoso (1750-1900 m.s.n.m.) ubicada en Circasia, Quindío, Colombia, es una finca de 25 hectáreas conocida por sus cafés experimentales únicos. Liderada por Edwin Noreña, un agricultor de cuarta generación e innovador del café, la finca produce perfiles excepcionales y distintivos. Ha desarrollado una técnica única de co-fermentación inspirada en la industria de la cerveza artesanal. Al agregar compuestos como lúpulo y frutas deshidratadas a los tanques de fermentación, Edwin crea sabores distintivos que complementan el proceso de fermentación natural.",
+      "image": "https://kimacoffee.com/cdn/shop/files/IMG-5851_900x.png?v=1742796767",
+      "images": [
+        "https://kimacoffee.com/cdn/shop/files/IMG-5851_900x.png?v=1742796767"
+      ],
+      "stats": {
+        "acidity": 8,
+        "body": 7,
+        "sweetness": 9,
+        "complexity": 7
+      }
+    },
+    {
+      "id": "coffee-kirunga",
+      "name": "Kirunga",
+      "roaster": "Kima Coffee",
+      "roasterId": "business-kima",
+      "origin": "Ruanda",
+      "region": "Nyamasheke",
+      "producer": "Rwamatamu Coffee",
+      "altitude": "1800-2000 msnm",
+      "varietal": "Red Bourbon",
+      "process": "Natural",
+      "profile": "Grosella roja, arándanos, frambuesa y chocolate",
+      "price": 13.9,
+      "description": "Rwamatamu Coffee fue fundada en 2015 por Laetitia Mukantwaza y Gaston Rutaganda, quienes ya contaban con 13 años de experiencia en el sector cafetalero de Ruanda. La empresa surgió con el objetivo de abordar la pobreza rural mediante salarios justos, empleo estable y el apoyo a las mujeres en el cultivo del café. En sus inicios, Rwamatamu operaba en Nyamasheke, junto al lago Kivu, pero con el tiempo ha expandido sus operaciones, estableciendo dos estaciones de lavado de café en el oeste de Ruanda. Las principales operaciones de Rwamatamu se encuentran en las tierras altas de Ruanda, a altitudes de entre 1600 y 2000 metros, donde las condiciones climáticas y los suelos volcánicos son ideales para el cultivo del café arábico.",
+      "image": "https://kimacoffee.com/cdn/shop/files/A40D5DFF-1058-43A3-9C31-F87C8482EDD8_900x.png?v=1741929637",
+      "images": [
+        "https://kimacoffee.com/cdn/shop/files/A40D5DFF-1058-43A3-9C31-F87C8482EDD8_900x.png?v=1741929637"
+      ],
+      "stats": {
+        "acidity": 8,
+        "body": 7,
+        "sweetness": 8,
+        "complexity": 8
+      }
+    },
+    {
+      "id": "coffee-ijen",
+      "name": "Ijen",
+      "roaster": "Kima Coffee",
+      "roasterId": "business-kima",
+      "origin": "Indonesia",
+      "region": "Bondowoso",
+      "producer": "Unknown",
+      "altitude": "Unknown",
+      "varietal": "Unknown",
+      "process": "Unknown",
+      "profile": "Unknown",
+      "price": 13.9,
+      "description": "Café de especialidad de Indonesia de la región de Bondowoso tostado por Kima Coffee en Málaga",
+      "image": "https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728",
+      "images": [
+        "https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728"
+      ],
+      "stats": {
+        "acidity": 5,
+        "body": 9,
+        "sweetness": 7,
+        "complexity": 7
+      }
+    },
+    {
+      "id": "coffee-refisa-g1",
+      "name": "Refisa G1",
+      "roaster": "Toma Café",
+      "roasterId": "business-toma",
+      "origin": "Ethiopia",
+      "region": "Nensebo",
+      "process": "Natural",
+      "profile": "Bergamota, chocolate, frutos rojos",
+      "price": 15.5,
+      "description": "Café de especialidad de Etiopía tostado por Toma Café en Madrid.",
+      "image": "https://cdn.shopify.com/s/files/1/0561/2172/1001/files/ET_REF_G1_800x.jpg?v=1738771773"
+    },
+    {
+      "id": "coffee-titus-a",
+      "name": "Titus A",
+      "roaster": "Toma Café",
+      "roasterId": "business-toma",
+      "origin": "Rwanda",
+      "region": "Western Province",
+      "process": "Washed",
+      "profile": "Frutos rojos, té negro",
+      "price": 13.5,
+      "description": "Café de especialidad de Ruanda tostado por Toma Café en Madrid.",
+      "image": "https://cdn.shopify.com/s/files/1/0561/2172/1001/files/RUAN_TIT_fbc05869-95f3-47c4-9f73-09f1d290f3c6_800x.jpg?v=1741186794"
+    },
+    {
+      "id": "coffee-la-primavera",
+      "name": "La Primavera",
+      "roaster": "Toma Café",
+      "roasterId": "business-toma",
+      "origin": "Colombia",
+      "region": "Huila",
+      "process": "Washed",
+      "profile": "Naranja, panela, vainilla",
+      "price": 12.5,
+      "description": "Café de especialidad de Colombia tostado por Toma Café en Madrid.",
+      "image": "https://cdn.shopify.com/s/files/1/0561/2172/1001/files/COL_LA_PRIM_4000x.jpg?v=1744293547"
+    },
+    {
+      "id": "coffee-sueno-decaf",
+      "name": "Sueño Decaf",
+      "roaster": "Toma Café",
+      "roasterId": "business-toma",
+      "origin": "Mexico",
+      "region": "Chiapas",
+      "process": "Swiss Water Process",
+      "profile": "Chocolate negro, avellana, caramelo",
+      "price": 14.9,
+      "description": "Café descafeinado de especialidad de México tostado por Toma Café en Madrid.",
+      "image": "https://cdn.shopify.com/s/files/1/0561/2172/1001/files/MEX_SUE-DECF_800x.jpg?v=1738771836"
+    },
+    {
+      "id": "coffee-benti-nenka",
+      "name": "Benti Nenka (Anaeróbico)",
+      "roaster": "Toma Café",
+      "roasterId": "business-toma",
+      "origin": "Ethiopia",
+      "region": "Sidamo",
+      "process": "Anaerobic",
+      "profile": "Frutas tropicales, floral, miel",
+      "price": 19.5,
+      "description": "Café de especialidad de Etiopía con proceso anaeróbico tostado por Toma Café en Madrid.",
+      "image": "https://cdn.shopify.com/s/files/1/0561/2172/1001/files/ET_BENT_NENK_800x.jpg?v=1738772089"
+    }
+  ],
+  "coffeeSuggestions": [
+    {
+      "id": "coffee-refisa-g1",
+      "type": "coffee",
+      "name": "Refisa G1",
+      "roaster": "Toma Café",
+      "imageUrl": "https://cdn.shopify.com/s/files/1/0561/2172/1001/files/ET_REF_G1_800x.jpg?v=1738771773",
+      "rating": 4.9,
+      "price": 15.5,
+      "description": "Frutos rojos, chocolate con leche, bergamota."
+    },
+    {
+      "id": "coffee-benti-nenka",
+      "type": "coffee",
+      "name": "Benti Nenka (Anaeróbico)",
+      "roaster": "Toma Café",
+      "imageUrl": "https://cdn.shopify.com/s/files/1/0561/2172/1001/files/ET_BENT_NENK_800x.jpg?v=1738772089",
+      "rating": 4.8,
+      "price": 19.5,
+      "description": "Frutas tropicales, floral, miel."
+    },
+    {
+      "id": "coffee-villa-rosario",
+      "type": "coffee",
+      "name": "Villa Rosario",
+      "roaster": "Kima Coffee",
+      "imageUrl": "https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728",
+      "rating": 4.9,
+      "price": 42,
+      "description": "Cereza, cola, galletas y caramelo."
+    },
+    {
+      "id": "coffee-kirunga",
+      "type": "coffee",
+      "name": "Kirunga",
+      "roaster": "Kima Coffee",
+      "imageUrl": "https://kimacoffee.com/cdn/shop/files/A40D5DFF-1058-43A3-9C31-F87C8482EDD8_900x.png?v=1741929637",
+      "rating": 4.9,
+      "price": 13.9,
+      "description": "Grosella roja, arándanos, frambuesa y chocolate."
+    }
+  ],
+  "sellers": {
+    "coffee-villa-rosario": [
+      {
+        "id": "business-kima",
+        "name": "Kima Coffee",
+        "avatar": "assets/businesses/kima-logo.jpg",
+        "location": "Málaga, Spain",
+        "isRoaster": true,
+        "businessAccount": true
+      }
+    ],
+    "coffee-pampojila": [
+      {
+        "id": "business-kima",
+        "name": "Kima Coffee",
+        "avatar": "assets/businesses/kima-logo.jpg",
+        "location": "Málaga, Spain",
+        "isRoaster": true,
+        "businessAccount": true
+      }
+    ],
+    "coffee-campo-hermoso-sidra": [
+      {
+        "id": "business-kima",
+        "name": "Kima Coffee",
+        "avatar": "assets/businesses/kima-logo.jpg",
+        "location": "Málaga, Spain",
+        "isRoaster": true,
+        "businessAccount": true
+      }
+    ],
+    "coffee-campo-hermoso-geisha": [
+      {
+        "id": "business-kima",
+        "name": "Kima Coffee",
+        "avatar": "assets/businesses/kima-logo.jpg",
+        "location": "Málaga, Spain",
+        "isRoaster": true,
+        "businessAccount": true
+      }
+    ],
+    "coffee-watermelon": [
+      {
+        "id": "business-kima",
+        "name": "Kima Coffee",
+        "avatar": "assets/businesses/kima-logo.jpg",
+        "location": "Málaga, Spain",
+        "isRoaster": true,
+        "businessAccount": true
+      }
+    ],
+    "coffee-el-romerillo": [
+      {
+        "id": "business-kima",
+        "name": "Kima Coffee",
+        "avatar": "assets/businesses/kima-logo.jpg",
+        "location": "Málaga, Spain",
+        "isRoaster": true,
+        "businessAccount": true
+      }
+    ],
+    "coffee-red-fruits": [
+      {
+        "id": "business-kima",
+        "name": "Kima Coffee",
+        "avatar": "assets/businesses/kima-logo.jpg",
+        "location": "Málaga, Spain",
+        "isRoaster": true,
+        "businessAccount": true
+      }
+    ],
+    "coffee-kirunga": [
+      {
+        "id": "business-kima",
+        "name": "Kima Coffee",
+        "avatar": "assets/businesses/kima-logo.jpg",
+        "location": "Málaga, Spain",
+        "isRoaster": true,
+        "businessAccount": true
+      }
+    ],
+    "coffee-ijen": [
+      {
+        "id": "business-kima",
+        "name": "Kima Coffee",
+        "avatar": "assets/businesses/kima-logo.jpg",
+        "location": "Málaga, Spain",
+        "isRoaster": true,
+        "businessAccount": true
+      }
+    ],
+    "coffee-refisa-g1": [
+      {
+        "id": "business-toma",
+        "name": "Toma Café",
+        "avatar": "assets/businesses/toma-logo.jpg",
+        "location": "Madrid, Spain",
+        "isRoaster": true,
+        "businessAccount": true
+      },
+      {
+        "id": "user2",
+        "name": "Vértigo y Calambre",
+        "avatar": "assets/businesses/vertigo-logo.jpg",
+        "location": "Murcia, Spain",
+        "isBusinessAccount": true,
+        "price": 12.90
+      }
+    ],
+    "coffee-titus-a": [
+      {
+        "id": "business-toma",
+        "name": "Toma Café",
+        "avatar": "assets/businesses/toma-logo.jpg",
+        "location": "Madrid, Spain",
+        "isRoaster": true,
+        "businessAccount": true
+      },
+      {
+        "id": "user2",
+        "name": "Vértigo y Calambre",
+        "avatar": "assets/businesses/vertigo-logo.jpg",
+        "location": "Murcia, Spain",
+        "isBusinessAccount": true,
+        "price": 13.50
+      }
+    ],
+    "coffee-la-primavera": [
+      {
+        "id": "business-toma",
+        "name": "Toma Café",
+        "avatar": "assets/businesses/toma-logo.jpg",
+        "location": "Madrid, Spain",
+        "isRoaster": true,
+        "businessAccount": true
+      },
+      {
+        "id": "user2",
+        "name": "Vértigo y Calambre",
+        "avatar": "assets/businesses/vertigo-logo.jpg",
+        "location": "Murcia, Spain",
+        "isBusinessAccount": true,
+        "price": 12.50
+      }
+    ],
+    "coffee-sueno-decaf": [
+      {
+        "id": "business-toma",
+        "name": "Toma Café",
+        "avatar": "assets/businesses/toma-logo.jpg",
+        "location": "Madrid, Spain",
+        "isRoaster": true,
+        "businessAccount": true
+      },
+      {
+        "id": "user2",
+        "name": "Vértigo y Calambre",
+        "avatar": "assets/businesses/vertigo-logo.jpg",
+        "location": "Murcia, Spain",
+        "isBusinessAccount": true,
+        "price": 14.90
+      }
+    ],
+    "coffee-benti-nenka": [
+      {
+        "id": "business-toma",
+        "name": "Toma Café",
+        "avatar": "assets/businesses/toma-logo.jpg",
+        "location": "Madrid, Spain",
+        "isRoaster": true,
+        "businessAccount": true
+      },
+      {
+        "id": "user2",
+        "name": "Vértigo y Calambre",
+        "avatar": "assets/businesses/vertigo-logo.jpg",
+        "location": "Murcia, Spain",
+        "isBusinessAccount": true,
+        "price": 19.50
+      }
+    ]
+  }
+} 

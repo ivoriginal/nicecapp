@@ -12,100 +12,25 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, CommonActions } from '@react-navigation/native';
 import { useCoffee } from '../context/CoffeeContext';
+import mockGearData from '../data/mockGear.json';
 
-// Mock gear data
-const gearData = {
-  'Hario V60': {
-    id: 'gear-v60',
-    name: 'Hario V60 Ceramic Dripper',
-    image: 'https://www.hario-europe.com/cdn/shop/files/VDC-01R_web.png?v=1683548122&width=1400',
-    description: 'The Hario V60 is a cone-shaped dripper with spiral ridges along the inner wall and a large single hole at the bottom, designed to produce a clean, flavorful cup of coffee.',
-    price: 22.99,
+// Transform mockGear.json data to the format expected by the component
+const gearData = mockGearData.gear.reduce((acc, item) => {
+  // Create a simple entry for the gear item
+  acc[item.name] = {
+    id: item.id,
+    name: item.name,
+    image: item.imageUrl,
+    description: item.description,
+    price: item.price,
+    brand: item.brand,
+    type: item.type,
     whereToBuy: [
       { name: 'Vértigo y Calambre', url: 'https://vertigoycalambre.com', location: 'Murcia, Spain' },
-      { name: 'Blue Bottle Coffee', url: 'https://bluebottlecoffee.com', location: 'Online' },
+      { name: item.brand, url: `https://${item.brand.toLowerCase()}.com`, location: 'Online' },
       { name: 'Amazon', url: 'https://amazon.com', location: 'Online' },
     ],
-    usedBy: [
-      { id: 'user1', name: 'Ivo Vilches', avatar: require('../../assets/users/ivo-vilches.jpg') },
-      { id: 'user7', name: 'Sophia Miller', avatar: 'https://randomuser.me/api/portraits/women/68.jpg' }
-    ],
-    wantedBy: [
-      { id: 'user3', name: 'Carlos Hernández', avatar: require('../../assets/users/carlos-hernandez.jpg') },
-      { id: 'user5', name: 'Emma Garcia', avatar: 'https://randomuser.me/api/portraits/women/33.jpg' }
-    ]
-  },
-  'AeroPress': {
-    id: 'gear-aeropress',
-    name: 'AeroPress Coffee Maker',
-    image: 'https://aeropress.com/cdn/shop/files/Hero_Original_87a4958c-7df9-43b6-af92-0edc12c126cf_900x.png?v=1744683381',
-    description: 'The AeroPress is a versatile coffee maker that uses pressure to extract rich, smooth coffee quickly with low acidity and bitterness.',
-    price: 29.99,
-    whereToBuy: [
-      { name: 'Vértigo y Calambre', url: 'https://vertigoycalambre.com', location: 'Murcia, Spain' },
-      { name: 'Stumptown Coffee', url: 'https://stumptowncoffee.com', location: 'Online' },
-      { name: 'Amazon', url: 'https://amazon.com', location: 'Online' },
-    ],
-    usedBy: [
-      { id: 'user1', name: 'Ivo Vilches', avatar: require('../../assets/users/ivo-vilches.jpg') },
-      { id: 'user6', name: 'David Kim', avatar: 'https://randomuser.me/api/portraits/men/45.jpg' }
-    ],
-    wantedBy: [
-      { id: 'user5', name: 'Emma Garcia', avatar: 'https://randomuser.me/api/portraits/women/33.jpg' },
-      { id: 'user9', name: 'Olivia Taylor', avatar: 'https://randomuser.me/api/portraits/women/12.jpg' }
-    ]
-  },
-  'Chemex': {
-    id: 'gear-chemex',
-    name: 'Chemex 6-Cup Coffee Maker',
-    image: 'https://images.unsplash.com/photo-1544233726-9f1d2b27be8b',
-    description: 'The Chemex is an elegant, hourglass-shaped pour-over brewer that produces clean, bright coffee through its special bonded filters.',
-    price: 46.99,
-    whereToBuy: [
-      { name: 'Vértigo y Calambre', url: 'https://vertigoycalambre.com', location: 'Murcia, Spain' },
-      { name: 'Chemex', url: 'https://www.chemexcoffeemaker.com', location: 'Online' },
-      { name: 'Amazon', url: 'https://amazon.com', location: 'Online' },
-    ],
-    usedBy: [
-      { id: 'user1', name: 'Ivo Vilches', avatar: require('../../assets/users/ivo-vilches.jpg') },
-      { id: 'user5', name: 'Emma Garcia', avatar: 'https://randomuser.me/api/portraits/women/33.jpg' }
-    ],
-    wantedBy: [
-      { id: 'user3', name: 'Carlos Hernández', avatar: require('../../assets/users/carlos-hernandez.jpg') },
-      { id: 'user7', name: 'Sophia Miller', avatar: 'https://randomuser.me/api/portraits/women/68.jpg' }
-    ]
-  },
-  'Hario Ceramic Slim': {
-    id: 'gear-hario-slim',
-    name: 'Hario Ceramic Coffee Mill Slim',
-    image: 'https://images.unsplash.com/photo-1544713300-6b5a2817d25f',
-    description: 'The Hario Ceramic Slim is a compact hand grinder with ceramic burrs for consistent grinding, perfect for travel or small kitchens.',
-    price: 34.99,
-    whereToBuy: [
-      { name: 'Vértigo y Calambre', url: 'https://vertigoycalambre.com', location: 'Murcia, Spain' },
-      { name: 'Hario', url: 'https://www.hario.com', location: 'Online' },
-      { name: 'Amazon', url: 'https://amazon.com', location: 'Online' },
-    ],
-    usedBy: [
-      { id: 'user1', name: 'Ivo Vilches', avatar: require('../../assets/users/ivo-vilches.jpg') },
-      { id: 'user3', name: 'Carlos Hernández', avatar: require('../../assets/users/carlos-hernandez.jpg') }
-    ],
-    wantedBy: [
-      { id: 'user7', name: 'Sophia Miller', avatar: 'https://randomuser.me/api/portraits/women/68.jpg' },
-      { id: 'user10', name: 'Lucas Brown', avatar: 'https://randomuser.me/api/portraits/men/55.jpg' }
-    ]
-  },
-  'Hario Range Server': {
-    id: 'gear-hario-server',
-    name: 'Hario Range Server 600ml',
-    image: 'https://images.unsplash.com/photo-1544713297-9acff35e418e',
-    description: 'The Hario Range Server is a heat-resistant glass server perfect for pour-over coffee, designed to complement the V60 dripper.',
-    price: 19.99,
-    whereToBuy: [
-      { name: 'Vértigo y Calambre', url: 'https://vertigoycalambre.com', location: 'Murcia, Spain' },
-      { name: 'Hario', url: 'https://www.hario.com', location: 'Online' },
-      { name: 'Amazon', url: 'https://amazon.com', location: 'Online' },
-    ],
+    // Default usedBy and wantedBy if needed
     usedBy: [
       { id: 'user1', name: 'Ivo Vilches', avatar: require('../../assets/users/ivo-vilches.jpg') },
       { id: 'user5', name: 'Emma Garcia', avatar: 'https://randomuser.me/api/portraits/women/33.jpg' }
@@ -114,143 +39,46 @@ const gearData = {
       { id: 'user3', name: 'Carlos Hernández', avatar: require('../../assets/users/carlos-hernandez.jpg') },
       { id: 'user9', name: 'Olivia Taylor', avatar: 'https://randomuser.me/api/portraits/women/12.jpg' }
     ]
-  },
-  'Comandante C40': {
-    id: 'gear-comandante',
-    name: 'Comandante C40 MK3 Grinder',
-    image: 'https://images.unsplash.com/photo-1575441347544-11725ca18b26',
-    description: 'The Comandante C40 is a high-precision hand grinder with stainless steel burrs, known for its consistency and build quality.',
-    price: 249.99,
-    whereToBuy: [
-      { name: 'Vértigo y Calambre', url: 'https://vertigoycalambre.com', location: 'Murcia, Spain' },
-      { name: 'Specialty Coffee Shops', url: '', location: 'Various Locations' }
-    ],
-    usedBy: [
-      { id: 'user2', name: 'Vértigo y Calambre', avatar: require('../../assets/businesses/vertigo-logo.jpg') },
-      { id: 'user8', name: 'James Wilson', avatar: 'https://randomuser.me/api/portraits/men/22.jpg' }
-    ],
-    wantedBy: [
-      { id: 'user1', name: 'Ivo Vilches', avatar: require('../../assets/users/ivo-vilches.jpg') },
-      { id: 'user6', name: 'David Kim', avatar: 'https://randomuser.me/api/portraits/men/45.jpg' }
-    ]
-  },
-  'Fellow Stagg EKG': {
-    id: 'gear-stagg',
-    name: 'Fellow Stagg EKG Electric Kettle',
-    image: 'https://hola.coffee/cdn/shop/files/FELLOW-STAGG_1024x1024@2x.jpg?v=1732719228',
-    description: 'The Fellow Stagg EKG is a precision electric pour-over kettle with variable temperature control and a sleek design.',
-    price: 149.99,
-    whereToBuy: [
-      { name: 'Fellow Products', url: 'https://fellowproducts.com', location: 'Online' },
-      { name: 'Specialty Coffee Shops', url: '', location: 'Various Locations' },
-      { name: 'Amazon', url: 'https://amazon.com', location: 'Online' },
-    ],
-    usedBy: [
-      { id: 'user7', name: 'Sophia Miller', avatar: 'https://randomuser.me/api/portraits/women/68.jpg' },
-      { id: 'user5', name: 'Emma Garcia', avatar: 'https://randomuser.me/api/portraits/women/33.jpg' }
-    ],
-    wantedBy: [
-      { id: 'user1', name: 'Ivo Vilches', avatar: require('../../assets/users/ivo-vilches.jpg') },
-      { id: 'user9', name: 'Olivia Taylor', avatar: 'https://randomuser.me/api/portraits/women/12.jpg' }
-    ]
-  },
-  'Baratza Encore': {
-    id: 'gear-encore',
-    name: 'Baratza Encore Coffee Grinder',
-    image: 'https://images.unsplash.com/photo-1606855637090-c6b478ca2635',
-    description: 'The Baratza Encore is an entry-level burr grinder that provides consistent grounds for a variety of brewing methods.',
-    price: 169.99,
-    whereToBuy: [
-      { name: 'Vértigo y Calambre', url: 'https://vertigoycalambre.com', location: 'Murcia, Spain' },
-      { name: 'Baratza', url: 'https://baratza.com', location: 'Online' },
-      { name: 'Amazon', url: 'https://amazon.com', location: 'Online' },
-    ],
-    usedBy: [
-      { id: 'user9', name: 'Olivia Taylor', avatar: 'https://randomuser.me/api/portraits/women/12.jpg' },
-      { id: 'user5', name: 'Emma Garcia', avatar: 'https://randomuser.me/api/portraits/women/33.jpg' }
-    ],
-    wantedBy: [
-      { id: 'user3', name: 'Carlos Hernández', avatar: require('../../assets/users/carlos-hernandez.jpg') },
-      { id: 'user10', name: 'Lucas Brown', avatar: 'https://randomuser.me/api/portraits/men/55.jpg' }
-    ]
-  },
-  '9Barista': {
-    id: 'gear-9barista',
-    name: '9Barista Espresso Maker',
-    image: 'https://9barista.com/wp-content/uploads/2022/10/9Barista-espresso-machine-front-800x800.jpg',
-    description: 'The 9Barista is a revolutionary stovetop espresso machine that delivers true 9 bar pressure for authentic espresso at home.',
-    price: 349.99,
-    whereToBuy: [
-      { name: '9Barista', url: 'https://9barista.com', location: 'Online' },
-      { name: 'Specialty Coffee Shops', url: '', location: 'Various Locations' }
-    ],
-    usedBy: [
-      { id: 'user7', name: 'Sophia Miller', avatar: 'https://randomuser.me/api/portraits/women/68.jpg' },
-      { id: 'user6', name: 'David Kim', avatar: 'https://randomuser.me/api/portraits/men/45.jpg' }
-    ],
-    wantedBy: [
-      { id: 'user1', name: 'Ivo Vilches', avatar: require('../../assets/users/ivo-vilches.jpg') },
-      { id: 'user2', name: 'Vértigo y Calambre', avatar: require('../../assets/businesses/vertigo-logo.jpg') }
-    ]
-  },
-  'Fellow Opus': {
-    id: 'gear-fellow-opus',
-    name: 'Fellow Opus Conical Burr Grinder',
-    image: 'https://fellowproducts.com/cdn/shop/products/FellowProducts_OpusConicalBurrGrinder_MatteBlack_01.png',
-    description: 'The Fellow Opus is a premium electric burr grinder with precision grinding capabilities for consistent and flavorful coffee.',
-    price: 195.00,
-    whereToBuy: [
-      { name: 'Fellow Products', url: 'https://fellowproducts.com', location: 'Online' },
-      { name: 'Specialty Coffee Shops', url: '', location: 'Various Locations' }
-    ],
-    usedBy: [
-      { id: 'user9', name: 'Olivia Taylor', avatar: 'https://randomuser.me/api/portraits/women/12.jpg' },
-      { id: 'user7', name: 'Sophia Miller', avatar: 'https://randomuser.me/api/portraits/women/68.jpg' }
-    ],
-    wantedBy: [
-      { id: 'user1', name: 'Ivo Vilches', avatar: require('../../assets/users/ivo-vilches.jpg') },
-      { id: 'user5', name: 'Emma Garcia', avatar: 'https://randomuser.me/api/portraits/women/33.jpg' }
-    ]
-  },
-  'Acaia Pearl': {
-    id: 'gear-acaia-pearl',
-    name: 'Acaia Pearl Scale',
-    image: 'https://images.unsplash.com/photo-1575441347548-0e745b37a5b8',
-    description: 'The Acaia Pearl is a high-precision coffee scale with Bluetooth connectivity and brewing features for consistent coffee every time.',
-    price: 149.99,
-    whereToBuy: [
-      { name: 'Acaia', url: 'https://acaia.co', location: 'Online' },
-      { name: 'Specialty Coffee Shops', url: '', location: 'Various Locations' }
-    ],
-    usedBy: [
-      { id: 'user7', name: 'Sophia Miller', avatar: 'https://randomuser.me/api/portraits/women/68.jpg' },
-      { id: 'user2', name: 'Vértigo y Calambre', avatar: require('../../assets/businesses/vertigo-logo.jpg') }
-    ],
-    wantedBy: [
-      { id: 'user1', name: 'Ivo Vilches', avatar: require('../../assets/users/ivo-vilches.jpg') },
-      { id: 'user5', name: 'Emma Garcia', avatar: 'https://randomuser.me/api/portraits/women/33.jpg' }
-    ]
-  },
-};
+  };
+  return acc;
+}, {});
+
+// Export gearData so it can be imported by other components
+export { gearData };
 
 export default function GearDetailScreen() {
   const route = useRoute();
   const navigation = useNavigation();
-  const { gearName } = route.params || {};
+  const { gearName, gearId } = route.params || {};
   const [inWishlist, setInWishlist] = useState(false);
   const { coffeeWishlist, addToWishlist, removeFromWishlist } = useCoffee();
   
-  // Get gear data
-  const gear = gearData[gearName] || {
-    id: 'unknown',
-    name: gearName || 'Unknown Gear',
-    image: 'https://images.unsplash.com/photo-1447933601403-0c6688de566e',
-    description: 'No information available for this item.',
-    price: 0,
-    whereToBuy: [],
-    usedBy: [],
-    wantedBy: []
-  };
+  // Get gear data - try to match by ID first, then by name
+  let gear;
+  
+  if (gearId) {
+    // Try to find gear by ID first
+    gear = Object.values(gearData).find(item => item.id === gearId);
+  }
+  
+  if (!gear && gearName) {
+    // If not found by ID, try to find by name
+    gear = gearData[gearName];
+  }
+  
+  // Fallback to default if still not found
+  if (!gear) {
+    gear = {
+      id: gearId || 'unknown',
+      name: gearName || 'Unknown Gear',
+      image: 'https://images.unsplash.com/photo-1447933601403-0c6688de566e',
+      description: 'No information available for this item.',
+      price: 0,
+      whereToBuy: [],
+      usedBy: [],
+      wantedBy: []
+    };
+  }
   
   // Set screen title
   useEffect(() => {
@@ -316,9 +144,9 @@ export default function GearDetailScreen() {
             onPress={toggleWishlist}
           >
             <Ionicons 
-              name={inWishlist ? "bookmark" : "bookmark-outline"} 
+              name={inWishlist ? "gift" : "gift-outline"} 
               size={28} 
-              color={inWishlist ? "#007AFF" : "#FFFFFF"} 
+              color={inWishlist ? "#FFFFFF" : "#FFFFFF"} 
             />
           </TouchableOpacity>
         </View>

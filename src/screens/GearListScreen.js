@@ -13,9 +13,11 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import mockData from '../data/mockData.json';
+import mockGear from '../data/mockGear.json';
 import gearDetails from '../data/gearDetails';
 import GearCard from '../components/GearCard';
+import AppImage from '../components/common/AppImage';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const GearListScreen = ({ navigation, route }) => {
   const { category = 'all' } = route.params || {};
@@ -40,6 +42,28 @@ const GearListScreen = ({ navigation, route }) => {
     brand: ['Fellow', 'Hario', 'Baratza', 'Comandante', 'AeroPress', 'Acaia']
   };
   
+  const insets = useSafeAreaInsets();
+  
+  // Helper function to check if any filters are active
+  const hasActiveFilters = () => {
+    return Object.values(filters).some(filterArray => filterArray.length > 0);
+  };
+  
+  // Set up navigation header with Clear All button
+  useEffect(() => {
+    navigation.setOptions({
+      headerRight: () => 
+        hasActiveFilters() ? (
+          <TouchableOpacity 
+            onPress={clearAllFilters}
+            style={styles.headerClearButton}
+          >
+            <Text style={styles.headerClearText}>Clear All</Text>
+          </TouchableOpacity>
+        ) : null
+    });
+  }, [filters, navigation]);
+  
   useEffect(() => {
     loadGear();
   }, [sortBy, filters]);
@@ -48,13 +72,19 @@ const GearListScreen = ({ navigation, route }) => {
     setLoading(true);
     
     // Get gear from mock data
-    let gear = [...mockData.gear];
+    let gear = [...mockGear.gear];
     
     // Enhance gear with usedBy data from gearDetails
     gear = gear.map(item => {
       const detailedItem = gearDetails[item.name];
       if (detailedItem) {
-        console.log(`Enhanced gear for ${item.name} with usedBy data:`, detailedItem.usedBy);
+        // More detailed debug info
+        console.log(`Enhanced gear for ${item.name}:`, {
+          hasUsedBy: !!detailedItem.usedBy,
+          usedByCount: detailedItem.usedBy ? detailedItem.usedBy.length : 0,
+          usedBySample: detailedItem.usedBy ? detailedItem.usedBy.slice(0, 1) : []
+        });
+        
         return {
           ...item,
           ...detailedItem,
@@ -261,13 +291,6 @@ const GearListScreen = ({ navigation, route }) => {
               <Ionicons name="close-circle" size={16} color="#666666" />
             </TouchableOpacity>
           ))}
-          
-          <TouchableOpacity
-            style={styles.clearAllButton}
-            onPress={clearAllFilters}
-          >
-            <Text style={styles.clearAllText}>Clear All</Text>
-          </TouchableOpacity>
         </ScrollView>
       </View>
     );
@@ -414,17 +437,23 @@ const GearListScreen = ({ navigation, route }) => {
   );
   
   const renderGearItem = ({ item }) => {
+    // Debug log to check if usedBy data is available
+    console.log(`Rendering gear ${item.name}, usedBy:`, item.usedBy ? item.usedBy.length : 0);
+    
     return (
-      <GearCard
-        item={item}
-        isWishlist={item.isInWishlist || false}
-        showAvatars={true}
-        onPress={() => navigation.navigate('GearDetail', { gearName: item.name })}
-        onWishlistToggle={() => {
-          // Here you would handle the wishlist toggle
-          console.log('Toggle wishlist for:', item.name);
-        }}
-      />
+      <View style={styles.gearCardWrapper}>
+        <GearCard
+          item={item}
+          isWishlist={item.isInWishlist || false}
+          showAvatars={true}
+          onPress={() => navigation.navigate('GearDetail', { gearName: item.name })}
+          onUserPress={(userId) => {
+            console.log('Navigate to user profile:', userId);
+            // Here you would navigate to user profile
+            // navigation.navigate('UserProfile', { userId });
+          }}
+        />
+      </View>
     );
   };
   
@@ -448,6 +477,7 @@ const GearListScreen = ({ navigation, route }) => {
             </Text>
           </View>
         }
+        style={styles.flatList}
       />
       
       {renderFilterModal()}
@@ -462,9 +492,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   filterBarContainer: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-    paddingVertical: 12,
+    // borderBottomWidth: 1,
+    // borderBottomColor: '#E5E5EA',
+    paddingVertical: 16,
   },
   filterBarContent: {
     paddingHorizontal: 16,
@@ -518,9 +548,9 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   activeFiltersContainer: {
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
+    paddingBottom: 16,
+    // borderBottomWidth: 1,
+    // borderBottomColor: '#E5E5EA',
   },
   activeFiltersContent: {
     paddingHorizontal: 16,
@@ -551,21 +581,15 @@ const styles = StyleSheet.create({
     color: '#007AFF',
   },
   gearList: {
-    padding: 8,
+    paddingHorizontal: 16,
   },
   columnWrapper: {
-    justifyContent: 'flex-start',
+    justifyContent: 'space-between',
+    marginBottom: 16,
   },
-  gearCard: {
-    flex: 0,
-    width: '46%',
-    margin: 8,
-    height: 330,
-    borderRadius: 12,
-    overflow: 'hidden',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
+  gearCardWrapper: {
+    flex: 1,
+    maxWidth: '48%',
   },
   gearImage: {
     width: '100%',
@@ -681,8 +705,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
+    borderBottomWidth: 0,
+    // borderBottomColor: '#E5E5EA',
   },
   filterOptionText: {
     fontSize: 16,
@@ -694,8 +718,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 16,
     paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
+    // borderBottomWidth: 1,
+    // borderBottomColor: '#E5E5EA',
   },
   sortOptionText: {
     fontSize: 16,
@@ -739,6 +763,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666666',
     textAlign: 'center',
+  },
+  flatList: {
+    flex: 1,
+  },
+  headerClearButton: {
+    paddingHorizontal: 16,
+    justifyContent: 'center',
+    height: '100%',
+  },
+  headerClearText: {
+    fontSize: 16,
+    color: '#007AFF',
+    fontWeight: '500',
   },
 });
 

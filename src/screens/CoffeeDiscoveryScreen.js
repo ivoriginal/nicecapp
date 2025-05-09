@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { View, Text, FlatList, StyleSheet, TouchableOpacity, ScrollView, Modal, TouchableWithoutFeedback } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import mockData from '../data/mockData.json';
+import mockCoffees from '../data/mockCoffees.json';
 import AppImage from '../components/common/AppImage';
 
 const CoffeeDiscoveryScreen = ({ navigation, route }) => {
@@ -113,15 +113,15 @@ const CoffeeDiscoveryScreen = ({ navigation, route }) => {
   };
 
   useEffect(() => {
-    // Get all coffees from mockData
-    let filteredCoffees = [...mockData.coffees];
+    // Get all coffees from mockCoffees
+    let filteredCoffees = [...mockCoffees.coffees];
     
     // Collect all sellers to build the filter options
     const allSellers = new Set();
     const coffeeSellerMap = {};
     
     // Process sellers data
-    Object.entries(mockData.sellers || {}).forEach(([coffeeId, sellers]) => {
+    Object.entries(mockCoffees.sellers || {}).forEach(([coffeeId, sellers]) => {
       coffeeSellerMap[coffeeId] = sellers;
       sellers.forEach(seller => {
         if (!allSellers.has(seller.id)) {
@@ -132,7 +132,7 @@ const CoffeeDiscoveryScreen = ({ navigation, route }) => {
     
     // Update the available sellers in the filter options
     const sellerOptions = Array.from(allSellers).map(sellerId => {
-      const sellerInfo = Object.values(mockData.sellers).flat()
+      const sellerInfo = Object.values(mockCoffees.sellers).flat()
         .find(seller => seller.id === sellerId);
       return {
         id: sellerId,
@@ -219,7 +219,7 @@ const CoffeeDiscoveryScreen = ({ navigation, route }) => {
           case 'availableIn':
             filteredCoffees = filteredCoffees.filter(coffee => {
               // Check if this coffee is sold by any of the selected sellers
-              const coffeeSellers = mockData.sellers[coffee.id] || [];
+              const coffeeSellers = mockCoffees.sellers[coffee.id] || [];
               return selectedOptions.some(option => 
                 coffeeSellers.some(seller => seller.id === option)
               );
@@ -230,7 +230,7 @@ const CoffeeDiscoveryScreen = ({ navigation, route }) => {
             // For this example, we'll use coffee events to determine if coffee has been tried
             // In a real app, this would use a proper user collection database
             if (selectedOptions.includes('yes')) {
-              const triedCoffeeIds = mockData.coffeeEvents
+              const triedCoffeeIds = mockCoffees.coffeeEvents
                 .filter(event => event.userId === 'currentUser' || 
                                  event.type === 'added_to_collection')
                 .map(event => event.coffeeId);
@@ -238,7 +238,7 @@ const CoffeeDiscoveryScreen = ({ navigation, route }) => {
                 triedCoffeeIds.includes(coffee.id)
               );
             } else if (selectedOptions.includes('no')) {
-              const triedCoffeeIds = mockData.coffeeEvents
+              const triedCoffeeIds = mockCoffees.coffeeEvents
                 .filter(event => event.userId === 'currentUser' || 
                                  event.type === 'added_to_collection')
                 .map(event => event.coffeeId);
@@ -549,13 +549,13 @@ const CoffeeDiscoveryScreen = ({ navigation, route }) => {
 
   const renderCoffeeItem = ({ item }) => {
     // Get sellers for this coffee
-    let sellers = mockData.sellers[item.id] || [];
+    let sellers = mockCoffees.sellers[item.id] || [];
     
     // If no sellers are specified but coffee has a roasterId, 
     // add the roaster as a seller
     if (sellers.length === 0 && item.roasterId) {
       // Find the roaster in existing sellers to get their data
-      const roasterInfo = Object.values(mockData.sellers || {})
+      const roasterInfo = Object.values(mockCoffees.sellers || {})
         .flat()
         .find(seller => seller.id === item.roasterId);
         

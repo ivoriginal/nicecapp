@@ -1,43 +1,60 @@
-import React from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, FlatList, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import mockUsers from '../data/mockUsers.json';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import mockData from '../data/mockData.json';
-import { useCoffee } from '../context/CoffeeContext';
+import PeopleCard from '../components/PeopleCard';
+import { COLORS, FONTS } from '../constants';
 import AppImage from '../components/common/AppImage';
 
-const PeopleListScreen = ({ navigation }) => {
+const PeopleListScreen = () => {
+  const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-  const { user: currentUser } = useCoffee();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [people, setPeople] = useState([]);
+  const [filteredPeople, setFilteredPeople] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   
-  // Filter out business accounts and the "You" user
-  const filteredUsers = mockData.users.filter(user => {
-    // Skip business accounts (user2 is Vértigo y Calambre)
-    if (user.id === 'user2' || user.businessAccount || user.isBusinessAccount || user.id.startsWith('business-') || user.id.startsWith('cafe')) {
-      console.log(`Filtering out business account: ${user.userName || user.name}`);
-      return false;
-    }
+  // Simulate fetching people data
+  useEffect(() => {
+    const fetchPeople = () => {
+      // Simulate API call delay
+      setTimeout(() => {
+        // Get users from mockUsers and filter out business accounts
+        const usersData = (mockUsers.users || []).filter(user => 
+          !user.isBusinessAccount && 
+          user.userName !== 'Vértigo y Calambre' && 
+          user.userName !== 'You' &&
+          !user.id.includes('business')
+        );
+        setPeople(usersData);
+        setFilteredPeople(usersData);
+        setLoading(false);
+      }, 1000);
+    };
     
-    // Skip the "You" user when current user is Ivo Vilches
-    if (user.id === 'currentUser') {
-      console.log('Filtering out "You" user since we are using real accounts');
-      return false;
+    fetchPeople();
+  }, []);
+  
+  // Filter people based on search query
+  useEffect(() => {
+    if (searchQuery) {
+      const filtered = people.filter(person => 
+        person.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        person.fullName.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+      setFilteredPeople(filtered);
+    } else {
+      setFilteredPeople(people);
     }
-    
-    return true;
-  });
+  }, [searchQuery, people]);
   
-  // Filter business accounts from suggested users too
-  const filteredSuggestedUsers = mockData.suggestedUsers.filter(user => {
-    return !(user.id === 'user2' || user.businessAccount || user.isBusinessAccount || 
-             user.id.startsWith('business-') || user.id.startsWith('cafe'));
-  });
-  
-  // Combine suggested users with filtered users
-  const users = [...filteredSuggestedUsers, ...filteredUsers.filter(user => 
-    !filteredSuggestedUsers.some(suggestedUser => suggestedUser.id === user.id)
-  )];
-  
+  const handleSearch = (text) => {
+    setSearchQuery(text);
+  };
+
   const renderUserItem = ({ item }) => {
     // Handle avatar source based on user
     let avatar;
@@ -110,7 +127,7 @@ const PeopleListScreen = ({ navigation }) => {
       </View>
 
       <FlatList
-        data={users}
+        data={filteredPeople}
         renderItem={renderUserItem}
         keyExtractor={item => item.id}
         contentContainerStyle={styles.usersList}

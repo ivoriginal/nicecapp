@@ -336,7 +336,7 @@ const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress, onOpt
               placeholder="person"
             />
             <Text style={styles.recipeCreatorText}>
-              Based on a recipe by {event.basedOnRecipeBy}
+              {isCurrentUserPost ? 'Your recipe' : `${event.userName}'s recipe`}, based on {event.basedOnRecipeBy}'s
             </Text>
           </View>
         );
@@ -391,7 +391,7 @@ const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress, onOpt
               placeholder="person"
             />
             <Text style={styles.recipeCreatorText}>
-              Based on a recipe by {event.basedOnRecipeBy}
+              {isCurrentUserPost ? 'Your recipe' : `${event.userName}'s recipe`}, based on {event.basedOnRecipeBy}'s
             </Text>
           </View>
         );
@@ -873,10 +873,8 @@ const styles = StyleSheet.create({
     // outlineWidth: 1,
     // outlineColor: '#E0E0E0',
     // borderWidth: 1,
-    borderColor: '#E0E0E0',
-    borderColor: '#F1F1F1',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F1F1',
+    // borderColor: '#E0E0E0',
+    // borderColor: '#E5E5EA',
     // borderRadius: 12,
     position: 'relative',
   },
@@ -922,6 +920,8 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 2,
     borderRadius: 0,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E5EA',
     // borderBottomWidth: 1,
     // borderBottomColor: '#F1F1F1',
     marginTop: 1,
@@ -1094,7 +1094,7 @@ const styles = StyleSheet.create({
   combinedContainer: {
     borderWidth: 1,
     borderColor: '#E0E0E0',
-    borderColor: '#F1F1F1',
+    borderColor: '#E5E5EA',
     // backgroundColor: '#F1F1F1',
     backgroundColor: '#FFFFFF',
     borderRadius: 16,

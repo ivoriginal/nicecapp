@@ -11,7 +11,10 @@ import {
   saveFavorites,
   getFavorites
 } from '../lib/dataProvider';
-import mockData from '../data/mockData.json';
+import mockEvents from '../data/mockEvents.json';
+import mockUsers from '../data/mockUsers.json';
+import mockCoffees from '../data/mockCoffees.json';
+import mockRecipeData from '../data/mockRecipes.json';
 
 // Create the context with a default value
 const CoffeeContext = createContext({
@@ -92,25 +95,27 @@ export const CoffeeProvider = ({ children }) => {
         return;
       }
       
+      // Load saved recipes from mockUsers and mockRecipes
+      loadSavedRecipes();
+      
       // IMPORTANT: Collect all events for social feed - do this BEFORE loading account-specific data
       let allUserEvents = [];
       
-      // First load events from mockData.json if available
-      if (mockData.coffeeEvents && Array.isArray(mockData.coffeeEvents)) {
-        console.log(`Adding ${mockData.coffeeEvents.length} events from mockData.json`);
+      // Load events from mockEvents.json if available
+      if (mockEvents.coffeeEvents && Array.isArray(mockEvents.coffeeEvents)) {
+        console.log(`Adding ${mockEvents.coffeeEvents.length} events from mockEvents.json`);
         
         // Filter out any events without coffee data
-        const validCoffeeEvents = mockData.coffeeEvents.filter(
+        const validCoffeeEvents = mockEvents.coffeeEvents.filter(
           event => event.coffeeId && event.coffeeName && !event.type
         );
         
-        allUserEvents = [...mockData.coffeeEvents];
+        allUserEvents = [...mockEvents.coffeeEvents];
         
-        // We're now only using mockData.coffeeEvents for all event data
-        // No need to add events from accountData if we're fully migrating to mockData
+        // We're now only using mockEvents.coffeeEvents for all event data
       }
-      // Only add events from accountData if we want to supplement mockData
-      // This can be removed once the migration to mockData is complete
+      // Only add events from accountData if we want to supplement split files
+      // This can be removed once the migration to split files is complete
       else {
         for (const acct in accountData) {
           if (accountData[acct]?.coffeeEvents && Array.isArray(accountData[acct].coffeeEvents)) {
@@ -196,16 +201,58 @@ export const CoffeeProvider = ({ children }) => {
     }
   };
 
-  // Generate mock coffee events - now using mockData.json as the source
+  // Load saved recipes from mockUsers and mockRecipes
+  const loadSavedRecipes = () => {
+    try {
+      console.log("Loading saved recipes...");
+      // Get the current user's saved recipes
+      const currentUser = mockUsers.users.find(user => user.id === 'user1');
+      if (!currentUser || !currentUser.savedRecipes) {
+        console.log("No saved recipes found for user1");
+        return;
+      }
+      
+      console.log(`Found ${currentUser.savedRecipes.length} saved recipe IDs for user1`);
+      
+      // Get the recipes that match the IDs in currentUser.savedRecipes
+      const userSavedRecipes = mockRecipeData.recipes.filter(recipe => 
+        currentUser.savedRecipes.includes(recipe.id)
+      );
+      
+      console.log(`Found ${userSavedRecipes.length} matching recipes`);
+      
+      // Mark these recipes as saved
+      const updatedRecipes = [...mockRecipeData.recipes];
+      updatedRecipes.forEach(recipe => {
+        recipe.isSaved = currentUser.savedRecipes.includes(recipe.id);
+      });
+      
+      setRecipes(updatedRecipes);
+      
+      // Also update coffeeWishlist from user's saved coffees
+      if (currentUser.savedCoffees && Array.isArray(currentUser.savedCoffees)) {
+        const savedCoffees = mockCoffees.coffees.filter(coffee => 
+          currentUser.savedCoffees.includes(coffee.id)
+        );
+        
+        console.log(`Found ${savedCoffees.length} saved coffees for user1`);
+        setCoffeeWishlist(savedCoffees);
+      }
+    } catch (error) {
+      console.error("Error loading saved recipes:", error);
+    }
+  };
+
+  // Generate mock coffee events - now using mockCoffees.json as the source
   const generateMockEvents = (userId, count = 5) => {
-    // Extract the coffees from mockData
-    const coffees = mockData.coffees;
+    // Extract the coffees from mockCoffees
+    const coffees = mockCoffees.coffees;
     
     // Set up brewing methods and grind sizes
     const methods = ['Pour Over', 'Espresso', 'French Press', 'AeroPress', 'Cold Brew'];
     const grindSizes = ['Fine', 'Medium', 'Coarse'];
     
-    // Generate events using coffees from mockData
+    // Generate events using coffees from mockCoffees
     return Array(count).fill(null).map((_, index) => {
       const coffeeIndex = index % coffees.length;
       const coffee = coffees[coffeeIndex];
@@ -225,167 +272,30 @@ export const CoffeeProvider = ({ children }) => {
     });
   };
 
-  // Mock accounts data - now referencing coffees from mockData.json
+  // Mock accounts data - now referencing coffees from mockCoffees.json
   const accountData = {
     'user1': {
       coffeeEvents: [
         {
           id: 'event-user1-0',
-          coffeeId: mockData.coffees[0].id,
-          coffeeName: mockData.coffees[0].name,
-          roaster: mockData.coffees[0].roaster,
-          imageUrl: mockData.coffees[0].image || 'https://images.unsplash.com/photo-1447933601403-0c6688de566e',
+          coffeeId: mockCoffees.coffees[0].id,
+          coffeeName: mockCoffees.coffees[0].name,
+          roaster: mockCoffees.coffees[0].roaster,
+          imageUrl: mockCoffees.coffees[0].image || 'https://images.unsplash.com/photo-1447933601403-0c6688de566e',
           rating: 4,
           date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
           brewingMethod: 'Pour Over',
           grindSize: 'Medium',
-          notes: mockData.coffees[0].description || 'Bright acidity with floral notes. Very clean cup.',
-          userId: 'user1',
-          userName: 'Ivo Vilches',
-          userAvatar: require('../../assets/users/ivo-vilches.jpg')
-        },
-        {
-          id: 'event-user1-1',
-          coffeeId: mockData.coffees[1].id,
-          coffeeName: mockData.coffees[1].name,
-          roaster: mockData.coffees[1].roaster,
-          imageUrl: mockData.coffees[1].image || 'https://images.unsplash.com/photo-1447933601403-0c6688de566e',
-          rating: 5,
-          date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-          brewingMethod: 'Espresso',
-          grindSize: 'Fine',
-          notes: mockData.coffees[1].description || 'Rich chocolate notes with a hint of caramel. Good body.',
-          userId: 'user1',
-          userName: 'Ivo Vilches',
-          userAvatar: require('../../assets/users/ivo-vilches.jpg')
-        },
-        {
-          id: 'event-user1-2',
-          coffeeId: mockData.coffees[2].id,
-          coffeeName: mockData.coffees[2].name,
-          roaster: mockData.coffees[2].roaster,
-          imageUrl: mockData.coffees[2].image || 'https://images.unsplash.com/photo-1447933601403-0c6688de566e',
-          rating: 4,
-          date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-          brewingMethod: 'AeroPress',
-          grindSize: 'Medium-Fine',
-          notes: mockData.coffees[2].description || 'Complex berry notes with a clean finish. Excellent!',
+          notes: mockCoffees.coffees[0].description || 'Bright acidity with floral notes. Very clean cup.',
           userId: 'user1',
           userName: 'Ivo Vilches',
           userAvatar: require('../../assets/users/ivo-vilches.jpg')
         }
       ],
-      coffeeCollection: [
-        {
-          id: mockData.coffees[0].id,
-          name: mockData.coffees[0].name,
-          roaster: mockData.coffees[0].roaster,
-          image: mockData.coffees[0].image || 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085',
-          userId: 'user1'
-        },
-        {
-          id: mockData.coffees[1].id,
-          name: mockData.coffees[1].name,
-          roaster: mockData.coffees[1].roaster,
-          image: mockData.coffees[1].image || 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd',
-          userId: 'user1'
-        },
-        {
-          id: mockData.coffees[2].id,
-          name: mockData.coffees[2].name,
-          roaster: mockData.coffees[2].roaster,
-          image: mockData.coffees[2].image || 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd',
-          userId: 'user1'
-        }
-      ],
-      coffeeWishlist: [
-        {
-          id: mockData.coffees[3].id,
-          name: mockData.coffees[3].name,
-          roaster: mockData.coffees[3].roaster,
-          image: mockData.coffees[3].image || 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd',
-          userId: 'user1'
-        }
-      ],
-      favorites: [mockData.coffees[0].id, mockData.coffees[1].id],
-      recipes: []
-    },
-    'user2': {
-      coffeeEvents: [
-        {
-          id: 'event-user2-0',
-          coffeeId: mockData.coffees[3].id,
-          coffeeName: mockData.coffees[3].name,
-          roaster: mockData.coffees[3].roaster,
-          imageUrl: mockData.coffees[3].image || 'https://images.unsplash.com/photo-1447933601403-0c6688de566e',
-          rating: 4,
-          date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-          brewingMethod: 'French Press',
-          grindSize: 'Coarse',
-          notes: mockData.coffees[3].description || 'Nutty with a subtle sweetness. Very balanced.',
-          userId: 'user2',
-          userName: 'Vértigo y Calambre',
-          userAvatar: require('../../assets/businesses/vertigo-logo.jpg')
-        }
-      ],
-      coffeeCollection: [
-        {
-          id: mockData.coffees[3].id,
-          name: mockData.coffees[3].name,
-          roaster: mockData.coffees[3].roaster,
-          image: mockData.coffees[3].image || 'https://images.unsplash.com/photo-1517668808822-9ebb02f2a0e6',
-          userId: 'user2'
-        }
-      ],
-      coffeeWishlist: [
-        {
-          id: mockData.coffees[0].id,
-          name: mockData.coffees[0].name,
-          roaster: mockData.coffees[0].roaster,
-          image: mockData.coffees[0].image || 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085',
-          userId: 'user2'
-        }
-      ],
-      favorites: [mockData.coffees[3].id],
-      recipes: []
-    },
-    'user3': {
-      coffeeEvents: [
-        {
-          id: 'event-user3-0',
-          coffeeId: mockData.coffees[4].id,
-          coffeeName: mockData.coffees[4].name,
-          roaster: mockData.coffees[4].roaster,
-          imageUrl: mockData.coffees[4].image || 'https://images.unsplash.com/photo-1447933601403-0c6688de566e',
-          rating: 3,
-          date: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
-          brewingMethod: 'Moka Pot',
-          grindSize: 'Fine',
-          notes: mockData.coffees[4].description || 'Earthy with low acidity. Good for espresso-style drinks.',
-          userId: 'user3',
-          userName: 'Carlos Hernández',
-          userAvatar: require('../../assets/users/carlos-hernandez.jpg')
-        }
-      ],
-      coffeeCollection: [
-        {
-          id: mockData.coffees[4].id,
-          name: mockData.coffees[4].name,
-          roaster: mockData.coffees[4].roaster,
-          image: mockData.coffees[4].image || 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd',
-          userId: 'user3'
-        }
-      ],
-      coffeeWishlist: [
-        {
-          id: mockData.coffees[1].id,
-          name: mockData.coffees[1].name,
-          roaster: mockData.coffees[1].roaster,
-          image: mockData.coffees[1].image || 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd',
-          userId: 'user3'
-        }
-      ],
-      favorites: ['coffee-4'],
+      // For remaining account data, we'll use the data from split files directly
+      coffeeCollection: [],
+      coffeeWishlist: [],
+      favorites: [],
       recipes: []
     }
   };
@@ -484,186 +394,14 @@ export const CoffeeProvider = ({ children }) => {
     }
   };
 
-  // Mock data for recipes
-  const mockRecipes = {
-    'coffee-0': [
-      {
-        id: 'recipe-coffee-0-1',
-        name: 'Ethiopian Yirgacheffe V60',
-        method: 'Pour Over',
-        coffeeId: 'coffee-0',
-        coffeeName: 'Ethiopian Yirgacheffe',
-        userId: 'user1',
-        userName: 'Ivo Vilches',
-        userAvatar: require('../../assets/users/ivo-vilches.jpg'),
-        amount: 20,
-        grindSize: 'Medium-Fine',
-        waterVolume: 300,
-        waterTemp: 94,
-        brewTime: '2:30',
-        steps: [
-          { time: '0:00', action: 'Rinse filter and warm vessel', water: 0 },
-          { time: '0:00', action: 'Add 20g coffee', water: 0 },
-          { time: '0:00', action: 'Pour 40g water for bloom', water: 40 },
-          { time: '0:30', action: 'Stir gently', water: 0 },
-          { time: '0:45', action: 'Pour to 150g total', water: 110 },
-          { time: '1:15', action: 'Pour to 220g total', water: 70 },
-          { time: '1:45', action: 'Pour to 300g total', water: 80 },
-          { time: '2:30', action: 'Drawdown complete', water: 0 }
-        ],
-        tips: [
-          'Use filtered water at 94°C',
-          'Grind coffee just before brewing',
-          'Pour in slow, concentric circles'
-        ]
-      },
-      {
-        id: 'recipe-coffee-0-2',
-        name: 'Ethiopian Yirgacheffe AeroPress',
-        method: 'AeroPress',
-        coffeeId: 'coffee-0',
-        coffeeName: 'Ethiopian Yirgacheffe',
-        userId: 'user2',
-        userName: 'Vértigo y Calambre',
-        userAvatar: require('../../assets/businesses/vertigo-logo.jpg'),
-        amount: 15,
-        grindSize: 'Medium',
-        waterVolume: 230,
-        waterTemp: 92,
-        brewTime: '1:30',
-        steps: [
-          { time: '0:00', action: 'Rinse paper filter', water: 0 },
-          { time: '0:00', action: 'Add 15g coffee', water: 0 },
-          { time: '0:00', action: 'Add 230g water', water: 230 },
-          { time: '0:00', action: 'Stir 10 times', water: 0 },
-          { time: '1:00', action: 'Stir again briefly', water: 0 },
-          { time: '1:30', action: 'Press gently', water: 0 }
-        ],
-        tips: [
-          'Use water at 92°C for lighter roasts',
-          'Stir to ensure even extraction',
-          'Press slowly and stop at the hiss'
-        ]
-      }
-    ],
-    'coffee-1': [
-      {
-        id: 'recipe-coffee-1-1',
-        name: 'Colombian Supremo Espresso',
-        method: 'Espresso',
-        coffeeId: 'coffee-1',
-        coffeeName: 'Colombian Supremo',
-        userId: 'user3',
-        userName: 'Carlos Hernández',
-        userAvatar: require('../../assets/users/carlos-hernandez.jpg'),
-        amount: 18,
-        grindSize: 'Fine',
-        waterVolume: 36,
-        waterTemp: 93,
-        brewTime: '0:28',
-        steps: [
-          { time: '0:00', action: 'Flush grouphead', water: 0 },
-          { time: '0:00', action: 'Add 18g ground coffee to portafilter', water: 0 },
-          { time: '0:00', action: 'Tamp evenly with 30lbs pressure', water: 0 },
-          { time: '0:00', action: 'Start extraction', water: 0 },
-          { time: '0:28', action: 'Stop at 36g output', water: 36 }
-        ],
-        tips: [
-          'Aim for 1:2 ratio (18g in, 36g out)',
-          'Target 25-30 second extraction time',
-          'Adjust grind to control flow rate'
-        ]
-      }
-    ],
-    'coffee-2': [
-      {
-        id: 'recipe-coffee-2-1',
-        name: 'Kenya AA French Press',
-        method: 'French Press',
-        coffeeId: 'coffee-2',
-        coffeeName: 'Kenya AA',
-        userId: 'user1',
-        userName: 'Ivo Vilches',
-        userAvatar: require('../../assets/users/ivo-vilches.jpg'),
-        amount: 30,
-        grindSize: 'Coarse',
-        waterVolume: 500,
-        waterTemp: 96,
-        brewTime: '4:00',
-        steps: [
-          { time: '0:00', action: 'Add 30g coffee to French Press', water: 0 },
-          { time: '0:00', action: 'Add 500g water at 96°C', water: 500 },
-          { time: '0:00', action: 'Stir gently', water: 0 },
-          { time: '4:00', action: 'Press slowly and pour', water: 0 }
-        ],
-        tips: [
-          'Use coarse grind to avoid silt',
-          'Don\'t press all the way to avoid stirring up fines',
-          'Pour immediately after pressing to avoid over-extraction'
-        ]
-      }
-    ]
-  };
-
   // Get recipes for a specific coffee
   const getRecipesForCoffee = (coffeeId) => {
-    if (coffeeId === 'coffee-villa-rosario') {
-      return [
-        {
-          id: 'recipe-villa-rosario-1',
-          name: 'Villa Rosario V60',
-          method: 'V60',
-          userId: 'user2',
-          userName: 'Vértigo y Calambre',
-          userAvatar: 'assets/businesses/vertigo-logo.jpg',
-          coffeeId: 'coffee-villa-rosario',
-          coffeeName: 'Villa Rosario',
-          roaster: 'Kima Coffee',
-          steps: [
-            { time: '0:00', action: 'Rinse filter and warm vessel', water: 0 },
-            { time: '0:00', action: 'Add 18g coffee (medium-fine grind)', water: 0 },
-            { time: '0:00', action: 'Add 40g water for bloom', water: 40 },
-            { time: '0:30', action: 'Gently swirl brewer', water: 0 },
-            { time: '0:45', action: 'Add water to 150g', water: 110 },
-            { time: '1:15', action: 'Add water to 250g', water: 100 },
-            { time: '1:45', action: 'Gently swirl brewer', water: 0 },
-            { time: '2:30', action: 'Drawdown complete', water: 0 }
-          ],
-          tips: [
-            'Use filtered water at 94°C',
-            'Grind coffee just before brewing',
-            'Aim for a total brew time of 2:30-3:00'
-          ],
-          notes: 'Highlights the cherry and cookie notes with a sweet caramel finish.'
-        },
-        {
-          id: 'recipe-villa-rosario-2',
-          name: 'Villa Rosario Espresso',
-          method: 'Espresso',
-          userId: 'business-kima',
-          userName: 'Kima Coffee',
-          userAvatar: 'https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728',
-          coffeeId: 'coffee-villa-rosario',
-          coffeeName: 'Villa Rosario',
-          roaster: 'Kima Coffee',
-          steps: [
-            { time: '0:00', action: 'Dose 18g coffee (fine grind)', water: 0 },
-            { time: '0:00', action: 'Distribute and tamp evenly', water: 0 },
-            { time: '0:00', action: 'Pull shot with 36g output', water: 36 },
-            { time: '0:28', action: 'Shot complete', water: 0 }
-          ],
-          tips: [
-            'Aim for 28-32 seconds extraction time',
-            'Machine temperature around 93°C',
-            ' 1:2 brew ratio (18g in, 36g out)'
-          ],
-          notes: 'Rich body with strong caramel sweetness and delicate cola aftertaste.'
-        }
-      ];
-    }
-    
-    // Original function content for other coffees
-    return mockRecipes[coffeeId] || [];
+    return recipes.filter(recipe => recipe.coffeeId === coffeeId);
+  };
+
+  // Function to get all recipes
+  const getRecipes = () => {
+    return mockRecipeData.recipes || [];
   };
 
   // Add function to remove a coffee event (if it doesn't exist already)
@@ -684,6 +422,135 @@ export const CoffeeProvider = ({ children }) => {
     return true;
   };
 
+  // Add to collection function - implements the "Mark as Tried" button functionality
+  const addToCollection = (coffee) => {
+    console.log('Adding coffee to collection:', coffee.name);
+    
+    // Create a coffee object with all necessary properties
+    const coffeeItem = {
+      id: coffee.id,
+      name: coffee.name,
+      roaster: coffee.roaster || '',
+      image: coffee.image || coffee.imageUrl || 'https://images.unsplash.com/photo-1447933601403-0c6688de566e',
+      origin: coffee.origin || '',
+      process: coffee.process || '',
+      roastLevel: coffee.roastLevel || 'Medium',
+      timestamp: new Date().toISOString(),
+      userId: currentAccount
+    };
+    
+    // Check if this coffee is already in the collection
+    const isInCollection = coffeeCollection.some(c => c.id === coffee.id);
+    
+    if (!isInCollection) {
+      // Add to collection state
+      setCoffeeCollection(prev => [...prev, coffeeItem]);
+      
+      // Update accountData if needed
+      if (accountData[currentAccount]) {
+        if (!accountData[currentAccount].coffeeCollection) {
+          accountData[currentAccount].coffeeCollection = [];
+        }
+        accountData[currentAccount].coffeeCollection.push(coffeeItem);
+      }
+    }
+    
+    return coffeeItem;
+  };
+  
+  // Remove from collection function
+  const removeFromCollection = (coffeeId) => {
+    console.log('Removing coffee from collection with ID:', coffeeId);
+    
+    // Remove from collection state
+    setCoffeeCollection(prev => prev.filter(coffee => coffee.id !== coffeeId));
+    
+    // Update accountData if needed
+    if (accountData[currentAccount] && accountData[currentAccount].coffeeCollection) {
+      accountData[currentAccount].coffeeCollection = accountData[currentAccount].coffeeCollection.filter(
+        coffee => coffee.id !== coffeeId
+      );
+    }
+    
+    return true;
+  };
+
+  // Add to wishlist function - implements the "Save" button functionality
+  const addToWishlist = (coffee) => {
+    console.log('Adding coffee to wishlist:', coffee.name);
+    
+    // Create a coffee object with all necessary properties
+    const coffeeItem = {
+      id: coffee.id,
+      name: coffee.name,
+      roaster: coffee.roaster || '',
+      image: coffee.image || coffee.imageUrl || 'https://images.unsplash.com/photo-1447933601403-0c6688de566e',
+      origin: coffee.origin || '',
+      process: coffee.process || '',
+      roastLevel: coffee.roastLevel || 'Medium',
+      timestamp: new Date().toISOString(),
+      userId: currentAccount
+    };
+    
+    // Check if this coffee is already in the wishlist
+    const isInWishlist = coffeeWishlist.some(c => c.id === coffee.id);
+    
+    if (!isInWishlist) {
+      // Add to wishlist state
+      setCoffeeWishlist(prev => [...prev, coffeeItem]);
+      
+      // Update accountData if needed
+      if (accountData[currentAccount]) {
+        if (!accountData[currentAccount].coffeeWishlist) {
+          accountData[currentAccount].coffeeWishlist = [];
+        }
+        accountData[currentAccount].coffeeWishlist.push(coffeeItem);
+      }
+    }
+    
+    return coffeeItem;
+  };
+  
+  // Remove from wishlist function
+  const removeFromWishlist = (coffeeId) => {
+    console.log('Removing coffee from wishlist with ID:', coffeeId);
+    
+    // Remove from wishlist state
+    setCoffeeWishlist(prev => prev.filter(coffee => coffee.id !== coffeeId));
+    
+    // Update accountData if needed
+    if (accountData[currentAccount] && accountData[currentAccount].coffeeWishlist) {
+      accountData[currentAccount].coffeeWishlist = accountData[currentAccount].coffeeWishlist.filter(
+        coffee => coffee.id !== coffeeId
+      );
+    }
+    
+    return true;
+  };
+
+  // Function to update a recipe (to mark recipes as saved)
+  const updateRecipe = (updatedRecipe) => {
+    try {
+      console.log('Updating recipe:', updatedRecipe.id);
+      
+      // Update the recipes state with the updated recipe
+      const recipeIndex = recipes.findIndex(r => r.id === updatedRecipe.id);
+      if (recipeIndex !== -1) {
+        const updatedRecipes = [...recipes];
+        updatedRecipes[recipeIndex] = updatedRecipe;
+        setRecipes(updatedRecipes);
+      } else {
+        // If the recipe doesn't exist in the state, add it
+        setRecipes([...recipes, updatedRecipe]);
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error updating recipe:', error);
+      return false;
+    }
+  };
+
   return (
     <CoffeeContext.Provider
       value={{
@@ -693,28 +560,33 @@ export const CoffeeProvider = ({ children }) => {
         favorites,
         recipes,
         isLoading: loading,
-        isAuthenticated: true, // Default to true for prototype
+        error,
+        isAuthenticated: true, // Always true for prototype
+        user,
         currentAccount,
         accounts,
         following,
         followers,
-        allEvents, // Add all events to the context
+        allEvents,
         addCoffeeEvent,
         removeCoffeeEvent,
         hideEvent: () => {},
         unhideEvent: () => {},
         isEventHidden: () => false,
-        addToCollection: () => {},
-        removeFromCollection: () => {},
-        addToWishlist: () => {},
-        removeFromWishlist: () => {},
+        addToCollection,
+        removeFromCollection,
+        addToWishlist,
+        removeFromWishlist,
         toggleFavorite: () => {},
         setCoffeeCollection: setCoffeeCollection,
         setCoffeeWishlist: setCoffeeWishlist,
         loadData,
-        getRecipesForCoffee, // Add the function to get recipes for coffee
+        getRecipesForCoffee,
         addRecipe: () => {},
-        switchAccount
+        switchAccount,
+        loadSavedRecipes,
+        setRecipes,
+        updateRecipe
       }}
     >
       {children}
@@ -723,31 +595,9 @@ export const CoffeeProvider = ({ children }) => {
 };
 
 export const useCoffee = () => {
-  try {
-    const context = useContext(CoffeeContext);
-    if (!context) {
-      console.warn('useCoffee was called outside a CoffeeProvider or context is undefined');
-      return { 
-        user: {}, 
-        coffeeEvents: [], 
-        coffeeCollection: [], 
-        coffeeWishlist: [], 
-        favorites: [],
-        isLoading: false,
-        isAuthenticated: false
-      };
-    }
-    return context;
-  } catch (error) {
-    console.error('Error in useCoffee hook:', error);
-    return {
-      user: {},
-      coffeeEvents: [],
-      coffeeCollection: [],
-      coffeeWishlist: [],
-      favorites: [],
-      isLoading: false,
-      isAuthenticated: false
-    };
+  const context = useContext(CoffeeContext);
+  if (!context) {
+    throw new Error('useCoffee must be used within a CoffeeProvider');
   }
+  return context;
 };

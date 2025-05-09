@@ -2,13 +2,14 @@ import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, FlatList, StyleSheet, TouchableOpacity, Image, ScrollView, TextInput, Switch, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import mockData from '../data/mockData.json';
+import mockCafes from '../data/mockCafes.json';
 import AppImage from '../components/common/AppImage';
 
-const CafesListScreen = ({ navigation }) => {
+const CafesListScreen = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
-  // Get cafes from mock data
-  const cafes = mockData.trendingCafes || [];
+  const { title = 'Cafés Near You' } = route.params || {};
+  
+  const cafes = mockCafes.trendingCafes || [];
   
   // Filter states
   const [activeLocationFilter, setActiveLocationFilter] = useState('all');
@@ -405,7 +406,7 @@ const CafesListScreen = ({ navigation }) => {
         >
           <Ionicons name="arrow-back" size={24} color="#000000" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Good Cafés</Text>
+        <Text style={styles.headerTitle}>{title}</Text>
         <View style={{ width: 40 }}><Text></Text></View>
       </View>
 

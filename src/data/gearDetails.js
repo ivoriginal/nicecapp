@@ -10,6 +10,7 @@ const gearDetails = {
       { id: 'user7', name: 'Sophia Miller', avatar: 'https://randomuser.me/api/portraits/women/68.jpg' }
     ]
   },
+  
   'AeroPress Coffee Maker': {
     id: 'gear-aeropress',
     brand: 'AeroPress',
@@ -20,6 +21,7 @@ const gearDetails = {
       { id: 'user6', name: 'David Kim', avatar: 'https://randomuser.me/api/portraits/men/45.jpg' }
     ]
   },
+  
   'Chemex 6-Cup Coffee Maker': {
     id: 'gear-chemex',
     brand: 'Chemex',
@@ -30,6 +32,7 @@ const gearDetails = {
       { id: 'user5', name: 'Emma Garcia', avatar: 'https://randomuser.me/api/portraits/women/33.jpg' }
     ]
   },
+  
   'Hario Ceramic Coffee Mill Slim': {
     id: 'gear-hario-slim',
     brand: 'Hario',
@@ -40,6 +43,7 @@ const gearDetails = {
       { id: 'user3', name: 'Carlos Hernández', avatar: 'assets/users/carlos-hernandez.jpg' }
     ]
   },
+  
   'Hario Range Server 600ml': {
     id: 'gear-hario-server',
     brand: 'Hario',
@@ -57,6 +61,7 @@ const gearDetails = {
       }
     ]
   },
+  
   'Comandante C40 MK3 Grinder': {
     id: 'gear-comandante',
     brand: 'Comandante',
@@ -67,6 +72,7 @@ const gearDetails = {
       { id: 'user8', name: 'James Wilson', avatar: 'https://randomuser.me/api/portraits/men/22.jpg' }
     ]
   },
+  
   'Fellow Stagg EKG Electric Kettle': {
     id: 'gear-stagg',
     brand: 'Fellow',
@@ -78,6 +84,7 @@ const gearDetails = {
       { id: 'user5', name: 'Emma Garcia', avatar: 'https://randomuser.me/api/portraits/women/33.jpg' }
     ]
   },
+  
   'Baratza Encore Coffee Grinder': {
     id: 'gear-encore',
     brand: 'Baratza',
@@ -88,6 +95,7 @@ const gearDetails = {
       { id: 'user5', name: 'Emma Garcia', avatar: 'https://randomuser.me/api/portraits/women/33.jpg' }
     ]
   },
+  
   '9Barista Espresso Maker': {
     id: 'gear-9barista',
     brand: '9Barista',
@@ -98,6 +106,7 @@ const gearDetails = {
       { id: 'user6', name: 'David Kim', avatar: 'https://randomuser.me/api/portraits/men/45.jpg' }
     ]
   },
+  
   'Fellow Opus Conical Burr Grinder': {
     id: 'gear-fellow-opus',
     brand: 'Fellow',
@@ -108,6 +117,7 @@ const gearDetails = {
       { id: 'user7', name: 'Sophia Miller', avatar: 'https://randomuser.me/api/portraits/women/68.jpg' }
     ]
   },
+  
   'Acaia Pearl Scale': {
     id: 'gear-acaia-pearl',
     brand: 'Acaia',
@@ -117,7 +127,7 @@ const gearDetails = {
       { id: 'user1', name: 'Ivo Vilches', avatar: 'assets/users/ivo-vilches.jpg' },
       { id: 'user3', name: 'Carlos Hernández', avatar: 'assets/users/carlos-hernandez.jpg' }
     ]
-  },
+  }
   // Add more gear items as needed
 };
 

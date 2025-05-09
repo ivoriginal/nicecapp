@@ -1,35 +1,119 @@
-import React from 'react';
-import { View, FlatList, StyleSheet, Text } from 'react-native';
-import { useCoffee } from '../context/CoffeeContext';
-import CoffeeCard from '../components/CoffeeCard';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import mockData from '../data/mockData.json';
-
-// No longer using local mock data, now importing from mockData.json
+import mockCoffees from '../data/mockCoffees.json';
+import mockRecipes from '../data/mockRecipes.json';
+import mockUsers from '../data/mockUsers.json';
+import mockEvents from '../data/mockEvents.json';
+import { useCoffee } from '../context/CoffeeContext';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import AppImage from '../components/common/AppImage';
+import CoffeeCard from '../components/CoffeeCard';
+import EventCard from '../components/EventCard';
+import RecipeCard from '../components/RecipeCard';
+import { COLORS, FONTS } from '../constants';
 
 export default function TabOneScreen() {
-  const { coffeeEvents } = useCoffee();
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
+  const scrollRef = useRef(null);
+  const { user } = useCoffee();
+  
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [trendingCoffees, setTrendingCoffees] = useState([]);
+  const [trendingRecipes, setTrendingRecipes] = useState([]);
+  const [upcomingEvents, setUpcomingEvents] = useState([]);
+  const [suggestedProfiles, setSuggestedProfiles] = useState([]);
+  
+  // Load data on component mount
+  useEffect(() => {
+    loadHomeData();
+  }, []);
+  
+  const loadHomeData = () => {
+    // Simulate network request
+    setTimeout(() => {
+      try {
+        // Get trending coffees from mockCoffees
+        const coffees = mockCoffees.coffees
+          .filter(coffee => coffee.isTrending)
+          .sort((a, b) => b.rating - a.rating)
+          .slice(0, 5);
+        setTrendingCoffees(coffees);
+        
+        // Get trending recipes from mockRecipes
+        const recipes = mockRecipes
+          .filter(recipe => recipe.isTrending)
+          .sort((a, b) => b.likes - a.likes)
+          .slice(0, 5);
+        setTrendingRecipes(recipes);
+        
+        // Get upcoming events from mockEvents
+        const today = new Date();
+        const events = mockEvents.events
+          .filter(event => {
+            const eventDate = new Date(event.date);
+            return eventDate >= today;
+          })
+          .sort((a, b) => new Date(a.date) - new Date(b.date))
+          .slice(0, 3);
+        setUpcomingEvents(events);
+        
+        // Get suggested profiles from mockUsers
+        const profiles = mockUsers.users
+          .filter(user => user.id !== 'currentUser' && !user.isBusinessAccount)
+          .sort(() => 0.5 - Math.random())
+          .slice(0, 3);
+        setSuggestedProfiles(profiles);
+        
+        setLoading(false);
+        setRefreshing(false);
+      } catch (error) {
+        console.error('Error loading home data:', error);
+        setLoading(false);
+        setRefreshing(false);
+      }
+    }, 1000);
+  };
+  
+  const handleCoffeePress = (coffee) => {
+    navigation.navigate('CoffeeDetailScreen', { coffeeId: coffee.id });
+  };
+  
+  const handleRecipePress = (recipe) => {
+    navigation.navigate('RecipeDetailScreen', { recipeId: recipe.id });
+  };
+  
+  const handleEventPress = (event) => {
+    navigation.navigate('EventDetailScreen', { eventId: event.id });
+  };
+  
+  const handleUserPress = (user) => {
+    navigation.navigate('ProfileScreen', { userId: user.id });
+  };
+  
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadHomeData();
+  };
 
-  const handleCoffeePress = (coffeeName) => {
-    const coffee = coffeeEvents.find(event => event.coffeeName === coffeeName);
-    if (coffee) {
-      navigation.navigate('CoffeeDetails', {
-        coffee: {
-          title: coffee.coffeeName,
-          description: coffee.notes || '',
-          username: coffee.username,
-          method: coffee.method,
-          amount: coffee.amount,
-          grindSize: coffee.grindSize,
-          waterVolume: coffee.waterVolume,
-          brewTime: coffee.brewTime,
-          isPublic: coffee.isPublic,
-          rating: coffee.rating || 3,
-          notes: coffee.notes
-        }
-      });
-    }
+  const renderItem = ({ item }) => {
+    // Find the coffee image from mockCoffees.coffees
+    const coffeeData = mockCoffees.coffees.find(c => c.id === item.coffeeId || c.name === item.coffeeName);
+    const imageUrl = coffeeData?.imageUrl || 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd';
+    
+    return (
+      <CoffeeCard
+        coffee={item}
+        imageSource={{ uri: imageUrl }}
+        username={item.username}
+        method={item.method}
+        rating={item.rating || 3}
+        onPress={() => handleCoffeePress(item)}
+      />
+    );
   };
 
   if (coffeeEvents.length === 0) {
@@ -47,31 +131,7 @@ export default function TabOneScreen() {
       <FlatList
         data={[...coffeeEvents].reverse()}
         keyExtractor={(item, index) => index.toString()}
-        renderItem={({ item }) => {
-          let description = '';
-          if (item.amount) {
-            description += `${item.amount} grams`;
-          }
-          if (item.grindSize) {
-            description += description ? `, Grind Size: ${item.grindSize}` : `Grind Size: ${item.grindSize}`;
-          }
-
-          // Find the coffee image from mockData.coffees
-          const coffeeData = mockData.coffees.find(c => c.id === item.coffeeId || c.name === item.coffeeName);
-          const imageUrl = coffeeData?.image || item.imageUrl;
-
-          return (
-            <CoffeeCard
-              title={item.coffeeName}
-              description={description}
-              imageUrl={imageUrl}
-              username={item.username}
-              method={item.method}
-              rating={item.rating || 3}
-              onPress={() => handleCoffeePress(item.coffeeName)}
-            />
-          );
-        }}
+        renderItem={renderItem}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
       />
     </View>

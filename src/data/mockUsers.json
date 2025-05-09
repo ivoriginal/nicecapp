@@ -1,0 +1,237 @@
+{
+  "users": [
+    {
+      "id": "user1",
+      "email": "ivo.vilches@example.com",
+      "userName": "Ivo Vilches",
+      "userAvatar": "assets/users/ivo-vilches.jpg",
+      "bio": "Coffee enthusiast and home barista. Always exploring new brewing methods.",
+      "gear": [
+        "AeroPress",
+        "Chemex",
+        "Hario V60",
+        "Hario Ceramic Slim",
+        "Hario Range Server"
+      ],
+      "gearWishlist": [
+        "9Barista Espresso Machine Mk.1",
+        "Fellow Stagg EKG"
+      ],
+      "location": "San Francisco, CA",
+      "joinedDate": "2022-01-15T00:00:00Z",
+      "savedRecipes": ["recipe1", "recipe5", "recipe-titus-a", "recipe2", "recipe3", "recipe4"],
+      "savedCoffees": [
+        {
+          "id": "coffee-villa-rosario",
+          "name": "Villa Rosario",
+          "roaster": "Kima Coffee",
+          "image": "https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728"
+        },
+        {
+          "id": "coffee-titus-a",
+          "name": "Titus A",
+          "roaster": "Toma Café",
+          "image": "https://cdn.shopify.com/s/files/1/0561/2172/1001/files/RUAN_TIT_fbc05869-95f3-47c4-9f73-09f1d290f3c6_800x.jpg?v=1741186794"
+        },
+        {
+          "id": "coffee-campo-hermoso-sidra",
+          "name": "Campo Hermoso",
+          "roaster": "Kima Coffee",
+          "image": "https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728"
+        }
+      ]
+    },
+    {
+      "id": "user2",
+      "email": "contacto@vertigoycalambre.com",
+      "userName": "Vértigo y Calambre",
+      "userAvatar": "assets/businesses/vertigo-logo.jpg",
+      "bio": "Specialty coffee lover. Always on the hunt for the perfect cup.",
+      "gear": [
+        "Chemex",
+        "Comandante C40",
+        "Bonavita Kettle"
+      ],
+      "gearWishlist": [
+        "La Marzocco GS3",
+        "Victoria Arduino Eagle One",
+        "Loring S15 Falcon"
+      ],
+      "location": "Portland, OR",
+      "joinedDate": "2022-03-22T00:00:00Z"
+    },
+    {
+      "id": "user3",
+      "email": "carlos.hernandez@example.com",
+      "userName": "Carlos Hernández",
+      "userAvatar": "assets/users/carlos-hernandez.jpg",
+      "bio": "Coffee roaster and barista. Passionate about the craft.",
+      "gear": [],
+      "location": "Madrid, Spain",
+      "joinedDate": "2022-02-10T00:00:00Z"
+    },
+    {
+      "id": "user5",
+      "email": "emma.garcia@example.com",
+      "userName": "Emma Garcia",
+      "userAvatar": "https://randomuser.me/api/portraits/women/33.jpg",
+      "bio": "Coffee shop owner and latte art enthusiast. Love connecting with fellow coffee lovers!",
+      "gear": [
+        "Rancilio Silvia",
+        "Eureka Mignon",
+        "Acaia Pearl Scale"
+      ],
+      "gearWishlist": [
+        "Mahlkönig EK43",
+        "Synesso S200",
+        "Saint Anthony Industries Phoenix"
+      ],
+      "location": "Austin, TX",
+      "joinedDate": "2022-04-12T00:00:00Z"
+    },
+    {
+      "id": "user6",
+      "email": "david.kim@example.com",
+      "userName": "David Kim",
+      "userAvatar": "https://randomuser.me/api/portraits/men/45.jpg",
+      "bio": "Coffee photographer and content creator. Sharing the beauty of coffee one shot at a time.",
+      "gear": [
+        "Fellow Stagg X",
+        "1Zpresso JX-Pro",
+        "Hario V60"
+      ],
+      "gearWishlist": [
+        "Leica Q2",
+        "Sony Alpha a7 III",
+        "Profitec Pro 700"
+      ],
+      "location": "Los Angeles, CA",
+      "joinedDate": "2022-06-18T00:00:00Z"
+    },
+    {
+      "id": "user7",
+      "email": "sophia.miller@example.com",
+      "userName": "Sophia Miller",
+      "userAvatar": "https://randomuser.me/api/portraits/women/68.jpg",
+      "bio": "Coffee educator and brewing competition judge. Always learning and sharing knowledge.",
+      "gear": [
+        "Kalita Wave",
+        "Baratza Vario",
+        "Fellow Stagg EKG"
+      ],
+      "gearWishlist": [
+        "La Marzocco GS3",
+        "Slayer Espresso Single Group",
+        "Kees van der Westen Speedster"
+      ],
+      "location": "Chicago, IL",
+      "joinedDate": "2022-01-30T00:00:00Z"
+    },
+    {
+      "id": "user8",
+      "email": "james.wilson@example.com",
+      "userName": "James Wilson",
+      "userAvatar": "https://randomuser.me/api/portraits/men/22.jpg",
+      "bio": "Coffee bean importer and green coffee buyer. Traveling the world for the best beans.",
+      "gear": [
+        "Moccamaster KBGV",
+        "Comandante C40",
+        "Acaia Lunar Scale"
+      ],
+      "gearWishlist": [
+        "Ikawa Pro V3",
+        "Cropster Software",
+        "Probat P12"
+      ],
+      "location": "Denver, CO",
+      "joinedDate": "2022-03-05T00:00:00Z"
+    },
+    {
+      "id": "user9",
+      "email": "olivia.taylor@example.com",
+      "userName": "Olivia Taylor",
+      "userAvatar": "https://randomuser.me/api/portraits/women/12.jpg",
+      "bio": "Coffee and pastry pairing expert. Finding the perfect match for every brew.",
+      "gear": [
+        "Chemex",
+        "Baratza Encore",
+        "Bonavita Kettle"
+      ],
+      "gearWishlist": [
+        "KitchenAid Pro Line",
+        "Rocket Appartamento",
+        "Baratza Forte AP"
+      ],
+      "location": "Boston, MA",
+      "joinedDate": "2022-05-22T00:00:00Z"
+    },
+    {
+      "id": "user10",
+      "email": "lucas.brown@example.com",
+      "userName": "Lucas Brown",
+      "userAvatar": "https://randomuser.me/api/portraits/men/55.jpg",
+      "bio": "Cold brew specialist and nitro coffee innovator. Always experimenting with new methods.",
+      "gear": [
+        "Toddy Cold Brew System",
+        "Fellow Stagg X",
+        "Acaia Pearl Scale"
+      ],
+      "gearWishlist": [
+        "GrowlerWerks uKeg Nitro",
+        "Kegerator",
+        "Yama Cold Brew Tower"
+      ],
+      "location": "Miami, FL",
+      "joinedDate": "2022-07-10T00:00:00Z"
+    },
+    {
+      "id": "user11",
+      "email": "elias.veris@example.com",
+      "userName": "Elias Veris",
+      "userAvatar": "assets/users/elias-veris.jpg",
+      "bio": "Coffee aficionado with a passion for pour-over methods. Always in search of the perfect cup.",
+      "gear": [
+        "Fellow Stagg EKG",
+        "Hario V60",
+        "Comandante C40",
+        "Acaia Pearl Scale"
+      ],
+      "gearWishlist": [
+        "La Marzocco Linea Mini",
+        "Weber Workshops Key Grinder",
+        "Origami Dripper"
+      ],
+      "location": "Madrid, Spain",
+      "joinedDate": "2023-05-12T00:00:00Z"
+    }
+  ],
+  "suggestedUsers": [
+    {
+      "id": "user5",
+      "userName": "Emma Garcia",
+      "userAvatar": "https://randomuser.me/api/portraits/women/33.jpg",
+      "bio": "Coffee shop owner and latte art enthusiast. Love connecting with fellow coffee lovers!",
+      "location": "Austin, TX",
+      "mutualFriends": 2,
+      "type": "user"
+    },
+    {
+      "id": "user7",
+      "userName": "Sophia Miller",
+      "userAvatar": "https://randomuser.me/api/portraits/women/68.jpg",
+      "bio": "Coffee educator and brewing competition judge. Always learning and sharing knowledge.",
+      "location": "Chicago, IL",
+      "mutualFriends": 4,
+      "type": "user"
+    },
+    {
+      "id": "user9",
+      "userName": "Olivia Taylor",
+      "userAvatar": "https://randomuser.me/api/portraits/women/12.jpg",
+      "bio": "Coffee and pastry pairing expert. Finding the perfect match for every brew.",
+      "location": "Boston, MA",
+      "mutualFriends": 1,
+      "type": "user"
+    }
+  ]
+} 

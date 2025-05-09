@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react';
 import { 
   View, 
   Text, 
@@ -10,15 +10,78 @@ import {
   ActivityIndicator,
   Alert,
   StatusBar,
-  RefreshControl
+  RefreshControl,
+  Dimensions,
+  Platform,
+  ActionSheetIOS,
+  Animated
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRoute, useNavigation } from '@react-navigation/native';
-import mockData from '../data/mockData.json';
+import { useRoute, useNavigation, useIsFocused } from '@react-navigation/native';
+// Import the raw JSON data to ensure it's available
+import mockUsersData from '../data/mockUsers.json';
+import mockRecipesData from '../data/mockRecipes.json';
+import mockEventsData from '../data/mockEvents.json';
+import mockCafesData from '../data/mockCafes.json';
+import mockCoffeesData from '../data/mockCoffees.json';
+import mockGear from '../data/mockGear.json';
+import gearDetails from '../data/gearDetails';
+import { businessCoffees } from '../data/businessProducts';
+// Initialize default empty mock data structures to prevent "undefined" errors
+const defaultMockData = mockUsersData || { users: [], trendingCafes: [], businesses: [] };
 import { useCoffee } from '../context/CoffeeContext';
 import AppImage from '../components/common/AppImage';
 import CoffeeLogCard from '../components/CoffeeLogCard';
+import FollowButton from '../components/FollowButton';
+import { COLORS, FONTS, SIZES } from '../constants';
+import AnimatedTabBar from '../components/AnimatedTabBar';
+import { useUser } from '../context/UserContext';
+import RecipeCard from '../components/RecipeCard';
+
+// Helper component to safely render FlatLists inside ScrollView
+const SafeFlatList = ({ data, ...props }) => {
+  if (!data || data.length === 0) {
+    return props.ListEmptyComponent ? props.ListEmptyComponent() : null;
+  }
+  
+  return (
+    <FlatList
+      data={data}
+      scrollEnabled={false} // prevent scrolling to avoid nested scrollviews warning
+      {...props}
+    />
+  );
+};
+
+// Fallback implementation in case dataService's getMockUser is unavailable
+const getMockUserFallback = (userId) => {
+  if (!mockUsersData || !mockUsersData.users) {
+    console.warn('mockUsersData is not available');
+    return null;
+  }
+  return mockUsersData.users.find(u => u.id === userId);
+};
+
+// After imports, add a helper function for gear images
+const getGearImage = (gearName) => {
+  if (!gearName) return null;
+  
+  // First try to find in mockGear.gear
+  const mockGearItem = mockGear.gear.find(g => g.name === gearName);
+  if (mockGearItem && mockGearItem.imageUrl) {
+    return mockGearItem.imageUrl;
+  }
+  
+  // Then check if it's in gearDetails
+  const gearItem = gearDetails[gearName];
+  if (gearItem && gearItem.image) {
+    return gearItem.image;
+  }
+  
+  // If we can't find an image, return null
+  return null;
+};
 
 export default function UserProfileScreen() {
   const route = useRoute();
@@ -26,6 +89,7 @@ export default function UserProfileScreen() {
   const insets = useSafeAreaInsets();
   const { userId, isCurrentUser, ensureHeaderShown, isLocation, parentBusinessId } = route.params || { userId: 'user1' }; // Default to Ivo Vilches
   const { allEvents, following, followers, loadData: loadGlobalData, currentAccount, removeCoffeeEvent } = useCoffee();
+  const { currentUser } = useUser();
   
   const [user, setUser] = useState(null);
   const [userCoffees, setUserCoffees] = useState([]);
@@ -35,21 +99,44 @@ export default function UserProfileScreen() {
   const [activeTab, setActiveTab] = useState('coffees'); // 'coffees' represents the Activity tab which will show coffee logs and other types of events
   const [isFollowing, setIsFollowing] = useState(false);
   const [collectionCoffees, setCollectionCoffees] = useState([]);
+  const [favorites, setFavorites] = useState([]);
+  const [recipes, setRecipes] = useState([]);
+  const [gear, setGear] = useState([]);
+  const [userLogs, setUserLogs] = useState([]);
+  const [enableRefreshControl, setEnableRefreshControl] = useState(false);
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const [showAllDesc, setShowAllDesc] = useState(false);
+  const [expandedEvent, setExpandedEvent] = useState(null);
+  const [error, setError] = useState(null);
+  const [coffeeEvents, setCoffeeEvents] = useState([]);
+  const [shopFilter, setShopFilter] = useState('coffee');
+
+  const isFocused = useIsFocused();
 
   // Ensure header is visible and handle transitions properly
   useEffect(() => {
     const initialSetup = () => {
-      // Force header to be shown for this screen
+      // Keep header visible but with no title or border initially
       navigation.setOptions({
-        headerShown: true
+        headerShown: true,
+        headerTransparent: false,
+        headerStyle: {
+          backgroundColor: '#FFFFFF',
+          elevation: 0, // Remove shadow for Android
+          shadowOpacity: 0, // Remove shadow for iOS
+          shadowRadius: 0,
+          borderBottomWidth: 0 // Remove bottom border
+        },
+        headerTitle: '', // Start with empty title
+        headerRight: () => (
+          <TouchableOpacity 
+            onPress={handleOptionsPress} 
+            style={{ marginRight: 16 }}
+          >
+            <Ionicons name="ellipsis-horizontal" size={24} color="#000000" />
+          </TouchableOpacity>
+        )
       });
-      
-      // Set a descriptive title for location-specific views
-      if (isLocation && user) {
-        navigation.setOptions({
-          title: user.userName // Use the location name as the title
-        });
-      }
     };
     
     // Initial setup
@@ -73,12 +160,106 @@ export default function UserProfileScreen() {
     };
   }, [navigation, isLocation, user]);
 
+  // Handle options button press
+  const handleOptionsPress = () => {
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ['Share Profile', 'Cancel'],
+          cancelButtonIndex: 1,
+          userInterfaceStyle: 'light'
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 0) {
+            // Share Profile
+            Alert.alert('Share', `Sharing ${user?.userName || 'user'}'s profile`);
+            // In a real app, you would implement actual sharing functionality here
+          }
+        }
+      );
+    } else {
+      // For Android, we would use a custom modal or menu
+      Alert.alert(
+        'Options',
+        'Choose an option',
+        [
+          { 
+            text: 'Share Profile', 
+            onPress: () => Alert.alert('Share', `Sharing ${user?.userName || 'user'}'s profile`) 
+          },
+          { text: 'Cancel', style: 'cancel' }
+        ]
+      );
+    }
+  };
+
+  // Handle scroll events to update header title and border
+  const handleScroll = (event) => {
+    const currentScrollY = event.nativeEvent.contentOffset.y;
+    
+    // Show header title after scrolling past a threshold (e.g., 40 pixels)
+    if (currentScrollY > 40 && scrollY.current <= 40) {
+      // Scrolled down past threshold - show title and border
+      navigation.setOptions({
+        headerTitle: user?.userName || route.params?.userName || 'Profile',
+        headerStyle: {
+          backgroundColor: '#FFFFFF',
+          elevation: 0, // Keep 0 to avoid accidental shadow on Android
+          shadowOpacity: 0, // Keep 0 to avoid accidental shadow on iOS
+          shadowRadius: 0,
+          borderBottomWidth: 1, // Add bottom border
+          borderBottomColor: '#E5E5EA'
+        },
+        // Keep the three-dot menu
+        headerRight: () => (
+          <TouchableOpacity 
+            onPress={handleOptionsPress} 
+            style={{ marginRight: 16 }}
+          >
+            <Ionicons name="ellipsis-horizontal" size={24} color="#000000" />
+          </TouchableOpacity>
+        )
+      });
+    } else if (currentScrollY <= 40 && scrollY.current > 40) {
+      // Scrolled up to threshold - hide title and border
+      navigation.setOptions({
+        headerTitle: '',
+        headerStyle: {
+          backgroundColor: '#FFFFFF',
+          elevation: 0, // Remove shadow for Android
+          shadowOpacity: 0, // Remove shadow for iOS
+          shadowRadius: 0,
+          borderBottomWidth: 0 // Remove bottom border
+        },
+        // Keep the three-dot menu
+        headerRight: () => (
+          <TouchableOpacity 
+            onPress={handleOptionsPress} 
+            style={{ marginRight: 16 }}
+          >
+            <Ionicons name="ellipsis-horizontal" size={24} color="#000000" />
+          </TouchableOpacity>
+        )
+      });
+    }
+    
+    // Update the ref with current position
+    scrollY.current = currentScrollY;
+  };
+
   // Determine tabs based on user type
   const getTabs = () => {
     if (user?.isRoaster) {
       return [
         { id: 'locations', label: 'Locations' },
         { id: 'shop', label: 'Shop' }
+      ];
+    } else if (user?.isBusinessAccount) {
+      // For cafés and other business accounts, show activity, shop and recipes tabs
+      return [
+        { id: 'coffees', label: 'Activity' },
+        { id: 'shop', label: 'Shop' },
+        { id: 'recipes', label: 'Recipes' }
       ];
     } else {
       return [
@@ -93,7 +274,7 @@ export default function UserProfileScreen() {
   useEffect(() => {
     if (user?.isRoaster && activeTab === 'coffees') {
       setActiveTab('locations');
-    } else if (!user?.isRoaster && activeTab === 'locations') {
+    } else if (!user?.isRoaster && (activeTab === 'locations')) {
       setActiveTab('coffees');
     }
   }, [user]);
@@ -128,256 +309,158 @@ export default function UserProfileScreen() {
   const loadProfileData = async () => {
     console.log('UserProfileScreen - Loading data for userId:', userId);
     
-    // Load user profile
-    const foundUser = mockData.users.find(u => u.id === userId);
-    const trendingCafe = mockData.trendingCafes.find(cafe => cafe.id === userId);
+    // Initialize with safe empty data
+    setRoasterCoffees([]);
+    setUserCoffees([]);
     
-    // Determine user type and load appropriate data
-    if (userId.startsWith('business-') && ['business-toma', 'business-kima', 'business-cafelab'].includes(userId)) {
-      // Load roaster coffees
-      const coffees = mockData.coffees.filter(coffee => coffee.roasterId === userId);
-      console.log('Found coffees for roaster:', coffees.length);
-      setRoasterCoffees(coffees);
-    }
-    
-    // Load coffee events for regular users
-    if (!userId.startsWith('business-') && !trendingCafe) {
+    // If we have proper allEvents data, filter it
+    if (Array.isArray(allEvents)) {
       const userEvents = allEvents.filter(event => event.userId === userId || event.coffeeId === userId);
       setUserCoffees(userEvents);
     }
     
-    // Additional data loading can be added here
     setLoading(false);
   };
 
   useEffect(() => {
-    console.log('UserProfileScreen - Loading profile for userId:', userId);
-    
-    // Check if this is a location-specific view
-    if (isLocation) {
-      console.log('Loading location-specific profile for:', userId, 'parent business:', parentBusinessId);
+    const loadAllProfileData = async () => {
+      console.log('Loading all profile data for:', userId);
+      setLoading(true);
       
-      // Find the specific location in trendingCafes
-      const locationCafe = mockData.trendingCafes.find(cafe => cafe.id === userId);
-      
-      if (locationCafe) {
-        // Set up a location-specific profile
-        const userWithBusinessStatus = {
-          id: locationCafe.id,
-          userName: locationCafe.name,
-          userAvatar: locationCafe.avatar || locationCafe.logo,
-          location: locationCafe.location || 'Unknown location',
-          bio: locationCafe.description || `${locationCafe.name} in ${locationCafe.location}`,
-          isBusinessAccount: true,
-          userHandle: locationCafe.id,
-          businessId: locationCafe.businessId, // Keep track of parent business
-          isLocation: true, // Mark as a location profile
-          parentBusinessId: parentBusinessId,
-          gear: [],
-          gearWishlist: []
-        };
+      try {
+        // First, get the user data
+        let userData;
+        if (isCurrentUser) {
+          // If viewing own profile, use current user data
+          userData = currentUser;
+        } else {
+          // Check if this is a business ID (roaster)
+          if (userId.startsWith('business-')) {
+            const businessData = mockUsersData.businesses?.find(b => b.id === userId) || 
+                                mockCafesData.businesses?.find(b => b.id === userId);
+            
+            if (businessData) {
+              userData = {
+                ...businessData,
+                userName: businessData.name,
+                userAvatar: businessData.avatar || businessData.logo,
+                isBusinessAccount: true,
+                isRoaster: businessData.isRoaster || businessData.type?.includes('roaster'),
+                location: businessData.location || route.params?.location,
+                // If the business has locations, add them as cafes
+                cafes: businessData.addresses?.map(addr => ({
+                  id: addr.id,
+                  name: addr.name,
+                  address: addr.address,
+                  location: addr.location || addr.address,
+                  avatar: businessData.avatar || businessData.logo,
+                  rating: 4.8,
+                  reviewCount: 100 + Math.floor(Math.random() * 50)
+                })) || []
+              };
+              
+              // Load coffees from mockCoffees.json for specific roasters
+              if (userId === 'business-kima') {
+                console.log('Loading Kima Coffee products');
+                // Get coffees from mockCoffees.json where roasterId matches the business ID
+                import('../data/mockCoffees.json').then(mockCoffeesData => {
+                  const roasterCoffeeProducts = mockCoffeesData.coffees.filter(
+                    coffee => coffee.roasterId === userId
+                  );
+                  console.log(`Found ${roasterCoffeeProducts.length} coffees for ${userData.userName}`);
+                  setRoasterCoffees(roasterCoffeeProducts);
+                });
+              }
+            }
+          } else {
+            // Otherwise, fetch the requested user using the fallback function
+            userData = getMockUserFallback(userId);
+          }
+        }
         
-        setUser(userWithBusinessStatus);
-        loadProfileData();
-        return; // Exit early since we've handled the profile
+        if (userData) {
+          // If route params include isRoaster, isBusinessAccount, or location, merge them with userData
+          if (route.params?.isRoaster !== undefined || 
+              route.params?.isBusinessAccount !== undefined ||
+              route.params?.location) {
+            userData = {
+              ...userData,
+              isRoaster: route.params.isRoaster !== undefined ? route.params.isRoaster : userData.isRoaster,
+              isBusinessAccount: route.params.isBusinessAccount !== undefined ? 
+                route.params.isBusinessAccount : userData.isBusinessAccount,
+              location: route.params.location || userData.location
+            };
+          }
+          
+          setUser(userData);
+          
+          // Get user logs from mockEvents.json
+          const userEvents = mockEventsData.coffeeEvents.filter(event => 
+            event.userId === userId && 
+            !event.isPrivate // Don't show private events
+          );
+          
+          setUserLogs(userEvents);
+          
+          // Get recipes from mockRecipes.json
+          const userRecipes = mockRecipesData.recipes.filter(recipe => 
+            recipe.creatorId === userId || recipe.userId === userId
+          );
+          
+          setRecipes(userRecipes);
+        } else {
+          // Create a default user if none found
+          setUser({
+            id: userId,
+            userName: route.params?.userName || 'User',
+            userAvatar: null,
+            location: '',
+            bio: '',
+            isBusinessAccount: route.params?.isBusinessAccount || false,
+            isRoaster: route.params?.isRoaster || false,
+            userHandle: userId,
+            gear: [],
+            gearWishlist: []
+          });
+        }
+        
+        // Also load user events data
+        setUserCoffees([]);
+        
+        // If we have proper allEvents data, filter it
+        if (Array.isArray(allEvents)) {
+          const userEvents = allEvents.filter(event => event.userId === userId || event.coffeeId === userId);
+          setUserCoffees(userEvents);
+        }
+        
+        // For specific roasters, load their coffees if not loaded above
+        if (userId === 'business-kima' && roasterCoffees.length === 0) {
+          // Load Kima coffees directly from the JSON file
+          import('../data/mockCoffees.json').then(mockCoffeesData => {
+            const kimaCoffees = mockCoffeesData.coffees.filter(
+              coffee => coffee.roasterId === 'business-kima'
+            );
+            console.log(`Found ${kimaCoffees.length} coffees for Kima Coffee`);
+            setRoasterCoffees(kimaCoffees);
+          }).catch(error => {
+            console.error('Error loading coffee data:', error);
+          });
+        }
+      } catch (error) {
+        console.error('Error loading profile data:', error);
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+        
+        // Enable the refresh control only after initial loading is complete
+        setTimeout(() => {
+          setEnableRefreshControl(true);
+        }, 500);
       }
-    }
-    
-    // Check if this is a trending café by ID (regardless of prefix)
-    const trendingCafe = mockData.trendingCafes.find(cafe => cafe.id === userId);
-    
-    // Determine if this is a business account
-    // 1. Explicit matches like Vértigo y Calambre (user2)
-    // 2. Business IDs that start with "business-" like "business-kima"
-    // 3. Café IDs in the trendingCafes array
-    const isBusinessAccount = userId === 'user2' || 
-                             userId.startsWith('business-') || 
-                             userId.startsWith('cafe') ||
-                             trendingCafe !== undefined;
-    
-    let userWithBusinessStatus = null;
-    
-    // Fetch the appropriate profile
-    if (userId === 'user2') {
-      // Special case for Vértigo y Calambre
-      userWithBusinessStatus = setupVertigoProfile();
-    } else if (trendingCafe) {
-      // Direct match with trending café
-      userWithBusinessStatus = setupCafeProfile(trendingCafe);
-    } else if (userId.startsWith('business-') && ['business-toma', 'business-kima', 'business-cafelab'].includes(userId)) {
-      // Roaster business profile
-      userWithBusinessStatus = setupRoasterProfile(userId);
-    } else if (userId.startsWith('cafe')) {
-      // Café profile not in trending
-      userWithBusinessStatus = setupGenericCafeProfile(userId);
-    } else if (userId.startsWith('business-')) {
-      // Other business profiles
-      userWithBusinessStatus = setupGenericBusinessProfile(userId);
-    } else {
-      // Regular user profile
-      userWithBusinessStatus = setupRegularUserProfile(userId);
-    }
-    
-    setUser(userWithBusinessStatus);
-    
-    // Also load user coffee events (if applicable)
-    loadProfileData();
-  }, [userId, isLocation, parentBusinessId]);
-  
-  // Helper functions for setting up different types of profiles
-  const setupVertigoProfile = () => {
-    const foundUser = mockData.users.find(u => u.id === 'user2');
-    return {
-      id: 'user2',
-      userName: 'Vértigo y Calambre',
-      userAvatar: 'assets/businesses/vertigo-logo.jpg',
-      location: 'Murcia, Spain',
-      bio: 'Specialty coffee shop and roastery in Murcia, Spain. We roast and serve the best coffee from around the world.',
-      isBusinessAccount: true,
-      userHandle: 'vertigoycalambre',
-      gear: [],
-      gearWishlist: foundUser?.gearWishlist || []
     };
-  };
-  
-  const setupCafeProfile = (trendingCafe) => {
-    return {
-      id: trendingCafe.id,
-      userName: trendingCafe.name,
-      userAvatar: trendingCafe.avatar,
-      location: trendingCafe.location || 'Unknown location',
-      bio: trendingCafe.description || `${trendingCafe.name} in ${trendingCafe.location}`,
-      isBusinessAccount: true,
-      userHandle: trendingCafe.id,
-      businessId: trendingCafe.businessId, // Keep track of parent business
-      gear: [],
-      gearWishlist: []
-    };
-  };
-  
-  const setupRoasterProfile = (userId) => {
-    const roasterData = mockData.businesses.find(b => b.id === userId);
     
-    if (roasterData) {
-      // Collect all cafés associated with this roaster from trendingCafes
-      const roasterCafes = mockData.trendingCafes.filter(cafe => cafe.businessId === userId);
-      console.log('Setting up roaster profile for:', userId, 'Found logo/avatar:', roasterData.avatar || roasterData.logo);
-      
-      return {
-        id: roasterData.id,
-        userName: roasterData.name,
-        userAvatar: roasterData.avatar || roasterData.logo,
-        location: roasterData.location || 'Unknown location',
-        bio: roasterData.description || '',
-        isBusinessAccount: true,
-        isRoaster: true,
-        userHandle: userId.replace('business-', ''),
-        cafes: roasterCafes, // Include all cafés associated with this roaster
-        addresses: roasterData.addresses || [], // Include addresses array if available
-        gear: [],
-        gearWishlist: []
-      };
-    }
-    return null;
-  };
-  
-  const setupGenericCafeProfile = (userId) => {
-    const cafeData = mockData.trendingCafes.find(cafe => cafe.id === userId);
-    
-    if (cafeData) {
-      return {
-        id: cafeData.id,
-        userName: cafeData.name,
-        userAvatar: cafeData.avatar || cafeData.logo || cafeData.imageUrl,
-        location: cafeData.location || 'Unknown location',
-        bio: cafeData.description || '',
-        isBusinessAccount: true,
-        userHandle: cafeData.id,
-        gear: [],
-        gearWishlist: []
-      };
-    }
-    return null;
-  };
-  
-  const setupGenericBusinessProfile = (userId) => {
-    const businessData = mockData.businesses?.find(b => b.id === userId);
-    
-    if (businessData) {
-      return {
-        id: businessData.id,
-        userName: businessData.name,
-        userAvatar: businessData.avatar || businessData.logo || businessData.imageUrl,
-        location: businessData.location || 'Unknown location',
-        bio: businessData.description || '',
-        isBusinessAccount: true,
-        userHandle: userId.replace('business-', ''),
-        gear: [],
-        gearWishlist: []
-      };
-    }
-    
-    // Try to find in trendingCafes as a fallback
-    const cafeData = mockData.trendingCafes.find(cafe => 
-      cafe.businessId === userId || cafe.id === userId.replace('business-', '')
-    );
-    
-    if (cafeData) {
-      return {
-        id: userId,
-        userName: cafeData.name,
-        userAvatar: cafeData.avatar || cafeData.logo || cafeData.imageUrl,
-        location: cafeData.location || 'Unknown location',
-        bio: cafeData.description || '',
-        isBusinessAccount: true,
-        userHandle: userId.replace('business-', ''),
-        gear: [],
-        gearWishlist: []
-      };
-    }
-    
-    return null;
-  };
-  
-  const setupRegularUserProfile = (userId) => {
-    const foundUser = mockData.users.find(u => u.id === userId);
-    
-    if (foundUser) {
-      const userProfile = {
-        ...foundUser,
-        isBusinessAccount: false,
-        userHandle: foundUser.userName.toLowerCase().replace(/\s+/g, '_'),
-        gearWishlist: foundUser.gearWishlist || []
-      };
-      
-      // Update locations for specific users
-      if (userProfile.id === 'user1') {
-        userProfile.location = 'Murcia, Spain';
-      } else if (userProfile.id === 'user3') {
-        userProfile.location = 'Madrid, Spain';
-      }
-      
-      // Ensure Elias Veris has the correct avatar path
-      if (userProfile.id === 'user11') {
-        userProfile.userAvatar = 'assets/users/elias-veris.jpg';
-      }
-      
-      return userProfile;
-    }
-    
-    // Fallback for unknown users
-    return {
-      id: userId,
-      userName: 'Unknown User',
-      userAvatar: null,
-      location: '',
-      bio: '',
-      isBusinessAccount: false,
-      userHandle: userId,
-      gear: [],
-      gearWishlist: []
-    };
-  };
+    loadAllProfileData();
+  }, [userId, isCurrentUser, currentUser, allEvents, route.params]);
 
   const handleFollowPress = () => {
     setIsFollowing(!isFollowing);
@@ -428,24 +511,6 @@ export default function UserProfileScreen() {
     />
   );
 
-  // Handle options button press
-  const handleOptionsPress = (event, action) => {
-    console.log('Options action:', action, 'for event:', event.id);
-    if (action === 'delete') {
-      // Use the context function to delete the post
-      if (removeCoffeeEvent) {
-        removeCoffeeEvent(event.id);
-      }
-      // No need for Alert since Toast is shown by the component
-    } else if (action === 'public' || action === 'private') {
-      // Handle visibility change - Toast is shown by the component
-      console.log('Changed visibility to:', action);
-    } else if (action === 'report') {
-      // Handle report
-      Alert.alert('Report Submitted', 'Thank you for your report. We will review this content.');
-    }
-  };
-
   // Handle like button press
   const handleLikePress = (eventId, isLiked) => {
     console.log('Like toggled:', eventId, isLiked);
@@ -453,32 +518,43 @@ export default function UserProfileScreen() {
   };
 
   // Render coffee item for Shop tab (for roasters)
-  const renderShopCoffeeItem = ({ item }) => (
-    <TouchableOpacity 
-      style={styles.coffeeCard}
-      onPress={() => navigation.navigate('CoffeeDetail', { 
-        coffeeId: item.id,
-        skipAuth: true 
-      })}
-    >
-      {item.imageUrl ? (
+  // This function handles both direct coffee objects and reference objects that use coffeeId
+  // If the item contains a coffeeId property but no name, it's a reference object to a coffee in mockCoffeesData
+  // In that case, we look up the full coffee details from mockCoffeesData while preserving business-specific
+  // pricing from the reference object
+  const renderShopCoffeeItem = ({ item }) => {
+    // If item is a reference to a coffee in mockCoffees.json
+    const isReference = item.coffeeId && !item.name;
+    
+    // Find complete coffee data from mockCoffees.json if this is a reference
+    const coffeeData = isReference 
+      ? mockCoffeesData.coffees.find(coffee => coffee.id === item.coffeeId) 
+      : item;
+    
+    // Only render if we have coffee data
+    if (!coffeeData) return null;
+    
+    return (
+      <TouchableOpacity 
+        style={styles.coffeeCard}
+        onPress={() => navigation.navigate('CoffeeDetail', { 
+          coffeeId: coffeeData.id,
+          skipAuth: true 
+        })}
+      >
         <AppImage 
-          source={item.imageUrl} 
+          source={coffeeData.image || coffeeData.imageUrl} 
           style={styles.coffeeImage}
           resizeMode="cover"
         />
-      ) : (
-        <View style={[styles.coffeeImage, { justifyContent: 'center', alignItems: 'center' }]}>
-          <Ionicons name="cafe-outline" size={30} color="#888888" />
+        <View style={styles.coffeeInfo}>
+          <Text style={styles.coffeeName} numberOfLines={1}>{coffeeData.name}</Text>
+          <Text style={styles.coffeeOrigin} numberOfLines={1}>{coffeeData.origin}</Text>
+          <Text style={styles.coffeePrice}>{typeof item.price === 'number' ? `€${item.price.toFixed(2)}` : item.price}</Text>
         </View>
-      )}
-      <View style={styles.coffeeInfo}>
-        <Text style={styles.coffeeName} numberOfLines={1}>{item.name}</Text>
-        <Text style={styles.coffeeOrigin} numberOfLines={1}>{item.origin}</Text>
-        <Text style={styles.coffeePrice}>${item.price?.toFixed(2) || '0.00'}</Text>
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   // Load user's collection (coffees they've tried)
   useEffect(() => {
@@ -512,23 +588,318 @@ export default function UserProfileScreen() {
     }
   }, [userId, allEvents, loading]);
 
+  const handleFollowChange = (userId, isFollowing) => {
+    console.log(`User ${userId} follow status changed to ${isFollowing}`);
+    // In a real app, you would call your API to update follow status
+  };
+  
+  const handleEditProfile = () => {
+    navigation.navigate('EditProfile');
+  };
+  
+  const tabs = [
+    { label: 'Coffee Logs' },
+    { label: 'Reviews' },
+    { label: 'Recipes' },
+  ];
+  
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 0: // Coffee Logs
+        return (
+          <View style={styles.tabContent}>
+            {userLogs.length > 0 ? (
+              userLogs.map(log => (
+                <CoffeeLogCard 
+                  key={log.id} 
+                  log={log} 
+                  containerStyle={styles.logCard}
+                />
+              ))
+            ) : (
+              <Text style={styles.emptyText}>No coffee logs yet</Text>
+            )}
+          </View>
+        );
+        
+      case 1: // Reviews
+        return (
+          <View style={styles.tabContent}>
+            <Text style={styles.emptyText}>No reviews yet</Text>
+          </View>
+        );
+        
+      case 2: // Recipes
+        return (
+          <View style={styles.recipesContainer}>
+            {recipes && recipes.length > 0 ? (
+              <SafeFlatList
+                data={recipes}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item }) => (
+                  <RecipeCard
+                    recipe={item}
+                    onPress={() => handleRecipePress(item)}
+                    onUserPress={() => null} // We don't need to navigate to the user since we're already on their profile
+                    showCoffeeInfo={true}
+                    style={styles.recipeCard}
+                  />
+                )}
+                contentContainerStyle={styles.recipeListContainer}
+              />
+            ) : (
+              <View style={styles.emptyContainer}>
+                <Ionicons name="document-text-outline" size={30} color="#888888" />
+                <Text style={styles.emptyText}>No recipes yet</Text>
+                {user?.id === 'user1' && (
+                  <TouchableOpacity 
+                    style={styles.createButton}
+                    onPress={() => navigation.navigate('CreateRecipe')}
+                  >
+                    <Text style={styles.createButtonText}>Create Recipe</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
+          </View>
+        );
+        
+      default:
+        return null;
+    }
+  };
+
+  // Load Kima's coffees when in the shop tab
+  useEffect(() => {
+    if (user?.isRoaster && activeTab === 'shop' && roasterCoffees.length === 0) {
+      console.log('Loading Kima coffees for shop tab');
+      // Filter coffees for Kima (business-kima)
+      const kimaCoffees = mockCoffeesData.coffees.filter(coffee => 
+        coffee.roaster === 'Kima Coffee' || 
+        coffee.roasterId === 'business-kima'
+      );
+      setRoasterCoffees(kimaCoffees);
+    } else if (user?.isBusinessAccount && !user?.isRoaster && activeTab === 'shop' && roasterCoffees.length === 0) {
+      // Load special coffees for Vértigo y Calambre
+      if (user.userName === 'Vértigo y Calambre' || user.id === 'user2') {
+        // Get coffee data from our unified business coffees data structure
+        const businessId = 'user2';
+        const businessCoffeeRefs = businessCoffees[businessId] || [];
+        
+        // Map reference list to full coffee data objects
+        const vertigoCoffees = businessCoffeeRefs
+          .map(coffeeRef => {
+            const coffeeData = mockCoffeesData.coffees.find(c => c.id === coffeeRef.coffeeId);
+            return coffeeData ? {
+              ...coffeeData,
+              price: coffeeRef.price // Use business-specific price
+            } : null;
+          })
+          .filter(Boolean); // Remove any null values
+        
+        setRoasterCoffees(vertigoCoffees);
+        
+        // Also set gear for Vértigo y Calambre
+        const vertigoGear = [
+          {
+            id: "gear1",
+            name: "Fellow Stagg EKG",
+            type: "Kettle",
+            brand: "Fellow",
+            price: 170,
+            description: "Electric pour-over kettle with variable temperature control",
+            imageUrl: "https://hola.coffee/cdn/shop/files/FELLOW-STAGG_1024x1024@2x.jpg?v=1732719228"
+          },
+          {
+            id: "gear3",
+            name: "Comandante C40 MK4",
+            type: "Grinder",
+            brand: "Comandante",
+            price: 299.99,
+            description: "Premium hand grinder featuring high-nitrogen stainless steel burrs",
+            imageUrl: "https://images.unsplash.com/photo-1575441347544-11725ca18b26"
+          },
+          {
+            id: "gear4",
+            name: "Hario V60",
+            type: "Pour Over",
+            brand: "Hario",
+            price: 24.99,
+            description: "Iconic cone-shaped pour-over dripper with spiral ribs",
+            imageUrl: "https://www.hario-europe.com/cdn/shop/files/VDC-01R_web.png?v=1683548122&width=1400"
+          },
+          {
+            id: "gear6",
+            name: "AeroPress",
+            type: "Brewer",
+            brand: "Aerobie",
+            price: 29.99,
+            description: "Versatile coffee maker that uses pressure for quick brewing",
+            imageUrl: "https://aeropress.com/cdn/shop/files/Hero_Original_87a4958c-7df9-43b6-af92-0edc12c126cf_900x.png?v=1744683381"
+          }
+        ];
+        
+        setGear(vertigoGear);
+      }
+    }
+  }, [user, activeTab, roasterCoffees.length]);
+
+  const handleRecipePress = (item) => {
+    navigation.navigate('RecipeDetail', { 
+      recipeId: item.id,
+      coffeeId: item.coffeeId,
+      coffeeName: item.coffeeName,
+      roaster: item.roaster,
+      imageUrl: item.imageUrl,
+      recipe: item,
+      userId: item.creatorId,
+      userName: item.creatorName || user?.userName,
+      userAvatar: item.creatorAvatar || user?.userAvatar,
+      isBusinessAccount: user?.isBusinessAccount
+    });
+  };
+
+  // Render shop tab
+  const renderShopTab = () => {
+    // Get coffee data for this business
+    const businessId = userId === 'user2' || (user && user.userName === 'Vértigo y Calambre')
+      ? "user2"
+      : userId === 'business-kima' ? "business-kima"
+      : userId === 'business-toma' ? "business-toma"
+      : null;
+      
+    const userCoffees = businessId && businessCoffees[businessId] ? businessCoffees[businessId] : [];
+    
+    // Check if user is a business and has gear in their shop tab
+    const userGear = user && user.isBusinessAccount ? 
+      mockGear.gear.filter(gear => businessGear.includes(gear.id)) : [];
+      
+    const hasContent = userCoffees.length > 0 || userGear.length > 0;
+    
+    return (
+      <View style={styles.shopContainer}>
+        {/* iOS-style segmented control */}
+        <View style={styles.segmentedControl}>
+          <TouchableOpacity
+            style={[
+              styles.segment,
+              shopFilter === 'coffee' && styles.segmentActive
+            ]}
+            onPress={() => setShopFilter('coffee')}
+          >
+            <Text style={[
+              styles.segmentText,
+              shopFilter === 'coffee' && styles.segmentTextActive
+            ]}>Coffees</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.segment,
+              shopFilter === 'gear' && styles.segmentActive
+            ]}
+            onPress={() => setShopFilter('gear')}
+          >
+            <Text style={[
+              styles.segmentText,
+              shopFilter === 'gear' && styles.segmentTextActive
+            ]}>Gear</Text>
+          </TouchableOpacity>
+        </View>
+        
+        {shopFilter === 'coffee' ? (
+          userCoffees.length > 0 ? (
+            <SafeFlatList
+              data={userCoffees}
+              keyExtractor={(item) => item.coffeeId || item.id}
+              renderItem={renderShopCoffeeItem}
+              contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 16 }}
+              showsVerticalScrollIndicator={false}
+              numColumns={2}
+              columnWrapperStyle={{ justifyContent: 'space-between', marginBottom: 16 }}
+            />
+          ) : (
+            <View style={styles.emptyStateContainer}>
+              <Ionicons name="cafe-outline" size={56} color="#CCCCCC" />
+              <Text style={styles.emptyStateText}>No coffees in shop</Text>
+            </View>
+          )
+        ) : (
+          userGear.length > 0 ? (
+            <SafeFlatList
+              data={userGear}
+              keyExtractor={(item) => item.id}
+              renderItem={renderGearItem}
+              contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 16 }}
+              showsVerticalScrollIndicator={false}
+              numColumns={2}
+              columnWrapperStyle={{ justifyContent: 'space-between', marginBottom: 16 }}
+            />
+          ) : (
+            <View style={styles.emptyStateContainer}>
+              <Ionicons name="basket-outline" size={56} color="#CCCCCC" />
+              <Text style={styles.emptyStateText}>No gear in shop</Text>
+            </View>
+          )
+        )}
+      </View>
+    );
+  };
+
+  const renderGearItem = ({ item }) => (
+    <TouchableOpacity 
+      style={styles.gearCard}
+      onPress={() => navigation.navigate('GearDetail', { 
+        gearName: item.name,
+        gear: item
+      })}
+    >
+      <View style={styles.gearImageContainer}>
+        <AppImage 
+          source={item.imageUrl} 
+          style={styles.gearImage}
+          resizeMode="cover"
+          placeholder="hardware-chip"
+        />
+      </View>
+      <View style={styles.gearInfo}>
+        <Text style={styles.gearBrand}>{item.brand}</Text>
+        <Text style={styles.gearName}>{item.name}</Text>
+        <Text style={styles.gearPrice}>{typeof item.price === 'number' ? `€${item.price.toFixed(2)}` : item.price}</Text>
+      </View>
+    </TouchableOpacity>
+  );
+
+  // Get businessGear for shop tab if it's a business account
+  const businessGear = useMemo(() => {
+    // Predefined list of gear IDs for Vértigo y Calambre
+    if (userId === 'user2' || (user && user.userName === 'Vértigo y Calambre')) {
+      return ['gear6', 'gear4', 'gear9', 'gear1', 'gear5', 'gear7', 'gear12', 'gear13'];
+    }
+    return [];
+  }, [userId, user]);
+
   return (
-    <View style={[styles.container]}>
+    <View style={styles.container}>
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#000000" />
         </View>
       ) : (
         <>
-          <ScrollView 
-            style={styles.contentScrollView}
+          <ScrollView
+            contentOffset={{x: 0, y: 0}}
             refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={onRefresh}
-                tintColor="#000000"
-              />
+              enableRefreshControl ? (
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                  tintColor={COLORS.primary}
+                />
+              ) : undefined
             }
+            contentContainerStyle={{ paddingBottom: insets.bottom }}
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
           >
             <View style={styles.profileSection}>
               <AppImage 
@@ -603,15 +974,33 @@ export default function UserProfileScreen() {
                   contentContainerStyle={styles.gearScrollContainer}
                 >
                   {user?.gear && user.gear.length > 0 ? (
-                    user.gear.map((item, index) => (
-                      <TouchableOpacity 
-                        key={index} 
-                        style={styles.gearItem}
-                        onPress={() => handleGearPress(item)}
-                      >
-                        <Text style={styles.gearItemText}>{item}</Text>
-                      </TouchableOpacity>
-                    ))
+                    user.gear.map((item, index) => {
+                      // Get gear details including users who own this gear
+                      const gearDetail = gearDetails[item] || {};
+                      const usersOwning = gearDetail.usedBy || [];
+                      // Get the gear image from mockGear.json
+                      const gearImage = getGearImage(item);
+                      
+                      return (
+                        <TouchableOpacity 
+                          key={index} 
+                          style={styles.gearItem}
+                          onPress={() => handleGearPress(item)}
+                        >
+                          <View style={styles.gearItemAvatarContainer}>
+                            {gearImage ? (
+                              <AppImage 
+                                source={{ uri: gearImage }}
+                                style={styles.gearItemAvatar}
+                                placeholder={null}
+                                resizeMode="cover"
+                              />
+                            ) : null}
+                          </View>
+                          <Text style={styles.gearItemText}>{item}</Text>
+                        </TouchableOpacity>
+                      );
+                    })
                   ) : (
                     <Text style={styles.emptyGearText}>
                       No gear added yet
@@ -654,14 +1043,13 @@ export default function UserProfileScreen() {
                           key={cafe.id}
                           style={styles.cafeItem}
                           onPress={() => {
-                            navigation.navigate('UserProfile', {
+                            // Use navigate instead of animation which isn't supported
+                            navigation.navigate('UserProfileBridge', {
                               userId: cafe.id,
                               userName: cafe.name,
-                              skipAuth: true
-                            },
-                            {
-                              // Custom animation configuration
-                              animation: 'slide_from_right'
+                              skipAuth: true,
+                              isBusinessAccount: user.isBusinessAccount,
+                              isRoaster: user.isRoaster
                             });
                           }}
                         >
@@ -720,34 +1108,15 @@ export default function UserProfileScreen() {
                 </View>
               )}
               
-              {/* Shop tab for roasters */}
-              {user?.isRoaster && activeTab === 'shop' && (
-                <View style={{paddingLeft: 16}}>
-                  {/* <View style={styles.sectionHeader}>
-                    <Text style={styles.sectionTitle}>Our Coffees</Text>
-                  </View> */}
-                  
-                  <FlatList
-                    horizontal
-                    data={roasterCoffees?.slice(0, 5) || []}
-                    renderItem={renderShopCoffeeItem}
-                    keyExtractor={item => item.id}
-                    showsHorizontalScrollIndicator={false}
-                    style={styles.coffeeScrollContainer}
-                    contentContainerStyle={{paddingVertical: 8}}
-                    ListEmptyComponent={() => (
-                      <View style={styles.emptyContainer}>
-                        <Text style={styles.emptyText}>No coffees available</Text>
-                      </View>
-                    )}
-                  />
-                </View>
+              {/* Shop tab for cafés (non-roaster business accounts) */}
+              {!user?.isRoaster && user?.isBusinessAccount && activeTab === 'shop' && (
+                renderShopTab()
               )}
               
               {/* Coffees tab (for regular users) */}
               {!user?.isRoaster && activeTab === 'coffees' && (
                 <>
-                  <FlatList
+                  <SafeFlatList
                     data={userCoffees}
                     renderItem={renderCoffeeItem}
                     keyExtractor={item => item.id}
@@ -762,7 +1131,6 @@ export default function UserProfileScreen() {
                       </View>
                     )}
                     ListFooterComponent={() => <View style={{ height: 60 }} />}
-                    scrollEnabled={false}
                   />
                 </>
               )}
@@ -771,7 +1139,7 @@ export default function UserProfileScreen() {
               {!user?.isRoaster && activeTab === 'collection' && (
                 <View style={styles.collectionSection}>
                   
-                  <FlatList
+                  <SafeFlatList
                     data={collectionCoffees}
                     renderItem={({ item }) => (
                       <TouchableOpacity 
@@ -811,15 +1179,42 @@ export default function UserProfileScreen() {
                       </View>
                     )}
                     ListFooterComponent={() => <View style={{ height: 60 }} />}
-                    scrollEnabled={false}
                   />
                 </View>
               )}
               
-              {/* Recipes tab (for regular users) */}
-              {!user?.isRoaster && activeTab === 'recipes' && (
-                <View style={styles.emptyContainer}>
-                  <Text style={styles.emptyText}>No recipes yet</Text>
+              {/* Recipes tab (for all users) */}
+              {activeTab === 'recipes' && (
+                <View style={styles.recipesContainer}>
+                  {recipes && recipes.length > 0 ? (
+                    <SafeFlatList
+                      data={recipes}
+                      keyExtractor={(item) => item.id}
+                      renderItem={({ item }) => (
+                        <RecipeCard
+                          recipe={item}
+                          onPress={() => handleRecipePress(item)}
+                          onUserPress={() => null} // We don't need to navigate to the user since we're already on their profile
+                          showCoffeeInfo={true}
+                          style={styles.recipeCard}
+                        />
+                      )}
+                      contentContainerStyle={styles.recipeListContainer}
+                    />
+                  ) : (
+                    <View style={styles.emptyContainer}>
+                      <Ionicons name="document-text-outline" size={30} color="#888888" />
+                      <Text style={styles.emptyText}>No recipes yet</Text>
+                      {user?.id === 'user1' && (
+                        <TouchableOpacity 
+                          style={styles.createButton}
+                          onPress={() => navigation.navigate('CreateRecipe')}
+                        >
+                          <Text style={styles.createButtonText}>Create Recipe</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  )}
                 </View>
               )}
             </View>
@@ -1032,6 +1427,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  gearItemAvatarContainer: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    overflow: 'hidden',
+    marginRight: 8,
+  },
+  gearItemAvatar: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 12,
+  },
   gearItemText: {
     fontSize: 14,
     color: '#333333',
@@ -1135,22 +1544,22 @@ const styles = StyleSheet.create({
     marginVertical: 8,
   },
   coffeeCard: {
-    width: 150,
-    height: 220,
-    marginRight: 12,
-    borderRadius: 8,
-    backgroundColor: '#FFFFFF',
+    width: '48%',
+    marginBottom: 16,
     borderWidth: 1,
     borderColor: '#E5E5EA',
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
     overflow: 'hidden',
   },
   coffeeImage: {
     width: '100%',
     height: 120,
-    backgroundColor: '#F5F5F5',
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
   },
   coffeeInfo: {
-    padding: 8,
+    padding: 12,
   },
   coffeeName: {
     fontSize: 14,
@@ -1225,5 +1634,203 @@ const styles = StyleSheet.create({
   collectionContainer: {
     paddingVertical: 0,
     paddingHorizontal: 0,
+  },
+  shopSection: {
+    padding: 16,
+  },
+  coffeeCount: {
+    fontSize: 14,
+    color: '#666666',
+    marginTop: 4,
+  },
+  coffeeCardRow: {
+    justifyContent: 'space-between',
+    paddingHorizontal: 0,
+  },
+  coffeeGridContainer: {
+    paddingVertical: 0,
+    paddingHorizontal: 0,
+  },
+  emptySubText: {
+    fontSize: 14,
+    color: '#666666',
+    marginTop: 4,
+  },
+  recipesSection: {
+    padding: 16,
+  },
+  recipeCard: {
+    width: '100%',
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    overflow: 'hidden',
+  },
+  recipeCardImage: {
+    width: '100%',
+    height: 120,
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
+  },
+  recipeCardInfo: {
+    padding: 12,
+  },
+  recipeCardName: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#000000',
+    marginBottom: 4,
+  },
+  recipeCardCoffee: {
+    fontSize: 12,
+    color: '#666666',
+    marginBottom: 4,
+  },
+  recipeCardRoaster: {
+    fontSize: 14,
+    color: '#666666',
+    marginBottom: 4,
+  },
+  recipeCardMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  recipeCardStat: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  recipeCardStatText: {
+    fontSize: 14,
+    color: '#666666',
+  },
+  gearCard: {
+    width: '48%',
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    overflow: 'hidden',
+  },
+  gearImageContainer: {
+    width: '100%',
+    height: 120,
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
+  },
+  gearImage: {
+    width: '100%',
+    height: '100%',
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
+  },
+  gearInfo: {
+    padding: 12,
+  },
+  gearBrand: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#000000',
+    marginBottom: 4,
+  },
+  gearName: {
+    fontSize: 14,
+    color: '#666666',
+    marginBottom: 4,
+  },
+  gearPrice: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#000000',
+    marginTop: 4,
+  },
+  recipesContainer: {
+    padding: 16,
+  },
+  recipeListContainer: {
+    padding: 0,
+  },
+  createButton: {
+    marginTop: 12,
+    backgroundColor: '#000000',
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+  },
+  createButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '500',
+  },
+  segmentedControlContainer: {
+    paddingHorizontal: 16,
+  },
+  segmentedControl: {
+    flexDirection: 'row',
+    marginTop: 16,
+    marginHorizontal: 16,
+    backgroundColor: '#F2F2F7',
+    borderRadius: 8,
+    padding: 4,
+  },
+  segment: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: 'center',
+    borderRadius: 6,
+  },
+  segmentActive: {
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  segmentText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#666666',
+  },
+  segmentTextActive: {
+    color: '#000000',
+  },
+  emptyShopContainer: {
+    padding: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyShopText: {
+    fontSize: 16,
+    color: '#666666',
+    textAlign: 'center',
+  },
+  shopTabContainer: {
+    padding: 16,
+  },
+  shopListContent: {
+    padding: 0,
+  },
+  gearColumnWrapper: {
+    justifyContent: 'space-between',
+    paddingHorizontal: 0,
+  },
+  renderGearItem: {
+    // Implementation of renderGearItem function
+  },
+  shopContainer: {
+    // padding: 16,
+  },
+  emptyStateContainer: {
+    padding: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyStateText: {
+    fontSize: 16,
+    color: '#666666',
+    textAlign: 'center',
   },
 }); 

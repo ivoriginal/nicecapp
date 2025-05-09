@@ -4,10 +4,10 @@ import { CoffeeContext } from '../context/CoffeeContext';
 import { useCoffee } from '../context/CoffeeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import mockData from '../data/mockData.json';
+import mockCoffees from '../data/mockCoffees.json';
 
 export default function AddCoffeeScreen({ navigation, route }) {
-  const { addCoffeeEvent } = useCoffee();
+  const { addCoffeeEvent, currentAccount } = useCoffee();
   const insets = useSafeAreaInsets();
   const [coffeeData, setCoffeeData] = useState({
     name: '',
@@ -29,6 +29,7 @@ export default function AddCoffeeScreen({ navigation, route }) {
   const [showOriginalRecipe, setShowOriginalRecipe] = useState(false);
   const [rating, setRating] = useState(0);
   const nameInputRef = useRef(null);
+  const { autoSelectCoffee } = route.params || {};
 
   useEffect(() => {
     // Auto-focus the coffee name input when the screen mounts
@@ -54,6 +55,14 @@ export default function AddCoffeeScreen({ navigation, route }) {
     }
   }, [coffeeData.name]);
 
+  // Auto-select coffee if provided
+  useEffect(() => {
+    if (autoSelectCoffee) {
+      setCoffeeData({ ...coffeeData, name: autoSelectCoffee.name, coffeeId: autoSelectCoffee.id });
+      setCoffeeSuggestions([autoSelectCoffee]);
+    }
+  }, [autoSelectCoffee]);
+
   const searchCoffeeDatabase = async (query) => {
     if (!query.trim()) {
       setCoffeeSuggestions([]);
@@ -63,7 +72,7 @@ export default function AddCoffeeScreen({ navigation, route }) {
     setIsLoading(true);
     try {
       // Search through mock coffees
-      const filteredCoffees = mockData.coffees.filter(coffee =>
+      const filteredCoffees = mockCoffees.coffees.filter(coffee =>
         coffee.name.toLowerCase().includes(query.toLowerCase())
       );
       setCoffeeSuggestions(filteredCoffees);
@@ -161,7 +170,7 @@ export default function AddCoffeeScreen({ navigation, route }) {
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
         {
-          options: ['Cancel', 'Use as is', 'Customize'],
+          options: ['Cancel', 'Use as is', 'Remix'],
           cancelButtonIndex: 0,
         },
         (buttonIndex) => {
@@ -191,7 +200,7 @@ export default function AddCoffeeScreen({ navigation, route }) {
             },
           },
           {
-            text: 'Customize',
+            text: 'Remix',
             onPress: () => {
               handleRecipeSelect(recipe);
               setSelectedTab('custom');
@@ -217,7 +226,6 @@ export default function AddCoffeeScreen({ navigation, route }) {
         waterVolume: coffeeData.waterVolume,
         brewTime: coffeeData.brewTime,
         timestamp: new Date().toISOString(),
-        isPrivate,
         rating: rating > 0 ? rating : null,
         notes: coffeeData.notes,
         originalRecipe: selectedRecipe ? {
@@ -353,7 +361,7 @@ export default function AddCoffeeScreen({ navigation, route }) {
       {selectedRecipe && (
         <View style={styles.basedOnContainer}>
           <Text style={styles.basedOnText}>
-            Based on a recipe by {selectedRecipe.userName || 'Ivo Vilches'}
+            Remixed from a recipe by {selectedRecipe.userName || 'Ivo Vilches'}
           </Text>
           <TouchableOpacity 
             onPress={handleClearRecipe}
@@ -534,23 +542,6 @@ export default function AddCoffeeScreen({ navigation, route }) {
             {/* Add extra padding at the bottom to ensure scrollability */}
             <View style={{ height: 100 }} />
           </ScrollView>
-
-          <View style={styles.sharingContainer}>
-            <View style={styles.sharingOptions}>
-              <View style={styles.sharingTextContainer}>
-                <Text style={styles.sharingLabel}>Share with community</Text>
-                <Text style={styles.sharingDescription}>
-                  {isPrivate ? 'Only you can see this brew' : 'Everyone can see this brew'}
-                </Text>
-              </View>
-              <Switch
-                value={!isPrivate}
-                onValueChange={(value) => setIsPrivate(!value)}
-                trackColor={{ false: '#767577', true: '#81b0ff' }}
-                thumbColor={!isPrivate ? '#2196F3' : '#f4f4f4'}
-              />
-            </View>
-          </View>
 
           <View style={[styles.modalFooter, { paddingBottom: insets.bottom }]}>
             <TouchableOpacity 
