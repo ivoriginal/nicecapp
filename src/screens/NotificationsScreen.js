@@ -123,6 +123,21 @@ const NotificationsScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [screenFocused, setScreenFocused] = useState(false);
 
+  // Set up the header with back button
+  useEffect(() => {
+    navigation.setOptions({
+      headerTitle: 'Notifications',
+      headerLeft: () => (
+        <TouchableOpacity
+          style={{ marginLeft: 16 }}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="chevron-back" size={24} color="#000000" />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation]);
+
   // Mark notifications as read when navigating away
   useFocusEffect(
     React.useCallback(() => {
@@ -344,7 +359,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#F0F0F0',
   },
   unreadNotification: {
-    backgroundColor: '#E6F2FF', // Light blue background for unread notifications
+    backgroundColor: '#F2F2F7', // Light gray background for unread notifications
   },
   notificationIconContainer: {
     width: 40,

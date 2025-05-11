@@ -153,10 +153,6 @@ export default function BottomTabNavigator() {
               iconName = focused ? 'home' : 'home-outline';
             } else if (route.name === 'Search') {
               iconName = focused ? 'search' : 'search-outline';
-            } else if (route.name === 'Log') {
-              iconName = focused ? 'add-circle' : 'add-circle-outline';
-            } else if (route.name === 'Notifications') {
-              iconName = focused ? 'notifications' : 'notifications-outline';
             } else if (route.name === 'Profile') {
               iconName = focused ? 'person' : 'person-outline';
             }
@@ -194,47 +190,57 @@ export default function BottomTabNavigator() {
         <BottomTab.Screen
           name="Home"
           component={HomeScreen}
-          options={{
+          options={({ navigation }) => ({
             headerShown: true,
-            headerTitle: "Home",
-          }}
+            headerStyle: {
+              height: 104,
+              backgroundColor: '#FFFFFF',
+            },
+            headerTitle: () => (
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%'}}>
+                <Text style={{ fontSize: 24, fontWeight: '600', color: '#000000' }}>NiceCup</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <TouchableOpacity 
+                    onPress={() => navigation.navigate('PeopleList')}
+                    style={{ marginRight: 16 }}
+                  >
+                    <Ionicons name="person-add-outline" size={24} color="#000000" />
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    onPress={() => navigation.navigate('Notifications')}
+                    style={{ marginRight: 14 }}
+                  >
+                    <View>
+                      <Ionicons name="notifications-outline" size={24} color="#000000" />
+                      {unreadCount > 0 && (
+                        <View style={{
+                          position: 'absolute',
+                          top: -2,
+                          right: -4,
+                          width: 8,
+                          height: 8,
+                          borderRadius: 4,
+                          backgroundColor: '#FF3B30',
+                        }} />
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    onPress={() => setIsModalVisible(true)}
+                  >
+                    <Ionicons name="add-circle" size={28} color="#000000" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ),
+            headerTitleAlign: 'left',
+          })}
         />
         <BottomTab.Screen
           name="Search"
           component={SearchScreen}
           options={{
             headerShown: false,
-          }}
-        />
-        <BottomTab.Screen
-          name="Log"
-          component={EmptyComponent}
-          options={{
-            headerShown: false,
-          }}
-          listeners={{
-            tabPress: handleLogPress,
-          }}
-        />
-        <BottomTab.Screen
-          name="Notifications"
-          component={NotificationsScreen}
-          options={{
-            headerShown: true,
-            headerTitle: "Notifications",
-            tabBarBadge: unreadCount > 0 ? unreadCount : null,
-            tabBarBadgeStyle: {
-              backgroundColor: '#000000',
-              marginRight: -4,
-              marginTop: 4,
-            },
-          }}
-          listeners={{
-            tabPress: () => {
-              // Do not mark notifications as read when tab is pressed
-              // This will be handled when the user leaves the screen instead
-              // This way notifications keep their blue background while viewing
-            }
           }}
         />
         <BottomTab.Screen

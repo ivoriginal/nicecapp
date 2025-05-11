@@ -112,20 +112,7 @@ const PeopleListScreen = () => {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Text>
-            <Ionicons name="arrow-back" size={24} color="#000000" />
-          </Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>People</Text>
-        <View style={{ width: 40 }} /> {/* Placeholder for balance */}
-      </View>
-
+    <View style={[styles.container]}>
       <FlatList
         data={filteredPeople}
         renderItem={renderUserItem}
@@ -140,23 +127,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-  },
-  backButton: {
-    padding: 8,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    textAlign: 'center',
   },
   usersList: {
     padding: 0,
@@ -174,9 +144,10 @@ const styles = StyleSheet.create({
   userAvatar: {
     width: 60,
     height: 60,
-    borderRadius: 30,
-    borderWidth: 1.5,
-    borderColor: '#D0D0D0',
+    borderRadius: 50,
+    // borderWidth: 1,
+    // borderColor: '#D0D0D0',
+    // borderOpacity: 0.2,
   },
   userInfo: {
     flex: 1,

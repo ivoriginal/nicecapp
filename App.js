@@ -16,6 +16,7 @@ import RecipesListScreen from './src/screens/RecipesListScreen';
 import PeopleListScreen from './src/screens/PeopleListScreen';
 import CafesListScreen from './src/screens/CafesListScreen';
 import SavedScreen from './src/screens/SavedScreen';
+import NotificationsScreen from './src/screens/NotificationsScreen';
 import { CoffeeProvider } from './src/context/CoffeeContext';
 import { NotificationsProvider } from './src/context/NotificationsContext';
 import { configureNavigationBar } from './src/lib/navigationBar';
@@ -114,6 +115,22 @@ export default function App() {
                 options={{ headerShown: false }} 
               />
               <Stack.Screen 
+                name="Notifications" 
+                component={NotificationsScreen} 
+                options={{ 
+                  title: 'Notifications',
+                  headerBackTitle: 'Back'
+                }} 
+              />
+              <Stack.Screen 
+                name="PeopleList" 
+                component={PeopleListScreen} 
+                options={{ 
+                  title: 'People',
+                  headerBackTitle: 'Back'
+                }} 
+              />
+              <Stack.Screen 
                 name="CoffeeDetail" 
                 component={CoffeeDetailScreen} 
                 options={({ navigation, route }) => ({ 
@@ -201,11 +218,6 @@ export default function App() {
               <Stack.Screen 
                 name="RecipesList" 
                 component={RecipesListScreen} 
-                options={{ headerShown: false }} 
-              />
-              <Stack.Screen 
-                name="PeopleList" 
-                component={PeopleListScreen} 
                 options={{ headerShown: false }} 
               />
               <Stack.Screen 

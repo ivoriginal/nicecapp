@@ -801,7 +801,7 @@ const styles = StyleSheet.create({
     marginVertical: 0,
     overflow: 'hidden',
     // borderBottomWidth: 1,
-    // borderBottomColor: '#E0E0E0',
+    // borderBottomColor: '#E5E5EA',
     marginBottom: 8,
   },
   contentContainer: {

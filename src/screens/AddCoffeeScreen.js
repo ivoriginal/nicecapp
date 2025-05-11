@@ -1831,14 +1831,14 @@ export default function AddCoffeeScreen({ navigation, route }) {
   return (
     <View style={styles.container}>
       {/* Debug visibility indicator */}
-      {__DEV__ && (
+      {/* {__DEV__ && (
         <View style={{ backgroundColor: '#FFE0E0', padding: 8, marginBottom: 8 }}>
           <Text style={{ fontWeight: 'bold' }}>Debug Info:</Text>
           <Text>Modal visible: {String(route.params?.isModalVisible)}</Text>
           <Text>Coffee ID: {coffeeData.coffeeId || 'none'}</Text>
           <Text>Component key: {`coffee-form-${route.params?.isModalVisible ? 'visible' : 'hidden'}`}</Text>
         </View>
-      )}
+      )} */}
       
       <ScrollView 
         ref={scrollViewRef}
@@ -1848,7 +1848,7 @@ export default function AddCoffeeScreen({ navigation, route }) {
         keyboardDismissMode="interactive"
       >
         <View style={styles.inputContainer}>
-          <Text style={styles.labelLarge}>Coffee Name</Text>
+          {/* <Text style={styles.labelLarge}>Coffee Name</Text> */}
           {coffeeData.coffeeId ? (
             <View style={styles.selectedCoffeeContainer}>
               <Image 
