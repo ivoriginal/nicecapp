@@ -6,23 +6,99 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import mockCoffees from '../data/mockCoffees.json';
 import mockRecipes from '../data/mockRecipes.json';
+import mockCafes from '../data/mockCafes.json';
 import RecipeCard from '../components/RecipeCard';
+import mockUsers from '../data/mockUsers.json';
+
+// Helper function to format brew time as MM:SS
+const formatBrewTime = (value) => {
+  // Remove any non-digit and non-colon characters
+  const cleanedValue = value.replace(/[^0-9:]/g, '');
+  
+  // Handle the case where only digits are entered (add colon)
+  if (/^\d+$/.test(cleanedValue) && cleanedValue.length > 2) {
+    const minutes = cleanedValue.slice(0, -2);
+    const seconds = cleanedValue.slice(-2);
+    return `${minutes}:${seconds}`;
+  }
+  
+  // If already has a colon, ensure seconds are formatted properly
+  if (cleanedValue.includes(':')) {
+    const [minutes, seconds] = cleanedValue.split(':');
+    // If seconds part is more than 2 digits, format it
+    if (seconds && seconds.length > 2) {
+      return `${minutes}:${seconds.slice(0, 2)}`;
+    }
+  }
+  
+  return cleanedValue;
+};
 
 export default function AddCoffeeScreen({ navigation, route }) {
   const { addCoffeeEvent, currentAccount } = useCoffee();
   const insets = useSafeAreaInsets();
+  
+  // Check if we're remixing a recipe
+  const isRemixing = route.params?.isRemixing;
+  const recipeToRemix = route.params?.recipe;
+  
   const [coffeeData, setCoffeeData] = useState({
-    name: '',
-    coffeeId: null,
-    method: '',
-    amount: '',
-    grindSize: 'Medium',
-    waterVolume: '',
-    brewTime: '',
-    notes: '',
+    name: recipeToRemix?.coffeeName || '',
+    coffeeId: recipeToRemix?.coffeeId || null,
+    method: recipeToRemix?.brewingMethod || recipeToRemix?.method || '',
+    amount: recipeToRemix?.coffeeAmount?.toString() || recipeToRemix?.amount?.toString() || '',
+    grindSize: recipeToRemix?.grindSize || 'Medium',
+    waterVolume: recipeToRemix?.waterAmount?.toString() || recipeToRemix?.waterVolume?.toString() || '',
+    brewTime: recipeToRemix?.brewTime || '',
+    brewMinutes: '',
+    brewSeconds: '',
+    notes: recipeToRemix?.notes || '',
     grinderUsed: '',
-    steps: [],
+    steps: recipeToRemix?.steps || [],
+    location: 'Home',
+    locationId: null,
   });
+  
+  // Extract minutes and seconds from brewTime if provided as "M:SS" format
+  useEffect(() => {
+    if (recipeToRemix?.brewTime && typeof recipeToRemix.brewTime === 'string' && recipeToRemix.brewTime.includes(':')) {
+      const [minutes, seconds] = recipeToRemix.brewTime.split(':');
+      setCoffeeData(prev => ({
+        ...prev,
+        brewMinutes: minutes,
+        brewSeconds: seconds
+      }));
+    }
+  }, [recipeToRemix]);
+  
+  // If remixing, set the tab to custom immediately
+  useEffect(() => {
+    if (isRemixing && recipeToRemix) {
+      setSelectedTab('custom');
+      
+      // If the recipe is from mockRecipes, format steps appropriately
+      if (Array.isArray(recipeToRemix.steps) && typeof recipeToRemix.steps[0] === 'string') {
+        // Convert string array steps to object format
+        const formattedSteps = recipeToRemix.steps.map((description, index) => {
+          // Try to extract time and water amount from description if possible
+          const timeMatch = description.match(/(\d+)\s*seconds|(\d+):(\d+)/);
+          const waterMatch = description.match(/(\d+)g/);
+          
+          return {
+            time: timeMatch ? (timeMatch[1] || `${timeMatch[2]}:${timeMatch[3]}`) : '',
+            water: waterMatch ? waterMatch[1] : '',
+            description: description
+          };
+        });
+        
+        setCoffeeData(prev => ({
+          ...prev,
+          steps: formattedSteps
+        }));
+      }
+    }
+  }, [isRemixing, recipeToRemix]);
+  
   const [coffeeSuggestions, setCoffeeSuggestions] = useState([]);
   const [recipeSuggestions, setRecipeSuggestions] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -37,6 +113,10 @@ export default function AddCoffeeScreen({ navigation, route }) {
   const [showGrinderSelector, setShowGrinderSelector] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [searchText, setSearchText] = useState('');
+  const [coffeeSearchLoading, setCoffeeSearchLoading] = useState(false);
+  const [recipesLoading, setRecipesLoading] = useState(false);
+  const [showLocationSelector, setShowLocationSelector] = useState(false);
   const nameInputRef = useRef(null);
   const scrollViewRef = useRef(null);
   const { autoSelectCoffee } = route.params || {};
@@ -57,10 +137,180 @@ export default function AddCoffeeScreen({ navigation, route }) {
     'Niche Zero', 'DF64', 'Wilfa Uniform', 'Weber EG-1', 'Other'
   ];
 
+  // Extract all cafés from mockCafes for the selector
+  const cafeLocations = [
+    { id: 'home', name: 'Home', isDefault: true },
+    ...mockCafes.businesses
+      .filter(business => business.addresses && business.addresses.length > 0)
+      .flatMap(business => 
+        business.addresses.map(address => ({
+          id: address.id,
+          name: address.name,
+          address: address.address,
+          businessId: business.id,
+          logo: business.logo || business.avatar
+        }))
+      ),
+    // Add businesses without addresses property
+    ...mockCafes.businesses
+      .filter(business => !business.addresses || business.addresses.length === 0)
+      .map(business => ({
+        id: business.id,
+        name: business.name,
+        address: business.address,
+        businessId: business.id,
+        logo: business.logo || business.avatar
+      }))
+  ];
+
+  // State for location search and filtering
+  const [locationSearchText, setLocationSearchText] = useState('');
+  const [filteredLocations, setFilteredLocations] = useState(cafeLocations);
+  const [nearMeEnabled, setNearMeEnabled] = useState(false);
+  
+  // State for friend tagging
+  const [taggedFriends, setTaggedFriends] = useState([]);
+  const [showFriendSelector, setShowFriendSelector] = useState(false);
+  const [friendSearchText, setFriendSearchText] = useState('');
+  const [filteredUsers, setFilteredUsers] = useState([]);
+  
+  // Use mockUsers.json data instead of mock friends
+  useEffect(() => {
+    // Initialize filtered users with all users from mockUsers.json
+    // Filter out businesses (cafés) and the current user
+    const filteredUserList = mockUsers.users.filter(user => 
+      // Remove business accounts that have a businessType property
+      !user.businessType &&
+      // Remove current user
+      user.id !== currentAccount?.id
+    );
+    setFilteredUsers(filteredUserList);
+  }, [currentAccount]);
+  
+  // Handle friend search
+  const handleFriendSearch = (text) => {
+    setFriendSearchText(text);
+    
+    // Filter out businesses and current user first
+    const baseUserList = mockUsers.users.filter(user => 
+      !user.businessType && 
+      user.id !== currentAccount?.id
+    );
+    
+    if (text.trim() === '') {
+      setFilteredUsers(baseUserList);
+    } else {
+      const filtered = baseUserList.filter(user => 
+        user.userName.toLowerCase().includes(text.toLowerCase()) ||
+        (user.email && user.email.toLowerCase().includes(text.toLowerCase()))
+      );
+      setFilteredUsers(filtered);
+    }
+  };
+  
+  // Handler for friend selection
+  const handleTagFriend = (friend) => {
+    // Add friend if not already tagged
+    if (!taggedFriends.some(f => f.id === friend.id)) {
+      setTaggedFriends([...taggedFriends, friend]);
+    }
+  };
+  
+  // Handler for removing tagged friend
+  const handleRemoveFriend = (friendId) => {
+    setTaggedFriends(taggedFriends.filter(friend => friend.id !== friendId));
+  };
+
+  // Function to get proper image source based on path
+  const getImageSource = (path) => {
+    console.log('Getting image source for path:', path);
+    if (!path) return null;
+    
+    if (path.startsWith('http')) {
+      return { uri: path };
+    }
+    
+    // Handle local asset paths
+    if (path.startsWith('assets/businesses/')) {
+      const filename = path.split('/').pop();
+      
+      // Map the filename to the correct require statement
+      switch (filename) {
+        case 'kima-logo.jpg':
+          return require('../../assets/businesses/kima-logo.jpg');
+        case 'vertigo-logo.jpg':
+          return require('../../assets/businesses/vertigo-logo.jpg');
+        case 'cafelab-logo.png':
+          return require('../../assets/businesses/cafelab-logo.png');
+        case 'thefix-logo.jpg':
+          return require('../../assets/businesses/thefix-logo.jpg');
+        case 'toma-logo.jpg':
+          return require('../../assets/businesses/toma-logo.jpg');
+        default:
+          console.log('No matching asset for filename:', filename);
+          // Return a default logo
+          return require('../../assets/businesses/kima-logo.jpg');
+      }
+    }
+    
+    return { uri: path };
+  };
+
+  // Log cafe locations for debugging
+  console.log('Cafe locations:', cafeLocations);
+
+  // Handle location search
+  const handleLocationSearch = (text) => {
+    setLocationSearchText(text);
+    filterLocations(text, nearMeEnabled);
+  };
+  
+  // Toggle near me filter
+  const toggleNearMe = () => {
+    const newNearMeState = !nearMeEnabled;
+    setNearMeEnabled(newNearMeState);
+    filterLocations(locationSearchText, newNearMeState);
+  };
+  
+  // Filter locations based on search text and near me toggle
+  const filterLocations = (searchText, nearMe) => {
+    let filtered = cafeLocations;
+    
+    // Apply search text filter if provided
+    if (searchText.trim() !== '') {
+      filtered = filtered.filter(
+        location => 
+          // Always include Home
+          location.isDefault || 
+          // Filter by name or address containing the search text
+          location.name.toLowerCase().includes(searchText.toLowerCase()) ||
+          (location.address && location.address.toLowerCase().includes(searchText.toLowerCase()))
+      );
+    }
+    
+    // Apply near me filter if enabled
+    if (nearMe) {
+      // In a real app, this would filter based on user's GPS coordinates
+      // For demo, just filter to show a subset of locations
+      filtered = filtered.filter(
+        location => 
+          location.isDefault || 
+          location.id.includes('kima') || 
+          location.id.includes('cafelab')
+      );
+    }
+    
+    setFilteredLocations(filtered);
+  };
+
   useEffect(() => {
     // Auto-focus the coffee name input when the screen mounts
-    setTimeout(() => {
+    console.log('AddCoffeeScreen mounted - setting up input focus');
+    
+    // Let's use a single focus attempt instead of multiple ones
+    const focusTimer = setTimeout(() => {
       if (nameInputRef.current) {
+        console.log('Setting input focus');
         nameInputRef.current.focus();
       }
       
@@ -68,14 +318,29 @@ export default function AddCoffeeScreen({ navigation, route }) {
       if (coffeeSuggestions.length === 0) {
         setCoffeeSuggestions(mockCoffees.coffees.slice(0, 5));
       }
-    }, 100);
-
+    }, 500); // Increased timeout
+    
     // Add keyboard listeners
     const keyboardDidShowListener = Keyboard.addListener(
       'keyboardDidShow',
       (e) => {
         setKeyboardVisible(true);
         setKeyboardHeight(e.endCoordinates.height);
+        
+        // Check if notes input is focused and scroll to it
+        const currentlyFocusedField = TextInput.State.currentlyFocusedInput();
+        if (currentlyFocusedField && scrollViewRef.current) {
+          // Add safety timeout to ensure scrollViewRef is available
+          setTimeout(() => {
+            if (scrollViewRef.current) {
+              try {
+                scrollViewRef.current.scrollToEnd({ animated: true });
+              } catch (error) {
+                console.log('Error scrolling to end:', error);
+              }
+            }
+          }, 100);
+        }
       }
     );
     const keyboardDidHideListener = Keyboard.addListener(
@@ -87,8 +352,21 @@ export default function AddCoffeeScreen({ navigation, route }) {
     );
 
     return () => {
+      console.log('Component unmounting - cleaning up keyboard');
       keyboardDidShowListener.remove();
       keyboardDidHideListener.remove();
+      clearTimeout(focusTimer);
+      
+      // Explicitly dismiss keyboard when unmounting
+      Keyboard.dismiss();
+      
+      // Reset any focus state
+      if (nameInputRef.current) {
+        nameInputRef.current.blur();
+      }
+      
+      // Clear any TextInput.State focus
+      TextInput.State.blurTextInput(TextInput.State.currentlyFocusedInput());
     };
   }, []);
 
@@ -97,8 +375,77 @@ export default function AddCoffeeScreen({ navigation, route }) {
     if (route.params?.shouldSave) {
       // Show the preview modal first
       setShowPreview(true);
+    } else if (route.params?.isModalVisible === true) {
+      // Modal is opening - initialize data
+      console.log('Modal opened - initializing data');
+      
+      // Set initial suggestions to popular coffees
+      if (coffeeSuggestions.length === 0) {
+        setCoffeeSuggestions(mockCoffees.coffees.slice(0, 5));
+      }
+      
+      // Set initial filtered locations
+      setFilteredLocations(cafeLocations);
+      
+      // Set initial filtered users for friend tagging
+      const filteredUserList = mockUsers.users.filter(user => 
+        !user.businessType && 
+        user.id !== currentAccount?.id
+      );
+      setFilteredUsers(filteredUserList);
+      
+      // Auto-select coffee if provided in route
+      if (autoSelectCoffee) {
+        setCoffeeData(prev => ({ 
+          ...prev, 
+          name: autoSelectCoffee.name, 
+          coffeeId: autoSelectCoffee.id 
+        }));
+        setCoffeeSuggestions([autoSelectCoffee]);
+      }
+    } else if (route.params?.isModalVisible === false) {
+      // Modal is closing - clean up
+      console.log('Modal closing - dismissing keyboard and resetting state');
+      
+      // Dismiss keyboard
+      Keyboard.dismiss();
+      
+      // Reset any focus state
+      if (nameInputRef.current) {
+        nameInputRef.current.blur();
+      }
+      
+      // Clear any TextInput.State focus
+      TextInput.State.blurTextInput(TextInput.State.currentlyFocusedInput());
+      
+      // Reset all state to initial values
+      setCoffeeData({
+        name: '',
+        coffeeId: null,
+        method: '',
+        amount: '',
+        grindSize: 'Medium',
+        waterVolume: '',
+        brewTime: '',
+        brewMinutes: '',
+        brewSeconds: '',
+        notes: '',
+        grinderUsed: '',
+        steps: [],
+        location: 'Home',
+        locationId: null,
+      });
+      setCoffeeSuggestions([]);
+      setRecipeSuggestions([]);
+      setSelectedTab('suggested');
+      setSelectedRecipe(null);
+      setIsPrivate(false);
+      setShowPreview(false);
+      setShowOriginalRecipe(false);
+      setRating(0);
+      setTaggedFriends([]);
     }
-  }, [route.params?.shouldSave]);
+  }, [route.params?.isModalVisible, route.params?.shouldSave, currentAccount, autoSelectCoffee]);
 
   // Add useEffect for handling text input updates
   useEffect(() => {
@@ -351,9 +698,13 @@ export default function AddCoffeeScreen({ navigation, route }) {
               <TextInput
                 style={styles.brewingStepInput}
                 value={step.time}
-                onChangeText={(value) => handleUpdateBrewingStep(index, 'time', value)}
+                onChangeText={(value) => {
+                  // Format the time input as MM:SS
+                  const formattedTime = formatBrewTime(value);
+                  handleUpdateBrewingStep(index, 'time', formattedTime);
+                }}
                 placeholder="0:30"
-                keyboardType="default"
+                keyboardType="numbers-and-punctuation"
                 placeholderTextColor="#999"
               />
             </View>
@@ -433,17 +784,24 @@ export default function AddCoffeeScreen({ navigation, route }) {
         id: mockEventId,
         coffeeName: coffeeData.name,
         coffeeId: coffeeData.coffeeId,
-        brewingMethod: coffeeData.method,
-        amount: coffeeData.amount,
-        grindSize: coffeeData.grindSize,
-        waterVolume: coffeeData.waterVolume,
-        brewTime: calculatedBrewTime || coffeeData.brewTime,
+        brewingMethod: selectedTab === 'none' ? null : coffeeData.method,
+        amount: selectedTab === 'none' ? null : coffeeData.amount,
+        grindSize: selectedTab === 'none' ? null : coffeeData.grindSize,
+        waterVolume: selectedTab === 'none' ? null : coffeeData.waterVolume,
+        brewTime: selectedTab === 'none' ? null : calculatedBrewTime || coffeeData.brewTime,
         timestamp: new Date().toISOString(),
         rating: rating > 0 ? rating : null,
         notes: coffeeData.notes,
-        grinderUsed: coffeeData.grinderUsed,
-        steps: coffeeData.steps,
-        originalRecipe: selectedRecipe ? {
+        grinderUsed: selectedTab === 'none' ? null : coffeeData.grinderUsed,
+        steps: selectedTab === 'none' ? [] : coffeeData.steps,
+        location: coffeeData.location,
+        locationId: coffeeData.locationId,
+        friends: taggedFriends.map(friend => ({
+          id: friend.id,
+          name: friend.name
+        })),
+        originalRecipe: selectedTab === 'suggested' && selectedRecipe ? {
+          id: selectedRecipe.id,
           method: selectedRecipe.method,
           amount: selectedRecipe.amount,
           grindSize: selectedRecipe.grindSize,
@@ -457,15 +815,35 @@ export default function AddCoffeeScreen({ navigation, route }) {
       console.log('Saving coffee event:', eventData);
       
       // Add the event to the context
-      await addCoffeeEvent(eventData);
+      const savedEvent = await addCoffeeEvent(eventData);
+      console.log('Coffee event saved successfully:', savedEvent);
       
       // Close the preview modal first
       setShowPreview(false);
       
-      // Small delay to ensure the preview modal is closed before navigating
+      // Reset form
+      setCoffeeData({
+        name: '',
+        coffeeId: null,
+        method: '',
+        amount: '',
+        grindSize: 'Medium',
+        waterVolume: '',
+        brewTime: '',
+        brewMinutes: '',
+        brewSeconds: '',
+        notes: '',
+        grinderUsed: '',
+        steps: [],
+        location: 'Home',
+        locationId: null,
+      });
+      setTaggedFriends([]);
+      setRating(0);
+      
+      // Navigate back to the home screen with a reset action to ensure fresh state
       setTimeout(() => {
-        // Use goBack() to return to the previous screen (which should be Home)
-        navigation.goBack();
+        navigation.navigate('Home');
       }, 100);
     } catch (error) {
       console.error('Error saving coffee:', error);
@@ -474,6 +852,13 @@ export default function AddCoffeeScreen({ navigation, route }) {
   };
 
   const handleCustomSave = () => {
+    // If this is for "None" tab, just show preview without recipe
+    if (selectedTab === 'none') {
+      setSelectedRecipe(null);
+      setShowPreview(true);
+      return;
+    }
+    
     // Create a recipe object from the custom data
     const customRecipe = {
       method: coffeeData.method,
@@ -512,7 +897,7 @@ export default function AddCoffeeScreen({ navigation, route }) {
         <Text style={[
           styles.segmentText,
           selectedTab === 'suggested' && styles.segmentTextActive
-        ]}>Suggested Recipes</Text>
+        ]}>Suggested</Text>
       </TouchableOpacity>
       <TouchableOpacity
         style={[
@@ -524,7 +909,19 @@ export default function AddCoffeeScreen({ navigation, route }) {
         <Text style={[
           styles.segmentText,
           selectedTab === 'custom' && styles.segmentTextActive
-        ]}>Create My Own</Text>
+        ]}>Create</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[
+          styles.segment,
+          selectedTab === 'none' && styles.segmentActive
+        ]}
+        onPress={() => setSelectedTab('none')}
+      >
+        <Text style={[
+          styles.segmentText,
+          selectedTab === 'none' && styles.segmentTextActive
+        ]}>None</Text>
       </TouchableOpacity>
     </View>
   );
@@ -555,26 +952,6 @@ export default function AddCoffeeScreen({ navigation, route }) {
       )}
     </View>
   );
-
-  const formatBrewTime = (input) => {
-    // Remove all non-digits
-    const numbers = input.replace(/[^0-9]/g, '');
-    
-    // Format as MM:SS
-    if (numbers.length > 0) {
-      // Handle seconds only
-      if (numbers.length <= 2) {
-        return `0:${numbers.padStart(2, '0')}`;
-      }
-      
-      // Handle minutes and seconds
-      const minutes = numbers.slice(0, -2);
-      const seconds = numbers.slice(-2);
-      return `${minutes}:${seconds}`;
-    }
-    
-    return '';
-  };
 
   const renderCustomRecipe = () => (
     <View style={styles.customRecipeContainer}>
@@ -790,19 +1167,27 @@ export default function AddCoffeeScreen({ navigation, route }) {
       <View style={styles.inputContainer}>
         <Text style={styles.label}>Notes (Optional)</Text>
         <TextInput
-          style={[styles.notesInput, { backgroundColor: '#F2F2F7' }]}
-          value={coffeeData.notes}
-          onChangeText={(text) => setCoffeeData({ ...coffeeData, notes: text })}
-          placeholder="Add any notes about this brew..."
-          placeholderTextColor="#999"
-          multiline
+          ref={notesInputRef}
+          style={styles.notesInput}
+          multiline={true}
           numberOfLines={4}
           textAlignVertical="top"
+          placeholder="Add notes about this coffee..."
+          value={coffeeData.notes}
+          onChangeText={(text) => setCoffeeData({...coffeeData, notes: text})}
+          placeholderTextColor="#999"
           onFocus={() => {
-            // When notes field gets focus, scroll to it
-            setTimeout(() => {
-              scrollViewRef.current?.scrollToEnd({ animated: true });
-            }, 100);
+            if (scrollViewRef && scrollViewRef.current) {
+              setTimeout(() => {
+                try {
+                  if (scrollViewRef.current) {
+                    scrollViewRef.current.scrollToEnd({ animated: true });
+                  }
+                } catch (error) {
+                  console.log('Error scrolling to end on notes focus:', error);
+                }
+              }, 100);
+            }
           }}
         />
       </View>
@@ -841,59 +1226,97 @@ export default function AddCoffeeScreen({ navigation, route }) {
           >
             <Text style={styles.previewCoffeeName}>{coffeeData.name}</Text>
             
-            <View style={styles.recipePreview}>
-              <Text style={styles.recipeTitle}>
-                Recipe {selectedRecipe?.userName || selectedRecipe?.creatorName ? 
-                  `by ${selectedRecipe.userName || selectedRecipe.creatorName}` : ''}
-              </Text>
-              <View style={styles.recipeDetails}>
-                <View style={styles.recipeDetail}>
-                  <Text style={styles.detailLabel}>Method</Text>
-                  <Text style={styles.detailValue}>{selectedRecipe?.method || coffeeData.method}</Text>
+            {coffeeData.locationId && (
+              <View style={styles.locationPreview}>
+                <View style={styles.locationPreviewHeader}>
+                  <Text style={styles.locationPreviewTitle}>Location</Text>
                 </View>
-                <View style={styles.recipeDetail}>
-                  <Text style={styles.detailLabel}>Coffee</Text>
-                  <Text style={styles.detailValue}>{selectedRecipe?.amount || coffeeData.amount}g</Text>
-                </View>
-                <View style={styles.recipeDetail}>
-                  <Text style={styles.detailLabel}>Grind Size</Text>
-                  <Text style={styles.detailValue}>{selectedRecipe?.grindSize || coffeeData.grindSize}</Text>
-                </View>
-                {coffeeData.grinderUsed && (
-                  <View style={styles.recipeDetail}>
-                    <Text style={styles.detailLabel}>Grinder</Text>
-                    <Text style={styles.detailValue}>{coffeeData.grinderUsed}</Text>
+                <View style={styles.locationPreviewContent}>
+                  <View style={styles.locationPreviewIcon}>
+                    {coffeeData.locationId === 'home' ? (
+                      <Ionicons name="home" size={18} color="#666666" />
+                    ) : (
+                      <Image 
+                        source={getImageSource(cafeLocations.find(loc => loc.id === coffeeData.locationId)?.logo)} 
+                        style={styles.locationPreviewLogo} 
+                      />
+                    )}
                   </View>
-                )}
-                <View style={styles.recipeDetail}>
-                  <Text style={styles.detailLabel}>Water</Text>
-                  <Text style={styles.detailValue}>{selectedRecipe?.waterVolume || coffeeData.waterVolume}ml</Text>
-                </View>
-                <View style={styles.recipeDetail}>
-                  <Text style={styles.detailLabel}>Brew Time</Text>
-                  <Text style={styles.detailValue}>
-                    {selectedRecipe?.brewTime || calculateTotalBrewTime() || coffeeData.brewTime}
-                  </Text>
+                  <Text style={styles.locationPreviewText}>{coffeeData.location}</Text>
                 </View>
               </View>
-              
-              {/* Display brewing steps if available */}
-              {coffeeData.steps && coffeeData.steps.length > 0 && (
-                <View style={styles.previewStepsContainer}>
-                  <Text style={styles.previewStepsTitle}>Brewing Steps</Text>
-                  {coffeeData.steps.map((step, index) => (
-                    <View key={index} style={styles.previewStepItem}>
-                      <Text style={styles.previewStepNumber}>{index + 1}.</Text>
-                      <View style={styles.previewStepContent}>
-                        <Text style={styles.previewStepText}>
-                          {`${step.time || '--'} - ${step.water || '--'}g - ${step.description || 'Step'}`}
-                        </Text>
-                      </View>
-                    </View>
+            )}
+            
+            {taggedFriends.length > 0 && (
+              <View style={styles.friendsPreview}>
+                <View style={styles.friendsPreviewHeader}>
+                  <Text style={styles.friendsPreviewTitle}>With</Text>
+                </View>
+                <View style={styles.friendsPreviewContent}>
+                  {taggedFriends.map((friend, index) => (
+                    <Text key={friend.id} style={styles.friendsPreviewText}>
+                      {friend.name}{index < taggedFriends.length - 1 ? ', ' : ''}
+                    </Text>
                   ))}
                 </View>
-              )}
-            </View>
+              </View>
+            )}
+            
+            {selectedTab !== 'none' && (
+              <View style={styles.recipePreview}>
+                <Text style={styles.recipeTitle}>
+                  Recipe {selectedRecipe?.userName || selectedRecipe?.creatorName ? 
+                    `by ${selectedRecipe.userName || selectedRecipe.creatorName}` : ''}
+                </Text>
+                <View style={styles.recipeDetails}>
+                  <View style={styles.recipeDetail}>
+                    <Text style={styles.detailLabel}>Method</Text>
+                    <Text style={styles.detailValue}>{selectedRecipe?.method || coffeeData.method}</Text>
+                  </View>
+                  <View style={styles.recipeDetail}>
+                    <Text style={styles.detailLabel}>Coffee</Text>
+                    <Text style={styles.detailValue}>{selectedRecipe?.amount || coffeeData.amount}g</Text>
+                  </View>
+                  <View style={styles.recipeDetail}>
+                    <Text style={styles.detailLabel}>Grind Size</Text>
+                    <Text style={styles.detailValue}>{selectedRecipe?.grindSize || coffeeData.grindSize}</Text>
+                  </View>
+                  {coffeeData.grinderUsed && (
+                    <View style={styles.recipeDetail}>
+                      <Text style={styles.detailLabel}>Grinder</Text>
+                      <Text style={styles.detailValue}>{coffeeData.grinderUsed}</Text>
+                    </View>
+                  )}
+                  <View style={styles.recipeDetail}>
+                    <Text style={styles.detailLabel}>Water</Text>
+                    <Text style={styles.detailValue}>{selectedRecipe?.waterVolume || coffeeData.waterVolume}ml</Text>
+                  </View>
+                  <View style={styles.recipeDetail}>
+                    <Text style={styles.detailLabel}>Brew Time</Text>
+                    <Text style={styles.detailValue}>
+                      {selectedRecipe?.brewTime || calculateTotalBrewTime() || coffeeData.brewTime}
+                    </Text>
+                  </View>
+                </View>
+                
+                {/* Display brewing steps if available */}
+                {coffeeData.steps && coffeeData.steps.length > 0 && (
+                  <View style={styles.previewStepsContainer}>
+                    <Text style={styles.previewStepsTitle}>Brewing Steps</Text>
+                    {coffeeData.steps.map((step, index) => (
+                      <View key={index} style={styles.previewStepItem}>
+                        <Text style={styles.previewStepNumber}>{index + 1}.</Text>
+                        <View style={styles.previewStepContent}>
+                          <Text style={styles.previewStepText}>
+                            {`${step.time || '--'} - ${step.water || '--'}g - ${step.description || 'Step'}`}
+                          </Text>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </View>
+            )}
 
             <View style={styles.ratingContainer}>
               <Text style={styles.ratingLabel}>Rate this brew (optional)</Text>
@@ -1020,11 +1443,407 @@ export default function AddCoffeeScreen({ navigation, route }) {
     </Modal>
   );
 
+  const renderLocationSelector = () => (
+    <Modal
+      visible={showLocationSelector}
+      transparent={true}
+      animationType="slide"
+      onRequestClose={() => setShowLocationSelector(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={[styles.selectorModalContent, { paddingBottom: insets.bottom + (keyboardVisible ? keyboardHeight : 0) }]}>
+          <View style={styles.selectorModalHeader}>
+            <Text style={styles.selectorModalTitle}>Select Location</Text>
+            <TouchableOpacity 
+              style={styles.selectorModalCloseButton}
+              onPress={() => setShowLocationSelector(false)}
+            >
+              <Ionicons name="close" size={24} color="#000" />
+            </TouchableOpacity>
+          </View>
+          
+          {/* Near me toggle */}
+          <View style={styles.nearMeToggleContainer}>
+            <View style={styles.nearMeToggleContent}>
+              <Ionicons name="locate" size={20} color="#666" style={styles.nearMeIcon} />
+              <Text style={styles.nearMeText}>Near Me</Text>
+            </View>
+            <Switch
+              value={nearMeEnabled}
+              onValueChange={toggleNearMe}
+              trackColor={{ false: '#E0E0E0', true: '#CCCCCC' }}
+              thumbColor={nearMeEnabled ? '#000000' : '#FFFFFF'}
+            />
+          </View>
+          
+          {/* Search field */}
+          <View style={styles.locationSearchContainer}>
+            <Ionicons name="search" size={20} color="#666" style={styles.locationSearchIcon} />
+            <TextInput
+              style={styles.locationSearchInput}
+              placeholder="Search locations..."
+              value={locationSearchText}
+              onChangeText={handleLocationSearch}
+              clearButtonMode="while-editing"
+            />
+            {locationSearchText ? (
+              <TouchableOpacity
+                onPress={() => handleLocationSearch('')}
+                style={styles.locationSearchClear}
+              >
+                <Ionicons name="close-circle" size={20} color="#999" />
+              </TouchableOpacity>
+            ) : null}
+          </View>
+          
+          <FlatList
+            data={filteredLocations}
+            keyExtractor={(item) => item.id}
+            style={styles.locationList}
+            renderItem={({ item }) => (
+              <TouchableOpacity 
+                style={styles.selectorModalItem}
+                onPress={() => {
+                  setCoffeeData({
+                    ...coffeeData,
+                    location: item.name,
+                    locationId: item.id
+                  });
+                  setShowLocationSelector(false);
+                }}
+              >
+                <View style={styles.locationItem}>
+                  {item.isDefault ? (
+                    <Ionicons name="home" size={20} color="#000" style={styles.locationIcon} />
+                  ) : item.logo ? (
+                    <Image 
+                      source={getImageSource(item.logo)} 
+                      style={styles.locationLogo}
+                    />
+                  ) : (
+                    <View style={styles.locationLogoPlaceholder}>
+                      <Text style={styles.locationLogoPlaceholderText}>
+                        {item.name.substring(0, 1)}
+                      </Text>
+                    </View>
+                  )}
+                  <View style={styles.locationInfo}>
+                    <Text style={styles.selectorModalItemText}>{item.name}</Text>
+                    {item.address && (
+                      <Text style={styles.locationAddress}>{item.address}</Text>
+                    )}
+                  </View>
+                </View>
+              </TouchableOpacity>
+            )}
+            ListEmptyComponent={
+              <View style={styles.emptyLocationsContainer}>
+                <Text style={styles.emptyText}>No locations found</Text>
+              </View>
+            }
+          />
+        </View>
+      </View>
+    </Modal>
+  );
+
+  const renderFriendSelector = () => (
+    <Modal
+      visible={showFriendSelector}
+      transparent={true}
+      animationType="slide"
+      onRequestClose={() => {
+        setSelectedFriendsTemp([]); // Clear temp selections on cancel
+        setShowFriendSelector(false);
+      }}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={[styles.selectorModalContent, { paddingBottom: insets.bottom + (keyboardVisible ? keyboardHeight : 0) }]}>
+          <View style={styles.selectorModalHeader}>
+            <Text style={styles.selectorModalTitle}>Tag Friends</Text>
+            <TouchableOpacity 
+              style={styles.selectorModalCloseButton}
+              onPress={() => {
+                setSelectedFriendsTemp([]); // Clear temp selections on cancel
+                setShowFriendSelector(false);
+              }}
+            >
+              <Ionicons name="close" size={24} color="#000" />
+            </TouchableOpacity>
+          </View>
+          
+          {/* Search field */}
+          <View style={styles.friendSearchContainer}>
+            <Ionicons name="search" size={20} color="#666" style={styles.friendSearchIcon} />
+            <TextInput
+              style={styles.friendSearchInput}
+              placeholder="Search friends..."
+              value={friendSearchText}
+              onChangeText={handleFriendSearch}
+              clearButtonMode="while-editing"
+              autoCapitalize="none"
+            />
+            {friendSearchText ? (
+              <TouchableOpacity
+                onPress={() => handleFriendSearch('')}
+                style={styles.friendSearchClear}
+              >
+                <Ionicons name="close-circle" size={20} color="#999" />
+              </TouchableOpacity>
+            ) : null}
+          </View>
+          
+          <FlatList
+            data={filteredUsers}
+            keyExtractor={(item) => item.id}
+            style={styles.friendsList}
+            renderItem={({ item }) => {
+              // Check if this friend is selected in the temporary selection
+              const isSelected = selectedFriendsTemp.some(f => f.id === item.id);
+              
+              return (
+                <TouchableOpacity 
+                  style={[
+                    styles.selectorModalItem,
+                    isSelected && styles.selectorModalItemSelected
+                  ]}
+                  onPress={() => handleTempFriendSelection(item)}
+                >
+                  <View style={styles.friendItem}>
+                    {item.userAvatar ? (
+                      <Image 
+                        source={getImageSource(item.userAvatar)}
+                        style={styles.friendAvatar}
+                      />
+                    ) : (
+                      <View style={styles.friendAvatarPlaceholder}>
+                        <Text style={styles.friendAvatarText}>
+                          {item.userName.substring(0, 1).toUpperCase()}
+                        </Text>
+                      </View>
+                    )}
+                    <View style={styles.friendInfo}>
+                      <Text style={styles.friendName}>{item.userName}</Text>
+                      {item.email && (
+                        <Text style={styles.friendEmail}>{item.email}</Text>
+                      )}
+                    </View>
+                  </View>
+                  
+                  {/* Show checkmark if selected */}
+                  {isSelected && (
+                    <Ionicons name="checkmark-circle" size={24} color="#2196F3" />
+                  )}
+                </TouchableOpacity>
+              );
+            }}
+            ListEmptyComponent={
+              <View style={styles.emptyFriendsContainer}>
+                <Text style={styles.emptyText}>No friends found</Text>
+              </View>
+            }
+          />
+          
+          {/* Confirm button at the bottom */}
+          {selectedFriendsTemp.length > 0 && (
+            <View style={styles.friendSelectorFooter}>
+              <TouchableOpacity 
+                style={styles.confirmFriendsButton}
+                onPress={confirmFriendSelections}
+              >
+                <Text style={styles.confirmFriendsText}>
+                  Add {selectedFriendsTemp.length} {selectedFriendsTemp.length === 1 ? 'friend' : 'friends'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      </View>
+    </Modal>
+  );
+
+  const renderFriendTags = () => (
+    <View style={styles.friendTagsContainer}>
+      {taggedFriends.map(friend => (
+        <View key={friend.id} style={styles.friendTag}>
+          {friend.userAvatar && (
+            <Image 
+              source={getImageSource(friend.userAvatar)} 
+              style={styles.friendTagAvatar} 
+            />
+          )}
+          <Text style={styles.friendTagText}>{friend.userName}</Text>
+          <TouchableOpacity 
+            onPress={() => handleRemoveFriend(friend.id)}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="close-circle" size={16} color="#999" />
+          </TouchableOpacity>
+        </View>
+      ))}
+      <TouchableOpacity 
+        style={styles.addFriendButton}
+        onPress={() => {
+          setSelectedFriendsTemp([]); // Reset temp selections when opening
+          setShowFriendSelector(true);
+        }}
+      >
+        <Ionicons name="add" size={20} color="#000000" />
+        <Text style={styles.addFriendText}>Tag a friend</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  // Set the navigation header
+  useEffect(() => {
+    navigation.setOptions({
+      headerTitle: 'Log Coffee',
+      headerLeft: () => (
+        <TouchableOpacity
+          style={{ marginLeft: 16 }}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="close" size={24} color="#000000" />
+        </TouchableOpacity>
+      ),
+      headerRight: () => (
+        <TouchableOpacity
+          style={{ marginRight: 16 }}
+          onPress={() => {
+            console.log('Debug button pressed');
+            // Focus the name input to test
+            if (nameInputRef.current) {
+              nameInputRef.current.focus();
+            }
+          }}
+        >
+          <Ionicons name="bug" size={24} color="#FF6347" />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation]);
+
+  // Component debug logging
+  useEffect(() => {
+    console.log('=== AddCoffeeScreen MOUNTED ===');
+    console.log('Current coffee data:', coffeeData);
+    console.log('Modal coffeeSuggestions count:', coffeeSuggestions.length);
+    console.log('Is this modal visible?', route.params?.isModalVisible);
+    
+    return () => {
+      console.log('=== AddCoffeeScreen UNMOUNTED ===');
+    };
+  }, []);
+
+  // Add an effect to handle scrolling when the notes field gets focus
+  const notesInputRef = useRef(null);
+  
+  useEffect(() => {
+    // Function to handle notes input focus
+    const handleNotesFocus = () => {
+      // Add safety check to prevent null reference error
+      if (scrollViewRef && scrollViewRef.current) {
+        setTimeout(() => {
+          if (scrollViewRef.current) {
+            try {
+              scrollViewRef.current.scrollToEnd({ animated: true });
+            } catch (error) {
+              console.log('Error scrolling on notes focus:', error);
+            }
+          }
+        }, 100);
+      }
+    };
+    
+    // Add event listener to notes input ref
+    if (notesInputRef.current) {
+      notesInputRef.current.addEventListener?.('focus', handleNotesFocus);
+    }
+    
+    return () => {
+      // Clean up
+      if (notesInputRef.current) {
+        notesInputRef.current.removeEventListener?.('focus', handleNotesFocus);
+      }
+    };
+  }, [notesInputRef.current]);
+
+  // Add debug logging before the handleCustomSave function
+  useEffect(() => {
+    // Debug log for save button validation
+    if (selectedTab === 'custom') {
+      console.log('Coffee data validation state:', {
+        name: Boolean(coffeeData.name),
+        coffeeId: Boolean(coffeeData.coffeeId),
+        method: Boolean(coffeeData.method),
+        amount: Boolean(coffeeData.amount),
+        grindSize: Boolean(coffeeData.grindSize),
+        waterVolume: Boolean(coffeeData.waterVolume),
+        brewTime: Boolean(coffeeData.brewTime),
+        brewMinutes: Boolean(coffeeData.brewMinutes),
+        brewSeconds: Boolean(coffeeData.brewSeconds),
+        isValid: Boolean(
+          coffeeData.name && 
+          coffeeData.coffeeId && 
+          coffeeData.method && 
+          coffeeData.amount && 
+          coffeeData.grindSize && 
+          coffeeData.waterVolume && 
+          (coffeeData.brewTime || (coffeeData.brewMinutes && coffeeData.brewSeconds))
+        )
+      });
+    }
+  }, [selectedTab, coffeeData]);
+
+  // Add state for temporary friend selections
+  const [selectedFriendsTemp, setSelectedFriendsTemp] = useState([]);
+  
+  // Handler for temporary friend selection
+  const handleTempFriendSelection = (friend) => {
+    // Check if friend is already in temp selection
+    const isAlreadySelected = selectedFriendsTemp.some(f => f.id === friend.id);
+    
+    if (isAlreadySelected) {
+      // Remove friend from temp selection
+      setSelectedFriendsTemp(selectedFriendsTemp.filter(f => f.id !== friend.id));
+    } else {
+      // Add friend to temp selection
+      setSelectedFriendsTemp([...selectedFriendsTemp, friend]);
+    }
+  };
+  
+  // Handler to confirm friend selections
+  const confirmFriendSelections = () => {
+    // Add all temporary selections to tagged friends (avoiding duplicates)
+    const newTaggedFriends = [...taggedFriends];
+    
+    selectedFriendsTemp.forEach(friend => {
+      if (!taggedFriends.some(f => f.id === friend.id)) {
+        newTaggedFriends.push(friend);
+      }
+    });
+    
+    setTaggedFriends(newTaggedFriends);
+    setSelectedFriendsTemp([]); // Clear temporary selections
+    setShowFriendSelector(false); // Close the modal
+  };
+
   return (
     <View style={styles.container}>
+      {/* Debug visibility indicator */}
+      {__DEV__ && (
+        <View style={{ backgroundColor: '#FFE0E0', padding: 8, marginBottom: 8 }}>
+          <Text style={{ fontWeight: 'bold' }}>Debug Info:</Text>
+          <Text>Modal visible: {String(route.params?.isModalVisible)}</Text>
+          <Text>Coffee ID: {coffeeData.coffeeId || 'none'}</Text>
+          <Text>Component key: {`coffee-form-${route.params?.isModalVisible ? 'visible' : 'hidden'}`}</Text>
+        </View>
+      )}
+      
       <ScrollView 
         ref={scrollViewRef}
         style={styles.scrollView}
+        contentContainerStyle={{ paddingBottom: 200 }} // Add extra padding to ensure content is visible
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
       >
@@ -1050,25 +1869,57 @@ export default function AddCoffeeScreen({ navigation, route }) {
           ) : (
             <View>
               <View style={styles.inputWrapper}>
-                <TextInput
-                  ref={nameInputRef}
-                  style={styles.input}
-                  value={coffeeData.name}
-                  onChangeText={handleNameChange}
-                  placeholder="Enter coffee name"
-                  placeholderTextColor="#999"
-                  autoFocus
-                  onFocus={() => {
-                    // Ensure keyboard visibility is set when input is focused
-                    setKeyboardVisible(true);
-                  }}
-                  onBlur={() => {
-                    // Force update the value when the input loses focus
+                <TouchableOpacity 
+                  activeOpacity={0.8}
+                  style={{flex: 1}}
+                  onPress={() => {
                     if (nameInputRef.current) {
-                      nameInputRef.current.setNativeProps({ text: coffeeData.name });
+                      nameInputRef.current.focus();
                     }
                   }}
-                />
+                >
+                  <TextInput
+                    ref={nameInputRef}
+                    style={[styles.input, {zIndex: 999}]}
+                    value={coffeeData.name}
+                    onChangeText={handleNameChange}
+                    placeholder="Enter coffee name"
+                    placeholderTextColor="#999"
+                    autoFocus={true}
+                    keyboardType="default"
+                    clearButtonMode="never"
+                    editable={true}
+                    contextMenuHidden={false}
+                    blurOnSubmit={false}
+                    onPressIn={() => {
+                      console.log('Input pressed');
+                      // Just focus directly without dismissing first
+                      if (nameInputRef.current) {
+                        nameInputRef.current.focus();
+                      }
+                    }}
+                    onFocus={() => {
+                      // Only set keyboard visible if component is mounted and modal is visible
+                      if (route.params?.isModalVisible) {
+                        setKeyboardVisible(true);
+                        console.log('Name input focused - modal visible');
+                      } else {
+                        console.log('Name input focused - modal not visible, ignoring');
+                        // If modal is not visible, blur immediately to prevent keyboard showing
+                        nameInputRef.current?.blur();
+                      }
+                    }}
+                    onBlur={() => {
+                      // Force update the value when the input loses focus
+                      if (nameInputRef.current && route.params?.isModalVisible) {
+                        nameInputRef.current.setNativeProps({ text: coffeeData.name });
+                        console.log('Name input blurred - modal visible');
+                      } else {
+                        console.log('Name input blurred - modal not visible or ref missing');
+                      }
+                    }}
+                  />
+                </TouchableOpacity>
                 {coffeeData.name.length > 0 && (
                   <TouchableOpacity 
                     style={styles.clearButton}
@@ -1116,34 +1967,98 @@ export default function AddCoffeeScreen({ navigation, route }) {
 
         {coffeeData.coffeeId && (
           <View style={styles.inputContainer}>
+            <Text style={styles.labelLarge}>Location</Text>
+            <TouchableOpacity 
+              style={styles.selectorButton}
+              onPress={() => setShowLocationSelector(true)}
+            >
+              <View style={styles.locationSelectorContent}>
+                {coffeeData.locationId === 'home' ? (
+                  <Ionicons name="home" size={20} color="#666666" style={styles.locationIcon} />
+                ) : coffeeData.locationId === 'near-me' ? (
+                  <Ionicons name="navigate" size={20} color="#666666" style={styles.locationIcon} />
+                ) : coffeeData.locationId ? (
+                  <Image 
+                    source={getImageSource(cafeLocations.find(loc => loc.id === coffeeData.locationId)?.logo)} 
+                    style={styles.locationLogo} 
+                  />
+                ) : (
+                  <Ionicons name="home" size={20} color="#666666" style={styles.locationIcon} />
+                )}
+                <Text style={styles.selectorButtonText}>
+                  {coffeeData.location}
+                </Text>
+              </View>
+              <Ionicons name="chevron-down" size={20} color="#666666" />
+            </TouchableOpacity>
+          </View>
+        )}
+        
+        {coffeeData.coffeeId && (
+          <View style={styles.inputContainer}>
+            <Text style={styles.labelLarge}>With</Text>
+            {renderFriendTags()}
+          </View>
+        )}
+
+        {coffeeData.coffeeId && (
+          <View style={styles.inputContainer}>
             <Text style={styles.labelLarge}>Recipe</Text>
             {renderSegmentedControl()}
           </View>
         )}
 
         {coffeeData.coffeeId && (
-          selectedTab === 'suggested' ? renderSuggestedRecipes() : renderCustomRecipe()
+          selectedTab === 'suggested' ? renderSuggestedRecipes() : 
+          selectedTab === 'custom' ? renderCustomRecipe() : 
+          null // No content for 'none' tab
         )}
       </ScrollView>
       
       {renderPreview()}
       {renderOriginalRecipeModal()}
+      {renderLocationSelector()}
+      {renderFriendSelector()}
       
-      {/* Add fixed bottom save button for custom recipe tab */}
-      {coffeeData.coffeeId && selectedTab === 'custom' && (
+      {/* Add fixed bottom save button for custom recipe tab or None tab */}
+      {coffeeData.coffeeId && (selectedTab === 'custom' || selectedTab === 'none') && (
         <View style={[styles.fixedBottomButton, { paddingBottom: insets.bottom }]}>
           <TouchableOpacity
             style={[
               styles.bottomSaveButton,
-              (!coffeeData.name || !coffeeData.method || !coffeeData.amount || !coffeeData.grindSize || !coffeeData.waterVolume || !coffeeData.brewTime) && styles.bottomSaveButtonDisabled
+              (selectedTab === 'custom' && (
+                !coffeeData.name || 
+                !coffeeData.coffeeId || 
+                !coffeeData.method || 
+                !coffeeData.amount || 
+                !coffeeData.grindSize || 
+                !coffeeData.waterVolume || 
+                (!coffeeData.brewTime && (!coffeeData.brewMinutes || !coffeeData.brewSeconds))
+              )) && styles.bottomSaveButtonDisabled
             ]}
             onPress={handleCustomSave}
-            disabled={!coffeeData.name || !coffeeData.method || !coffeeData.amount || !coffeeData.grindSize || !coffeeData.waterVolume || !coffeeData.brewTime}
+            disabled={selectedTab === 'custom' && (
+              !coffeeData.name || 
+              !coffeeData.coffeeId || 
+              !coffeeData.method || 
+              !coffeeData.amount || 
+              !coffeeData.grindSize || 
+              !coffeeData.waterVolume || 
+              (!coffeeData.brewTime && (!coffeeData.brewMinutes || !coffeeData.brewSeconds))
+            )}
           >
             <Text style={[
               styles.bottomSaveButtonText,
-              (!coffeeData.name || !coffeeData.method || !coffeeData.amount || !coffeeData.grindSize || !coffeeData.waterVolume || !coffeeData.brewTime) && styles.bottomSaveButtonTextDisabled
-            ]}>Save Coffee</Text>
+              (selectedTab === 'custom' && (
+                !coffeeData.name || 
+                !coffeeData.coffeeId || 
+                !coffeeData.method || 
+                !coffeeData.amount || 
+                !coffeeData.grindSize || 
+                !coffeeData.waterVolume || 
+                (!coffeeData.brewTime && (!coffeeData.brewMinutes || !coffeeData.brewSeconds))
+              )) && styles.bottomSaveButtonTextDisabled
+            ]}>Save Log</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -1618,14 +2533,13 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   notesInput: {
-    flex: 1,
-    height: 100,
-    fontSize: 14,
-    color: '#000000',
-    padding: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F2F2F7',
     borderRadius: 8,
+    padding: 12,
+    height: 100,
     textAlignVertical: 'top',
+    fontSize: 16,
+    color: '#000000',
   },
   fixedBottomButton: {
     position: 'absolute',
@@ -1754,8 +2668,8 @@ const styles = StyleSheet.create({
   },
   selectorModalContent: {
     backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
     maxHeight: '80%',
   },
   selectorModalHeader: {
@@ -1782,7 +2696,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#E5E5EA',
   },
   selectorModalItemSelected: {
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#F0F7FF',
   },
   selectorModalItemText: {
     fontSize: 16,
@@ -2010,6 +2924,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     borderRadius: 50,
     alignItems: 'center',
+    display: 'none',
   },
   createOwnButtonText: {
     color: '#FFFFFF',
@@ -2046,4 +2961,289 @@ const styles = StyleSheet.create({
     color: '#000000',
     marginHorizontal: 8,
   },
-}); 
+  locationSelectorContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  locationIcon: {
+    marginRight: 10,
+  },
+  locationLogo: {
+    width: 32,
+    height: 32,
+    borderRadius: 4,
+    marginRight: 10,
+  },
+  locationItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  locationInfo: {
+    flex: 1,
+  },
+  locationAddress: {
+    fontSize: 12,
+    color: '#666666',
+    marginTop: 2,
+  },
+  locationSearchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F2F2F7',
+    borderRadius: 8,
+    padding: 12,
+  },
+  locationSearchIcon: {
+    marginRight: 10,
+  },
+  locationSearchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#000000',
+  },
+  locationSearchClear: {
+    padding: 4,
+  },
+  emptyLocationsContainer: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  locationLogoPlaceholder: {
+    width: 32,
+    height: 32,
+    borderRadius: 4,
+    backgroundColor: '#E5E5EA',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  locationLogoPlaceholderText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666666',
+  },
+  nearMeToggleContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#E5E5EA',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5EA',
+  },
+  nearMeToggleContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  nearMeIcon: {
+    marginRight: 10,
+  },
+  nearMeText: {
+    fontSize: 16,
+    color: '#666666',
+  },
+  friendTagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  friendTag: {
+    backgroundColor: '#F2F2F7',
+    borderRadius: 16,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    marginRight: 8,
+    marginBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  friendTagText: {
+    fontSize: 14,
+    color: '#000000',
+    marginRight: 4,
+    fontWeight: '500',
+  },
+  addFriendButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F2F2F7',
+    borderRadius: 16,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    marginBottom: 8,
+  },
+  addFriendText: {
+    fontSize: 14,
+    color: '#000000',
+    marginLeft: 4,
+    fontWeight: '500',
+  },
+  friendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  friendAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#E5E5EA',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  friendAvatarText: {
+    fontSize: 14,
+    color: '#000000',
+    fontWeight: '600',
+  },
+  locationPreview: {
+    backgroundColor: '#F8F8F8',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  locationPreviewTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  locationPreviewHeader: {
+    marginBottom: 8,
+  },
+  locationPreviewContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  locationPreviewIcon: {
+    marginRight: 10,
+  },
+  locationPreviewLogo: {
+    width: 24,
+    height: 24,
+    borderRadius: 4,
+  },
+  locationPreviewText: {
+    fontSize: 14,
+    color: '#666666',
+  },
+  friendsPreview: {
+    backgroundColor: '#F8F8F8',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  friendsPreviewTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  friendsPreviewHeader: {
+    marginBottom: 8,
+  },
+  friendsPreviewContent: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  friendsPreviewText: {
+    fontSize: 14,
+    color: '#666666',
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  friendTagAvatar: {
+    width: 20, 
+    height: 20,
+    borderRadius: 10,
+    marginRight: 6,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  friendSearchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F2F2F7',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 8,
+    marginHorizontal: 16,
+  },
+  friendSearchIcon: {
+    marginRight: 10,
+  },
+  friendSearchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#000000',
+  },
+  friendSearchClear: {
+    padding: 4,
+  },
+  emptyFriendsContainer: {
+    padding: 16,
+    alignItems: 'center',
+  },
+  friendAvatarPlaceholder: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#E5E5EA',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  friendInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  friendName: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#000000',
+  },
+  friendEmail: {
+    fontSize: 14,
+    color: '#666666',
+    marginTop: 2,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  locationList: {
+    maxHeight: 400,
+  },
+  friendsList: {
+    maxHeight: 400,
+  },
+  textInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#000000',
+    padding: 12,
+    paddingRight: 40, // Make room for the clear button
+    backgroundColor: '#F2F2F7',
+    borderRadius: 8,
+  },
+  friendSelectorFooter: {
+    borderTopWidth: 1,
+    borderTopColor: '#E5E5EA',
+    padding: 16,
+    alignItems: 'center',
+  },
+  confirmFriendsButton: {
+    backgroundColor: '#2196F3',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    width: '100%',
+    alignItems: 'center',
+  },
+  confirmFriendsText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+});
