@@ -1,7 +1,7 @@
 import React from 'react';
 import { Ionicons } from "@expo/vector-icons";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { useColorScheme, Button, Modal, View, Text, StyleSheet, Alert, Keyboard, TouchableOpacity, Platform, Image, FlatList } from "react-native";
+import { useColorScheme, Button, Modal, View, Text, StyleSheet, Alert, Keyboard, TouchableOpacity, Platform, Image, FlatList, SafeAreaView } from "react-native";
 import { useState, useContext, useEffect, useRef } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from 'expo-status-bar';
@@ -105,11 +105,19 @@ export default function BottomTabNavigator() {
     setSelectedCoffee(null);
   };
 
-  // Create a custom navigation object for the AddCoffeeScreen
+  // Update the customNavigation object to ensure it fully implements needed methods
   const customNavigation = {
     goBack: handleSaveComplete,
-    navigate: () => { }, // Add empty navigate function to prevent errors
+    navigate: (screen, params) => {
+      console.log('Custom navigation navigate to:', screen, params);
+      handleSaveComplete();
+      if (screen === 'Home') {
+        // If navigating to Home, just close the modal
+        setIsModalVisible(false);
+      }
+    },
     setParams: (params) => {
+      console.log('Custom navigation setParams:', params);
       if (params.shouldSave !== undefined) {
         setShouldSave(params.shouldSave);
       }
@@ -119,6 +127,11 @@ export default function BottomTabNavigator() {
       if (params.shouldSave === true) {
         handleSaveComplete();
       }
+    },
+    addListener: () => { return { remove: () => {} }; },
+    setOptions: (options) => {
+      console.log('Custom navigation setOptions:', options);
+      // This implementation doesn't need to do anything
     }
   };
 
@@ -244,31 +257,33 @@ export default function BottomTabNavigator() {
       </BottomTab.Navigator>
 
       <Modal
-        animationType="slide"
-        transparent={false}
+        transparent={true}
         visible={isModalVisible}
+        animationType="slide"
         onRequestClose={handleCancel}
       >
-        <View style={styles.modalContainer}>
-          <View style={[styles.header, { paddingTop: Platform.OS === 'ios' ? insets.top : 0 }]}>
-            <View style={styles.headerContent}>
-              <View style={styles.headerLeft} />
-              <Text style={styles.headerTitle}>Log Coffee</Text>
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
               <TouchableOpacity
                 style={styles.closeButton}
                 onPress={handleCancel}
               >
                 <Ionicons name="close" size={24} color="#000000" />
               </TouchableOpacity>
+              <Text style={styles.modalHeaderTitle}>Log Coffee</Text>
+              <View style={styles.headerSpacer} />
+            </View>
+            
+            <View style={{ flex: 1 }}>
+              <AddCoffeeScreen
+                key={`add-coffee-${isModalVisible ? 'visible' : 'hidden'}`}
+                navigation={customNavigation}
+                route={{ params: { isModalVisible, shouldSave, selectedCoffee } }}
+              />
             </View>
           </View>
-          <View style={styles.content}>
-            <AddCoffeeScreen
-              navigation={customNavigation}
-              route={customRoute}
-            />
-          </View>
-        </View>
+        </SafeAreaView>
       </Modal>
 
       {/* Account Switching Modal */}
@@ -304,19 +319,28 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'white',
   },
+  modalContent: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+  },
   header: {
     backgroundColor: 'white',
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
+    paddingVertical: 8,
   },
   headerContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    height: 56,
+    height: 48,
   },
   headerLeft: {
+    width: 24,
+  },
+  headerRight: {
     width: 24,
   },
   headerTitle: {
@@ -326,13 +350,14 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   closeButton: {
-    width: 24,
-    height: 24,
+    width: 36,
+    height: 36,
     justifyContent: 'center',
     alignItems: 'center',
   },
   content: {
     flex: 1,
+    backgroundColor: '#FFFFFF',
   },
   modalOverlay: {
     flex: 1,
@@ -391,7 +416,34 @@ const styles = StyleSheet.create({
   accountEmail: {
     fontSize: 14,
     color: '#8E8E93',
-  }
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5EA',
+    height: 48,
+  },
+  modalHeaderTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    textAlign: 'center',
+    flex: 1,
+  },
+  closeButton: {
+    padding: 6,
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerSpacer: {
+    width: 36,
+    height: 36,
+  },
 });
 
 // Empty component for the Log tab since we're using Modal
