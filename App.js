@@ -46,13 +46,17 @@ export default function App() {
             // Share functionality
             Alert.alert('Share', 'Sharing recipe feature coming soon!');
           } else if (buttonIndex === 1) {
-            // Remix functionality - temporarily show alert since screen doesn't exist yet
-            Alert.alert('Remix', 'Recipe remix feature coming soon!');
-            // Will eventually navigate to RemixRecipe screen:
-            // navigation.navigate('RemixRecipe', { 
-            //   recipe,
-            //   isRemixing: true
-            // });
+            // Remix functionality
+            console.log('Remixing recipe:', recipe);
+            
+            // Navigate to MainTabs with the AddCoffee screen and pass the recipe
+            navigation.navigate('MainTabs', { 
+              screen: 'AddCoffee',
+              params: { 
+                recipe: recipe,
+                isRemixing: true
+              }
+            });
           }
         }
       );
@@ -68,12 +72,18 @@ export default function App() {
           },
           {
             text: 'Remix',
-            onPress: () => Alert.alert('Remix', 'Recipe remix feature coming soon!')
-            // Will eventually navigate to RemixRecipe screen:
-            // onPress: () => navigation.navigate('RemixRecipe', { 
-            //   recipe,
-            //   isRemixing: true
-            // })
+            onPress: () => {
+              console.log('Remixing recipe:', recipe);
+              
+              // Navigate to MainTabs with the AddCoffee screen and pass the recipe
+              navigation.navigate('MainTabs', { 
+                screen: 'AddCoffee',
+                params: { 
+                  recipe: recipe,
+                  isRemixing: true
+                }
+              });
+            }
           },
           {
             text: 'Cancel',
