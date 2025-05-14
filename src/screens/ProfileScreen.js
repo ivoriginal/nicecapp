@@ -890,7 +890,7 @@ export default function ProfileScreen() {
       <View style={styles.modalContainer}>
         <View style={[
           styles.modalContent,
-          { paddingBottom: insets.bottom + 20 }
+          { paddingBottom: insets.bottom + 12 }
         ]}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Select Account</Text>
@@ -1142,8 +1142,8 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: '#FFFFFF',
-    paddingHorizontal: 15,
-    paddingVertical: 15,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#E5E5E5',
   },

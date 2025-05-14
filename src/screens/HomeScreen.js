@@ -44,6 +44,15 @@ export default function HomeScreen({ navigation }) {
   };
 
   const handleCoffeePress = (event) => {
+    // Check if this is a gear item that needs to navigate to GearDetail
+    if (event.navigateTo === 'GearDetail') {
+      navigation.navigate('GearDetail', { 
+        gearName: event.gearName,
+        gearId: event.gearId
+      });
+      return;
+    }
+    
     navigation.navigate('CoffeeDetail', { 
       coffeeId: event.coffeeId,
       skipAuth: true
@@ -113,11 +122,9 @@ export default function HomeScreen({ navigation }) {
         // Fallback if function isn't available: reload data
         loadData();
       }
-    } else if (action === 'public' || action === 'private') {
-      // Toggle visibility
-      console.log('Changing visibility to:', action);
-      // Show visibility change toast
-      showToast(`Visibility changed to ${action}`);
+    } else if (action === 'report') {
+      // Handle report action
+      showToast('Post reported');
     }
   };
 
@@ -138,18 +145,26 @@ export default function HomeScreen({ navigation }) {
     <SafeAreaView style={styles.container}>
       <FlatList
         data={allEvents}
-        renderItem={({ item }) => (
-          <CoffeeLogCard 
-            event={item}
-            onCoffeePress={handleCoffeePress}
-            onRecipePress={handleRecipePress}
-            onUserPress={handleUserPress}
-            onOptionsPress={handleOptionsPress}
-            onLikePress={handleLikePress}
-            currentUserId={currentAccount}
-            showToast={showToast}
-          />
-        )}
+        renderItem={({ item }) => {
+          console.log('Rendering event:', {
+            id: item.id,
+            friends: item.friends,
+            location: item.location,
+            locationId: item.locationId
+          });
+          return (
+            <CoffeeLogCard 
+              event={item}
+              onCoffeePress={handleCoffeePress}
+              onRecipePress={handleRecipePress}
+              onUserPress={handleUserPress}
+              onOptionsPress={handleOptionsPress}
+              onLikePress={handleLikePress}
+              currentUserId={currentAccount}
+              showToast={showToast}
+            />
+          );
+        }}
         keyExtractor={item => `${item.id}-${item.timestamp || Date.now()}`}
         contentContainerStyle={styles.listContainer}
         refreshControl={

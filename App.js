@@ -17,6 +17,7 @@ import PeopleListScreen from './src/screens/PeopleListScreen';
 import CafesListScreen from './src/screens/CafesListScreen';
 import SavedScreen from './src/screens/SavedScreen';
 import NotificationsScreen from './src/screens/NotificationsScreen';
+import AddCoffeeScreen from './src/screens/AddCoffeeScreen';
 import { CoffeeProvider } from './src/context/CoffeeContext';
 import { NotificationsProvider } from './src/context/NotificationsContext';
 import { configureNavigationBar } from './src/lib/navigationBar';
@@ -135,23 +136,7 @@ export default function App() {
                 component={CoffeeDetailScreen} 
                 options={({ navigation, route }) => ({ 
                   title: 'Coffee Details',
-                  headerBackTitle: 'Back',
-                  headerRight: () => {
-                    const { isFavorite, handleToggleFavorite, isInCollection } = route.params || {};
-                    if (!isInCollection) return null;
-                    return (
-                      <TouchableOpacity 
-                        onPress={handleToggleFavorite}
-                        style={{ marginRight: 16 }}
-                      >
-                        <Ionicons 
-                          name={isFavorite ? "heart" : "heart-outline"} 
-                          size={24} 
-                          color={isFavorite ? "#FF3B30" : "#000000"} 
-                        />
-                      </TouchableOpacity>
-                    );
-                  }
+                  headerBackTitle: 'Back'
                 })} 
               />
               <Stack.Screen 
@@ -230,6 +215,14 @@ export default function App() {
                 component={SavedScreen} 
                 options={{ 
                   title: 'Saved',
+                  headerBackTitle: 'Back'
+                }} 
+              />
+              <Stack.Screen 
+                name="AddCoffee" 
+                component={AddCoffeeScreen} 
+                options={{ 
+                  title: 'Create Recipe',
                   headerBackTitle: 'Back'
                 }} 
               />

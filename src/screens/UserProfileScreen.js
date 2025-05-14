@@ -1242,6 +1242,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
+    paddingTop: 0,
   },
   profileImage: {
     width: 80,
@@ -1258,7 +1259,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: '#000000',
-    marginBottom: 4,
+    // marginBottom: 4,
   },
   roasterBadge: {
     backgroundColor: '#000000',

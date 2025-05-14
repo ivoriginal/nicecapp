@@ -499,6 +499,8 @@ export default function CoffeeDetailScreen() {
     navigation.navigate('CreateRecipe', { 
       coffeeId: coffee.id,
       coffeeName: coffee.name,
+      coffeeImage: coffee.image,
+      roaster: coffee.roaster,
       skipAuth: true 
     });
   };
@@ -621,28 +623,12 @@ export default function CoffeeDetailScreen() {
       <ScrollView>
         {/* Coffee Header */}
         <View style={styles.header}>
-          {/* Coffee Image(s) */}
-          {coffee.images ? (
-            <FlatList
-              data={coffee.images}
-              horizontal
-              pagingEnabled
-              showsHorizontalScrollIndicator={true}
-              keyExtractor={(item, index) => `image-${index}`}
-              renderItem={({ item }) => (
-                <Image 
-                  source={{ uri: item }} 
-                  style={styles.coffeeImageInSlider}
-                />
-              )}
-            />
-          ) : (
-            <AppImage 
-              source={coffee.image} 
-              style={styles.coffeeImage}
-              resizeMode="cover"
-            />
-          )}
+          {/* Coffee Image */}
+          <AppImage 
+            source={coffee.image} 
+            style={styles.coffeeImage}
+            resizeMode="cover"
+          />
           <View style={styles.headerContent}>
             <Text style={styles.coffeeName}>{coffee.name}</Text>
             
@@ -895,7 +881,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 200,
     borderRadius: 12,
-    marginBottom: 16,
+    // marginBottom: 16,
   },
   headerContent: {
     marginVertical: 16,
@@ -988,23 +974,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    // marginBottom: 16,
+    // borderBottomWidth: 1,
+    // borderBottomColor: '#E5E5EA',
+    paddingBottom: 12,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#000000',
-    marginBottom: 16,
+    marginBottom: 8,
   },
   createRecipeButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingBottom: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: '#000000',
   },
   createRecipeText: {
     fontSize: 14,
     fontWeight: '500',
     color: '#000000',
-    marginLeft: 4,
   },
   createFirstRecipeButton: {
     backgroundColor: '#000000',
@@ -1228,11 +1219,11 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '600',
   },
-  coffeeImageInSlider: {
-    width: Dimensions.get('window').width - 32, // Full width minus padding
-    height: 200,
-    borderRadius: 12,
-    marginRight: 8,
+  userAvatar: {
+    borderRadius: 0,
+  },
+  businessAvatar: {
+    borderRadius: 0,
   },
   viewMoreButton: {
     marginTop: 8,
@@ -1242,11 +1233,5 @@ const styles = StyleSheet.create({
   viewMoreText: {
     color: '#007AFF',
     fontWeight: '500',
-  },
-  userAvatar: {
-    borderRadius: 20,
-  },
-  businessAvatar: {
-    borderRadius: 8,
   },
 }); 

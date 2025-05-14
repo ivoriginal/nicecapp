@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ActionSheetIOS, Share, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ActionSheetIOS, Share, Platform, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AppImage from './common/AppImage';
+import RecipeCard from './RecipeCard';
 
 const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress, onOptionsPress, onLikePress, currentUserId, showToast }) => {
   // Local state to handle UI updates before backend sync
   const [isLiked, setIsLiked] = useState(event.isLiked || false);
   const [likeCount, setLikeCount] = useState(event.likes || 0);
-  const [isPrivate, setIsPrivate] = useState(event.isPrivate || false);
 
   // Ensure we have a valid event object
   if (!event) {
@@ -31,14 +31,14 @@ const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress, onOpt
   // Check if this is a business account (like Vértigo y Calambre)
   const isBusinessAccount = event.userName === 'Vértigo y Calambre' || 
                            event.userName === 'Kima Coffee' ||
-                           event.userName.includes('Café') ||
+                           (event.userName && event.userName.includes('Café')) ||
                            event.userId?.startsWith('business-');
 
   // Helper function to check if a user name is a business account
   const isBusinessName = (name) => {
     return name === 'Vértigo y Calambre' || 
            name === 'Kima Coffee' ||
-           name?.includes('Café') ||
+           (name && name.includes('Café')) ||
            name?.startsWith('Business-');
   };
 
@@ -50,7 +50,6 @@ const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress, onOpt
     // Different options based on if it's the current user's post
     const options = isCurrentUserPost 
       ? [
-          isPrivate ? 'Make Public' : 'Make Private', 
           'Share this post',
           'Delete', 
           'Cancel'
@@ -61,8 +60,8 @@ const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress, onOpt
           'Cancel'
         ];
     
-    const destructiveButtonIndex = isCurrentUserPost ? 2 : null;
-    const cancelButtonIndex = isCurrentUserPost ? 3 : 2;
+    const destructiveButtonIndex = isCurrentUserPost ? 1 : null;
+    const cancelButtonIndex = isCurrentUserPost ? 2 : 2;
     
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
@@ -72,23 +71,13 @@ const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress, onOpt
           cancelButtonIndex,
         },
         (buttonIndex) => {
-          if (isCurrentUserPost && buttonIndex === 0) {
-            // Toggle private/public
-            const newVisibility = isPrivate ? 'public' : 'private';
-            // Update local UI state
-            setIsPrivate(!isPrivate);
-            // Call parent handler
-            onOptionsPress && onOptionsPress(event, newVisibility);
-            // Use showToast prop instead of direct Toast.show
-            showToast && showToast('Visibility changed');
-          } else if (buttonIndex === 1) {
+          if (buttonIndex === 0) {
             handleShare();
           } else if (!isCurrentUserPost && buttonIndex === 0) {
             // Report
             onOptionsPress && onOptionsPress(event, 'report');
-          } else if (isCurrentUserPost && buttonIndex === 2) {
-            // Delete post (now at index 2)
-            // Show confirmation dialog
+          } else if (isCurrentUserPost && buttonIndex === 1) {
+            // Delete post
             Alert.alert(
               "Delete Post",
               "Are you sure you want to delete this post?",
@@ -98,9 +87,7 @@ const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress, onOpt
                   text: "Delete", 
                   style: "destructive", 
                   onPress: () => {
-                    // Call parent handler to update state/refresh
                     onOptionsPress && onOptionsPress(event, 'delete');
-                    // Use showToast prop instead of direct Toast.show
                     showToast && showToast('Post deleted');
                   }
                 }
@@ -116,18 +103,6 @@ const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress, onOpt
         "Select an option",
         isCurrentUserPost ? [
           { 
-            text: isPrivate ? "Make Public" : "Make Private", 
-            onPress: () => {
-              const newVisibility = isPrivate ? 'public' : 'private';
-              // Update local UI state
-              setIsPrivate(!isPrivate);
-              // Call parent handler
-              onOptionsPress && onOptionsPress(event, newVisibility);
-              // Use showToast prop instead of direct Toast.show
-              showToast && showToast('Visibility changed');
-            }
-          },
-          { 
             text: "Share this post", 
             onPress: handleShare
           },
@@ -135,7 +110,6 @@ const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress, onOpt
             text: "Delete", 
             style: "destructive", 
             onPress: () => {
-              // Show confirmation dialog for deletion
               Alert.alert(
                 "Delete Post",
                 "Are you sure you want to delete this post?",
@@ -145,9 +119,7 @@ const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress, onOpt
                     text: "Delete", 
                     style: "destructive", 
                     onPress: () => {
-                      // Call parent handler to update state/refresh
                       onOptionsPress && onOptionsPress(event, 'delete');
-                      // Use showToast prop instead of direct Toast.show
                       showToast && showToast('Post deleted');
                     }
                   }
@@ -209,12 +181,8 @@ const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress, onOpt
     const type = event.type || 'coffee_log';
     
     switch (type) {
-      case 'cafe_visit':
-        return 'storefront';
       case 'coffee_announcement':
         return 'megaphone';
-      case 'coffee_roasting':
-        return 'flame';
       case 'added_to_collection':
         return 'bookmark';
       case 'added_to_wishlist':
@@ -229,6 +197,10 @@ const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress, onOpt
         return 'cart';
       case 'gear_added':
         return 'hardware-chip';
+      case 'similar_coffee_recommendation':
+        return 'sparkles';
+      case 'user_recommendation':
+        return 'people';
       default:
         return 'cafe';
     }
@@ -238,31 +210,46 @@ const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress, onOpt
   const getEventTypeLabel = () => {
     const type = event.type || 'coffee_log';
     
+    // If it's a coffee log and has a location (not home), show "ordered"
+    if ((!type || type === 'coffee_log') && event.locationId && event.locationId !== 'home') {
+      return 'ordered';
+    }
+    
     switch (type) {
       case 'coffee_log':
         return 'brewed';
-      case 'cafe_visit':
-        return 'visited';
       case 'coffee_announcement':
-        return 'added';
-      case 'coffee_roasting':
-        return 'roasted';
+        return 'added to shop';
       case 'added_to_collection':
         return 'added to collection';
       case 'added_to_wishlist':
         return 'added to wishlist';
       case 'saved_recipe':
-        return 'saved recipe';
+        return 'saved a recipe';
       case 'followed_user':
         return 'followed';
       case 'created_recipe':
-        return 'created recipe';
+        return 'created a recipe';
       case 'added_to_gear_wishlist':
-        return 'added to gear wishlist';
+        return 'wishlisted';
       case 'gear_added':
         return 'added gear';
       default:
         return 'brewed';
+    }
+  };
+
+  // Handle location press
+  const handleLocationPress = () => {
+    if (event.locationId && event.locationId !== 'home') {
+      // Pass the full location data to onUserPress
+      onUserPress && onUserPress({
+        id: event.locationId,
+        type: 'location',
+        name: event.location,
+        avatar: event.locationAvatar,
+        isBusiness: true
+      });
     }
   };
 
@@ -518,6 +505,13 @@ const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress, onOpt
   const renderEventContent = () => {
     const type = event.type || 'coffee_log';
     
+    // Debug logging for friends data
+    console.log('Event data:', {
+      friends: event.friends,
+      location: event.location,
+      locationId: event.locationId
+    });
+    
     // Default coffee log - has coffeeId, coffeeName and no explicit type
     if (!type || type === 'coffee_log' || 
         ((!event.type || event.type === 'coffee_announcement') && event.coffeeId && event.coffeeName)) {
@@ -543,66 +537,282 @@ const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress, onOpt
               <View style={styles.coffeeInfo}>
                 <Text style={styles.coffeeName}>{event.coffeeName || 'Unknown Coffee'}</Text>
                 <Text style={styles.roasterName}>{event.roaster || event.roasterName || 'Unknown Roaster'}</Text>
+                {event.type === 'coffee_announcement' && (
+                  <View style={styles.announcementBadge}>
+                    <Ionicons name="megaphone" size={12} color="#FFFFFF" />
+                    <Text style={styles.announcementText}>New in shop</Text>
+                  </View>
+                )}
               </View>
-              {event.type === 'coffee_announcement' && (
-                <View style={styles.announcementBadge}>
-                  <Ionicons name="megaphone" size={12} color="#FFFFFF" />
-                  <Text style={styles.announcementText}>New in shop</Text>
-                </View>
-              )}
+              <Ionicons 
+                name="chevron-forward" 
+                size={20} 
+                color="#666666" 
+                style={[styles.coffeeChevron, { display: 'none' }]} 
+              />
             </TouchableOpacity>
 
-            {/* Recipe details - now clickable */}
-            {!event.type || event.type !== 'coffee_announcement' ? (
+            {/* Recipe details - only show if there's a recipe */}
+            {(!event.type || event.type !== 'coffee_announcement') && 
+             event.brewingMethod && event.amount && event.grindSize && event.waterVolume && event.brewTime ? (
               <TouchableOpacity 
                 style={styles.recipeContainer}
                 onPress={() => onRecipePress && onRecipePress(event)}
                 activeOpacity={0.7}
               >
-                {/* Recipe creator info - moved before method */}
-                {renderRecipeCreatorInfo()}
-                
-                <View style={styles.recipeHeader}>
+                <View style={styles.recipeRow}>
+                  <AppImage 
+                    source={event.userAvatar}
+                    style={[
+                      styles.creatorAvatar,
+                      isBusinessAccount ? styles.businessCreatorAvatar : null
+                    ]}
+                    placeholder="person"
+                  />
                   <View style={styles.methodContainer}>
-                    <Ionicons name="cafe" size={20} color="#000000" />
-                    <Text style={styles.methodText}>{event.method || event.brewingMethod || 'Unknown Method'}</Text>
+                    <Ionicons name="cafe" size={16} color="#000000" />
+                    <Text style={styles.methodText} numberOfLines={1}>{event.method || event.brewingMethod || 'Unknown Method'}</Text>
                   </View>
+                  <Text style={styles.recipeDetail} numberOfLines={1}>{event.amount || '18'}g</Text>
+                  <Text style={styles.recipeDetail} numberOfLines={1}>{event.grindSize || 'Medium'}</Text>
+                  <Text style={styles.recipeDetail} numberOfLines={1}>{event.waterVolume || '300'}ml</Text>
+                  <Text style={styles.recipeDetail} numberOfLines={1}>{event.brewTime || '3:30'}</Text>
+                  <Ionicons 
+                    name="chevron-forward" 
+                    size={16} 
+                    color="#000000" 
+                    style={[styles.chevronIcon, { display: 'none' }]} 
+                  />
                 </View>
-                
-                <View style={styles.recipeDetails}>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Coffee</Text>
-                    <Text style={styles.detailValue}>{event.amount || '18'}g</Text>
-                  </View>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Grind Size</Text>
-                    <Text style={styles.detailValue}>{event.grindSize || 'Medium'}</Text>
-                  </View>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Water</Text>
-                    <Text style={styles.detailValue}>{event.waterVolume || '300'}ml</Text>
-                  </View>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Brew Time</Text>
-                    <Text style={styles.detailValue}>{event.brewTime || '3:30'}</Text>
-                  </View>
-                </View>
-
-                {/* Saved count with avatars */}
-                {renderSavedCount()}
               </TouchableOpacity>
             ) : null}
           </View>
           
           {/* Notes and rating outside the recipe container */}
-          <View style={styles.notesContainer}>
-            {renderRating()}
-            {event.notes && (
+          {(event.notes && event.notes.trim() !== '') || event.rating ? (
+            <View style={styles.notesContainer}>
+              {renderRating()}
+              {event.notes && event.notes.trim() !== '' && (
+                <Text style={styles.notesText} numberOfLines={3}>
+                  {event.notes}
+                </Text>
+              )}
+            </View>
+          ) : null}
+
+          {/* Metadata section */}
+          <View style={styles.metadataContainer}>
+            {event.location && (
+              <TouchableOpacity 
+                style={styles.metadataRow}
+                onPress={handleLocationPress}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="location" size={16} color="#666666" />
+                <Text style={styles.metadataText}>{event.location}</Text>
+              </TouchableOpacity>
+            )}
+            {event.friends && event.friends.length > 0 && (
+              <View style={styles.metadataRow}>
+                <Ionicons name="people" size={16} color="#666666" />
+                <Text style={styles.metadataText}>
+                  With {event.friends.map(friend => friend.name || friend.userName).join(', ')}
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
+      );
+    }
+    
+    // Added to collection event - show coffee card like brewed
+    if (type === 'added_to_collection') {
+      return (
+        <View style={styles.contentContainer}>
+          <View style={styles.combinedContainer}>
+            <TouchableOpacity 
+              style={styles.coffeeContainer}
+              onPress={() => onCoffeePress && onCoffeePress(event)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.coffeeImageContainer}>
+                {event.imageUrl ? (
+                  <AppImage source={event.imageUrl} style={styles.coffeeImage} placeholder="coffee" />
+                ) : (
+                  <View style={styles.placeholderImage}>
+                    <Ionicons name="cafe" size={24} color="#666" />
+                  </View>
+                )}
+              </View>
+              <View style={styles.coffeeInfo}>
+                <Text style={styles.coffeeName}>{event.coffeeName || 'Unknown Coffee'}</Text>
+                <Text style={styles.roasterName}>{event.roaster || event.roasterName || 'Unknown Roaster'}</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+        </View>
+      );
+    }
+    
+    // Saved recipe and created recipe events - show RecipeCard
+    if (type === 'saved_recipe' || type === 'created_recipe') {
+      const recipeData = {
+        id: event.recipeId || event.id,
+        name: event.recipeName || `${event.method || event.brewingMethod} Recipe`,
+        method: event.method || event.brewingMethod,
+        brewTime: event.brewTime,
+        grindSize: event.grindSize,
+        coffeeId: event.coffeeId,
+        coffeeName: event.coffeeName,
+        creatorName: event.userName,
+        creatorAvatar: event.userAvatar,
+        image: event.imageUrl
+      };
+      
+      return (
+        <View style={styles.contentContainer}>
+          <RecipeCard 
+            recipe={recipeData} 
+            onPress={() => onRecipePress && onRecipePress(event)}
+            showCoffeeInfo={true}
+          />
+          
+          {/* Notes if any */}
+          {event.notes && event.notes.trim() !== '' && (
+            <View style={styles.notesContainer}>
               <Text style={styles.notesText} numberOfLines={3}>
                 {event.notes}
               </Text>
-            )}
-          </View>
+            </View>
+          )}
+        </View>
+      );
+    }
+    
+    // Similar coffee recommendations - special event with no author
+    if (type === 'similar_coffee_recommendation') {
+      return (
+        <View style={styles.contentContainer}>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.similarCoffeeContainer}
+          >
+            {event.similarCoffees && event.similarCoffees.map((coffee, index) => (
+              <TouchableOpacity 
+                key={`similar-${coffee.id || index}`}
+                style={styles.similarCoffeeCard}
+                onPress={() => onCoffeePress && onCoffeePress(coffee)}
+              >
+                <View style={styles.similarCoffeeImageContainer}>
+                  <AppImage 
+                    source={coffee.imageUrl || coffee.image} 
+                    style={styles.similarCoffeeImage}
+                    placeholder="coffee" 
+                  />
+                </View>
+                <View style={styles.similarCoffeeInfo}>
+                  <Text style={styles.similarCoffeeName} numberOfLines={1}>{coffee.name}</Text>
+                  <Text style={styles.similarCoffeeRoaster} numberOfLines={1}>{coffee.roaster}</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      );
+    }
+    
+    // Followed user event - special event with no author
+    if (type === 'user_recommendation') {
+      // Check if recommended user is a business/café
+      const isRecommendedBusinessAccount = 
+        event.recommendedUserName === 'Vértigo y Calambre' || 
+        event.recommendedUserName === 'Kima Coffee' ||
+        (event.recommendedUserName && event.recommendedUserName.includes('Café')) ||
+        event.recommendedUserId?.startsWith('business-');
+      
+      return (
+        <View style={styles.contentContainer}>
+          <TouchableOpacity 
+            style={styles.followedUserContent}
+            onPress={() => onUserPress && onUserPress({
+              id: event.recommendedUserId,
+              userName: event.recommendedUserName
+            })}
+          >
+            <AppImage 
+              source={event.recommendedUserAvatar}
+              style={[
+                styles.followedUserAvatar,
+                isRecommendedBusinessAccount ? styles.followedBusinessAvatar : null
+              ]}
+              placeholder="person"
+            />
+            <View style={styles.followedUserInfo}>
+              <Text style={styles.followedUserName}>{event.recommendedUserName}</Text>
+              {event.recommendedUserBio && (
+                <Text style={styles.followedByText} numberOfLines={2}>{event.recommendedUserBio}</Text>
+              )}
+            </View>
+            <TouchableOpacity 
+              style={styles.followButton}
+              onPress={() => {
+                // Will add follow functionality later
+                console.log('Follow button pressed for:', event.recommendedUserName);
+              }}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.followButtonText}>Follow</Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+    
+    // Gear events - added gear and wishlisted gear
+    if (type === 'gear_added' || type === 'added_to_gear_wishlist') {
+      // Get gear data from the event
+      const gearData = {
+        id: event.gearId,
+        name: event.gearName,
+        brand: event.gearBrand,
+        image: event.gearImage || event.imageUrl
+      };
+      
+      return (
+        <View style={styles.contentContainer}>
+          <TouchableOpacity 
+            style={styles.gearCard}
+            onPress={() => {
+              // Navigate to gear detail screen
+              if (onCoffeePress) {
+                onCoffeePress({
+                  ...event,
+                  navigateTo: 'GearDetail',
+                  gearName: event.gearName,
+                  gearId: event.gearId
+                });
+              }
+            }}
+          >
+            <View style={styles.gearImageContainer}>
+              <AppImage 
+                source={event.gearImage || event.imageUrl} 
+                style={styles.gearImage}
+                placeholder="hardware-chip" 
+              />
+            </View>
+            <View style={styles.gearInfo}>
+              <Text style={styles.gearName}>{event.gearName}</Text>
+              <Text style={styles.gearBrand}>{event.gearBrand}</Text>
+            </View>
+            <Ionicons 
+              name="chevron-forward" 
+              size={20} 
+              color="#666666" 
+              style={[styles.gearChevron, { display: 'none' }]} 
+            />
+          </TouchableOpacity>
         </View>
       );
     }
@@ -635,21 +845,6 @@ const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress, onOpt
                 <Text style={styles.genericInfoText}>{event.gearName}</Text>
               </View>
             )}
-            {event.type === 'gear_added' && event.gearName && (
-              <View style={styles.gearAddedContainer}>
-                <AppImage 
-                  source={event.gearImage || event.imageUrl}
-                  style={styles.gearImage}
-                  placeholder="hardware-chip"
-                />
-                <View style={styles.gearInfo}>
-                  <Text style={styles.gearName}>{event.gearName}</Text>
-                  {event.gearBrand && (
-                    <Text style={styles.gearBrand}>{event.gearBrand}</Text>
-                  )}
-                </View>
-              </View>
-            )}
             {event.cafeId && event.cafeName && (
               <View style={styles.genericInfoRow}>
                 <Ionicons name="storefront" size={16} color="#666666" />
@@ -668,33 +863,12 @@ const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress, onOpt
                 <Text style={styles.genericInfoText}>{event.recipeName}</Text>
               </View>
             )}
-            {event.followedUserName && (
-              <View style={styles.genericInfoRow}>
-                <Ionicons name="person" size={16} color="#666666" />
-                <Text style={styles.genericInfoText}>{event.followedUserName}</Text>
-              </View>
-            )}
-            {event.type === 'followed_user' && event.followedUserAvatar && (
-              <View style={styles.followedUserContainer}>
-                <AppImage 
-                  source={event.followedUserAvatar}
-                  style={styles.followedUserAvatar}
-                  placeholder="person"
-                />
-                <Text style={styles.followedUserText}>
-                  {isBusinessName(event.followedUserName) ? 'Business profile' : 'User profile'}
-                </Text>
-              </View>
-            )}
             {event.coffeeName && type !== 'coffee_log' && (
               <View style={styles.genericInfoRow}>
                 <Ionicons name="cafe" size={16} color="#666666" />
                 <Text style={styles.genericInfoText}>{event.coffeeName}</Text>
               </View>
             )}
-            
-            {/* Recipe creator info for created_recipe or saved_recipe events */}
-            {(type === 'created_recipe' || type === 'saved_recipe') && renderRecipeCreatorInfo()}
             
             {/* Saved count with avatars */}
             {renderSavedCount()}
@@ -753,37 +927,72 @@ const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress, onOpt
   return (
     <View style={styles.container}>
       {/* Header with user info and timestamp */}
-      <View style={styles.headerContainer}>
-        <TouchableOpacity 
-          style={styles.userInfoContainer}
-          onPress={() => onUserPress && onUserPress(event)}
-        >
-          <AppImage 
-            source={event.userAvatar || 'https://via.placeholder.com/40'} 
-            style={[
-              styles.userAvatar,
-              isBusinessAccount ? styles.businessAvatar : null
-            ]}
-            placeholder="person"
-          />
-          <View style={styles.userNameContainer}>
-            <Text style={styles.userName}>{event.userName || 'Unknown User'}</Text>
-            <Text style={styles.userAction}>{getEventTypeLabel()}</Text>
+      {event.type === 'similar_coffee_recommendation' ? (
+        <View style={styles.headerContainer}>
+          <View style={styles.specialHeaderContainer}>
+            <Ionicons name="sparkles" size={20} color="#666666" style={styles.similarCoffeeIcon} />
+            <Text style={styles.specialHeaderText}>
+              Similar to {event.basedOnCoffeeName || 'coffees you like'}
+            </Text>
           </View>
-        </TouchableOpacity>
-        <View style={styles.headerActionsContainer}>
-          {isPrivate && (
-            <Ionicons name="lock-closed" size={18} color="#666666" style={styles.privateIcon} />
-          )}
-          <TouchableOpacity
-            onPress={handleOptionsPress}
-            style={styles.optionsButton}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Ionicons name="ellipsis-horizontal" size={20} color="#666666" />
-          </TouchableOpacity>
+          <View style={styles.headerActionsContainer}>
+            {/* Options button hidden for now, will add functionality later */}
+            <TouchableOpacity
+              onPress={handleOptionsPress}
+              style={[styles.optionsButton, { display: 'none' }]}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="ellipsis-horizontal" size={20} color="#666666" />
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
+      ) : event.type === 'user_recommendation' ? (
+        <View style={styles.headerContainer}>
+          <View style={styles.specialHeaderContainer}>
+            <Ionicons name="people" size={20} color="#666666" />
+            <Text style={styles.specialHeaderText}>Followed by people you follow</Text>
+          </View>
+          <View style={styles.headerActionsContainer}>
+            {/* Options button hidden for now, will add functionality later */}
+            <TouchableOpacity
+              onPress={handleOptionsPress}
+              style={[styles.optionsButton, { display: 'none' }]}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="ellipsis-horizontal" size={20} color="#666666" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      ) : (
+        <View style={styles.headerContainer}>
+          <TouchableOpacity 
+            style={styles.userInfoContainer}
+            onPress={() => onUserPress && onUserPress(event)}
+          >
+            <AppImage 
+              source={event.userAvatar || 'https://via.placeholder.com/40'} 
+              style={[
+                styles.userAvatar,
+                isBusinessAccount ? styles.businessAvatar : null
+              ]}
+              placeholder="person"
+            />
+            <View style={styles.userNameContainer}>
+              <Text style={styles.userName}>{event.userName || 'Unknown User'}</Text>
+              <Text style={styles.userAction}>{getEventTypeLabel()}</Text>
+            </View>
+          </TouchableOpacity>
+          <View style={styles.headerActionsContainer}>
+            <TouchableOpacity
+              onPress={handleOptionsPress}
+              style={styles.optionsButton}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="ellipsis-horizontal" size={20} color="#666666" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
 
       {/* Event content - either coffee log or other event type */}
       {renderEventContent()}
@@ -855,9 +1064,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  privateIcon: {
-    marginRight: 8,
-  },
   optionsButton: {
     padding: 4,
   },
@@ -877,6 +1083,7 @@ const styles = StyleSheet.create({
     // borderColor: '#E5E5EA',
     // borderRadius: 12,
     position: 'relative',
+    alignItems: 'center',
   },
   coffeeImageContainer: {
     width: 60,
@@ -892,7 +1099,7 @@ const styles = StyleSheet.create({
   },
   ratingContainer: {
     flexDirection: 'row',
-    marginBottom: 6,
+    marginBottom: 8,
   },
   placeholderImage: {
     width: '100%',
@@ -916,50 +1123,55 @@ const styles = StyleSheet.create({
     color: '#666666',
   },
   recipeContainer: {
-    padding: 16,
-    paddingTop: 12,
-    paddingBottom: 2,
-    borderRadius: 0,
+    padding: 12,
+    // padding: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#F5F5F5',
+    backgroundColor: '#f9f9f9',
     borderTopWidth: 1,
     borderTopColor: '#E5E5EA',
-    // borderBottomWidth: 1,
-    // borderBottomColor: '#F1F1F1',
     marginTop: 1,
   },
-  recipeHeader: {
+  recipeRow: {
     flexDirection: 'row',
-    justifyContent: 'flex-start',
     alignItems: 'center',
-    marginBottom: 8,
+    gap: 8,
+    justifyContent: 'space-between',
   },
   methodContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
     borderWidth: 1,
     borderColor: '#EBEBEB',
+    maxWidth: 100,
   },
   methodText: {
     marginLeft: 4,
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '500',
     color: '#000000',
+  },
+  recipeDetail: {
+    fontSize: 12,
+    color: '#666666',
+    // maxWidth: 60,
   },
   recipeCreatorRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
   },
   creatorAvatar: {
     width: 24,
     height: 24,
     borderRadius: 12,
-    marginRight: 8,
+    marginRight: 0,
     borderWidth: 1,
     borderColor: '#E0E0E0',
+    borderOpacity: 0.2,
   },
   businessCreatorAvatar: {
     borderRadius: 6,
@@ -1000,27 +1212,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666666',
   },
-  recipeDetails: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginBottom: 8,
-  },
-  detailRow: {
-    width: '50%',
-    marginBottom: 8,
-  },
-  detailLabel: {
-    fontSize: 12,
-    color: '#666666',
-  },
-  detailValue: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#000000',
-  },
   notesContainer: {
-    marginVertical: 8,
-    marginTop: 12,
+    marginTop: 4,
+    paddingBottom: 4,
+    paddingHorizontal: 8,
   },
   notesText: {
     fontSize: 14,
@@ -1099,14 +1294,39 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     overflow: 'hidden',
-    // marginBottom: 12,
+    marginBottom: 12,
     // padding: 8,
   },
-  followedUserContainer: {
+  followedUserCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+    padding: 16,
+    marginBottom: 8,
+  },
+  recommendationHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 8,
-    marginBottom: 8,
+    marginBottom: 12,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  recommendationHeaderText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666666',
+    marginLeft: 8,
+  },
+  followedUserContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
   },
   followedUserAvatar: {
     width: 48,
@@ -1116,42 +1336,101 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E0E0E0',
   },
-  followedUserText: {
+  followedBusinessAvatar: {
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+  },
+  followedUserInfo: {
+    flex: 1,
+  },
+  followedUserName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000000',
+    marginBottom: 4,
+  },
+  followedByText: {
     fontSize: 14,
     color: '#666666',
   },
-  announcementBadge: {
+  followedChevron: {
+    marginLeft: 'auto',
+  },
+  similarCoffeeHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#4CAF50',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    position: 'absolute',
-    right: 12,
-    top: '50%',
-    transform: [{ translateY: -12 }],
+    marginBottom: 12,
+    paddingHorizontal: 16,
   },
-  announcementText: {
-    fontSize: 11,
-    color: '#FFFFFF',
+  similarCoffeeIcon: {
+    marginRight: 8,
+  },
+  similarCoffeeTitle: {
+    fontSize: 16,
     fontWeight: '600',
-    marginLeft: 4,
+    color: '#000000',
   },
-  gearAddedContainer: {
-    flexDirection: 'row',
-    padding: 12,
-    backgroundColor: '#F8F8F8',
+  similarCoffeeContainer: {
+    // paddingLeft: 8,
+    paddingRight: 0,
+    paddingBottom: 8,
+    paddingTop: 0,
+  },
+  similarCoffeeCard: {
+    width: 120,
+    marginRight: 8,
+    backgroundColor: '#FFFFFF',
     borderRadius: 8,
-    marginVertical: 8,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: '#E5E5EA',
+    overflow: 'hidden',
   },
-  gearImage: {
+  similarCoffeeImageContainer: {
+    width: '100%',
+    height: 100,
+    backgroundColor: '#F5F5F5',
+  },
+  similarCoffeeImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  similarCoffeeInfo: {
+    padding: 8,
+  },
+  similarCoffeeName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000000',
+    marginBottom: 2,
+  },
+  similarCoffeeRoaster: {
+    fontSize: 12,
+    color: '#666666',
+  },
+  gearCard: {
+    flexDirection: 'row',
+    padding: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+    marginBottom: 8,
+    alignItems: 'center',
+  },
+  gearImageContainer: {
     width: 60,
     height: 60,
     borderRadius: 8,
+    overflow: 'hidden',
     marginRight: 12,
+    backgroundColor: '#F5F5F5',
+  },
+  gearImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
   },
   gearInfo: {
     flex: 1,
@@ -1166,6 +1445,71 @@ const styles = StyleSheet.create({
   gearBrand: {
     fontSize: 14,
     color: '#666666',
+  },
+  gearChevron: {
+    marginLeft: 'auto',
+  },
+  metadataContainer: {
+    paddingTop: 4,
+    paddingHorizontal: 8,
+    backgroundColor: '#FFFFFF',
+  },
+  metadataRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  metadataIcon: {
+    marginRight: 8,
+  },
+  metadataText: {
+    fontSize: 14,
+    color: '#666666',
+    marginLeft: 4,
+  },
+  announcementBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    position: 'absolute',
+    right: 40,
+    top: '50%',
+    transform: [{ translateY: -12 }],
+  },
+  announcementText: {
+    fontSize: 11,
+    color: '#FFFFFF',
+    fontWeight: '600',
+    marginLeft: 4,
+  },
+  specialHeaderContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+  specialHeaderText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000000',
+    marginLeft: 8,
+  },
+  followButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    backgroundColor: '#000000',
+    borderRadius: 16,
+    marginLeft: 'auto',
+  },
+  followButtonText: {
+    fontSize: 14,
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  coffeeChevron: {
+    marginLeft: 'auto',
   },
 });
 

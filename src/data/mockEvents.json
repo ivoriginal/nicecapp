@@ -96,59 +96,6 @@
       "roaster": "Kima Coffee",
       "imageUrl": "https://kimacoffee.com/cdn/shop/files/IMG-5851_900x.png?v=1742796767",
       "date": "2023-12-16T14:30:00Z",
-      "notes": "Finally tried this coffee. The frutos rojos flavor profile is outstanding!",
-      "userId": "user1",
-      "userName": "Ivo Vilches",
-      "userAvatar": "assets/users/ivo-vilches.jpg"
-    },
-    {
-      "id": "event-saved-recipe-1",
-      "type": "saved_recipe",
-      "recipeId": "recipe1",
-      "recipeName": "Perfect V60 Method",
-      "coffeeId": "coffee-villa-rosario",
-      "coffeeName": "Villa Rosario",
-      "creatorId": "user7",
-      "creatorName": "Sophia Miller",
-      "imageUrl": "https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728",
-      "date": "2023-12-14T10:15:00Z",
-      "userId": "user1",
-      "userName": "Ivo Vilches",
-      "userAvatar": "assets/users/ivo-vilches.jpg"
-    },
-    {
-      "id": "event-followed-user-1",
-      "type": "followed_user",
-      "followedUserId": "user3",
-      "followedUserName": "Carlos Hernández",
-      "followedUserAvatar": "assets/users/carlos-hernandez.jpg",
-      "date": "2023-12-13T09:20:00Z",
-      "userId": "user1",
-      "userName": "Ivo Vilches",
-      "userAvatar": "assets/users/ivo-vilches.jpg"
-    },
-    {
-      "id": "event-created-recipe-1",
-      "type": "created_recipe",
-      "recipeId": "recipe2",
-      "recipeName": "15g AeroPress Recipe",
-      "coffeeId": "coffee-villa-rosario",
-      "coffeeName": "Villa Rosario",
-      "imageUrl": "https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728",
-      "brewingMethod": "AeroPress",
-      "date": "2023-12-12T15:30:00Z",
-      "userId": "user5",
-      "userName": "Emma Garcia",
-      "userAvatar": "https://randomuser.me/api/portraits/women/33.jpg"
-    },
-    {
-      "id": "event-added-to-gear_wishlist-1",
-      "type": "added_to_gear_wishlist",
-      "gearId": "gear1",
-      "gearName": "Fellow Stagg EKG",
-      "gearType": "Kettle",
-      "imageUrl": "https://images.unsplash.com/photo-1564890369478-c89ca6d9cde9",
-      "date": "2023-12-11T11:50:00Z",
       "userId": "user1",
       "userName": "Ivo Vilches",
       "userAvatar": "assets/users/ivo-vilches.jpg"
@@ -172,14 +119,100 @@
       "userAvatar": "https://randomuser.me/api/portraits/women/33.jpg"
     },
     {
-      "id": "event-cafe-visit-1",
-      "type": "cafe_visit",
-      "cafeId": "cafelab-murcia",
-      "cafeName": "CaféLab Murcia",
-      "imageUrl": "assets/businesses/cafelab-murcia-cover.png",
+      "id": "event-user-recommendation-1",
+      "type": "user_recommendation",
+      "recommendedUserId": "user3",
+      "recommendedUserName": "Carlos Hernández",
+      "recommendedUserAvatar": "assets/users/carlos-hernandez.jpg",
+      "recommendedUserBio": "Coffee roaster and barista at CaféLab",
+      "date": "2023-12-13T09:20:00Z"
+    },
+    {
+      "id": "event-saved-recipe-1",
+      "type": "saved_recipe",
+      "recipeId": "recipe1",
+      "recipeName": "Perfect V60 Method",
+      "coffeeId": "coffee-villa-rosario",
+      "coffeeName": "Villa Rosario",
+      "creatorId": "user7",
+      "creatorName": "Sophia Miller",
+      "imageUrl": "https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728",
+      "date": "2023-12-14T10:15:00Z",
+      "userId": "user1",
+      "userName": "Ivo Vilches",
+      "userAvatar": "assets/users/ivo-vilches.jpg"
+    },
+    {
+      "id": "event-similar-coffee-1",
+      "type": "similar_coffee_recommendation",
+      "basedOnCoffeeId": "coffee-villa-rosario",
+      "basedOnCoffeeName": "Villa Rosario",
       "date": "2023-12-14T15:00:00Z",
-      "notes": "Visited CaféLab Murcia today. Their pour-over bar setup is incredible! Tried their Villa Rosario from Kima Coffee.",
-      "rating": 5,
+      "similarCoffees": [
+        {
+          "id": "coffee-red-fruits",
+          "name": "Red Fruits",
+          "roaster": "Kima Coffee",
+          "imageUrl": "https://kimacoffee.com/cdn/shop/files/IMG-5851_900x.png?v=1742796767"
+        },
+        {
+          "id": "coffee-ijen",
+          "name": "Ijen",
+          "roaster": "Kima Coffee",
+          "imageUrl": "https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728"
+        },
+        {
+          "id": "coffee-refisa-g1",
+          "name": "Refisa G1",
+          "roaster": "Toma Café",
+          "imageUrl": "https://cdn.shopify.com/s/files/1/0561/2172/1001/files/ET_REF_G1_800x.jpg?v=1738771773"
+        },
+        {
+          "id": "coffee-el-romerillo",
+          "name": "El Romerillo",
+          "roaster": "Kima Coffee",
+          "imageUrl": "https://kimacoffee.com/cdn/shop/files/C9FA6F38-C909-4B10-BA79-B748A03B2B22_900x.png?v=1741639732"
+        },
+        {
+          "id": "coffee-thefix-colombia",
+          "name": "Colombia El Diviso",
+          "roaster": "The Fix",
+          "imageUrl": "https://cdn.shopify.com/s/files/1/0553/4603/1271/files/colombia_el_diviso_1500x.png?v=1688634799"
+        }
+      ]
+    },
+    {
+      "id": "event-created-recipe-1",
+      "type": "created_recipe",
+      "recipeId": "recipe2",
+      "recipeName": "15g AeroPress Recipe",
+      "coffeeId": "coffee-villa-rosario",
+      "coffeeName": "Villa Rosario",
+      "imageUrl": "https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728",
+      "brewingMethod": "AeroPress",
+      "date": "2023-12-12T15:30:00Z",
+      "userId": "user5",
+      "userName": "Emma Garcia",
+      "userAvatar": "https://randomuser.me/api/portraits/women/33.jpg"
+    },
+    {
+      "id": "event-user-recommendation-2",
+      "type": "user_recommendation",
+      "recommendedUserId": "user2",
+      "recommendedUserName": "Vértigo y Calambre",
+      "recommendedUserAvatar": "assets/businesses/vertigo-logo.jpg",
+      "recommendedUserBio": "Specialty coffee shop in Murcia, Spain",
+      "date": "2023-12-12T15:30:00Z"
+    },
+    {
+      "id": "event-added-to-gear-wishlist-1",
+      "type": "added_to_gear_wishlist",
+      "gearId": "gear1",
+      "gearName": "Fellow Stagg EKG",
+      "gearBrand": "Fellow",
+      "gearType": "Kettle",
+      "imageUrl": "https://hola.coffee/cdn/shop/files/FELLOW-STAGG_1024x1024@2x.jpg?v=1732719228",
+      "date": "2023-12-11T11:50:00Z",
       "userId": "user1",
       "userName": "Ivo Vilches",
       "userAvatar": "assets/users/ivo-vilches.jpg"
@@ -205,8 +238,10 @@
     {
       "id": "event-gear-added-1",
       "type": "gear_added",
+      "gearId": "gear1",
       "gearName": "Fellow Stagg EKG",
       "gearBrand": "Fellow",
+      "gearType": "Kettle",
       "imageUrl": "https://hola.coffee/cdn/shop/files/FELLOW-STAGG_1024x1024@2x.jpg?v=1732719228",
       "date": "2023-12-09T16:30:00Z",
       "notes": "Finally added the Fellow Stagg EKG to my gear collection! The temperature control is a game changer for my pour-overs.",
@@ -231,17 +266,6 @@
       "userId": "user7",
       "userName": "Sophia Miller",
       "userAvatar": "https://randomuser.me/api/portraits/women/68.jpg"
-    },
-    {
-      "id": "event-coffee-roast-1",
-      "type": "coffee_roasting",
-      "beanOrigin": "Colombia, Campo Hermoso",
-      "imageUrl": "https://images.unsplash.com/photo-1501747315918-9d0c6a51f822",
-      "date": "2023-12-07T14:20:00Z",
-      "notes": "First time roasting this Colombian bean. Aimed for a medium roast to preserve the fruit notes. Very pleased with the results!",
-      "userId": "user1",
-      "userName": "Ivo Vilches",
-      "userAvatar": "assets/users/ivo-vilches.jpg"
     },
     {
       "id": "event-user8-1",

@@ -14,7 +14,8 @@ import {
 import mockEvents from '../data/mockEvents.json';
 import mockUsers from '../data/mockUsers.json';
 import mockCoffees from '../data/mockCoffees.json';
-import mockRecipeData from '../data/mockRecipes.json';
+import mockCoffeesData from '../data/mockCoffees.json';
+import mockRecipes from '../data/mockRecipes.json';
 
 // Create the context with a default value
 const CoffeeContext = createContext({
@@ -215,14 +216,14 @@ export const CoffeeProvider = ({ children }) => {
       console.log(`Found ${currentUser.savedRecipes.length} saved recipe IDs for user1`);
       
       // Get the recipes that match the IDs in currentUser.savedRecipes
-      const userSavedRecipes = mockRecipeData.recipes.filter(recipe => 
+      const userSavedRecipes = mockRecipes.recipes.filter(recipe => 
         currentUser.savedRecipes.includes(recipe.id)
       );
       
       console.log(`Found ${userSavedRecipes.length} matching recipes`);
       
       // Mark these recipes as saved
-      const updatedRecipes = [...mockRecipeData.recipes];
+      const updatedRecipes = [...mockRecipes.recipes];
       updatedRecipes.forEach(recipe => {
         recipe.isSaved = currentUser.savedRecipes.includes(recipe.id);
       });
@@ -372,8 +373,17 @@ export const CoffeeProvider = ({ children }) => {
         date: new Date().toISOString(),
         userId: currentAccount,
         userName: user?.userName || 'Guest',
-        userAvatar: user?.userAvatar || null
+        userAvatar: user?.userAvatar || null,
+        // Ensure friends data is preserved
+        friends: eventData.friends || []
       };
+      
+      // Log the new event data for debugging
+      console.log('Adding new coffee event with friends:', {
+        eventId: newEvent.id,
+        friends: newEvent.friends,
+        friendsCount: newEvent.friends?.length
+      });
       
       // Add the new event to the coffeeEvents state
       setCoffeeEvents(prevEvents => [newEvent, ...prevEvents]);
@@ -396,12 +406,19 @@ export const CoffeeProvider = ({ children }) => {
 
   // Get recipes for a specific coffee
   const getRecipesForCoffee = (coffeeId) => {
-    return recipes.filter(recipe => recipe.coffeeId === coffeeId);
+    // First check our local recipes
+    const localRecipes = recipes.filter(recipe => recipe.coffeeId === coffeeId);
+    
+    // Then check mock recipes
+    const mockRecipesForCoffee = mockRecipes.recipes.filter(recipe => recipe.coffeeId === coffeeId);
+    
+    // Combine both sources, with local recipes first
+    return [...localRecipes, ...mockRecipesForCoffee];
   };
 
   // Function to get all recipes
   const getRecipes = () => {
-    return mockRecipeData.recipes || [];
+    return mockRecipes.recipes || [];
   };
 
   // Add function to remove a coffee event (if it doesn't exist already)
@@ -551,6 +568,18 @@ export const CoffeeProvider = ({ children }) => {
     }
   };
 
+  const addRecipe = (recipe) => {
+    return new Promise((resolve) => {
+      setRecipes(prevRecipes => {
+        const newRecipes = [...prevRecipes, recipe];
+        // Save to AsyncStorage if needed
+        // AsyncStorage.setItem('recipes', JSON.stringify(newRecipes));
+        return newRecipes;
+      });
+      resolve(recipe);
+    });
+  };
+
   return (
     <CoffeeContext.Provider
       value={{
@@ -582,7 +611,7 @@ export const CoffeeProvider = ({ children }) => {
         setCoffeeWishlist: setCoffeeWishlist,
         loadData,
         getRecipesForCoffee,
-        addRecipe: () => {},
+        addRecipe,
         switchAccount,
         loadSavedRecipes,
         setRecipes,
