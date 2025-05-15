@@ -4,7 +4,17 @@ import { Ionicons } from '@expo/vector-icons';
 import AppImage from './common/AppImage';
 import RecipeCard from './RecipeCard';
 
-const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress, onOptionsPress, onLikePress, currentUserId, showToast }) => {
+const CoffeeLogCard = ({ 
+  event, 
+  onCoffeePress, 
+  onRecipePress, 
+  onUserPress, 
+  onOptionsPress, 
+  onLikePress, 
+  currentUserId, 
+  showToast,
+  containerStyle 
+}) => {
   // Local state to handle UI updates before backend sync
   const [isLiked, setIsLiked] = useState(event.isLiked || false);
   const [likeCount, setLikeCount] = useState(event.likes || 0);
@@ -553,8 +563,8 @@ const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress, onOpt
             </TouchableOpacity>
 
             {/* Recipe details - only show if there's a recipe */}
-            {(!event.type || event.type !== 'coffee_announcement') && 
-             event.brewingMethod && event.amount && event.grindSize && event.waterVolume && event.brewTime ? (
+            {(event.type === 'coffee_log' || event.type === 'coffee_announcement') && 
+             (event.brewingMethod || event.method) ? (
               <TouchableOpacity 
                 style={styles.recipeContainer}
                 onPress={() => onRecipePress && onRecipePress(event)}
@@ -585,7 +595,16 @@ const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress, onOpt
                   />
                 </View>
               </TouchableOpacity>
-            ) : null}
+            ) : (() => {
+              console.log('Recipe section not showing because:', {
+                type: event.type,
+                brewingMethod: event.brewingMethod,
+                method: event.method,
+                conditionResult: (event.type === 'coffee_log' || event.type === 'coffee_announcement') && 
+                  (event.brewingMethod || event.method)
+              });
+              return null;
+            })()}
           </View>
           
           {/* Notes and rating outside the recipe container */}
@@ -750,9 +769,11 @@ const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress, onOpt
             />
             <View style={styles.followedUserInfo}>
               <Text style={styles.followedUserName}>{event.recommendedUserName}</Text>
-              {event.recommendedUserBio && (
-                <Text style={styles.followedByText} numberOfLines={2}>{event.recommendedUserBio}</Text>
-              )}
+              {event.recommendedUserHandle ? (
+                <Text style={styles.followedByText} numberOfLines={1}>{event.recommendedUserHandle}</Text>
+              ) : event.recommendedUserBio ? (
+                <Text style={styles.followedByText} numberOfLines={1}>{event.recommendedUserBio}</Text>
+              ) : null}
             </View>
             <TouchableOpacity 
               style={styles.followButton}
@@ -925,7 +946,7 @@ const CoffeeLogCard = ({ event, onCoffeePress, onRecipePress, onUserPress, onOpt
   };
   
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, containerStyle]}>
       {/* Header with user info and timestamp */}
       {event.type === 'similar_coffee_recommendation' ? (
         <View style={styles.headerContainer}>
@@ -1009,9 +1030,14 @@ const styles = StyleSheet.create({
     marginHorizontal: 0,
     marginVertical: 0,
     overflow: 'hidden',
-    // borderBottomWidth: 1,
-    // borderBottomColor: '#E5E5EA',
     marginBottom: 8,
+    // Explicitly set all border properties to ensure no borders
+    borderWidth: 0,
+    borderTopWidth: 0,
+    borderBottomWidth: 0,
+    borderLeftWidth: 0,
+    borderRightWidth: 0,
+    borderColor: 'transparent',
   },
   contentContainer: {
     padding: 12,
@@ -1022,8 +1048,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 12,
-    // borderBottomWidth: 1,
-    // borderBottomColor: '#F0F0F0',
   },
   userInfoContainer: {
     flexDirection: 'row',
@@ -1074,16 +1098,11 @@ const styles = StyleSheet.create({
   coffeeContainer: {
     flexDirection: 'row',
     padding: 12,
-    // paddingVertical: 8,
     backgroundColor: '#FFFFFF',
-    // outlineWidth: 1,
-    // outlineColor: '#E0E0E0',
-    // borderWidth: 1,
-    // borderColor: '#E0E0E0',
-    // borderColor: '#E5E5EA',
-    // borderRadius: 12,
     position: 'relative',
     alignItems: 'center',
+    borderBottomWidth: 0,
+    borderColor: 'transparent',
   },
   coffeeImageContainer: {
     width: 60,
@@ -1124,7 +1143,6 @@ const styles = StyleSheet.create({
   },
   recipeContainer: {
     padding: 12,
-    // padding: 8,
     paddingHorizontal: 12,
     backgroundColor: '#F5F5F5',
     backgroundColor: '#f9f9f9',
@@ -1158,7 +1176,6 @@ const styles = StyleSheet.create({
   recipeDetail: {
     fontSize: 12,
     color: '#666666',
-    // maxWidth: 60,
   },
   recipeCreatorRow: {
     flexDirection: 'row',
@@ -1221,7 +1238,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666666',
   },
-  // New styles for generic events
   genericEventContainer: {
     padding: 12,
     backgroundColor: '#FFFFFF',
@@ -1288,14 +1304,11 @@ const styles = StyleSheet.create({
   },
   combinedContainer: {
     borderWidth: 1,
-    borderColor: '#E0E0E0',
     borderColor: '#E5E5EA',
-    // backgroundColor: '#F1F1F1',
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     overflow: 'hidden',
     marginBottom: 12,
-    // padding: 8,
   },
   followedUserCard: {
     backgroundColor: '#FFFFFF',
@@ -1372,7 +1385,6 @@ const styles = StyleSheet.create({
     color: '#000000',
   },
   similarCoffeeContainer: {
-    // paddingLeft: 8,
     paddingRight: 0,
     paddingBottom: 8,
     paddingTop: 0,
@@ -1411,9 +1423,9 @@ const styles = StyleSheet.create({
   },
   gearCard: {
     flexDirection: 'row',
-    padding: 16,
+    padding: 12,
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: '#E5E5EA',
     marginBottom: 8,
@@ -1475,8 +1487,8 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 6,
     position: 'absolute',
-    right: 40,
-    top: '50%',
+    right: 4,
+    top: '35%',
     transform: [{ translateY: -12 }],
   },
   announcementText: {

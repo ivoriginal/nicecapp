@@ -2,7 +2,7 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { StyleSheet, TouchableOpacity, ActionSheetIOS, Platform, Alert } from 'react-native';
+import { StyleSheet, TouchableOpacity, ActionSheetIOS, Platform, Alert, Share } from 'react-native';
 import BottomTabNavigator from './src/navigation/BottomTabNavigator';
 import CoffeeDetailScreen from './src/screens/CoffeeDetailScreen';
 import RecipeDetailScreen from './src/screens/RecipeDetailScreen';
@@ -18,6 +18,7 @@ import CafesListScreen from './src/screens/CafesListScreen';
 import SavedScreen from './src/screens/SavedScreen';
 import NotificationsScreen from './src/screens/NotificationsScreen';
 import AddCoffeeScreen from './src/screens/AddCoffeeScreen';
+import EditProfileScreen from './src/screens/EditProfileScreen';
 import { CoffeeProvider } from './src/context/CoffeeContext';
 import { NotificationsProvider } from './src/context/NotificationsContext';
 import { configureNavigationBar } from './src/lib/navigationBar';
@@ -96,6 +97,56 @@ export default function App() {
     }
   };
 
+  // Function to handle action sheet for coffee options
+  const handleCoffeeOptions = (navigation, coffee) => {
+    const options = ['Share', 'Cancel'];
+    const cancelButtonIndex = 1;
+
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options,
+          cancelButtonIndex,
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 0) {
+            // Share coffee
+            shareCoffee(coffee);
+          }
+        }
+      );
+    } else {
+      // For Android
+      Alert.alert(
+        'Coffee Options',
+        'What would you like to do?',
+        [
+          {
+            text: 'Share',
+            onPress: () => shareCoffee(coffee)
+          },
+          {
+            text: 'Cancel',
+            style: 'cancel'
+          }
+        ]
+      );
+    }
+  };
+
+  const shareCoffee = async (coffee) => {
+    try {
+      const coffeeName = coffee?.name || 'this coffee';
+      const roasterName = coffee?.roaster || 'Unknown Roaster';
+      
+      await Share.share({
+        message: `Check out ${coffeeName} from ${roasterName} on Nice Coffee App!`,
+      });
+    } catch (error) {
+      console.error('Error sharing coffee:', error);
+    }
+  };
+
   return (
     <SafeAreaProvider>
       <NotificationsProvider>
@@ -136,7 +187,19 @@ export default function App() {
                 component={CoffeeDetailScreen} 
                 options={({ navigation, route }) => ({ 
                   title: 'Coffee Details',
-                  headerBackTitle: 'Back'
+                  headerBackTitle: 'Back',
+                  headerRight: () => (
+                    <TouchableOpacity 
+                      onPress={() => handleCoffeeOptions(navigation, route.params?.coffee)}
+                      style={{ marginRight: 16 }}
+                    >
+                      <Ionicons 
+                        name="ellipsis-horizontal" 
+                        size={24} 
+                        color="#000000" 
+                      />
+                    </TouchableOpacity>
+                  )
                 })} 
               />
               <Stack.Screen 
@@ -169,6 +232,15 @@ export default function App() {
                 component={UserProfileScreen} 
                 options={({ route }) => ({ 
                   title: route.params?.userName || 'Profile',
+                  headerBackTitle: 'Back',
+                  headerTransparent: false,
+                })} 
+              />
+              <Stack.Screen 
+                name="EditProfile" 
+                component={EditProfileScreen} 
+                options={({ route }) => ({ 
+                  title: route.params?.userName || 'Edit Profile',
                   headerBackTitle: 'Back',
                   headerTransparent: false,
                 })} 
@@ -208,7 +280,7 @@ export default function App() {
               <Stack.Screen 
                 name="CafesList" 
                 component={CafesListScreen} 
-                options={{ headerShown: false }} 
+                options={{ headerShown: true, title: 'Cafés Near You', headerBackTitle: 'Back' }} 
               />
               <Stack.Screen 
                 name="Saved" 

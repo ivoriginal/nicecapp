@@ -1802,9 +1802,9 @@ export default function SearchScreen() {
                 />
               )}
               <Text style={styles.suggestedUserName}>{item.userName}</Text>
-              <Text style={styles.suggestedUserBio} numberOfLines={2}>{item.bio}</Text>
+              <Text style={styles.suggestedUserHandle}>{item.handle}</Text>
               <Text style={styles.mutualFriendsText}>
-                {item.mutualFriends} mutual {item.mutualFriends === 1 ? 'friend' : 'friends'}
+                {item.mutualFriends} {item.mutualFriends === 1 ? 'mutual' : 'mutuals'}
               </Text>
               <TouchableOpacity style={styles.followButton}>
                 <Text style={styles.followButtonText}>Follow</Text>
@@ -2510,12 +2510,11 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     textAlign: 'center',
   },
-  suggestedUserBio: {
-    fontSize: 12,
+  suggestedUserHandle: {
+    fontSize: 14,
     color: '#666666',
     marginBottom: 8,
     textAlign: 'center',
-    height: 32,
   },
   mutualFriendsText: {
     fontSize: 12,

@@ -85,6 +85,18 @@ export const CoffeeProvider = ({ children }) => {
       setError(null);
       const accountToLoad = specificAccount || currentAccount;
       
+      // Initialize gear data variables
+      let gearData = [];
+      let gearWishlistData = [];
+      
+      // Get gear data from mockUsers.json to ensure it's available
+      const mockUserData = mockUsers.users.find(u => u.id === accountToLoad);
+      if (mockUserData) {
+        console.log(`Found mockUserData for ${accountToLoad} with gear:`, mockUserData.gear);
+        gearData = mockUserData.gear || [];
+        gearWishlistData = mockUserData.gearWishlist || [];
+      }
+      
       // Set user data from accounts list
       const userData = accounts.find(acc => acc.id === accountToLoad);
       if (userData) {
@@ -98,6 +110,13 @@ export const CoffeeProvider = ({ children }) => {
       
       // Load saved recipes from mockUsers and mockRecipes
       loadSavedRecipes();
+      
+      // Define our local account data structure
+      const accountData = {
+        'user1': { coffeeEvents: [], coffeeCollection: [], coffeeWishlist: [], favorites: [], recipes: [] },
+        'user2': { coffeeEvents: [], coffeeCollection: [], coffeeWishlist: [], favorites: [], recipes: [] },
+        'user3': { coffeeEvents: [], coffeeCollection: [], coffeeWishlist: [], favorites: [], recipes: [] }
+      };
       
       // IMPORTANT: Collect all events for social feed - do this BEFORE loading account-specific data
       let allUserEvents = [];
@@ -115,9 +134,21 @@ export const CoffeeProvider = ({ children }) => {
         
         // We're now only using mockEvents.coffeeEvents for all event data
       }
+      
       // Only add events from accountData if we want to supplement split files
       // This can be removed once the migration to split files is complete
       else {
+        // Create an empty accountData object if it doesn't exist
+        const accountData = {
+          'user1': {
+            coffeeEvents: [],
+            coffeeCollection: [],
+            coffeeWishlist: [],
+            favorites: [],
+            recipes: []
+          }
+        };
+        
         for (const acct in accountData) {
           if (accountData[acct]?.coffeeEvents && Array.isArray(accountData[acct].coffeeEvents)) {
             console.log(`Adding ${accountData[acct].coffeeEvents.length} events from ${acct}`);

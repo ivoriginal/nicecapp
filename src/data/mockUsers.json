@@ -5,7 +5,7 @@
       "email": "ivo.vilches@example.com",
       "userName": "Ivo Vilches",
       "userAvatar": "assets/users/ivo-vilches.jpg",
-      "bio": "Coffee enthusiast and home barista. Always exploring new brewing methods.",
+      "handle": "@ivoriginal",
       "gear": [
         "AeroPress",
         "Chemex",
@@ -46,7 +46,7 @@
       "email": "contacto@vertigoycalambre.com",
       "userName": "Vértigo y Calambre",
       "userAvatar": "assets/businesses/vertigo-logo.jpg",
-      "bio": "Specialty coffee lover. Always on the hunt for the perfect cup.",
+      "handle": "@vertigoycalambre",
       "gear": [
         "Chemex",
         "Comandante C40",
@@ -57,7 +57,7 @@
         "Victoria Arduino Eagle One",
         "Loring S15 Falcon"
       ],
-      "location": "Portland, OR",
+      "location": "Murcia, Spain",
       "joinedDate": "2022-03-22T00:00:00Z"
     },
     {
@@ -65,7 +65,7 @@
       "email": "carlos.hernandez@example.com",
       "userName": "Carlos Hernández",
       "userAvatar": "assets/users/carlos-hernandez.jpg",
-      "bio": "Coffee roaster and barista. Passionate about the craft.",
+      "handle": "@CodingCarlos",
       "gear": [],
       "location": "Madrid, Spain",
       "joinedDate": "2022-02-10T00:00:00Z"
@@ -75,7 +75,7 @@
       "email": "emma.garcia@example.com",
       "userName": "Emma Garcia",
       "userAvatar": "https://randomuser.me/api/portraits/women/33.jpg",
-      "bio": "Coffee shop owner and latte art enthusiast. Love connecting with fellow coffee lovers!",
+      "handle": "@emmathebarista",
       "gear": [
         "Rancilio Silvia",
         "Eureka Mignon",
@@ -94,7 +94,7 @@
       "email": "david.kim@example.com",
       "userName": "David Kim",
       "userAvatar": "https://randomuser.me/api/portraits/men/45.jpg",
-      "bio": "Coffee photographer and content creator. Sharing the beauty of coffee one shot at a time.",
+      "handle": "@coffeephotographer",
       "gear": [
         "Fellow Stagg X",
         "1Zpresso JX-Pro",
@@ -113,7 +113,7 @@
       "email": "sophia.miller@example.com",
       "userName": "Sophia Miller",
       "userAvatar": "https://randomuser.me/api/portraits/women/68.jpg",
-      "bio": "Coffee educator and brewing competition judge. Always learning and sharing knowledge.",
+      "handle": "@sophiabrews",
       "gear": [
         "Kalita Wave",
         "Baratza Vario",
@@ -132,7 +132,7 @@
       "email": "james.wilson@example.com",
       "userName": "James Wilson",
       "userAvatar": "https://randomuser.me/api/portraits/men/22.jpg",
-      "bio": "Coffee bean importer and green coffee buyer. Traveling the world for the best beans.",
+      "handle": "@coffeesourcer",
       "gear": [
         "Moccamaster KBGV",
         "Comandante C40",
@@ -151,7 +151,7 @@
       "email": "olivia.taylor@example.com",
       "userName": "Olivia Taylor",
       "userAvatar": "https://randomuser.me/api/portraits/women/12.jpg",
-      "bio": "Coffee and pastry pairing expert. Finding the perfect match for every brew.",
+      "handle": "@oliviapastry",
       "gear": [
         "Chemex",
         "Baratza Encore",
@@ -170,7 +170,7 @@
       "email": "lucas.brown@example.com",
       "userName": "Lucas Brown",
       "userAvatar": "https://randomuser.me/api/portraits/men/55.jpg",
-      "bio": "Cold brew specialist and nitro coffee innovator. Always experimenting with new methods.",
+      "handle": "@coldbrewlucas",
       "gear": [
         "Toddy Cold Brew System",
         "Fellow Stagg X",
@@ -189,7 +189,7 @@
       "email": "elias.veris@example.com",
       "userName": "Elias Veris",
       "userAvatar": "assets/users/elias-veris.jpg",
-      "bio": "Coffee aficionado with a passion for pour-over methods. Always in search of the perfect cup.",
+      "handle": "@eliasveris",
       "gear": [
         "Fellow Stagg EKG",
         "Hario V60",
@@ -210,7 +210,7 @@
       "id": "user5",
       "userName": "Emma Garcia",
       "userAvatar": "https://randomuser.me/api/portraits/women/33.jpg",
-      "bio": "Coffee shop owner and latte art enthusiast. Love connecting with fellow coffee lovers!",
+      "handle": "@emmathebarista",
       "location": "Austin, TX",
       "mutualFriends": 2,
       "type": "user"
@@ -219,7 +219,7 @@
       "id": "user7",
       "userName": "Sophia Miller",
       "userAvatar": "https://randomuser.me/api/portraits/women/68.jpg",
-      "bio": "Coffee educator and brewing competition judge. Always learning and sharing knowledge.",
+      "handle": "@sophiabrews",
       "location": "Chicago, IL",
       "mutualFriends": 4,
       "type": "user"
@@ -228,7 +228,7 @@
       "id": "user9",
       "userName": "Olivia Taylor",
       "userAvatar": "https://randomuser.me/api/portraits/women/12.jpg",
-      "bio": "Coffee and pastry pairing expert. Finding the perfect match for every brew.",
+      "handle": "@oliviapastry",
       "location": "Boston, MA",
       "mutualFriends": 1,
       "type": "user"

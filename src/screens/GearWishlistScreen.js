@@ -147,7 +147,7 @@ const GearWishlistScreen = () => {
           columnWrapperStyle={styles.columnWrapper}
           ListEmptyComponent={() => (
             <View style={styles.emptyContainer}>
-              <Ionicons name="hardware-chip-outline" size={50} color="#CCCCCC" />
+              {/* <Ionicons name="hardware-chip-outline" size={50} color="#CCCCCC" /> */}
               <Text style={styles.emptyText}>No items in the wishlist</Text>
               {isCurrentUser && (
                 <Text style={styles.emptySubText}>Browse coffee gear to add items to your wishlist</Text>
@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingTop: 100,
+    // paddingTop: 16,
   },
   emptyText: {
     fontSize: 16,

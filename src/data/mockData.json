@@ -1739,6 +1739,7 @@
       "followedUserId": "user3",
       "followedUserName": "Carlos Hernández",
       "followedUserAvatar": "assets/users/carlos-hernandez.jpg",
+      "followedUserHandle": "@CodingCarlos",
       "date": "2023-12-13T09:20:00Z",
       "userId": "user1",
       "userName": "Ivo Vilches",

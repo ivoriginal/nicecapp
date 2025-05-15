@@ -13,7 +13,9 @@ import {
   Modal,
   Platform,
   ActionSheetIOS,
-  Alert
+  Alert,
+  ToastAndroid,
+  Animated
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useCoffee } from '../context/CoffeeContext';
@@ -51,6 +53,37 @@ const ErrorView = ({ error, insets, onRetry }) => {
         <Text style={styles.retryButtonText}>Retry</Text>
       </TouchableOpacity>
     </View>
+  );
+};
+
+// Custom Toast component for iOS
+const Toast = ({ visible, message, duration = 2000 }) => {
+  const opacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (visible) {
+      Animated.sequence([
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true
+        }),
+        Animated.delay(duration - 600),
+        Animated.timing(opacity, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true
+        })
+      ]).start();
+    }
+  }, [visible, opacity, duration]);
+
+  if (!visible) return null;
+
+  return (
+    <Animated.View style={[styles.toast, { opacity }]}>
+      <Text style={styles.toastText}>{message}</Text>
+    </Animated.View>
   );
 };
 
@@ -98,6 +131,8 @@ export default function ProfileScreen() {
   const [recipeFilter, setRecipeFilter] = useState('all'); // 'all', 'created', 'saved'
   const [enableRefreshControl, setEnableRefreshControl] = useState(false);
   const [loadCount, setLoadCount] = useState(0);
+  const [lastUpdate, setLastUpdate] = useState(Date.now());
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const scrollViewRef = useRef(null);
   const [shopFilter, setShopFilter] = useState('coffee'); // 'coffee' or 'gear'
 
@@ -160,20 +195,38 @@ export default function ProfileScreen() {
   console.log('CURRENT USER DATA:', userData);
   console.log('DEFAULT USER:', defaultUser);
 
-  // Only initialize once on mount with the current account
+  // Initialize on mount
   useEffect(() => {
+    console.log('ProfileScreen - Initial mount, setting default states');
+    
+    // Disable refresh control on initial load
+    setEnableRefreshControl(false);
+    
+    // Set initial load flag
+    setIsInitialLoad(true);
+    
+    // Initialize with the current account
     initializeWithAccount(currentAccount);
     
-    // Enable scrolling after initial render
+    // Enable scrolling after initial render with a delay
     setTimeout(() => {
+      console.log('ProfileScreen - Enabling refresh control after initial delay');
       setEnableRefreshControl(true);
-    }, 300);
+      setIsInitialLoad(false);
+      setLastUpdate(Date.now());
+    }, 1000);
   }, []);
   
   // Helper function to initialize with a specific account
   const initializeWithAccount = async (accountId) => {
     try {
-      console.log(`Initializing with account: ${accountId}`);
+      console.log(`ProfileScreen - Initializing with account: ${accountId}`);
+      
+      // If we're already loading, don't reload
+      if (loading) {
+        console.log('ProfileScreen - Already loading, skipping initialization');
+        return;
+      }
       
       // Reset scroll position on account change
       if (scrollViewRef.current) {
@@ -184,13 +237,19 @@ export default function ProfileScreen() {
       const defaultAccountData = defaultUsers[accountId] || defaultUsers['user1'];
       setCurrentUserData(defaultAccountData);
       
-      // Use loadData function from context
-      if (loadData) {
+      // Use loadData function from context - only if it's not the initial load
+      // Initial loading will be handled by the CoffeeContext itself
+      if (loadData && !isInitialLoad) {
         await loadData(accountId);
-        console.log(`Data loaded for account: ${accountId}`);
-      } else {
+        console.log(`ProfileScreen - Data loaded for account: ${accountId}`);
+        
+        // Update last update timestamp
+        setLastUpdate(Date.now());
+      } else if (!loadData) {
         console.error('loadData is undefined');
         setLocalError('Failed to initialize: context function not available');
+      } else {
+        console.log('ProfileScreen - Skipping loadData on initial load, relying on CoffeeContext');
       }
     } catch (error) {
       console.error(`Error initializing with account ${accountId}:`, error);
@@ -200,11 +259,22 @@ export default function ProfileScreen() {
 
   const handleRefresh = async () => {
     try {
-      setRefreshing(true);
+      console.log('ProfileScreen - handleRefresh - refreshing data for account:', currentAccount);
+      
+      // Only set refreshing state if we're not already refreshing
+      if (!refreshing) {
+        setRefreshing(true);
+      }
+      
       setLocalError(null);
+      
       // Use loadData function from context
       if (loadData) {
         await loadData(currentAccount);
+        console.log('ProfileScreen - handleRefresh - data refreshed successfully');
+        
+        // Update the last update timestamp after a successful refresh
+        setLastUpdate(Date.now());
       } else {
         console.error('loadData is undefined');
         throw new Error('Context function not available');
@@ -271,21 +341,122 @@ export default function ProfileScreen() {
     }
   }, [user, currentAccount, loading, contextError]);
 
+  // Toast state
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+
+  // Show toast notification based on platform
+  const showToast = (message) => {
+    if (Platform.OS === 'android') {
+      ToastAndroid.show(message, ToastAndroid.SHORT);
+    } else {
+      // Use custom Toast component for iOS
+      setToastMessage(message);
+      setToastVisible(true);
+      
+      // Hide the toast after 2 seconds
+      setTimeout(() => {
+        setToastVisible(false);
+      }, 2000);
+    }
+  };
+  
   // Handle account switching from other components
   useFocusEffect(
     useCallback(() => {
       // If we're returning to this screen, see if the account changed
       console.log('ProfileScreen focused, current account:', currentAccount);
-
-      // This will refresh data if needed
-      if (currentAccount && !refreshing && !loading) {
-        handleRefresh();
+      const now = Date.now();
+      const timeSinceLastUpdate = now - lastUpdate;
+      
+      // Check if we have updated user data from EditProfileScreen
+      const route = navigation.getState().routes.find(route => route.name === 'Profile');
+      const hasUpdatedUserData = route?.params?.updatedUserData;
+      
+      if (hasUpdatedUserData) {
+        const updatedUserData = route.params.updatedUserData;
+        console.log('Received updated user data:', updatedUserData);
+        
+        // Check if there are actual changes before showing the toast
+        const hasChanges = 
+          user?.userName !== updatedUserData.userName ||
+          user?.location !== updatedUserData.location ||
+          user?.userAvatar !== updatedUserData.userAvatar ||
+          !arraysEqual(user?.gear || [], updatedUserData.gear || []);
+        
+        // Helper to compare arrays
+        function arraysEqual(a, b) {
+          if (a.length !== b.length) return false;
+          const sortedA = [...a].sort();
+          const sortedB = [...b].sort();
+          return sortedA.every((item, index) => item === sortedB[index]);
+        }
+        
+        // Only show toast if there were actual changes
+        if (hasChanges) {
+          showToast('Profile updated');
+        }
+        
+        // Update the CoffeeContext user data
+        if (accounts && accounts.length > 0) {
+          const updatedAccounts = [...accounts];
+          const accountIndex = updatedAccounts.findIndex(acc => acc.id === currentAccount);
+          
+          if (accountIndex !== -1) {
+            // Log the location to verify it's being passed correctly
+            console.log('Updating profile with location:', updatedUserData.location);
+            
+            // Update the account data
+            updatedAccounts[accountIndex] = {
+              ...updatedAccounts[accountIndex],
+              userName: updatedUserData.userName,
+              location: updatedUserData.location,
+              userAvatar: updatedUserData.userAvatar,
+              userHandle: updatedUserData.userHandle || updatedAccounts[accountIndex].userHandle,
+              gear: updatedUserData.gear
+            };
+            
+            // Set current user data for immediate UI update
+            setCurrentUserData({
+              ...currentUserData,
+              userName: updatedUserData.userName,
+              location: updatedUserData.location,
+              userAvatar: updatedUserData.userAvatar,
+              userHandle: updatedUserData.userHandle || currentUserData.userHandle,
+              gear: updatedUserData.gear
+            });
+            
+            // Force refresh data to update the UI
+            console.log('Forcing refresh to update the UI with new user data');
+            setTimeout(() => {
+              loadData(currentAccount);
+            }, 100);
+            
+            // Clear the updatedUserData param to avoid re-processing
+            navigation.setParams({ updatedUserData: null });
+            
+            // Update the lastUpdate timestamp to prevent immediate refresh
+            setLastUpdate(now);
+          }
+        }
+      } else {
+        // Only refresh data if:
+        // 1. It's the first load of the app (isInitialLoad = true)
+        // 2. We haven't refreshed in a long time (> 30 seconds)
+        // 3. User has explicitly pulled down to refresh (this is handled separately by the ScrollView's refreshControl)
+        if (currentAccount && !refreshing && !loading && 
+            (isInitialLoad || timeSinceLastUpdate > 30000)) {
+          console.log(`Refreshing profile data. Initial load: ${isInitialLoad}, Time since last update: ${timeSinceLastUpdate}ms`);
+          handleRefresh();
+          setIsInitialLoad(false);
+          setLastUpdate(now);
+        }
       }
 
       return () => {
         // Cleanup when screen loses focus
       };
-    }, [currentAccount])
+    }, [currentAccount, navigation, lastUpdate, isInitialLoad])
   );
 
   // Add the long press handler to the profile tab
@@ -457,13 +628,27 @@ export default function ProfileScreen() {
 
   // Render coffee item
   const renderCoffeeItem = ({ item }) => {
+    // Enhance item with default recipe data if missing
+    const enhancedItem = {
+      ...item,
+      // If type is missing or null, set it to 'coffee_log'
+      type: item.type || 'coffee_log',
+      // Add default brewing method if missing
+      brewingMethod: item.brewingMethod || item.method || 'V60',
+      // Add default recipe data if missing
+      amount: item.amount || '15',
+      grindSize: item.grindSize || 'Medium',
+      waterVolume: item.waterVolume || '250',
+      brewTime: item.brewTime || '3:00'
+    };
+    
     return (
       <View style={styles.coffeeLogCardContainer}>
         <CoffeeLogCard
-          event={item}
-          onCoffeePress={() => handleCoffeePress(item)}
-          onRecipePress={() => handleRecipePress(item)}
-          onUserPress={() => handleUserPress(item)}
+          event={enhancedItem}
+          onCoffeePress={() => handleCoffeePress(enhancedItem)}
+          onRecipePress={() => handleRecipePress(enhancedItem)}
+          onUserPress={() => handleUserPress(enhancedItem)}
           onOptionsPress={handleCoffeeOptionsPress}
           onLikePress={handleCoffeeLikePress}
           currentUserId={currentAccount}
@@ -620,7 +805,12 @@ export default function ProfileScreen() {
     return (
       <ScrollView 
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={handleRefresh}
+            enabled={enableRefreshControl} 
+            progressViewOffset={20}
+          />
         }
         showsVerticalScrollIndicator={false}
         style={{ flex: 1 }}
@@ -629,8 +819,13 @@ export default function ProfileScreen() {
         automaticallyAdjustContentInsets={false}
         scrollsToTop={true}
         keyboardShouldPersistTaps="handled"
-        scrollEnabled={enableRefreshControl}
+        scrollEnabled={true}
         ref={scrollViewRef}
+        onScrollBeginDrag={() => {
+          if (!enableRefreshControl) {
+            setEnableRefreshControl(true);
+          }
+        }}
       >
         {/* Profile Header - Avatar, name, stats */}
         <View style={[styles.profileHeader]}>
@@ -835,24 +1030,48 @@ export default function ProfileScreen() {
 
   // Handle options press (3-dot menu)
   const handleOptionsPress = () => {
+    // Log userData before navigation to ensure location is present
+    console.log('Profile options - Current userData:', userData);
+    console.log('Profile options - Location:', userData.location);
+    
+    // Create a complete userData object with all required fields
+    const completeUserData = {
+      ...userData,
+      location: userData.location || defaultUser?.location || 'Murcia, Spain',
+    };
+    
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
         {
           options: ['Edit Profile', 'Settings', 'Sign Out', 'Cancel'],
           cancelButtonIndex: 3,
+          destructiveButtonIndex: 2,
           userInterfaceStyle: 'light'
         },
         (buttonIndex) => {
           if (buttonIndex === 0) {
             // Edit Profile
-            // For now, just show an alert
-            Alert.alert('Coming Soon', 'Edit Profile functionality will be available soon.');
+            navigation.navigate('EditProfile', { userData: completeUserData });
           } else if (buttonIndex === 1) {
             // Settings
             Alert.alert('Coming Soon', 'Settings functionality will be available soon.');
           } else if (buttonIndex === 2) {
             // Sign Out
-            Alert.alert('Coming Soon', 'Sign Out functionality will be available soon.');
+            Alert.alert(
+              'Sign Out',
+              'Are you sure you want to sign out?',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                { 
+                  text: 'Sign Out', 
+                  style: 'destructive',
+                  onPress: () => {
+                    // In a real app, you would handle sign out logic here
+                    Alert.alert('Signed Out', 'You have been signed out successfully');
+                  }
+                }
+              ]
+            );
           }
         }
       );
@@ -862,9 +1081,29 @@ export default function ProfileScreen() {
         'Options',
         'Choose an option',
         [
-          { text: 'Edit Profile', onPress: () => Alert.alert('Coming Soon', 'Edit Profile functionality will be available soon.') },
+          { text: 'Edit Profile', onPress: () => navigation.navigate('EditProfile', { userData: completeUserData }) },
           { text: 'Settings', onPress: () => Alert.alert('Coming Soon', 'Settings functionality will be available soon.') },
-          { text: 'Sign Out', onPress: () => Alert.alert('Coming Soon', 'Sign Out functionality will be available soon.') },
+          { 
+            text: 'Sign Out', 
+            style: 'destructive',
+            onPress: () => {
+              Alert.alert(
+                'Sign Out',
+                'Are you sure you want to sign out?',
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  { 
+                    text: 'Sign Out', 
+                    style: 'destructive',
+                    onPress: () => {
+                      // In a real app, you would handle sign out logic here
+                      Alert.alert('Signed Out', 'You have been signed out successfully');
+                    }
+                  }
+                ]
+              );
+            } 
+          },
           { text: 'Cancel', style: 'cancel' }
         ]
       );
@@ -1121,12 +1360,53 @@ export default function ProfileScreen() {
     };
   }, [currentAccount, handleRefresh, navigation]);
 
+  // Listen for profile updates
+  useEffect(() => {
+    const subscription = eventEmitter.addListener('profileUpdated', (data) => {
+      console.log('Received profile update event:', data);
+      
+      if (data.user) {
+        // Update the current user data - ensure we preserve the userHandle
+        const updatedUserData = {
+          ...data.user,
+          // Make sure we keep the original userHandle if not explicitly changed
+          userHandle: data.user.userHandle || currentUserData.userHandle
+        };
+        
+        setCurrentUserData(updatedUserData);
+        
+        // Show success toast if a message is provided
+        if (data.message) {
+          showToast(data.message);
+        }
+        
+        // Force refresh data to update the UI
+        setTimeout(() => {
+          loadData(currentAccount);
+        }, 100);
+      }
+    });
+    
+    return () => {
+      subscription.remove();
+    };
+  }, [currentAccount]);
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" />
 
       {renderContent()}
       {renderAccountModal()}
+      
+      {/* Custom Toast for iOS */}
+      {Platform.OS === 'ios' && (
+        <Toast 
+          visible={toastVisible} 
+          message={toastMessage} 
+          duration={2000}
+        />
+      )}
     </View>
   );
 }
@@ -1706,5 +1986,23 @@ const styles = StyleSheet.create({
   headerButton: {
     padding: 8,
     marginLeft: 8,
+  },
+  toast: {
+    position: 'absolute',
+    bottom: 16,
+    left: 24,
+    right: 24,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 9999,
+  },
+  toastText: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    textAlign: 'center',
   },
 }); 

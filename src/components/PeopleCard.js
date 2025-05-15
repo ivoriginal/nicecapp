@@ -44,9 +44,9 @@ const PeopleCard = ({
       <View style={styles.infoContainer}>
         <Text style={styles.name}>{user.name || user.username}</Text>
         
-        {user.bio ? (
-          <Text style={styles.bio} numberOfLines={1}>
-            {user.bio}
+        {user.handle ? (
+          <Text style={styles.handle} numberOfLines={1}>
+            {user.handle}
           </Text>
         ) : null}
         
@@ -99,7 +99,7 @@ const styles = StyleSheet.create({
     color: COLORS.black,
     marginBottom: 2,
   },
-  bio: {
+  handle: {
     ...FONTS.body4,
     color: COLORS.gray,
     marginBottom: 4,

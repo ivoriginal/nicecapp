@@ -77,7 +77,7 @@ const PeopleListScreen = () => {
           />
           <View style={styles.userInfo}>
             <Text style={styles.userName}>{item.userName || item.name}</Text>
-            <Text style={styles.userBio} numberOfLines={2}>{item.bio}</Text>
+            <Text style={styles.userHandle} numberOfLines={1}>{item.handle}</Text>
           </View>
           <TouchableOpacity style={styles.followButton}>
             <Text style={styles.followButtonText}>Follow</Text>
@@ -102,7 +102,7 @@ const PeopleListScreen = () => {
         />
         <View style={styles.userInfo}>
           <Text style={styles.userName}>{item.userName || item.name}</Text>
-          <Text style={styles.userBio} numberOfLines={2}>{item.bio}</Text>
+          <Text style={styles.userHandle} numberOfLines={1}>{item.handle}</Text>
         </View>
         <TouchableOpacity style={styles.followButton}>
           <Text style={styles.followButtonText}>Follow</Text>
@@ -162,9 +162,10 @@ const styles = StyleSheet.create({
     color: '#666666',
     marginBottom: 4,
   },
-  userBio: {
+  userHandle: {
     fontSize: 14,
     color: '#666666',
+    marginTop: 4,
   },
   followButton: {
     backgroundColor: '#000000',

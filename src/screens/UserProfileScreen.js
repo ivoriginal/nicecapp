@@ -28,6 +28,8 @@ import mockCoffeesData from '../data/mockCoffees.json';
 import mockGear from '../data/mockGear.json';
 import gearDetails from '../data/gearDetails';
 import { businessCoffees } from '../data/businessProducts';
+// Import mock followers data
+import { mockFollowersData } from '../data/mockFollowers';
 // Initialize default empty mock data structures to prevent "undefined" errors
 const defaultMockData = mockUsersData || { users: [], trendingCafes: [], businesses: [] };
 import { useCoffee } from '../context/CoffeeContext';
@@ -110,6 +112,10 @@ export default function UserProfileScreen() {
   const [error, setError] = useState(null);
   const [coffeeEvents, setCoffeeEvents] = useState([]);
   const [shopFilter, setShopFilter] = useState('coffee');
+  // Add states for follower data
+  const [followersCount, setFollowersCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
+  const [mutualFollowers, setMutualFollowers] = useState([]);
 
   const isFocused = useIsFocused();
 
@@ -337,7 +343,7 @@ export default function UserProfileScreen() {
           // Check if this is a business ID (roaster)
           if (userId.startsWith('business-')) {
             const businessData = mockUsersData.businesses?.find(b => b.id === userId) || 
-                                mockCafesData.businesses?.find(b => b.id === userId);
+                               mockCafesData.businesses?.find(b => b.id === userId);
             
             if (businessData) {
               userData = {
@@ -424,6 +430,23 @@ export default function UserProfileScreen() {
           });
         }
         
+        // Load followers data
+        const followerData = mockFollowersData[userId];
+        if (followerData) {
+          setFollowersCount(followerData.followers?.length || 0);
+          setFollowingCount(followerData.following?.length || 0);
+          
+          // Also update isFollowing state if this is another user's profile
+          if (!isCurrentUser && currentUser) {
+            const currentUserId = currentUser.id || 'user1';
+            const isUserFollowing = followerData.followers?.includes(currentUserId) || false;
+            setIsFollowing(isUserFollowing);
+          }
+        } else {
+          setFollowersCount(0);
+          setFollowingCount(0);
+        }
+        
         // Also load user events data
         setUserCoffees([]);
         
@@ -463,11 +486,29 @@ export default function UserProfileScreen() {
   }, [userId, isCurrentUser, currentUser, allEvents, route.params]);
 
   const handleFollowPress = () => {
-    setIsFollowing(!isFollowing);
-    Alert.alert(
-      isFollowing ? 'Unfollowed' : 'Followed',
-      isFollowing ? `You unfollowed ${user.userName}` : `You followed ${user.userName}`
-    );
+    if (isFollowing) {
+      // Show confirmation alert when unfollowing
+      Alert.alert(
+        `Unfollow ${user.userName}?`,
+        '',
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel',
+          },
+          {
+            text: 'Unfollow',
+            onPress: () => {
+              setIsFollowing(false);
+            },
+            style: 'destructive', // This makes the button red
+          },
+        ]
+      );
+    } else {
+      // Follow user directly without confirmation
+      setIsFollowing(true);
+    }
   };
 
   const handleGearPress = (item) => {
@@ -486,30 +527,61 @@ export default function UserProfileScreen() {
   };
 
   // Renders a coffee log or other event item using the CoffeeLogCard component
-  const renderCoffeeItem = ({ item }) => (
+  const renderCoffeeItem = ({ item, index }) => {
+    // Enhance item with default recipe data if missing
+    const enhancedItem = {
+      ...item,
+      // If type is missing or null, set it to 'coffee_log'
+      type: item.type || 'coffee_log',
+      // Add default brewing method if missing
+      brewingMethod: item.brewingMethod || item.method || 'V60',
+      // Add default recipe data if missing
+      amount: item.amount || '15',
+      grindSize: item.grindSize || 'Medium',
+      waterVolume: item.waterVolume || '250',
+      brewTime: item.brewTime || '3:00'
+    };
+    
+    // Log enhanced item for debugging
+    console.log('Enhanced coffee card item:', {
+      id: enhancedItem.id,
+      brewingMethod: enhancedItem.brewingMethod,
+      method: enhancedItem.method,
+      amount: enhancedItem.amount,
+      grindSize: enhancedItem.grindSize,
+      waterVolume: enhancedItem.waterVolume,
+      brewTime: enhancedItem.brewTime,
+      type: enhancedItem.type
+    });
+    
+    return (
     <CoffeeLogCard
-      event={item}
-      onCoffeePress={() => navigation.navigate('CoffeeDetail', { coffeeId: item.coffeeId, skipAuth: true })}
+      event={enhancedItem}
+      onCoffeePress={() => navigation.navigate('CoffeeDetail', { coffeeId: enhancedItem.coffeeId, skipAuth: true })}
       onRecipePress={() => navigation.navigate('RecipeDetail', { 
-        recipeId: item.id,
-        coffeeId: item.coffeeId,
-        coffeeName: item.coffeeName,
-        roaster: item.roaster || item.roasterName,
-        imageUrl: item.imageUrl,
-        recipe: item,
-        userId: item.userId,
-        userName: item.userName,
-        userAvatar: item.userAvatar
+        recipeId: enhancedItem.id,
+        coffeeId: enhancedItem.coffeeId,
+        coffeeName: enhancedItem.coffeeName,
+        roaster: enhancedItem.roaster || enhancedItem.roasterName,
+        imageUrl: enhancedItem.imageUrl,
+        recipe: enhancedItem,
+        userId: enhancedItem.userId,
+        userName: enhancedItem.userName,
+        userAvatar: enhancedItem.userAvatar
       })}
       onUserPress={() => navigation.navigate('UserProfileBridge', { 
-        userId: item.userId,
+        userId: enhancedItem.userId,
         skipAuth: true 
       })}
       onOptionsPress={handleOptionsPress}
       onLikePress={handleLikePress}
       currentUserId={currentAccount}
+      containerStyle={{
+        marginBottom: index === userCoffees.length - 1 ? 0 : 8
+      }}
     />
   );
+  };
 
   // Handle like button press
   const handleLikePress = (eventId, isLiked) => {
@@ -648,8 +720,7 @@ export default function UserProfileScreen() {
                 contentContainerStyle={styles.recipeListContainer}
               />
             ) : (
-              <View style={styles.emptyContainer}>
-                <Ionicons name="document-text-outline" size={30} color="#888888" />
+              <View style={styles.standardEmptyContainer}>
                 <Text style={styles.emptyText}>No recipes yet</Text>
                 {user?.id === 'user1' && (
                   <TouchableOpacity 
@@ -878,6 +949,49 @@ export default function UserProfileScreen() {
     return [];
   }, [userId, user]);
 
+  // Add function to load follower data
+  useEffect(() => {
+    // Load follower data when user is loaded
+    if (user) {
+      // Get follower data for the profile being viewed
+      const profileFollowerData = mockFollowersData[userId];
+      
+      if (profileFollowerData) {
+        // Set follower and following counts
+        const followers = profileFollowerData.followers || [];
+        const following = profileFollowerData.following || [];
+        
+        setFollowersCount(followers.length);
+        setFollowingCount(following.length);
+        
+        // Set initial following state based on whether current user is following this profile
+        const currentUserId = currentUser?.id || 'user1';
+        const isUserFollowing = followers.includes(currentUserId);
+        setIsFollowing(isUserFollowing);
+        
+        // Find mutual followers (people the current user follows who also follow this profile)
+        if (mockFollowersData[currentUserId] && profileFollowerData.followers) {
+          const currentUserFollowing = mockFollowersData[currentUserId].following || [];
+          const mutualFollowerIds = profileFollowerData.followers.filter(
+            followerId => currentUserFollowing.includes(followerId) && followerId !== currentUserId
+          );
+          
+          // Get full user objects for the mutual followers
+          const mutualFollowerUsers = mutualFollowerIds.map(id => 
+            mockUsersData.users.find(user => user.id === id)
+          ).filter(Boolean);
+          
+          setMutualFollowers(mutualFollowerUsers);
+        }
+      } else {
+        // Set defaults if no data found
+        setFollowersCount(0);
+        setFollowingCount(0);
+        setMutualFollowers([]);
+      }
+    }
+  }, [user, userId, currentUser]);
+
   return (
     <View style={styles.container}>
       {loading ? (
@@ -921,8 +1035,67 @@ export default function UserProfileScreen() {
                 <Text style={styles.profileUsername}>@{user?.userHandle || user?.userName?.toLowerCase().replace(/\s+/g, '')}</Text>
                 <Text style={styles.profileLocation}>{user?.location}</Text>
               </View>
+            </View>
+            
+            {/* Add follower stats section */}
+            <View style={styles.followStatsContainer}>
+              <TouchableOpacity style={styles.followStat} onPress={() => console.log('Show followers list')}>
+                <Text style={styles.followStatNumber}>{followersCount || 0}</Text>
+                <Text style={styles.followStatLabel}>{followersCount === 1 ? 'Follower' : 'Followers'}</Text>
+              </TouchableOpacity>
               
-              {!isCurrentUser && (
+              <TouchableOpacity style={styles.followStat} onPress={() => console.log('Show following list')}>
+                <Text style={styles.followStatNumber}>{followingCount || 0}</Text>
+                <Text style={styles.followStatLabel}>Following</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.followStat} 
+                onPress={() => {
+                  setActiveTab('collection');
+                }}
+              >
+                <Text style={styles.followStatNumber}>{collectionCoffees.length || 0}</Text>
+                <Text style={styles.followStatLabel}>Coffees</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.followStat} 
+                onPress={() => {
+                  setActiveTab('recipes');
+                }}
+              >
+                <Text style={styles.followStatNumber}>{recipes.length || 0}</Text>
+                <Text style={styles.followStatLabel}>Recipes</Text>
+              </TouchableOpacity>
+            </View>
+            
+            {/* Add mutual followers section */}
+            {!isCurrentUser && mutualFollowers.length > 0 && (
+              <View style={styles.mutualFollowersContainer}>
+                <View style={styles.mutualFollowersAvatars}>
+                  {mutualFollowers.slice(0, 3).map((follower, index) => (
+                    <View key={follower.id} style={[styles.mutualFollowerAvatarContainer, { marginLeft: index > 0 ? -12 : 0 }]}>
+                      <AppImage
+                        source={follower.userAvatar}
+                        style={styles.mutualFollowerAvatar}
+                        resizeMode="cover"
+                      />
+                    </View>
+                  ))}
+                </View>
+                <Text style={styles.mutualFollowersText}>
+                  Followed by <Text style={styles.mutualFollowerBold}>{mutualFollowers[0]?.userName}</Text> 
+                  {mutualFollowers.length > 1 ? 
+                    <Text> and <Text style={styles.mutualFollowerBold}>{mutualFollowers.length - 1} more</Text></Text> 
+                    : null}
+                </Text>
+              </View>
+            )}
+            
+            {/* Follow button */}
+            {!isCurrentUser && (
+              <View style={styles.followButtonContainer}>
                 <TouchableOpacity 
                   style={isFollowing ? styles.followingButton : styles.followButton}
                   onPress={handleFollowPress}
@@ -931,29 +1104,8 @@ export default function UserProfileScreen() {
                     {isFollowing ? 'Following' : 'Follow'}
                   </Text>
                 </TouchableOpacity>
-              )}
-            </View>
-            
-            {/* Hide profile stats for now
-            <View style={styles.profileStats}>
-              <View style={styles.statItem}>
-                <Text style={styles.statNumber}>{userCoffees.length}</Text>
-                <Text style={styles.statLabel}>{user?.isRoaster ? 'Coffees' : 'Logs'}</Text>
               </View>
-              <View style={styles.statItem}>
-                <Text style={styles.statNumber}>{followers?.length || 0}</Text>
-                <Text style={styles.statLabel}>Followers</Text>
-              </View>
-              <View style={styles.statItem}>
-                <Text style={styles.statNumber}>{following?.length || 0}</Text>
-                <Text style={styles.statLabel}>Following</Text>
-              </View>
-            </View>
-            
-            {user?.bio && (
-              <Text style={styles.profileBio}>{user.bio}</Text>
             )}
-            */}
             
             {/* Display gear module for all user profiles except roasters */}
             {!user?.isRoaster && (
@@ -1101,7 +1253,7 @@ export default function UserProfileScreen() {
                       ))}
                     </>
                   ) : (
-                    <View style={styles.emptyContainer}>
+                    <View style={styles.standardEmptyContainer}>
                       <Text style={styles.emptyText}>No locations available</Text>
                     </View>
                   )}
@@ -1115,30 +1267,36 @@ export default function UserProfileScreen() {
               
               {/* Coffees tab (for regular users) */}
               {!user?.isRoaster && activeTab === 'coffees' && (
-                <>
+                <View style={[styles.coffeesContainer, { backgroundColor: '#F2F2F7' }]}>
                   <SafeFlatList
                     data={userCoffees}
                     renderItem={renderCoffeeItem}
                     keyExtractor={item => item.id}
-                    style={styles.coffeesContainer}
+                    style={[styles.coffeesList, { 
+                      backgroundColor: '#F2F2F7',
+                      elevation: 0,
+                      shadowOpacity: 0,
+                      borderWidth: 0
+                    }]}
                     ItemSeparatorComponent={() => <View style={styles.listSeparator} />}
                     ListEmptyComponent={() => (
                       <View style={styles.emptyContainer}>
-                        <Text style={styles.emptyText}>No coffee activity yet</Text>
-                        <TouchableOpacity style={styles.refreshButton} onPress={onRefresh}>
-                          <Text style={styles.refreshButtonText}>Refresh</Text>
-                        </TouchableOpacity>
+                        <Text style={[styles.emptyText]}>No coffee activity yet</Text>
                       </View>
                     )}
-                    ListFooterComponent={() => <View style={{ height: 60 }} />}
+                    // ListFooterComponent={() => <View style={{ height: 60, backgroundColor: '#F2F2F7' }} />}
+                    // contentContainerStyle={{ 
+                    //   backgroundColor: '#F2F2F7',
+                    //   paddingTop: 0,
+                    //   paddingBottom: 60
+                    // }}
                   />
-                </>
+                </View>
               )}
               
               {/* Collection tab (for regular users) */}
               {!user?.isRoaster && activeTab === 'collection' && (
                 <View style={styles.collectionSection}>
-                  
                   <SafeFlatList
                     data={collectionCoffees}
                     renderItem={({ item }) => (
@@ -1171,11 +1329,8 @@ export default function UserProfileScreen() {
                     keyExtractor={item => item.id}
                     style={styles.collectionContainer}
                     ListEmptyComponent={() => (
-                      <View style={styles.emptyContainer}>
+                      <View style={styles.standardEmptyContainer}>
                         <Text style={styles.emptyText}>No coffees in collection yet</Text>
-                        <TouchableOpacity style={styles.refreshButton} onPress={onRefresh}>
-                          <Text style={styles.refreshButtonText}>Refresh</Text>
-                        </TouchableOpacity>
                       </View>
                     )}
                     ListFooterComponent={() => <View style={{ height: 60 }} />}
@@ -1202,8 +1357,7 @@ export default function UserProfileScreen() {
                       contentContainerStyle={styles.recipeListContainer}
                     />
                   ) : (
-                    <View style={styles.emptyContainer}>
-                      <Ionicons name="document-text-outline" size={30} color="#888888" />
+                    <View style={styles.standardEmptyContainer}>
                       <Text style={styles.emptyText}>No recipes yet</Text>
                       {user?.id === 'user1' && (
                         <TouchableOpacity 
@@ -1228,7 +1382,7 @@ export default function UserProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    // backgroundColor: '#F2F2F7',
   },
   contentScrollView: {
     flex: 1,
@@ -1242,7 +1396,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    paddingTop: 0,
+    paddingVertical: 8,
+    backgroundColor: '#FFFFFF',
   },
   profileImage: {
     width: 80,
@@ -1278,12 +1433,12 @@ const styles = StyleSheet.create({
   profileUsername: {
     fontSize: 14,
     color: '#666666',
-    marginTop: 2,
+    marginTop: 4,
   },
   profileLocation: {
     fontSize: 14,
     color: '#666666',
-    marginTop: 2,
+    marginTop: 4,
   },
   profileBio: {
     fontSize: 14,
@@ -1292,21 +1447,29 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 16,
   },
+  followButtonContainer: {
+    padding: 16,
+    backgroundColor: '#FFFFFF',
+  },
   followButton: {
     backgroundColor: '#000000',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginLeft: 8,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#000000',
+    width: '100%',
+    alignItems: 'center',
   },
   followingButton: {
     backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: '#000000',
-    marginLeft: 8,
+    width: '100%',
+    alignItems: 'center',
   },
   followButtonText: {
     color: '#FFFFFF',
@@ -1368,20 +1531,44 @@ const styles = StyleSheet.create({
   coffeesContainer: {
     paddingVertical: 0,
     paddingHorizontal: 0,
+    backgroundColor: '#F2F2F7',
+    flex: 1,
+  },
+  coffeesList: {
+    backgroundColor: '#F2F2F7',
+    flex: 1,
+  },
+  coffeesSection: {
+    padding: 0,
+    backgroundColor: '#F2F2F7',
   },
   listSeparator: {
-    height: 1,
-    backgroundColor: '#E5E5EA',
+    height: 0,
+    backgroundColor: 'transparent',
   },
   emptyContainer: {
-    padding: 40,
+    padding: 0,
+    marginVertical: 0,
     alignItems: 'center',
     justifyContent: 'center',
+    height: 100,
+    // backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+  },
+  standardEmptyContainer: {
+    padding: 0,
+    margin: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    // height: 132,
+    // backgroundColor: '#FFFFFF',
+    borderRadius: 8,
   },
   emptyText: {
     fontSize: 16,
     color: '#666666',
     textAlign: 'center',
+    paddingVertical: 8,
   },
   refreshButton: {
     marginTop: 12,
@@ -1421,10 +1608,11 @@ const styles = StyleSheet.create({
   },
   gearItem: {
     backgroundColor: '#F5F5F7',
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
+    paddingLeft: 10,
     paddingVertical: 8,
-    borderRadius: 16,
-    marginRight: 10,
+    borderRadius: 50,
+    marginRight: 12,
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -1449,14 +1637,15 @@ const styles = StyleSheet.create({
   },
   gearWishlistToggle: {
     fontSize: 14,
-    color: '#0066CC',
-    fontWeight: '500',
-    padding: 5,
+    color: '#000000',
+    fontWeight: '600',
+    padding: 2,
+    borderBottomWidth: 1,
+    borderBottomColor: '#000000',
   },
   emptyGearText: {
     fontSize: 14,
     color: '#666666',
-    fontStyle: 'italic',
     paddingVertical: 8,
   },
   cafesSection: {
@@ -1833,5 +2022,67 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666666',
     textAlign: 'center',
+  },
+  followStatsContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 32,
+    paddingVertical: 12,
+    paddingBottom: 0,
+    backgroundColor: '#FFFFFF',
+    // borderBottomWidth: StyleSheet.hairlineWidth,
+    // borderBottomColor: '#E5E5EA',
+    justifyContent: 'space-between',
+  },
+  followStat: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    paddingVertical: 0,
+    paddingBottom: 4,
+    paddingHorizontal: 8,
+    // marginRight: 16,
+  },
+  followStatNumber: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#000000',
+    marginBottom: 2,
+    marginRight: 4,
+  },
+  followStatLabel: {
+    fontSize: 14,
+    color: '#666666',
+  },
+  mutualFollowersContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    paddingBottom: 0,
+    backgroundColor: '#FFFFFF',
+  },
+  mutualFollowersAvatars: {
+    flexDirection: 'row',
+    marginRight: 8,
+  },
+  mutualFollowerAvatarContainer: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    overflow: 'hidden',
+  },
+  mutualFollowerAvatar: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 12,
+  },
+  mutualFollowersText: {
+    fontSize: 14,
+    color: '#666666',
+  },
+  mutualFollowerBold: {
+    fontWeight: '600',
+    color: '#000000',
   },
 }); 

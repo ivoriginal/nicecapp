@@ -152,9 +152,24 @@ export default function HomeScreen({ navigation }) {
             location: item.location,
             locationId: item.locationId
           });
+          
+          // Enhance item with default recipe data if missing
+          const enhancedItem = {
+            ...item,
+            // If type is missing or null, set it to 'coffee_log'
+            type: item.type || 'coffee_log',
+            // Add default brewing method if missing
+            brewingMethod: item.brewingMethod || item.method || 'V60',
+            // Add default recipe data if missing
+            amount: item.amount || '15',
+            grindSize: item.grindSize || 'Medium',
+            waterVolume: item.waterVolume || '250',
+            brewTime: item.brewTime || '3:00'
+          };
+          
           return (
             <CoffeeLogCard 
-              event={item}
+              event={enhancedItem}
               onCoffeePress={handleCoffeePress}
               onRecipePress={handleRecipePress}
               onUserPress={handleUserPress}

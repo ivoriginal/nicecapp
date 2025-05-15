@@ -326,7 +326,8 @@ export default function CoffeeDetailScreen() {
     navigation.setParams({
       isFavorite,
       handleToggleFavorite,
-      isInCollection
+      isInCollection,
+      coffee
     });
     
     // Force header to be shown on this screen - this is crucial
@@ -362,7 +363,7 @@ export default function CoffeeDetailScreen() {
       blurUnsubscribe();
       beforeRemoveUnsubscribe();
     };
-  }, [isFavorite, isInCollection, navigation]);
+  }, [isFavorite, isInCollection, navigation, coffee]);
 
   // Find and set roaster info when coffee or sellers change
   useEffect(() => {

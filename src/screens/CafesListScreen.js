@@ -9,6 +9,14 @@ const CafesListScreen = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
   const { title = 'Cafés Near You' } = route.params || {};
   
+  // Set the navigation title dynamically
+  useEffect(() => {
+    navigation.setOptions({
+      title: title,
+      headerBackTitle: 'Back'
+    });
+  }, [navigation, title]);
+  
   const cafes = mockCafes.trendingCafes || [];
   
   // Filter states
@@ -398,18 +406,7 @@ const CafesListScreen = ({ navigation, route }) => {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Ionicons name="arrow-back" size={24} color="#000000" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{title}</Text>
-        <View style={{ width: 40 }}><Text></Text></View>
-      </View>
-
+    <View style={styles.container}>
       {renderFilterUI()}
       {renderCitySheet()}
 
@@ -433,27 +430,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-  },
-  backButton: {
-    padding: 8,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
   filterContainer: {
     paddingVertical: 16,
     paddingHorizontal: 16,
     marginBottom: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5EA',
   },
   filterRow: {
     flexDirection: 'row',
