@@ -30,6 +30,7 @@ import mockCoffeesData from '../data/mockCoffees.json';
 import gearDetails from '../data/gearDetails';
 import { businessCoffees } from '../data/businessProducts';
 import AppImage from '../components/common/AppImage';
+import RecipeCard from '../components/RecipeCard';
 
 // Loading and error components with safe default insets
 const LoadingView = ({ insets }) => {
@@ -185,6 +186,14 @@ export default function ProfileScreen() {
     } : 
     // Otherwise fall back to our local state
     currentUserData;
+    
+  // Make sure we have access to accounts data
+  const accountsData = accounts && accounts.length > 0 ? accounts : [
+    { id: 'user1', userName: 'Ivo Vilches', userAvatar: require('../../assets/users/ivo-vilches.jpg'), email: 'ivo.vilches@example.com' },
+    { id: 'user2', userName: 'Vértigo y Calambre', userAvatar: require('../../assets/businesses/vertigo-logo.jpg'), email: 'contacto@vertigoycalambre.com' },
+    { id: 'user3', userName: 'Carlos Hernández', userAvatar: require('../../assets/users/carlos-hernandez.jpg'), email: 'carlos.hernandez@example.com' }
+  ];
+  
   const displayName = userData?.userName || userData?.name || 'Guest';
   const userHandle = userData?.userHandle || displayName.toLowerCase().replace(/\s+/g, '_');
   const avatarUrl = userData?.userAvatar || userData?.avatar || require('../../assets/users/ivo-vilches.jpg');
@@ -495,14 +504,14 @@ export default function ProfileScreen() {
 
   // Listen for tab long press events
   useEffect(() => {
-    const subscription = eventEmitter.addListener('profileTabLongPress', () => {
+    const handleLongPress = () => {
       setModalVisible(true);
-    });
+    };
+    
+    eventEmitter.addListener('profileTabLongPress', handleLongPress);
     
     return () => {
-      if (subscription && typeof subscription.remove === 'function') {
-        subscription.remove();
-      }
+      eventEmitter.removeListener('profileTabLongPress', handleLongPress);
     };
   }, []);
 
@@ -534,34 +543,63 @@ export default function ProfileScreen() {
         setCurrentUserData(defaultAccountData);
       }
 
-      // Use the switchAccount function from CoffeeContext
+      // Use the switchAccount function from CoffeeContext, but handle the case where it might not be a promise
       if (switchAccount) {
-        switchAccount(accountId)
-          .then(() => {
-            console.log('Account switched successfully');
+        try {
+          const result = switchAccount(accountId);
+          
+          // Handle both Promise and non-Promise returns
+          if (result && typeof result.then === 'function') {
+            result
+              .then(() => {
+                console.log('Account switched successfully');
+                
+                // After loading, ensure we still have the gear data
+                if (!user || !user.gear) {
+                  console.log('Gear data missing from loaded user, using default gear');
+                  const updatedUserData = {
+                    ...user || {},
+                    ...defaultAccountData,
+                    gear: defaultAccountData?.gear || []
+                  };
+                  setCurrentUserData(updatedUserData);
+                }
+              })
+              .catch(error => {
+                console.error('Error switching account:', error);
+                setLocalError(error.message || 'Failed to switch account');
+              })
+              .finally(() => {
+                setRefreshing(false);
+              });
+          } else {
+            // Handle synchronous switchAccount (non-Promise)
+            console.log('Account switch completed synchronously');
             
-            // After loading, ensure we still have the gear data
-            if (!user || !user.gear) {
-              console.log('Gear data missing from loaded user, using default gear');
-              const updatedUserData = {
-                ...user || {},
-                ...defaultAccountData,
-                gear: defaultAccountData?.gear || []
-              };
-              setCurrentUserData(updatedUserData);
-            }
-          })
-          .catch(error => {
-            console.error('Error switching account:', error);
-            setLocalError(error.message || 'Failed to switch account');
-          })
-          .finally(() => {
-            setRefreshing(false);
-          });
+            // Force refresh data to update UI
+            setTimeout(() => {
+              loadData(accountId);
+              setRefreshing(false);
+            }, 500);
+          }
+        } catch (switchError) {
+          console.error('Error during switchAccount execution:', switchError);
+          setLocalError(switchError.message || 'Failed to switch account');
+          setRefreshing(false);
+        }
       } else {
         console.error('switchAccount function not available');
         setLocalError('Switch account functionality not available');
         setRefreshing(false);
+        
+        // Try fallback to loadData directly if switchAccount is not available
+        if (loadData) {
+          console.log('Trying fallback with loadData directly');
+          loadData(accountId)
+            .then(() => console.log('Fallback loading successful'))
+            .catch(err => console.error('Fallback loading failed:', err))
+            .finally(() => setRefreshing(false));
+        }
       }
     } catch (error) {
       console.error('Error in handleSwitchAccount:', error);
@@ -597,11 +635,16 @@ export default function ProfileScreen() {
   };
 
   // Handle user press
-  const handleUserPress = (event) => {
-    navigation.navigate('UserProfileBridge', {
-      userId: event.userId,
-      skipAuth: true
-    });
+  const handleUserPress = (userInfo) => {
+    // Handle both formats: event object or direct userId/userName
+    const userId = userInfo.userId || userInfo;
+    
+    if (userId) {
+      navigation.navigate('UserProfileBridge', {
+        userId: userId,
+        skipAuth: true
+      });
+    }
   };
 
   // Handle tab change
@@ -700,60 +743,12 @@ export default function ProfileScreen() {
 
   // Render recipe item
   const renderRecipeItem = ({ item }) => (
-    <TouchableOpacity
-      style={styles.recipeCard}
+    <RecipeCard
+      recipe={item}
       onPress={() => handleRecipePress(item)}
-    >
-      <View style={styles.recipeCardHeader}>
-        <View style={styles.recipeCardCreator}>
-          {item.creatorAvatar ? (
-            <Image 
-              source={typeof item.creatorAvatar === 'string' ? { uri: item.creatorAvatar } : item.creatorAvatar} 
-              style={styles.recipeCreatorAvatar} 
-              resizeMode="cover"
-            />
-          ) : (
-            <View style={styles.recipeCreatorAvatarPlaceholder}>
-              <Ionicons name="person" size={14} color="#999999" />
-            </View>
-          )}
-          <Text style={styles.recipeCreatorName} numberOfLines={1}>
-            {item.creatorName || item.userName || 'Anonymous'}
-          </Text>
-        </View>
-        <View style={styles.brewMethodTag}>
-          <Text style={styles.brewMethodTagText}>{item.brewingMethod || item.method}</Text>
-        </View>
-      </View>
-      
-      <View style={styles.recipeCardInfo}>
-        <Text style={styles.recipeCardName} numberOfLines={2}>{item.name || item.coffeeName}</Text>
-        <Text style={styles.recipeCardCoffee} numberOfLines={1}>{item.coffeeName}</Text>
-        <Text style={styles.recipeCardRoaster} numberOfLines={1}>{item.roaster}</Text>
-        
-        <View style={styles.recipeCardStats}>
-          <View style={styles.recipeCardDetail}>
-            <Text style={styles.recipeCardDetailValue}>{item.coffeeAmount || 18}g</Text>
-            <Text style={styles.recipeCardDetailLabel}>Coffee</Text>
-          </View>
-          <View style={styles.recipeCardDetail}>
-            <Text style={styles.recipeCardDetailValue}>{item.waterAmount || 300}ml</Text>
-            <Text style={styles.recipeCardDetailLabel}>Water</Text>
-          </View>
-          <View style={styles.recipeCardDetail}>
-            <Text style={styles.recipeCardDetailValue}>{item.brewTime || "3:00"}</Text>
-            <Text style={styles.recipeCardDetailLabel}>Time</Text>
-          </View>
-        </View>
-        
-        <View style={styles.recipeUsageStats}>
-          <Ionicons name="repeat" size={14} color="#666666" />
-          <Text style={styles.recipeUsageText}>
-            Used {item.usageCount || Math.floor(Math.random() * 20) + 1} times
-          </Text>
-        </View>
-      </View>
-    </TouchableOpacity>
+      onUserPress={(userId, userName) => handleUserPress({userId, userName})}
+      style={styles.fullWidthRecipe}
+    />
   );
 
   // Render tabs
@@ -1009,10 +1004,10 @@ export default function ProfileScreen() {
                 data={getFilteredRecipes()}
                 renderItem={renderRecipeItem}
                 keyExtractor={(item, index) => item.id || `recipe-${index}`}
-                numColumns={2}
-                columnWrapperStyle={styles.collectionCardRow}
+                numColumns={1}
                 showsVerticalScrollIndicator={false}
                 scrollEnabled={false}
+                contentContainerStyle={{paddingHorizontal: 16, paddingTop: 16}}
                 ListEmptyComponent={() => (
                   <View style={styles.emptyContainer}>
                     <Text style={styles.emptyText}>
@@ -1141,7 +1136,7 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           </View>
           <FlatList
-            data={accounts || []}
+            data={accountsData || []}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
               <TouchableOpacity
@@ -1362,7 +1357,7 @@ export default function ProfileScreen() {
 
   // Listen for profile updates
   useEffect(() => {
-    const subscription = eventEmitter.addListener('profileUpdated', (data) => {
+    const handleProfileUpdate = (data) => {
       console.log('Received profile update event:', data);
       
       if (data.user) {
@@ -1385,10 +1380,12 @@ export default function ProfileScreen() {
           loadData(currentAccount);
         }, 100);
       }
-    });
+    };
+    
+    eventEmitter.addListener('profileUpdated', handleProfileUpdate);
     
     return () => {
-      subscription.remove();
+      eventEmitter.removeListener('profileUpdated', handleProfileUpdate);
     };
   }, [currentAccount]);
 
@@ -1724,9 +1721,11 @@ const styles = StyleSheet.create({
   },
   gearWishlistToggle: {
     fontSize: 14,
-    color: '#0066CC',
-    fontWeight: '500',
-    padding: 0,
+    color: '#000000',
+    fontWeight: '600',
+    padding: 2,
+    borderBottomWidth: 1,
+    borderBottomColor: '#000000',
   },
   gearScrollContainer: {
     flexDirection: 'row',
@@ -1868,124 +1867,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#777777',
   },
-  recipeCard: {
-    width: '48%',
+  fullWidthRecipe: {
+    width: '100%',
     marginBottom: 16,
     borderWidth: 1,
     borderColor: '#E5E5EA',
     borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  recipeCardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingTop: 10,
-    paddingBottom: 6,
-  },
-  recipeCardCreator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  recipeCreatorAvatar: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    marginRight: 6,
-    backgroundColor: '#F5F5F7',
-  },
-  recipeCreatorAvatarPlaceholder: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    marginRight: 6,
-    backgroundColor: '#F5F5F7',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  recipeCreatorName: {
-    fontSize: 10,
-    color: '#666666',
-    flex: 1,
-  },
-  brewMethodTag: {
-    backgroundColor: '#F5F5F7',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  brewMethodTagText: {
-    fontSize: 10,
-    color: '#333333',
-    fontWeight: '500',
-  },
-  recipeCardInfo: {
-    padding: 10,
-  },
-  recipeCardName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#000000',
-    marginBottom: 4,
-    height: 36,
-  },
-  recipeCardCoffee: {
-    fontSize: 12,
-    color: '#333333',
-    marginBottom: 2,
-  },
-  recipeCardRoaster: {
-    fontSize: 11,
-    color: '#666666',
-    marginBottom: 8,
-  },
-  recipeCardStats: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 4,
-    marginBottom: 8,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#F5F5F7',
-  },
-  recipeCardDetail: {
-    alignItems: 'center',
-  },
-  recipeCardDetailValue: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#000000',
-    marginBottom: 2,
-  },
-  recipeCardDetailLabel: {
-    fontSize: 10,
-    color: '#888888',
-  },
-  recipeUsageStats: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 6,
-  },
-  recipeUsageText: {
-    fontSize: 10,
-    color: '#666666',
-    marginLeft: 4,
-  },
-  headerRightContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  headerButton: {
-    padding: 8,
-    marginLeft: 8,
   },
   toast: {
     position: 'absolute',
@@ -2004,5 +1891,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#FFFFFF',
     textAlign: 'center',
+  },
+  headerRightContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerButton: {
+    padding: 8,
+    marginLeft: 8,
   },
 }); 

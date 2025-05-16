@@ -16,16 +16,16 @@
       "waterTemperature": 93,
       "brewTime": "3:15",
       "steps": [
-        "Start timer and add 50g of water for blooming",
-        "Let bloom for 30 seconds",
-        "Pour water in spirals until 150g total",
-        "Pour water in spirals until 250g total",
-        "Final pour to 350g total",
-        "Let drawdown complete (around 3:15 total)"
+        {"time": "0:30", "water": "50", "description": "Pour 50g water in spirals for blooming"},
+        {"time": "1:30", "water": "150", "description": "Pour water in spirals until 200g total"},
+        {"time": "2:30", "water": "150", "description": "Final pour to 350g total"}
       ],
       "notes": "This recipe brings out the cherry notes beautifully",
       "likes": 124,
       "saves": 87,
+      "logs": 27,
+      "averageRating": 4.3,
+      "loggedUsers": ["user1", "user5", "user9", "user10", "user7"],
       "savedUsers": [
         {
           "id": "user1",
@@ -46,7 +46,8 @@
       "imageUrl": "https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728",
       "date": "2023-11-20T14:30:00Z",
       "isTrending": true,
-      "type": "recipe"
+      "type": "recipe",
+      "hasRemixes": true
     },
     {
       "id": "recipe2",
@@ -64,16 +65,17 @@
       "waterTemperature": 88,
       "brewTime": "1:45",
       "steps": [
-        "Rinse filter and preheat AeroPress",
-        "Add coffee to inverted AeroPress",
-        "Start timer and add 230g water",
-        "Stir for 15 seconds",
-        "Attach filter cap and let brew until 1:15",
-        "Flip and press slowly for 30 seconds"
+        {"time": "0:00", "water": "230", "description": "Add coffee to inverted AeroPress"},
+        {"time": "0:15", "water": "0", "description": "Stir for 15 seconds"},
+        {"time": "1:15", "water": "0", "description": "Attach filter cap and let brew"},
+        {"time": "1:45", "water": "0", "description": "Flip and press slowly for 30 seconds"}
       ],
       "notes": "Quick and delicious way to highlight this coffee's caramel notes",
       "likes": 89,
       "saves": 62,
+      "logs": 12,
+      "averageRating": 5.0,
+      "loggedUsers": ["user2", "user1", "user6"],
       "savedUsers": [
         {
           "id": "user2",
@@ -94,7 +96,8 @@
       "imageUrl": "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd",
       "date": "2023-12-12T15:30:00Z",
       "isTrending": true,
-      "type": "recipe"
+      "type": "recipe",
+      "hasRemixes": false
     },
     {
       "id": "recipe3",
@@ -112,17 +115,17 @@
       "waterTemperature": "Room temperature",
       "brewTime": "16:00",
       "steps": [
-        "Grind coffee coarsely",
-        "Add coffee to container",
-        "Add room temperature filtered water",
-        "Stir gently to ensure all grounds are wet",
-        "Cover and let steep for 16 hours in refrigerator",
-        "Filter through paper filter",
-        "Dilute 1:1 with water when serving"
+        {"time": "0:00", "water": "1000", "description": "Add ground coffee to container"},
+        {"time": "0:05", "water": "0", "description": "Add room temperature filtered water"},
+        {"time": "0:10", "water": "0", "description": "Stir gently to ensure all grounds are wet"},
+        {"time": "16:00", "water": "0", "description": "Filter through paper filter"}
       ],
       "notes": "This coffee's vibrant red fruit notes make it perfect for cold brew",
       "likes": 156,
       "saves": 110,
+      "logs": 35,
+      "averageRating": 4.6,
+      "loggedUsers": ["user7", "user9", "user3", "user1", "user5", "user10"],
       "savedUsers": [
         {
           "id": "user7",
@@ -143,7 +146,8 @@
       "imageUrl": "https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728",
       "date": "2023-11-28T12:00:00Z",
       "isTrending": true,
-      "type": "recipe"
+      "type": "recipe",
+      "hasRemixes": true
     },
     {
       "id": "recipe-vertigo-toma-1",
@@ -161,17 +165,16 @@
       "waterTemperature": 92,
       "brewTime": "2:45",
       "steps": [
-        "Rinse the filter and preheat V60",
-        "Add ground coffee and create a well in the center",
-        "Start timer and pour 45g of water for blooming",
-        "At 30 seconds, pour in spirals to 100g total",
-        "At 1:00, pour to 175g total",
-        "At 1:30, final pour to 250g total",
-        "Let drawdown finish, around 2:45 total brew time"
+        {"time": "0:30", "water": "45", "description": "Add 45g of water for blooming"},
+        {"time": "1:00", "water": "55", "description": "Pour in spirals to 100g total"},
+        {"time": "1:30", "water": "75", "description": "Pour in spirals to 175g total"},
+        {"time": "2:00", "water": "75", "description": "Final pour to 250g total"}
       ],
       "notes": "This Ruandan coffee is exceptional through V60 - pronounced frutos rojos and té negro notes.",
       "likes": 78,
       "saves": 45,
+      "logs": 0,
+      "loggedUsers": [],
       "savedUsers": [
         {
           "id": "user1",
@@ -187,7 +190,145 @@
       "imageUrl": "https://cdn.shopify.com/s/files/1/0561/2172/1001/files/RUAN_TIT_fbc05869-95f3-47c4-9f73-09f1d290f3c6_800x.jpg?v=1741186794",
       "date": "2023-11-20T09:30:00Z",
       "isTrending": false,
-      "type": "recipe"
+      "type": "recipe",
+      "hasRemixes": false
+    },
+    {
+      "id": "recipe-refisa-g1-espresso",
+      "name": "Refisa G1 Espresso",
+      "coffeeId": "coffee-refisa-g1",
+      "coffeeName": "Refisa G1",
+      "roaster": "Toma Café",
+      "creatorId": "user2",
+      "creatorName": "Vértigo y Calambre",
+      "creatorAvatar": "assets/businesses/vertigo-logo.jpg",
+      "brewingMethod": "Espresso",
+      "grindSize": "Fine",
+      "coffeeAmount": 20,
+      "waterAmount": 60,
+      "waterTemperature": 93,
+      "brewTime": "0:32",
+      "steps": [
+        {"time": "0:00", "water": "0", "description": "Grind 20g of coffee at a fine espresso setting"},
+        {"time": "0:05", "water": "0", "description": "Distribute evenly in the portafilter and tamp firmly"},
+        {"time": "0:10", "water": "60", "description": "Start the shot, aiming for 60g out in ~30 seconds"}
+      ],
+      "notes": "Beautiful frutos rojos and chocolate notes with elegant bergamota acidity.",
+      "likes": 45,
+      "saves": 32,
+      "logs": 7,
+      "averageRating": 4.5,
+      "loggedUsers": ["user2", "user1", "user7"],
+      "savedUsers": [
+        {
+          "id": "user1",
+          "name": "Ivo Vilches",
+          "avatar": "assets/users/ivo-vilches.jpg"
+        },
+        {
+          "id": "user7",
+          "name": "Sophia Miller",
+          "avatar": "https://randomuser.me/api/portraits/women/68.jpg"
+        }
+      ],
+      "imageUrl": "https://cdn.shopify.com/s/files/1/0561/2172/1001/files/ET_REF_G1_800x.jpg?v=1738771773",
+      "date": "2023-12-12T11:00:00Z",
+      "isTrending": false,
+      "type": "recipe",
+      "hasRemixes": false
+    },
+    {
+      "id": "recipe-coffee-0-1",
+      "name": "Villa Rosario V60",
+      "coffeeId": "coffee-villa-rosario",
+      "coffeeName": "Villa Rosario",
+      "roaster": "Kima Coffee",
+      "creatorId": "user1",
+      "creatorName": "Ivo Vilches",
+      "creatorAvatar": "assets/users/ivo-vilches.jpg",
+      "brewingMethod": "V60",
+      "grindSize": "Medium",
+      "coffeeAmount": 18,
+      "waterAmount": 300,
+      "waterTemperature": 94,
+      "brewTime": "3:00",
+      "steps": [
+        {"time": "0:00", "water": "40", "description": "Pour 40g water for blooming"},
+        {"time": "0:40", "water": "110", "description": "Pour to 150g total"},
+        {"time": "1:30", "water": "150", "description": "Final pour to 300g total"}
+      ],
+      "notes": "My go-to method for Villa Rosario. The cherry and caramel notes really shine with this ratio.",
+      "likes": 65,
+      "saves": 42,
+      "logs": 8,
+      "averageRating": 4.7,
+      "loggedUsers": ["user1", "user5", "user9", "user10"],
+      "savedUsers": [
+        {
+          "id": "user9",
+          "name": "Olivia Taylor",
+          "avatar": "https://randomuser.me/api/portraits/women/12.jpg"
+        },
+        {
+          "id": "user5",
+          "name": "Emma Garcia",
+          "avatar": "https://randomuser.me/api/portraits/women/33.jpg"
+        }
+      ],
+      "imageUrl": "https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728",
+      "date": "2023-12-01T09:15:00Z",
+      "isTrending": false,
+      "type": "recipe",
+      "hasRemixes": true
+    },
+    {
+      "id": "recipe-new-1",
+      "name": "Lucas's Villa Rosario Method",
+      "coffeeId": "coffee-villa-rosario",
+      "coffeeName": "Villa Rosario",
+      "roaster": "Kima Coffee",
+      "creatorId": "user10",
+      "creatorName": "Lucas Brown",
+      "creatorAvatar": "https://randomuser.me/api/portraits/men/55.jpg",
+      "brewingMethod": "V60",
+      "grindSize": "Medium-Fine",
+      "coffeeAmount": 20,
+      "waterAmount": 320,
+      "waterTemperature": 93,
+      "brewTime": "3:15",
+      "steps": [
+        {"time": "0:00", "water": "50", "description": "Pour 50g water for blooming, swirl gently"},
+        {"time": "0:45", "water": "120", "description": "Pour to 170g total in spirals"},
+        {"time": "1:30", "water": "150", "description": "Final pour to 320g total in spirals"},
+        {"time": "2:30", "water": "0", "description": "Gentle swirl to flatten bed for even extraction"}
+      ],
+      "notes": "Based on Ivo's recipe with a few tweaks - finer grind and a higher ratio brings out more sweetness.",
+      "likes": 48,
+      "saves": 24,
+      "logs": 5,
+      "averageRating": 4.8,
+      "loggedUsers": ["user10", "user9", "user7"],
+      "savedUsers": [
+        {
+          "id": "user9",
+          "name": "Olivia Taylor",
+          "avatar": "https://randomuser.me/api/portraits/women/12.jpg"
+        },
+        {
+          "id": "user7",
+          "name": "Sophia Miller",
+          "avatar": "https://randomuser.me/api/portraits/women/68.jpg"
+        }
+      ],
+      "imageUrl": "https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728",
+      "date": "2023-12-14T13:15:00Z",
+      "isTrending": false,
+      "type": "recipe",
+      "hasRemixes": false,
+      "originalRecipeId": "recipe-coffee-0-1",
+      "originalRecipeName": "Villa Rosario V60",
+      "originalCreatorId": "user1",
+      "originalCreatorName": "Ivo Vilches"
     }
   ]
 } 

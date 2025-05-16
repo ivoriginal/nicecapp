@@ -81,6 +81,13 @@ export const CoffeeProvider = ({ children }) => {
   const loadData = async (specificAccount = null) => {
     try {
       console.log('Loading data for account:', specificAccount || currentAccount);
+      
+      // Prevent duplicate loading (to avoid infinite loops)
+      if (loading && initialized) {
+        console.log('Already loading data, skipping duplicate load');
+        return;
+      }
+      
       setLoading(true);
       setError(null);
       const accountToLoad = specificAccount || currentAccount;
@@ -229,6 +236,7 @@ export const CoffeeProvider = ({ children }) => {
       setError(error.message);
     } finally {
       setLoading(false);
+      setInitialized(true);
       console.log('CoffeeContext - Loading complete, loading set to false');
     }
   };
@@ -576,26 +584,74 @@ export const CoffeeProvider = ({ children }) => {
     return true;
   };
 
-  // Function to update a recipe (to mark recipes as saved)
+  // Add or update a recipe
   const updateRecipe = (updatedRecipe) => {
     try {
       console.log('Updating recipe:', updatedRecipe.id);
+      // Find the recipe index
+      const recipeIndex = recipes.findIndex(recipe => recipe.id === updatedRecipe.id);
       
-      // Update the recipes state with the updated recipe
-      const recipeIndex = recipes.findIndex(r => r.id === updatedRecipe.id);
       if (recipeIndex !== -1) {
+        // Create a new recipes array with the updated recipe
         const updatedRecipes = [...recipes];
         updatedRecipes[recipeIndex] = updatedRecipe;
+        
+        // Update the recipes state
         setRecipes(updatedRecipes);
+        console.log('Recipe updated successfully');
       } else {
-        // If the recipe doesn't exist in the state, add it
-        setRecipes([...recipes, updatedRecipe]);
+        // If the recipe doesn't exist, add it
+        console.log('Recipe not found, adding as new');
+        addRecipe(updatedRecipe);
       }
-      
-      return true;
     } catch (error) {
       console.error('Error updating recipe:', error);
-      return false;
+    }
+  };
+  
+  // Toggle favorite status for a recipe
+  const toggleFavorite = (recipeId) => {
+    try {
+      console.log('Toggling favorite status for recipe:', recipeId);
+      
+      // Check if the recipe is already in favorites
+      const isFavorite = favorites.includes(recipeId);
+      
+      if (isFavorite) {
+        // Remove from favorites
+        const updatedFavorites = favorites.filter(id => id !== recipeId);
+        setFavorites(updatedFavorites);
+        console.log('Recipe removed from favorites');
+        
+        // Also update the isSaved property on the recipe itself
+        const recipeIndex = recipes.findIndex(recipe => recipe.id === recipeId);
+        if (recipeIndex !== -1) {
+          const updatedRecipes = [...recipes];
+          updatedRecipes[recipeIndex] = {
+            ...updatedRecipes[recipeIndex],
+            isSaved: false
+          };
+          setRecipes(updatedRecipes);
+        }
+      } else {
+        // Add to favorites
+        const updatedFavorites = [...favorites, recipeId];
+        setFavorites(updatedFavorites);
+        console.log('Recipe added to favorites');
+        
+        // Also update the isSaved property on the recipe itself
+        const recipeIndex = recipes.findIndex(recipe => recipe.id === recipeId);
+        if (recipeIndex !== -1) {
+          const updatedRecipes = [...recipes];
+          updatedRecipes[recipeIndex] = {
+            ...updatedRecipes[recipeIndex],
+            isSaved: true
+          };
+          setRecipes(updatedRecipes);
+        }
+      }
+    } catch (error) {
+      console.error('Error toggling favorite status:', error);
     }
   };
 
@@ -637,7 +693,7 @@ export const CoffeeProvider = ({ children }) => {
         removeFromCollection,
         addToWishlist,
         removeFromWishlist,
-        toggleFavorite: () => {},
+        toggleFavorite,
         setCoffeeCollection: setCoffeeCollection,
         setCoffeeWishlist: setCoffeeWishlist,
         loadData,

@@ -11,15 +11,16 @@
         "Chemex",
         "Hario V60",
         "Hario Ceramic Slim",
-        "Hario Range Server"
+        "Hario Range Server",
+        "Fellow Stagg EKG"
       ],
       "gearWishlist": [
-        "9Barista Espresso Machine Mk.1",
-        "Fellow Stagg EKG"
+        "9Barista Espresso Machine Mk.1"
       ],
       "location": "San Francisco, CA",
       "joinedDate": "2022-01-15T00:00:00Z",
       "savedRecipes": ["recipe1", "recipe5", "recipe-titus-a", "recipe2", "recipe3", "recipe4"],
+      "createdRecipes": ["recipe-coffee-0-1"],
       "savedCoffees": [
         {
           "id": "coffee-villa-rosario",
@@ -38,6 +39,30 @@
           "name": "Campo Hermoso",
           "roaster": "Kima Coffee",
           "image": "https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728"
+        },
+        {
+          "id": "coffee-ijen",
+          "name": "Ijen",
+          "roaster": "Kima Coffee",
+          "image": "https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728"
+        },
+        {
+          "id": "coffee-red-fruits",
+          "name": "Red Fruits",
+          "roaster": "Kima Coffee",
+          "image": "https://kimacoffee.com/cdn/shop/files/IMG-5851_900x.png?v=1742796767"
+        },
+        {
+          "id": "coffee-refisa-g1",
+          "name": "Refisa G1",
+          "roaster": "Toma Café",
+          "image": "https://cdn.shopify.com/s/files/1/0561/2172/1001/files/ET_REF_G1_800x.jpg?v=1738771773"
+        },
+        {
+          "id": "coffee-kirunga",
+          "name": "Kirunga",
+          "roaster": "Kima Coffee",
+          "image": "https://kimacoffee.com/cdn/shop/files/A40D5DFF-1058-43A3-9C31-F87C8482EDD8_900x.png?v=1741929637"
         }
       ]
     },
@@ -58,7 +83,28 @@
         "Loring S15 Falcon"
       ],
       "location": "Murcia, Spain",
-      "joinedDate": "2022-03-22T00:00:00Z"
+      "joinedDate": "2022-03-22T00:00:00Z",
+      "createdRecipes": ["recipe-vertigo-toma-1", "recipe-refisa-g1-espresso"],
+      "savedCoffees": [
+        {
+          "id": "coffee-refisa-g1",
+          "name": "Refisa G1",
+          "roaster": "Toma Café",
+          "image": "https://cdn.shopify.com/s/files/1/0561/2172/1001/files/ET_REF_G1_800x.jpg?v=1738771773"
+        },
+        {
+          "id": "coffee-titus-a",
+          "name": "Titus A",
+          "roaster": "Toma Café",
+          "image": "https://cdn.shopify.com/s/files/1/0561/2172/1001/files/RUAN_TIT_fbc05869-95f3-47c4-9f73-09f1d290f3c6_800x.jpg?v=1741186794"
+        },
+        {
+          "id": "coffee-la-primavera",
+          "name": "La Primavera",
+          "roaster": "Toma Café",
+          "image": "https://cdn.shopify.com/s/files/1/0561/2172/1001/files/COL_LA_PRIM_4000x.jpg?v=1744293547"
+        }
+      ]
     },
     {
       "id": "user3",
@@ -87,7 +133,16 @@
         "Saint Anthony Industries Phoenix"
       ],
       "location": "Austin, TX",
-      "joinedDate": "2022-04-12T00:00:00Z"
+      "joinedDate": "2022-04-12T00:00:00Z",
+      "createdRecipes": ["recipe2"],
+      "savedCoffees": [
+        {
+          "id": "coffee-villa-rosario",
+          "name": "Villa Rosario",
+          "roaster": "Kima Coffee",
+          "image": "https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728"
+        }
+      ]
     },
     {
       "id": "user6",
@@ -182,7 +237,28 @@
         "Yama Cold Brew Tower"
       ],
       "location": "Miami, FL",
-      "joinedDate": "2022-07-10T00:00:00Z"
+      "joinedDate": "2022-07-10T00:00:00Z",
+      "createdRecipes": ["recipe3", "recipe-new-1"],
+      "savedCoffees": [
+        {
+          "id": "coffee-campo-hermoso-sidra",
+          "name": "Campo Hermoso",
+          "roaster": "Kima Coffee",
+          "image": "https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728"
+        },
+        {
+          "id": "coffee-kuria",
+          "name": "Kuria",
+          "roaster": "Kima Coffee",
+          "image": "https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728"
+        },
+        {
+          "id": "coffee-villa-rosario",
+          "name": "Villa Rosario",
+          "roaster": "Kima Coffee",
+          "image": "https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728"
+        }
+      ]
     },
     {
       "id": "user11",

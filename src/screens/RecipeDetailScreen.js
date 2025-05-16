@@ -77,6 +77,8 @@ export default function RecipeDetailScreen() {
   const [showLogModal, setShowLogModal] = useState(false);
   const [rating, setRating] = useState(0);
   const [notes, setNotes] = useState('');
+  const [averageRating, setAverageRating] = useState(0);
+  const [ratingCount, setRatingCount] = useState(0);
   
   // Mock the current user id for demo purposes
   const currentUserId = 'user1';
@@ -170,15 +172,30 @@ export default function RecipeDetailScreen() {
           setLogged(routeRecipe?.loggedUsers?.includes(currentUserId) || false);
           setSaved(routeRecipe?.savedUsers?.includes(currentUserId) || false);
           
-          setLogCount(routeRecipe?.logs || 0);
+          // Set log count, checking if this recipe was created from a logged coffee event
+          const isFromLoggedEvent = route.params?.fromLoggedEvent || 
+                                  route.params?.fromCoffeeEvent || 
+                                  routeRecipe.fromCoffeeEvent;
+          
+          const logCountValue = isFromLoggedEvent ? 
+                              Math.max(1, routeRecipe?.logs || 0) : 
+                              routeRecipe?.logs || 0;
+          
+          setLogCount(logCountValue);
           setSaveCount(routeRecipe?.saves || 0);
+          
+          // If this recipe was created from a logged event, ensure logged state is true
+          if (isFromLoggedEvent) {
+            setLogged(true);
+          }
           
           // Update route params to include the full recipe for ActionSheet access
           // Only update if needed to prevent infinite loop
           if (!route.params.recipeUpdated) {
             navigation.setParams({ 
               recipe: routeRecipe,
-              recipeUpdated: true 
+              recipeUpdated: true,
+              fromLoggedEvent: isFromLoggedEvent
             });
           }
           
@@ -322,10 +339,11 @@ export default function RecipeDetailScreen() {
               'Pour in a circular motion for even extraction'
             ],
             // Add empty arrays for likedUsers and savedUsers
-            loggedUsers: [],
+            loggedUsers: [currentUserId],  // Add current user as a logger
             savedUsers: [],
-            logs: 0,
-            saves: 0
+            logs: 1,  // Set logs to 1 since this is from a logged event
+            saves: 0,
+            fromCoffeeEvent: true  // Mark this recipe as created from a coffee event
           };
           setRecipe(recipeFromEvent);
           
@@ -341,11 +359,16 @@ export default function RecipeDetailScreen() {
             image: coffeeInfo?.image || coffeeInfo?.imageUrl || event.imageUrl
           });
           
+          // Set logged state since this is from a logged event
+          setLogged(true);
+          setLogCount(1);
+          
           // Update route params to include the full recipe for ActionSheet access
           if (!route.params.recipeUpdated) {
             navigation.setParams({ 
               recipe: recipeFromEvent,
-              recipeUpdated: true  
+              recipeUpdated: true,
+              fromLoggedEvent: true
             });
           }
           
@@ -414,11 +437,38 @@ export default function RecipeDetailScreen() {
   // Check if recipe is in favorites/saved state
   useEffect(() => {
     if (recipe && favorites) {
-      // Check if this recipe is in favorites
-      const isSavedInFavorites = favorites.includes(recipe.id);
+      // Check if this recipe is in favorites (either by isSaved flag or presence in favorites array)
+      const isSavedInFavorites = recipe.isSaved || favorites.includes(recipe.id);
       setSaved(isSavedInFavorites);
     }
   }, [recipe, favorites]);
+
+  // Ensure logged state reflects the event data
+  useEffect(() => {
+    if (recipe) {
+      // If this recipe was created from a logged event, it should show at least 1 log
+      if (route.params?.fromLoggedEvent) {
+        setLogCount(prev => Math.max(prev, 1));
+        setLogged(true);
+      }
+    }
+  }, [recipe, route.params]);
+
+  useEffect(() => {
+    // Calculate average rating if there are logs with ratings
+    if (coffee) {
+      // In a real app, this would be calculated from the server
+      // Here we'll use a mock calculation
+      const hasRatings = recipe?.logs && recipe.logs > 0;
+      if (hasRatings) {
+        // Calculate average from mock data (4.2 is just an example)
+        // In a real app, this would be calculated from actual ratings
+        const mockAverageRating = recipe.averageRating || 4.2;
+        setAverageRating(mockAverageRating);
+        setRatingCount(recipe.logs || logCount);
+      }
+    }
+  }, [recipe, coffee, logCount]);
 
   const navigateToUserProfile = (userId) => {
     navigation.navigate('UserProfileBridge', { userId, skipAuth: true });
@@ -426,23 +476,10 @@ export default function RecipeDetailScreen() {
 
   const navigateToCoffeeDetail = () => {
     if (coffee) {
-      // Get all recipes for this coffee
-      const coffeeRecipes = recipes.filter(r => r.coffeeId === coffee.id);
-      
-      // Check if coffee is in collection or wishlist
-      const isInCollection = coffeeCollection.some(c => c.id === coffee.id);
-      const isInWishlist = coffeeWishlist.some(c => c.id === coffee.id);
-      
+      // Don't try to filter recipes here, just use what we have
       navigation.navigate('CoffeeDetail', { 
         coffeeId: coffee.id,
-        skipAuth: true,
-        // Pass all coffee information
-        coffee: {
-          ...coffee,
-          isInCollection,
-          isInWishlist,
-          recipes: coffeeRecipes
-        }
+        skipAuth: true
       });
     }
   };
@@ -571,6 +608,8 @@ export default function RecipeDetailScreen() {
     
     // Toggle saved state
     const newSavedState = !saved;
+    
+    // Update state immediately to prevent UI flashing
     setSaved(newSavedState);
     setSaveCount(prevCount => newSavedState ? prevCount + 1 : prevCount - 1);
     
@@ -580,8 +619,20 @@ export default function RecipeDetailScreen() {
       
       // Update the recipe in context if it exists
       if (updateRecipe && typeof updateRecipe === 'function') {
-        const updatedRecipe = { ...recipe, isSaved: newSavedState };
+        // Create a new recipe object with updated saved state
+        const updatedRecipe = { 
+          ...recipe, 
+          isSaved: newSavedState,
+          savedUsers: newSavedState 
+            ? [...(recipe.savedUsers || []), currentUserId]
+            : (recipe.savedUsers || []).filter(id => id !== currentUserId)
+        };
+        
+        // Update recipe in context
         updateRecipe(updatedRecipe);
+        
+        // Also update local recipe state directly
+        setRecipe(updatedRecipe);
       }
     }
     
@@ -593,12 +644,28 @@ export default function RecipeDetailScreen() {
     }
   };
 
+  // Check event ID if it matches an event in mockEvents.json
+  useEffect(() => {
+    if (recipeId && recipeId.startsWith('event-') && coffeeEvents.length > 0) {
+      // This is potentially an event ID from mockEvents.json
+      const matchingEvent = coffeeEvents.find(e => e.id === recipeId);
+      if (matchingEvent) {
+        console.log('Recipe created from event in mockEvents.json:', matchingEvent.id);
+        // Ensure this event-based recipe shows at least one log
+        setLogCount(prev => Math.max(prev, 1));
+        setLogged(true);
+      }
+    }
+  }, [recipeId, coffeeEvents]);
+
   const handleLogSubmit = () => {
     // Create a log event
     const eventData = {
       id: `log-${Date.now()}`,
       coffeeName: coffee.name,
       coffeeId: coffee.id,
+      roaster: coffee.roaster,
+      imageUrl: coffee.image,
       method: recipe.method || recipe.brewingMethod,
       amount: recipe.amount,
       grindSize: recipe.grindSize,
@@ -610,23 +677,61 @@ export default function RecipeDetailScreen() {
       recipeId: recipe.id,
       recipeName: recipe.name,
       userId: currentUserId,
-      userName: 'Ivo Vilches',
+      // Get user info from a more reliable source - mock data for now
+      userName: 'Ivo Vilches', // Hard-coded for demo purposes
       userAvatar: 'assets/users/ivo-vilches.jpg',
     };
 
     // Add the event to context
     addCoffeeEvent(eventData);
     
-    // Update log count only
+    // Update log count - already sets it correctly
     setLogCount(prevCount => prevCount + 1);
+    setLogged(true);
     
-    // Close modal and show confirmation
+    // Update the loggedUsers array - this was missing
+    const updatedLoggedUsers = recipe.loggedUsers ? 
+      [...recipe.loggedUsers, currentUserId] : 
+      [currentUserId];
+    
+    // Update the average rating if a rating was provided
+    if (rating > 0) {
+      // Calculate new average rating
+      const newRatingCount = ratingCount + 1;
+      const newTotalRating = (averageRating * ratingCount) + rating;
+      const newAverageRating = newTotalRating / newRatingCount;
+      
+      setAverageRating(newAverageRating);
+      setRatingCount(newRatingCount);
+      
+      // In a real app, you would update this on the server
+      if (updateRecipe) {
+        const updatedRecipe = {
+          ...recipe,
+          averageRating: newAverageRating,
+          logs: logCount + 1, // Use the current logCount + 1
+          loggedUsers: updatedLoggedUsers
+        };
+        updateRecipe(updatedRecipe);
+        setRecipe(updatedRecipe); // Also update local recipe state
+      }
+    } else {
+      // Update the recipe even if no rating was provided
+      if (updateRecipe) {
+        const updatedRecipe = {
+          ...recipe,
+          logs: logCount + 1,
+          loggedUsers: updatedLoggedUsers
+        };
+        updateRecipe(updatedRecipe);
+        setRecipe(updatedRecipe);
+      }
+    }
+    
+    // Hide the modal
     setShowLogModal(false);
-    showToast('Added to your logs', '');
-    
-    // Reset form
-    setRating(0);
-    setNotes('');
+    // Show success toast
+    showToast('Log saved successfully');
   };
 
   const navigateToOriginalRecipe = () => {
@@ -641,6 +746,7 @@ export default function RecipeDetailScreen() {
         userId: recipe?.originalUserId || basedOnRecipe?.userId,
         userName: recipe?.originalUserName || basedOnRecipe?.userName,
         userAvatar: recipe?.originalUserAvatar || basedOnRecipe?.userAvatar,
+      }, {
         animation: 'slide_from_right'
       });
     }
@@ -707,6 +813,14 @@ export default function RecipeDetailScreen() {
     );
   };
 
+  // Safe way to render text values
+  const safeRender = (value, defaultValue = '') => {
+    if (value === null || value === undefined) {
+      return defaultValue;
+    }
+    return String(value);
+  };
+
   if (loading) {
     return (
       <View style={styles.container}>
@@ -765,7 +879,7 @@ export default function RecipeDetailScreen() {
             
             <ScrollView style={styles.modalBody} keyboardShouldPersistTaps="handled">
               <View style={styles.previewCoffeeInfo}>
-                <Text style={styles.previewTitle}>{recipe?.name || 'Coffee Recipe'}</Text>
+                <Text style={styles.previewTitle}>{recipe?.name}</Text>
                 <Text style={styles.previewSubtitle}>{coffee?.name} by {coffee?.roaster}</Text>
               </View>
               
@@ -815,7 +929,9 @@ export default function RecipeDetailScreen() {
         </KeyboardAvoidingView>
       </Modal>
       
-      <ScrollView>
+      <ScrollView 
+        contentContainerStyle={{ paddingBottom: insets.bottom }}
+      >
         {/* For deleted recipes */}
         {recipe && recipe.deleted && (
           <View style={styles.deletedRecipeContainer}>
@@ -921,8 +1037,10 @@ export default function RecipeDetailScreen() {
                   <Text style={styles.userChipText}>{recipe.userName}</Text>
                 </TouchableOpacity>
               </View>
-              
-              {/* Buttons for log and save */}
+            </View>
+
+            {/* Buttons for log and save - moved outside the container */}
+            <View style={styles.actionsOuterContainer}>
               <View style={styles.actionButtonsContainer}>
                 <TouchableOpacity 
                   style={styles.actionButton} 
@@ -934,7 +1052,7 @@ export default function RecipeDetailScreen() {
                     color="#000000" 
                   />
                   <Text style={styles.actionButtonText}>
-                    {logCount > 0 ? logCount : ""} Log
+                    Log
                   </Text>
                 </TouchableOpacity>
                 
@@ -959,42 +1077,62 @@ export default function RecipeDetailScreen() {
                 </TouchableOpacity>
               </View>
 
-              {/* Who tried it section with overlapping avatars */}
-              <View style={styles.whoTriedContainer}>
-                <View style={styles.avatarRow}>
-                  {/* Render up to 5 sample avatars - in real app, these would come from the API */}
-                  <View style={[styles.triedAvatar, { zIndex: 5 }]}>
-                    <AppImage 
-                      source="https://randomuser.me/api/portraits/women/33.jpg" 
-                      style={styles.triedAvatarImage} 
-                    />
-                  </View>
-                  <View style={[styles.triedAvatar, { zIndex: 4, marginLeft: -10 }]}>
-                    <AppImage 
-                      source="https://randomuser.me/api/portraits/men/45.jpg" 
-                      style={styles.triedAvatarImage} 
-                    />
-                  </View>
-                  <View style={[styles.triedAvatar, { zIndex: 3, marginLeft: -10 }]}>
-                    <AppImage 
-                      source="https://randomuser.me/api/portraits/women/68.jpg" 
-                      style={styles.triedAvatarImage} 
-                    />
-                  </View>
-                  <View style={[styles.triedAvatar, { zIndex: 2, marginLeft: -10 }]}>
-                    <AppImage 
-                      source="https://randomuser.me/api/portraits/men/55.jpg" 
-                      style={styles.triedAvatarImage} 
-                    />
-                  </View>
-                  <View style={[styles.triedAvatar, { zIndex: 1, marginLeft: -10 }]}>
-                    <AppImage 
-                      source="https://randomuser.me/api/portraits/women/12.jpg" 
-                      style={styles.triedAvatarImage} 
-                    />
-                  </View>
+              {/* Who tried it section - moved outside the container */}
+              <View style={[
+                styles.whoTriedContainer,
+                !averageRating && styles.whoTriedContainerCentered
+              ]}>
+                <View style={styles.whoTriedGroup}>
+                  {(logCount > 0 || (recipe.loggedUsers && recipe.loggedUsers.length > 0)) ? (
+                    <>
+                      <View style={styles.avatarRow}>
+                        {/* Render up to 3 sample avatars - in real app, these would come from the API */}
+                        <View style={[styles.triedAvatar, { zIndex: 5 }]}>
+                          <AppImage 
+                            source="https://randomuser.me/api/portraits/women/33.jpg" 
+                            style={styles.triedAvatarImage} 
+                          />
+                        </View>
+                        {(logCount >= 2 || (recipe.loggedUsers && recipe.loggedUsers.length >= 2)) && (
+                          <View style={[styles.triedAvatar, { zIndex: 4, marginLeft: -10 }]}>
+                            <AppImage 
+                              source="https://randomuser.me/api/portraits/men/45.jpg" 
+                              style={styles.triedAvatarImage} 
+                            />
+                          </View>
+                        )}
+                        {(logCount >= 3 || (recipe.loggedUsers && recipe.loggedUsers.length >= 3)) && (
+                          <View style={[styles.triedAvatar, { zIndex: 3, marginLeft: -10 }]}>
+                            <AppImage 
+                              source="https://randomuser.me/api/portraits/women/68.jpg" 
+                              style={styles.triedAvatarImage} 
+                            />
+                          </View>
+                        )}
+                      </View>
+                      <Text style={styles.whoTriedText}>
+                        {(logCount === 1 || (recipe.loggedUsers && recipe.loggedUsers.length === 1)) ? 
+                          "Logged 1 time" : 
+                          `Logged ${safeRender(logCount || recipe.loggedUsers?.length)} times`}
+                      </Text>
+                    </>
+                  ) : (
+                    <TouchableOpacity 
+                      style={styles.beFirstContainer}
+                      onPress={handleUpvote}
+                    >
+                      <Text style={styles.beFirstText}>Be the first to try it</Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
-                <Text style={styles.whoTriedText}>Logged 149 times</Text>
+                {averageRating > 0 && logCount > 0 && (
+                  <View style={styles.averageRatingContainer}>
+                    <Ionicons name="star" size={16} color="#FFD700" />
+                    <Text style={styles.averageRatingText}>
+                      {safeRender(averageRating.toFixed(1), '0.0')}
+                    </Text>
+                  </View>
+                )}
               </View>
             </View>
 
@@ -1006,25 +1144,25 @@ export default function RecipeDetailScreen() {
               <View style={styles.detailsGrid}>
                 <View style={styles.detailItem}>
                   <Text style={styles.detailLabel}>Coffee</Text>
-                  <Text style={styles.detailValue}>{recipe.amount || '18'}g</Text>
+                  <Text style={styles.detailValue}>{safeRender(recipe.amount, '18')}g</Text>
                 </View>
                 <View style={styles.detailItem}>
                   <Text style={styles.detailLabel}>Grind Size</Text>
-                  <Text style={styles.detailValue}>{recipe.grindSize || 'Medium'}</Text>
+                  <Text style={styles.detailValue}>{safeRender(recipe.grindSize, 'Medium')}</Text>
                 </View>
                 <View style={styles.detailItem}>
                   <Text style={styles.detailLabel}>Water</Text>
-                  <Text style={styles.detailValue}>{recipe.waterVolume || '300'}ml</Text>
+                  <Text style={styles.detailValue}>{safeRender(recipe.waterVolume, '300')}ml</Text>
                 </View>
                 <View style={styles.detailItem}>
                   <Text style={styles.detailLabel}>Brew Time</Text>
-                  <Text style={styles.detailValue}>{recipe.brewTime || '3:00'}</Text>
+                  <Text style={styles.detailValue}>{safeRender(recipe.brewTime, '3:00')}</Text>
                 </View>
               </View>
             </View>
 
-            {/* Brewing Steps */}
-            {recipe && recipe.steps && recipe.steps.length > 0 && (
+            {/* Brewing Steps - only show if recipe has steps */}
+            {recipe && recipe.steps && Array.isArray(recipe.steps) && recipe.steps.length > 0 && (
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
                   <Text style={[styles.sectionTitle, styles.sectionTitleInHeader]}>Brewing Steps</Text>
@@ -1034,10 +1172,17 @@ export default function RecipeDetailScreen() {
                     <View style={styles.stepNumber}>
                       <Text style={styles.stepNumberText}>{index + 1}</Text>
                     </View>
-                    <Text style={styles.stepText}>{step.action}</Text>
-                    {step.time && (
-                      <Text style={styles.stepTime}>{step.time}</Text>
-                    )}
+                    <View style={styles.stepContentContainer}>
+                      <Text style={styles.stepText}>{step.description}</Text>
+                      <View style={styles.stepDetailContainer}>
+                        {step.time && (
+                          <Text style={styles.stepTime}>Time: {safeRender(step.time)}</Text>
+                        )}
+                        {step.water && parseInt(safeRender(step.water, '0')) > 0 && (
+                          <Text style={styles.stepWater}>Water: {safeRender(step.water)}g</Text>
+                        )}
+                      </View>
+                    </View>
                   </View>
                 ))}
               </View>
@@ -1054,107 +1199,111 @@ export default function RecipeDetailScreen() {
             )}
 
             {/* New section: Remixes by Other Users */}
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Text style={[styles.sectionTitle, styles.sectionTitleInHeader]}>Remixes</Text>
-              </View>
-              <View style={styles.remixesContainer}>
-                {/* Sample remixes - in a real app, these would come from the API */}
-                {sampleRemixes.length > 0 ? (
-                  sampleRemixes.map((remix, index) => (
-                    <TouchableOpacity 
-                      key={remix.id}
-                      style={[
-                        styles.remixCard,
-                        index === sampleRemixes.length - 1 && styles.lastRemixCard
-                      ]}
-                      onPress={() => {
-                        // Create a remix based on the original recipe
-                        const remixRecipe = {
-                          id: remix.id,
-                          name: remix.name,
-                          coffeeId: recipe.coffeeId,
-                          coffeeName: recipe.coffeeName || coffee.name,
-                          roaster: recipe.roaster || coffee.roaster,
-                          userId: remix.userId,
-                          userName: remix.userName,
-                          userAvatar: remix.userAvatar,
-                          method: recipe.method || recipe.brewingMethod || "Pour Over",
-                          grindSize: remix.grindSize,
-                          amount: remix.amount,
-                          waterVolume: remix.waterVolume,
-                          waterTemperature: remix.waterTemperature,
-                          brewTime: remix.brewTime,
-                          imageUrl: recipe.imageUrl || coffee.image,
-                          steps: recipe.steps,
-                          notes: recipe.notes,
-                          upvotes: remix.upvotes,
-                          saves: remix.saves,
-                          modifications: remix.modifications,
-                          basedOnRecipe: {
-                            id: recipe.id,
-                            name: recipe.name,
-                            userName: recipe.userName
-                          }
-                        };
+            {recipe && recipe.hasRemixes && (
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <Text style={[styles.sectionTitle, styles.sectionTitleInHeader]}>Remixes</Text>
+                </View>
+                <View style={styles.remixesContainer}>
+                  {/* Sample remixes - in a real app, these would come from the API */}
+                  {sampleRemixes.length > 0 ? (
+                    sampleRemixes.map((remix, index) => (
+                      <TouchableOpacity 
+                        key={remix.id}
+                        style={[
+                          styles.remixCard,
+                          index === sampleRemixes.length - 1 && styles.lastRemixCard
+                        ]}
+                        onPress={() => {
+                          // Create a remix based on the original recipe
+                          const remixRecipe = {
+                            id: remix.id,
+                            name: remix.name,
+                            coffeeId: recipe.coffeeId,
+                            coffeeName: recipe.coffeeName || coffee.name,
+                            roaster: recipe.roaster || coffee.roaster,
+                            userId: remix.userId,
+                            userName: remix.userName,
+                            userAvatar: remix.userAvatar,
+                            method: recipe.method || recipe.brewingMethod || "Pour Over",
+                            grindSize: remix.grindSize,
+                            amount: remix.amount,
+                            waterVolume: remix.waterVolume,
+                            waterTemperature: remix.waterTemperature,
+                            brewTime: remix.brewTime,
+                            imageUrl: recipe.imageUrl || coffee.image,
+                            steps: recipe.steps,
+                            notes: recipe.notes,
+                            upvotes: remix.upvotes,
+                            saves: remix.saves,
+                            modifications: remix.modifications,
+                            basedOnRecipe: {
+                              id: recipe.id,
+                              name: recipe.name,
+                              userName: recipe.userName
+                            }
+                          };
 
-                        // Navigate to a new instance of RecipeDetailScreen
-                        navigation.push('RecipeDetail', {
-                          recipeId: remixRecipe.id,
-                          recipe: remixRecipe,
-                          coffeeName: remixRecipe.coffeeName,
-                          coffeeId: remixRecipe.coffeeId,
-                          roaster: remixRecipe.roaster,
-                          imageUrl: remixRecipe.imageUrl,
-                          userId: remixRecipe.userId,
-                          userName: remixRecipe.userName,
-                          userAvatar: remixRecipe.userAvatar,
-                          basedOnRecipe: {
-                            id: recipe.id,
-                            name: recipe.name,
-                            userName: recipe.userName
-                          },
-                          skipAuth: true
-                        });
-                      }}
-                    >
-                      <View style={styles.remixUserRow}>
-                        <AppImage 
-                          source={remix.userAvatar} 
-                          style={styles.remixUserAvatar} 
-                        />
-                        <View style={styles.remixUserInfo}>
-                          <Text style={styles.remixUserName}>{remix.userName}</Text>
-                          <Text style={styles.remixDate}>{remix.date}</Text>
-                        </View>
-                        <Ionicons name="chevron-forward" size={20} color="#666666" />
-                      </View>
-                      <View style={styles.remixDetails}>
-                        <Text style={styles.remixModification}>
-                          {remix.modifications}
-                        </Text>
-                        <View style={styles.remixStats}>
-                          <View style={styles.remixStat}>
-                            <Ionicons name="arrow-up" size={14} color="#666666" />
-                            <Text style={styles.remixStatText}>{remix.upvotes}</Text>
+                          // Navigate to a new instance of RecipeDetailScreen
+                          navigation.push('RecipeDetail', {
+                            recipeId: remixRecipe.id,
+                            recipe: remixRecipe,
+                            coffeeName: remixRecipe.coffeeName,
+                            coffeeId: remixRecipe.coffeeId,
+                            roaster: remixRecipe.roaster,
+                            imageUrl: remixRecipe.imageUrl,
+                            userId: remixRecipe.userId,
+                            userName: remixRecipe.userName,
+                            userAvatar: remixRecipe.userAvatar,
+                            basedOnRecipe: {
+                              id: recipe.id,
+                              name: recipe.name,
+                              userName: recipe.userName
+                            },
+                            skipAuth: true
+                          });
+                        }}
+                      >
+                        <View style={styles.remixUserRow}>
+                          <AppImage 
+                            source={remix.userAvatar} 
+                            style={styles.remixUserAvatar} 
+                          />
+                          <View style={styles.remixUserInfo}>
+                            <Text style={styles.remixUserName}>{remix.userName}</Text>
+                            <Text style={styles.remixDate}>{remix.date}</Text>
                           </View>
-                          <View style={styles.remixStat}>
-                            <Ionicons name="people-outline" size={14} color="#666666" />
-                            <Text style={styles.remixStatText}>{remix.saves}</Text>
+                          <View>
+                            <Ionicons name="chevron-forward" size={20} color="#666666" />
                           </View>
                         </View>
-                      </View>
-                    </TouchableOpacity>
-                  ))
-                ) : (
-                  <View style={styles.emptyRemixesContainer}>
-                    <Ionicons name="git-branch" size={40} color="#CCCCCC" />
-                    <Text style={styles.emptyRemixesText}>No remixes yet</Text>
-                    <Text style={styles.emptyRemixesSubtext}>Be the first to remix this recipe</Text>
-                  </View>
-                )}
+                        <View style={styles.remixDetails}>
+                          <Text style={styles.remixModification}>
+                            {remix.modifications}
+                          </Text>
+                          <View style={styles.remixStats}>
+                            <View style={styles.remixStat}>
+                              <Ionicons name="arrow-up" size={14} color="#666666" />
+                              <Text style={styles.remixStatText}>{remix.upvotes}</Text>
+                            </View>
+                            <View style={styles.remixStat}>
+                              <Ionicons name="people-outline" size={14} color="#666666" />
+                              <Text style={styles.remixStatText}>{remix.saves}</Text>
+                            </View>
+                          </View>
+                        </View>
+                      </TouchableOpacity>
+                    ))
+                  ) : (
+                    <View style={styles.emptyRemixesContainer}>
+                      <Ionicons name="git-branch" size={40} color="#CCCCCC" />
+                      <Text style={styles.emptyRemixesText}>No remixes yet</Text>
+                      <Text style={styles.emptyRemixesSubtext}>Be the first to remix this recipe</Text>
+                    </View>
+                  )}
+                </View>
               </View>
-            </View>
+            )}
           </>
         )}
       </ScrollView>
@@ -1199,10 +1348,16 @@ const styles = StyleSheet.create({
   recipeHeaderContainer: {
     backgroundColor: '#FFFFFF',
     padding: 16,
-    marginTop: 8,
+    paddingVertical: 24,
+    margin: 16,
+    // marginTop: 16,
+    marginBottom: 0,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+    borderRadius: 12,
   },
   recipeHeaderPrefix: {
-    fontSize: 18,
+    fontSize: 16,
     lineHeight: 24,
     color: '#333333',
     textAlign: 'center',
@@ -1220,7 +1375,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+    // marginBottom: 16,
   },
   recipeByText: {
     fontSize: 14,
@@ -1234,8 +1389,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
-    paddingHorizontal: 8,
-    paddingVertical: 12,
   },
   chip: {
     flexDirection: 'row',
@@ -1251,7 +1404,7 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   chipText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '500',
     color: '#333333',
   },
@@ -1304,7 +1457,7 @@ const styles = StyleSheet.create({
   actionButtonsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 16,
+    marginTop: 8,
     marginBottom: 16,
   },
   actionButton: {
@@ -1338,7 +1491,14 @@ const styles = StyleSheet.create({
   whoTriedContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  whoTriedContainerCentered: {
     justifyContent: 'center',
+  },
+  whoTriedGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   avatarRow: {
     flexDirection: 'row',
@@ -1359,6 +1519,20 @@ const styles = StyleSheet.create({
   whoTriedText: {
     fontSize: 14,
     color: '#666666',
+  },
+  averageRatingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8F8F8',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 16,
+  },
+  averageRatingText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333333',
+    marginLeft: 4,
   },
   
   // Recipe details section
@@ -1415,16 +1589,27 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-  stepText: {
+  stepContentContainer: {
     flex: 1,
+    flexDirection: 'column',
+  },
+  stepDetailContainer: {
+    flexDirection: 'row',
+    marginTop: 4,
+  },
+  stepText: {
     fontSize: 16,
     color: '#333333',
     lineHeight: 24,
   },
-  stepTime: {
+  stepWater: {
     fontSize: 14,
     color: '#666666',
     marginLeft: 12,
+  },
+  stepTime: {
+    fontSize: 14,
+    color: '#666666',
   },
   tipItem: {
     flexDirection: 'row',
@@ -1452,7 +1637,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   recipeText: {
-    fontSize: 18,
+    fontSize: 16,
     color: '#666666',
     marginHorizontal: 4,
     alignSelf: 'center',
@@ -1550,7 +1735,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    minHeight: '50%',
+    minHeight: '60%',
     maxHeight: '90%',
   },
   modalHeader: {
@@ -1630,7 +1815,7 @@ const styles = StyleSheet.create({
     borderTopColor: '#E5E5EA',
   },
   saveButton: {
-    backgroundColor: '#2196F3',
+    backgroundColor: '#000000',
     padding: 16,
     borderRadius: 8,
     alignItems: 'center',
@@ -1714,5 +1899,27 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#999999',
     textAlign: 'center',
+  },
+  beFirstContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    paddingHorizontal: 16,
+  },
+  beFirstText: {
+    fontSize: 14,
+    color: '#000000',
+    // marginRight: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: '#000000',
+    fontWeight: '600',
+  },
+  actionsOuterContainer: {
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    paddingTop: 8,
+    // borderBottomWidth: 1,
+    // borderBottomColor: '#E5E5EA',
   },
 }); 

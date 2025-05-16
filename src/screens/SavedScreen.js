@@ -20,7 +20,7 @@ import AppImage from '../components/common/AppImage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function SavedScreen() {
-  const { coffeeCollection, coffeeWishlist, recipes, removeFromWishlist, loadSavedRecipes } = useCoffee();
+  const { coffeeCollection, coffeeWishlist, recipes, favorites, removeFromWishlist, loadSavedRecipes } = useCoffee();
   const navigation = useNavigation();
   const route = useRoute();
   const insets = useSafeAreaInsets();
@@ -32,10 +32,14 @@ export default function SavedScreen() {
 
   // Format wishlist items for rendering
   const savedCoffees = Array.isArray(coffeeWishlist) ? coffeeWishlist : [];
-  const savedRecipes = recipes.filter(recipe => recipe.isSaved);
+  // Get recipes from both sources - those with isSaved flag and those in favorites array
+  const savedRecipes = recipes.filter(recipe => 
+    recipe.isSaved || favorites.includes(recipe.id)
+  );
   
   console.log('Saved Coffees:', savedCoffees);
   console.log('Saved Recipes:', savedRecipes);
+  console.log('Favorites array:', favorites);
 
   // Remove navigation header border bottom
   useEffect(() => {
@@ -93,9 +97,14 @@ export default function SavedScreen() {
       // If no wishlist, the screen should show empty state
       setSavedItems([]);
     } else if (tab === 'recipes') {
-      // Always use the filtered saved recipes from mock data
-      console.log(`Setting ${savedRecipes.length} saved recipe items`);
-      setSavedItems(savedRecipes);
+      // Get all saved recipes - both from isSaved flag and from favorites array
+      const allSavedRecipes = recipes.filter(recipe => recipe.isSaved || favorites.includes(recipe.id));
+      
+      console.log(`Setting ${allSavedRecipes.length} saved recipe items`);
+      console.log('From isSaved flag:', recipes.filter(recipe => recipe.isSaved).length);
+      console.log('From favorites array:', recipes.filter(recipe => favorites.includes(recipe.id)).length);
+      
+      setSavedItems(allSavedRecipes);
     }
   };
 

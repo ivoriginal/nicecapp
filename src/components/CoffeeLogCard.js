@@ -211,6 +211,8 @@ const CoffeeLogCard = ({
         return 'sparkles';
       case 'user_recommendation':
         return 'people';
+      case 'remixed_recipe':
+        return 'git-branch';
       default:
         return 'cafe';
     }
@@ -244,6 +246,8 @@ const CoffeeLogCard = ({
         return 'wishlisted';
       case 'gear_added':
         return 'added gear';
+      case 'remixed_recipe':
+        return 'remixed a recipe';
       default:
         return 'brewed';
     }
@@ -674,10 +678,10 @@ const CoffeeLogCard = ({
     }
     
     // Saved recipe and created recipe events - show RecipeCard
-    if (type === 'saved_recipe' || type === 'created_recipe') {
+    if (type === 'saved_recipe' || type === 'created_recipe' || type === 'remixed_recipe') {
       const recipeData = {
-        id: event.recipeId || event.id,
-        name: event.recipeName || `${event.method || event.brewingMethod} Recipe`,
+        id: event.recipeId || event.newRecipeId || event.id,
+        name: event.recipeName || event.newRecipeName || `${event.method || event.brewingMethod} Recipe`,
         method: event.method || event.brewingMethod,
         brewTime: event.brewTime,
         grindSize: event.grindSize,
@@ -685,7 +689,10 @@ const CoffeeLogCard = ({
         coffeeName: event.coffeeName,
         creatorName: event.userName,
         creatorAvatar: event.userAvatar,
-        image: event.imageUrl
+        image: event.imageUrl,
+        originalRecipeId: event.originalRecipeId,
+        originalRecipeName: event.originalRecipeName,
+        originalRecipeCreator: event.originalRecipeCreator || event.targetUserName
       };
       
       return (
@@ -721,7 +728,25 @@ const CoffeeLogCard = ({
               <TouchableOpacity 
                 key={`similar-${coffee.id || index}`}
                 style={styles.similarCoffeeCard}
-                onPress={() => onCoffeePress && onCoffeePress(coffee)}
+                onPress={() => {
+                  console.log('Pressing similar coffee:', coffee.name);
+                  // Simplify the object passed to onCoffeePress to avoid circular references
+                  if (onCoffeePress) {
+                    onCoffeePress({
+                      coffeeId: coffee.id,
+                      type: 'coffee_recommendation',
+                      // Pass explicit properties needed by CoffeeDetailScreen
+                      name: coffee.name,
+                      roaster: coffee.roaster,
+                      roasterId: coffee.roasterId,
+                      image: coffee.image || coffee.imageUrl,
+                      imageUrl: coffee.imageUrl || coffee.image,
+                      origin: coffee.origin,
+                      process: coffee.process,
+                      description: coffee.description
+                    });
+                  }
+                }}
               >
                 <View style={styles.similarCoffeeImageContainer}>
                   <AppImage 
@@ -953,7 +978,20 @@ const CoffeeLogCard = ({
           <View style={styles.specialHeaderContainer}>
             <Ionicons name="sparkles" size={20} color="#666666" style={styles.similarCoffeeIcon} />
             <Text style={styles.specialHeaderText}>
-              Similar to {event.basedOnCoffeeName || 'coffees you like'}
+              <Text style={styles.headerNormalText}>Similar to </Text>
+              <Text 
+                style={styles.headerBoldText}
+                onPress={() => {
+                  if (event.basedOnCoffeeId && onCoffeePress) {
+                    onCoffeePress({
+                      coffeeId: event.basedOnCoffeeId,
+                      coffeeName: event.basedOnCoffeeName
+                    });
+                  }
+                }}
+              >
+                {event.basedOnCoffeeName || 'coffees you like'}
+              </Text>
             </Text>
           </View>
           <View style={styles.headerActionsContainer}>
@@ -970,8 +1008,10 @@ const CoffeeLogCard = ({
       ) : event.type === 'user_recommendation' ? (
         <View style={styles.headerContainer}>
           <View style={styles.specialHeaderContainer}>
-            <Ionicons name="people" size={20} color="#666666" />
-            <Text style={styles.specialHeaderText}>Followed by people you follow</Text>
+            <Ionicons name="people" size={20} color="#666666" style={styles.similarCoffeeIcon} />
+            <Text style={styles.specialHeaderText}>
+              <Text style={styles.headerNormalText}>Followed by people you follow</Text>
+            </Text>
           </View>
           <View style={styles.headerActionsContainer}>
             {/* Options button hidden for now, will add functionality later */}
@@ -1030,14 +1070,14 @@ const styles = StyleSheet.create({
     marginHorizontal: 0,
     marginVertical: 0,
     overflow: 'hidden',
-    marginBottom: 8,
+    // marginBottom: 8,
     // Explicitly set all border properties to ensure no borders
     borderWidth: 0,
     borderTopWidth: 0,
-    borderBottomWidth: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5EA',
     borderLeftWidth: 0,
     borderRightWidth: 0,
-    borderColor: 'transparent',
   },
   contentContainer: {
     padding: 12,
@@ -1258,7 +1298,7 @@ const styles = StyleSheet.create({
     resizeMode: 'cover',
   },
   eventContent: {
-    paddingHorizontal: 4,
+    flex: 1,
   },
   eventTitle: {
     fontSize: 18,
@@ -1361,7 +1401,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#000000',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   followedByText: {
     fontSize: 14,
@@ -1377,7 +1417,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   similarCoffeeIcon: {
-    marginRight: 8,
+    padding: 5,
+    marginRight: 0,
+    // backgroundColor: '#000000',
   },
   similarCoffeeTitle: {
     fontSize: 16,
@@ -1500,19 +1542,25 @@ const styles = StyleSheet.create({
   specialHeaderContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 4,
+    paddingVertical: 1,
   },
   specialHeaderText: {
     fontSize: 14,
+    marginLeft: 8,
+  },
+  headerNormalText: {
+    fontWeight: '400',
+    color: '#000000',
+  },
+  headerBoldText: {
     fontWeight: '600',
     color: '#000000',
-    marginLeft: 8,
   },
   followButton: {
     paddingVertical: 8,
     paddingHorizontal: 16,
     backgroundColor: '#000000',
-    borderRadius: 16,
+    borderRadius: 8,
     marginLeft: 'auto',
   },
   followButtonText: {
@@ -1522,6 +1570,17 @@ const styles = StyleSheet.create({
   },
   coffeeChevron: {
     marginLeft: 'auto',
+  },
+  remixInfoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    paddingHorizontal: 16,
+  },
+  remixInfoText: {
+    fontSize: 14,
+    color: '#666666',
+    marginLeft: 8,
   },
 });
 

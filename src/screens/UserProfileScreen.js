@@ -1084,12 +1084,14 @@ export default function UserProfileScreen() {
                     </View>
                   ))}
                 </View>
-                <Text style={styles.mutualFollowersText}>
-                  Followed by <Text style={styles.mutualFollowerBold}>{mutualFollowers[0]?.userName}</Text> 
-                  {mutualFollowers.length > 1 ? 
-                    <Text> and <Text style={styles.mutualFollowerBold}>{mutualFollowers.length - 1} more</Text></Text> 
-                    : null}
-                </Text>
+                <View style={{flex: 1}}>
+                  <Text style={styles.mutualFollowersText}>
+                    Followed by <Text style={styles.mutualFollowerBold}>{mutualFollowers[0]?.userName}</Text> 
+                    {mutualFollowers.length > 1 ? 
+                      <Text> and <Text style={styles.mutualFollowerBold}>{mutualFollowers.length - 1} more</Text></Text> 
+                      : null}
+                  </Text>
+                </View>
               </View>
             )}
             
@@ -1267,13 +1269,12 @@ export default function UserProfileScreen() {
               
               {/* Coffees tab (for regular users) */}
               {!user?.isRoaster && activeTab === 'coffees' && (
-                <View style={[styles.coffeesContainer, { backgroundColor: '#F2F2F7' }]}>
+                <View style={[styles.coffeesContainer]}>
                   <SafeFlatList
                     data={userCoffees}
                     renderItem={renderCoffeeItem}
                     keyExtractor={item => item.id}
                     style={[styles.coffeesList, { 
-                      backgroundColor: '#F2F2F7',
                       elevation: 0,
                       shadowOpacity: 0,
                       borderWidth: 0
@@ -1333,7 +1334,7 @@ export default function UserProfileScreen() {
                         <Text style={styles.emptyText}>No coffees in collection yet</Text>
                       </View>
                     )}
-                    ListFooterComponent={() => <View style={{ height: 60 }} />}
+                    // ListFooterComponent={() => <View style={{ height: 60 }} />}
                   />
                 </View>
               )}
@@ -1397,6 +1398,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     paddingVertical: 8,
+    paddingTop: Platform.OS === 'ios' ? 12 : 0,
     backgroundColor: '#FFFFFF',
   },
   profileImage: {
@@ -1498,7 +1500,7 @@ const styles = StyleSheet.create({
   statLabel: {
     fontSize: 14,
     color: '#666666',
-    marginTop: 4,
+    marginTop: 0,
   },
   tabsContainer: {
     flexDirection: 'row',
@@ -1531,16 +1533,16 @@ const styles = StyleSheet.create({
   coffeesContainer: {
     paddingVertical: 0,
     paddingHorizontal: 0,
-    backgroundColor: '#F2F2F7',
+    // backgroundColor: '#F2F2F7',
     flex: 1,
   },
   coffeesList: {
-    backgroundColor: '#F2F2F7',
+    // backgroundColor: '#F2F2F7',
     flex: 1,
   },
   coffeesSection: {
     padding: 0,
-    backgroundColor: '#F2F2F7',
+    // backgroundColor: '#F2F2F7',
   },
   listSeparator: {
     height: 0,
@@ -2045,8 +2047,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
     color: '#000000',
-    marginBottom: 2,
-    marginRight: 4,
+    marginBottom: 0,
   },
   followStatLabel: {
     fontSize: 14,
@@ -2080,6 +2081,7 @@ const styles = StyleSheet.create({
   mutualFollowersText: {
     fontSize: 14,
     color: '#666666',
+    flexShrink: 1,
   },
   mutualFollowerBold: {
     fontWeight: '600',

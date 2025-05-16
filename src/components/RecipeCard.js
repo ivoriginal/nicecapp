@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AppImage from './common/AppImage';
 import mockCoffeesData from '../data/mockCoffees.json';
@@ -7,7 +7,7 @@ import mockCoffeesData from '../data/mockCoffees.json';
 const RecipeCard = ({ 
   recipe, 
   onPress, 
-  onUserPress, 
+  onUserPress,
   showCoffeeInfo = false, 
   style,
   compact = false
@@ -17,80 +17,99 @@ const RecipeCard = ({
     mockCoffeesData.coffees.find(c => c.id === recipe.coffeeId) : 
     null;
 
-  // Default creator info if not provided
-  const creatorName = recipe.creatorName || 'Unknown';
-  const creatorAvatar = recipe.creatorAvatar || undefined;
+  // Get creator info
+  const creatorName = recipe.creatorName || recipe.userName || 'Unknown';
+  const creatorId = recipe.creatorId || recipe.userId;
   
-  // Determine if it's a business account
-  const isBusinessAccount = 
-    creatorName === 'Vértigo y Calambre' || 
-    creatorName === 'Toma Café' || 
-    creatorName === 'CaféLab' ||
-    (recipe.creatorId && recipe.creatorId.startsWith('business-'));
+  // Get remix info
+  const isRemix = recipe.originalRecipeId || recipe.originalRecipeName || 
+                  recipe.originalRecipeCreator || recipe.originalCreatorName;
+  const originalCreator = recipe.originalRecipeCreator || recipe.originalCreatorName || 
+                         recipe.targetUserName || "another user";
+  
+  const handleUserPress = () => {
+    if (onUserPress && creatorId) {
+      onUserPress(creatorId, creatorName);
+    }
+  };
+  
+  const handleRecipePress = () => {
+    if (onPress && recipe.id) {
+      onPress(recipe.id);
+    }
+  };
+
+  const handleOriginalRecipePress = () => {
+    if (onPress && recipe.originalRecipeId) {
+      onPress(recipe.originalRecipeId);
+    }
+  };
+
+  const method = recipe.method || recipe.brewingMethod || 'V60';
+  const rating = recipe.rating || recipe.averageRating || 0;
+  const coffeeName = coffee ? coffee.name : 'Coffee';
 
   return (
     <TouchableOpacity 
       style={[styles.container, compact ? styles.compactContainer : {}, style]} 
-      onPress={onPress}
+      onPress={handleRecipePress}
     >
-      <View style={styles.recipeHeader}>
-        <TouchableOpacity 
-          style={styles.userChip}
-          onPress={onUserPress}
-        >
-          <View style={[
-            styles.avatar, 
-            isBusinessAccount ? styles.businessAvatar : {}
-          ]}>
-            {creatorAvatar ? (
-              <AppImage 
-                source={creatorAvatar} 
-                style={isBusinessAccount ? styles.businessAvatarImage : styles.avatarImage}
-                placeholder="person"
-              />
-            ) : (
-              <Ionicons name="person-circle" size={24} color="#CCCCCC" />
-            )}
-          </View>
-          <Text style={styles.username}>{creatorName}</Text>
-        </TouchableOpacity>
-        
-        <Text style={styles.recipeTime}>
-          {recipe.brewTime ? `${recipe.brewTime}` : '3:00'}
-        </Text>
-      </View>
-      
       <View style={styles.recipeContent}>
-        <View style={styles.recipeImageContainer}>
-          <AppImage 
-            source={recipe.image || (coffee?.image || coffee?.images?.[0])} 
-            style={styles.recipeImage} 
-            placeholder="coffee"
-          />
-        </View>
-        
-        <View style={styles.recipeInfo}>
-          <Text style={styles.recipeName}>{recipe.name}</Text>
-          
-          {showCoffeeInfo && coffee && (
-            <Text style={styles.coffeeName}>{coffee.name} • {coffee.roaster}</Text>
+        <View style={styles.topSection}>
+          {/* Remix info if this is a remixed recipe */}
+          {isRemix && (
+            <TouchableOpacity 
+              style={styles.remixInfoContainer}
+              onPress={handleOriginalRecipePress}
+            >
+              <Ionicons name="git-branch" size={14} color="#666666" />
+              <Text style={styles.remixInfoText}>
+                Remixed from a recipe by {originalCreator}
+              </Text>
+            </TouchableOpacity>
           )}
           
-          <View style={styles.recipeDetails}>
-            <View style={styles.detailItem}>
-              <Ionicons name="water-outline" size={16} color="#666666" />
-              <Text style={styles.detailText}>{recipe.method || 'V60'}</Text>
+          {/* Rating (moved before title) */}
+          {rating > 0 && (
+            <View style={styles.ratingContainer}>
+              <Ionicons name="star" size={16} color="#FFD700" />
+              <Text style={styles.ratingText}>{rating.toFixed(1)}</Text>
             </View>
-            
-            <View style={styles.detailItem}>
-              <Ionicons name="timer-outline" size={16} color="#666666" />
-              <Text style={styles.detailText}>{recipe.brewTime || '3:00'}</Text>
-            </View>
-            
-            <View style={styles.detailItem}>
-              <Ionicons name="speedometer-outline" size={16} color="#666666" />
-              <Text style={styles.detailText}>{recipe.grindSize || 'Medium'}</Text>
-            </View>
+          )}
+          
+          {/* Recipe Title showing Coffee + Method */}
+          <View style={styles.recipeTitleContainer}>
+            <Text style={styles.recipeTitle}>
+              {coffeeName} recipe for {method}
+            </Text>
+          </View>
+          
+          {/* Author Header */}
+          <View style={styles.recipeHeader}>
+            <TouchableOpacity 
+              style={styles.authorContainer}
+              onPress={handleUserPress}
+            >
+              <Text style={styles.authorName}>by {creatorName}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+        
+        {/* Recipe Stats - Always at bottom */}
+        <View style={styles.recipeStats}>
+          <View style={styles.statItem}>
+            <Text style={styles.statLabel}>Time</Text>
+            <Text style={styles.statValue}>{recipe.brewTime || '3:00'}</Text>
+          </View>
+          
+          <View style={styles.statItem}>
+            <Text style={styles.statLabel}>Grind</Text>
+            <Text style={styles.statValue}>{recipe.grindSize || 'Medium'}</Text>
+          </View>
+          
+          <View style={[styles.statItem, styles.lastStatItem]}>
+            <Text style={styles.statLabel}>Dose</Text>
+            <Text style={styles.statValue}>{recipe.dose || '18g'}</Text>
           </View>
         </View>
       </View>
@@ -101,6 +120,8 @@ const RecipeCard = ({
 const styles = StyleSheet.create({
   container: {
     backgroundColor: '#FFFFFF',
+    // backgroundColor: '#F2F2F7',
+    backgroundColor: '#f9f9f9',
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#E5E5EA',
@@ -109,92 +130,98 @@ const styles = StyleSheet.create({
     width: '100%'
   },
   compactContainer: {
-    padding: 12,
+    // padding: 12,
     marginRight: 12,
     width: 280,
+  },
+  recipeContent: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'space-between',
+    height: '100%',
+  },
+  topSection: {
+    flex: 1, // Take up available space to push the stats to the bottom
+  },
+  remixInfoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    // marginBottom: 8,
+    paddingBottom: 8,
+    // borderBottomWidth: 1,
+    // borderBottomColor: '#F0F0F0',
+  },
+  remixInfoText: {
+    fontSize: 12,
+    color: '#666666',
+    marginLeft: 4,
+  },
+  recipeTitleContainer: {
+    marginBottom: 4,
+    paddingBottom: 0,
+    // borderBottomWidth: 1,
+    // borderBottomColor: '#F0F0F0',
+  },
+  recipeTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#333333',
   },
   recipeHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 12,
+    paddingBottom: 0,
+    // Remove border bottom from here
   },
-  userChip: {
+  authorContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  avatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#F2F2F7',
-    marginRight: 8,
-    overflow: 'hidden',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  businessAvatar: {
-    borderRadius: 8,
-  },
-  avatarImage: {
-    width: '100%', 
-    height: '100%',
-    borderRadius: 16,
-  },
-  businessAvatarImage: {
-    width: '100%', 
-    height: '100%',
-    borderRadius: 8,
-  },
-  username: {
+  authorName: {
     fontSize: 14,
     fontWeight: '500',
-  },
-  recipeTime: {
-    fontSize: 12,
     color: '#666666',
   },
-  recipeContent: {
-    flexDirection: 'row',
-  },
-  recipeImageContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
-    overflow: 'hidden',
-    marginRight: 12,
-  },
-  recipeImage: {
-    width: '100%',
-    height: '100%',
-  },
-  recipeInfo: {
-    flex: 1,
-    justifyContent: 'space-between',
-  },
-  recipeName: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  coffeeName: {
-    fontSize: 14,
-    color: '#666666',
-    marginBottom: 8,
-  },
-  recipeDetails: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 'auto',
-  },
-  detailItem: {
+  ratingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 4,
   },
-  detailText: {
-    fontSize: 12,
-    color: '#666666',
+  ratingText: {
     marginLeft: 4,
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#333333',
+  },
+  recipeStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+    borderTopColor: '#E5E5EA',
+    paddingTop: 12,
+    marginTop: 4,
+  },
+  statItem: {
+    alignItems: 'center',
+    minWidth: 70,
+  },
+  lastStatItem: {
+    marginRight: 0,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#999999',
+    marginTop: 2,
+  },
+  statValue: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#333333',
   },
 });
 

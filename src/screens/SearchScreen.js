@@ -47,7 +47,7 @@ const SEARCH_INPUT_BG_COLOR = '#F0F0F0';
 
 export default function SearchScreen() {
   const insets = useSafeAreaInsets();
-  const { currentAccount } = useCoffee();
+  const { currentAccount, coffeeCollection } = useCoffee();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -1687,6 +1687,9 @@ export default function SearchScreen() {
   };
 
   const renderRecipesForYouSection = () => {
+    // Don't show recipes section if user has no coffees in their collection
+    if (coffeeCollection.length === 0) return null;
+    
     // Filter recipes that have isTrending flag set to true
     const trendingRecipes = mockRecipesData.recipes.filter(recipe => recipe.isTrending === true);
     
@@ -1703,8 +1706,8 @@ export default function SearchScreen() {
         <FlatList
           data={trendingRecipes}
           renderItem={({ item }) => (
-            <TouchableOpacity 
-              style={styles.recipeCard}
+            <RecipeCard
+              recipe={item}
               onPress={() => navigation.navigate('RecipeDetail', { 
                 recipeId: item.id,
                 coffeeId: item.coffeeId,
@@ -1718,33 +1721,15 @@ export default function SearchScreen() {
                 userName: item.creatorName,
                 userAvatar: item.creatorAvatar
               })}
-            >
-              <Image 
-                source={{ uri: item.imageUrl }} 
-                style={styles.recipeImage} 
-              />
-              <View style={styles.recipeContent}>
-                <Text style={styles.recipeName}>{item.name}</Text>
-                <Text style={styles.recipeCoffeeName}>{item.coffeeName}</Text>
-                <View style={styles.recipeCreatorContainer}>
-                  <Image 
-                    source={getImageSource(item.creatorAvatar)} 
-                    style={styles.recipeCreatorAvatar} 
-                  />
-                  <Text style={styles.recipeCreatorName}>{item.creatorName}</Text>
-                </View>
-                <View style={styles.recipeStatsContainer}>
-                  <View style={styles.recipeStat}>
-                    <Ionicons name="heart" size={14} color="#666666" />
-                    <Text style={styles.recipeStatText}>{item.likes}</Text>
-                  </View>
-                  <View style={styles.recipeStat}>
-                    <Ionicons name="bookmark" size={14} color="#666666" />
-                    <Text style={styles.recipeStatText}>{item.saves}</Text>
-                  </View>
-                </View>
-              </View>
-            </TouchableOpacity>
+              onUserPress={() => navigation.navigate('UserProfileBridge', { 
+                userId: item.creatorId, 
+                userName: item.creatorName,
+                userAvatar: item.creatorAvatar,
+                skipAuth: true 
+              })}
+              showCoffeeInfo={true}
+              compact={true}
+            />
           )}
           keyExtractor={item => item.id}
           horizontal

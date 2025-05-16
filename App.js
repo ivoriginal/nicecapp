@@ -275,7 +275,11 @@ export default function App() {
               <Stack.Screen 
                 name="RecipesList" 
                 component={RecipesListScreen} 
-                options={{ headerShown: false }} 
+                options={({ route }) => ({ 
+                  headerShown: true, 
+                  title: route.params?.title || 'Recipes for you',
+                  headerBackTitle: 'Back' 
+                })} 
               />
               <Stack.Screen 
                 name="CafesList" 

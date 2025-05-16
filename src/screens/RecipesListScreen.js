@@ -1,32 +1,56 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import mockRecipes from '../data/mockRecipes.json';
 import mockUsers from '../data/mockUsers.json';
 import mockCoffees from '../data/mockCoffees.json';
 import AppImage from '../components/common/AppImage';
+import { useCoffee } from '../context/CoffeeContext';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import RecipeCard from '../components/RecipeCard';
 
-const RecipesListScreen = ({ navigation, route }) => {
+const RecipesListScreen = () => {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
+  const route = useRoute();
+  const { coffeeCollection } = useCoffee();
+  
   // Use recipes from mockRecipes.json instead of hard-coded recipes
   const [allRecipes] = useState(mockRecipes.recipes || []);
-  
   const [filteredRecipes, setFilteredRecipes] = useState([]);
   const [screenTitle, setScreenTitle] = useState('Recipes for you');
+  const [ratingFilter, setRatingFilter] = useState('all');
 
-  // Mock user's gear and coffee collection
-  const userGear = mockUsers.users.find(u => u.id === 'currentUser')?.gear || ['V60', 'AeroPress'];
-  const userCoffeeCollection = mockCoffees.coffees.slice(0, 2).map(c => c.name);
-
-  // Filter recipes based on route params and user's gear and coffee collection
+  // Effect to set up the navigation options and title
   useEffect(() => {
-    const { type, recipeId, title } = route.params || {};
+    // Set the screen title based on route params
+    const { title, type, recipeId } = route.params || {};
     
-    // Set screen title if provided
+    // Update navigation options
+    navigation.setOptions({
+      title: title || 'Recipes for you'
+    });
+    
+    // Update the local title state
     if (title) {
       setScreenTitle(title);
+    } else if (type === 'remixes' && recipeId) {
+      const originalRecipe = allRecipes.find(r => r.id === recipeId);
+      if (originalRecipe) {
+        const newTitle = `Remixes of ${originalRecipe.name}`;
+        setScreenTitle(newTitle);
+        navigation.setOptions({ title: newTitle });
+      }
     }
+  }, [route.params, allRecipes, navigation]);
+
+  // Effect to filter recipes based on route params, user's collection, and rating filter
+  useEffect(() => {
+    const { type, recipeId } = route.params || {};
+    
+    // Collection IDs for filtering
+    const collectionIds = coffeeCollection.map(coffee => coffee.id);
     
     // Handle different types of recipe lists
     if (type === 'remixes' && recipeId) {
@@ -52,6 +76,7 @@ const RecipesListScreen = ({ navigation, route }) => {
             waterTemperature: originalRecipe.waterTemperature,
             brewTime: originalRecipe.brewTime,
             imageUrl: originalRecipe.imageUrl,
+            rating: 4.5,
             likes: 27,
             saves: 8,
             modifications: "+3g coffee, finer grind",
@@ -73,6 +98,7 @@ const RecipesListScreen = ({ navigation, route }) => {
             waterTemperature: 88,
             brewTime: originalRecipe.brewTime,
             imageUrl: originalRecipe.imageUrl,
+            rating: 3.8,
             likes: 34,
             saves: 12,
             modifications: "-30ml water, 88°C temperature",
@@ -94,6 +120,7 @@ const RecipesListScreen = ({ navigation, route }) => {
             waterTemperature: originalRecipe.waterTemperature,
             brewTime: "4:00",
             imageUrl: originalRecipe.imageUrl,
+            rating: 5.0,
             likes: 18,
             saves: 5,
             modifications: "Coarser grind, longer brew time",
@@ -101,51 +128,105 @@ const RecipesListScreen = ({ navigation, route }) => {
           }
         ];
         
-        // Set the remixes as the filtered recipes
-        setFilteredRecipes(remixes);
-        
-        // Set the screen title if not already set
-        if (!title) {
-          setScreenTitle(`Remixes of ${originalRecipe.name}`);
-        }
+        // Apply rating filter to remixes
+        const recipesToFilter = remixes;
+        applyRatingFilter(recipesToFilter);
         
         return;
       }
     }
     
-    // If no specific type or we couldn't find the original recipe,
-    // Filter recipes that match user's gear AND coffee collection
-    const personalizedRecipes = allRecipes.filter(recipe => 
-      userGear.includes(recipe.brewingMethod) && 
-      userCoffeeCollection.includes(recipe.coffeeName)
+    // For regular recipe list, filter recipes for coffees in the user's collection
+    const recipesForCollection = allRecipes.filter(recipe => 
+      collectionIds.includes(recipe.coffeeId)
     );
     
-    // If no matching recipes, use all recipes
-    setFilteredRecipes(personalizedRecipes.length > 0 ? personalizedRecipes : allRecipes);
-  }, [allRecipes, route.params, userGear, userCoffeeCollection]);
+    // Apply rating filter to recipes
+    applyRatingFilter(recipesForCollection);
+    
+  }, [allRecipes, route.params, coffeeCollection, ratingFilter]);
 
+  // Function to apply rating filter
+  const applyRatingFilter = (recipes) => {
+    if (ratingFilter === 'all') {
+      setFilteredRecipes(recipes);
+      return;
+    }
+    
+    // Filter recipes based on rating
+    const ratingValue = parseInt(ratingFilter, 10);
+    const filtered = recipes.filter(recipe => {
+      const recipeRating = recipe.rating || recipe.averageRating || 0;
+      return recipeRating >= ratingValue && recipeRating < ratingValue + 1;
+    });
+    
+    setFilteredRecipes(filtered);
+  };
+
+  // Function to render the rating filter chips
+  const renderRatingFilter = () => {
+    return (
+      <View style={styles.ratingFilterContainer}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.ratingFilterScrollContent}
+        >
+          <TouchableOpacity
+            style={[
+              styles.ratingFilterChip,
+              ratingFilter === 'all' && styles.activeRatingFilterChip
+            ]}
+            onPress={() => setRatingFilter('all')}
+          >
+            <Text style={[
+              styles.ratingFilterText,
+              ratingFilter === 'all' && styles.activeRatingFilterText
+            ]}>All</Text>
+          </TouchableOpacity>
+          
+          {[5, 4, 3, 2, 1].map(rating => (
+            <TouchableOpacity
+              key={`rating-${rating}`}
+              style={[
+                styles.ratingFilterChip,
+                ratingFilter === rating.toString() && styles.activeRatingFilterChip
+              ]}
+              onPress={() => setRatingFilter(rating.toString())}
+            >
+              <View style={styles.ratingFilterStars}>
+                <Text style={[
+                  styles.ratingFilterText,
+                  ratingFilter === rating.toString() && styles.activeRatingFilterText
+                ]}>{rating}</Text>
+                <Ionicons
+                  name="star"
+                  size={14}
+                  color={ratingFilter === rating.toString() ? '#FFFFFF' : '#FFD700'}
+                />
+              </View>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+    );
+  };
+
+  // Function to render recipe items
   const renderRecipeItem = ({ item }) => {
     // Determine if this is a remix
     const isRemix = route.params?.type === 'remixes';
     
-    // Ensure all text values are strings
-    const name = item.name || '';
-    const userName = item.creatorName || item.userName || '';
-    const coffeeName = item.coffeeName || '';
-    const roaster = item.roaster || '';
-    const method = item.brewingMethod || '';
-    const rating = item.rating ? item.rating.toFixed(1) : '0.0';
-    
     return (
-      <TouchableOpacity 
-        style={styles.recipeCard}
+      <RecipeCard
+        recipe={item}
         onPress={() => navigation.navigate('RecipeDetail', { 
           recipeId: item.id || '',
-          coffeeName: coffeeName,
-          roaster: roaster,
+          coffeeName: item.coffeeName,
+          roaster: item.roaster,
           imageUrl: item.imageUrl || item.image || null,
           userId: item.creatorId || item.userId || '',
-          userName: userName,
+          userName: item.userName || item.creatorName,
           userAvatar: item.creatorAvatar || item.userAvatar || null,
           recipe: item,
           ...(isRemix && route.params?.recipeId ? {
@@ -156,95 +237,59 @@ const RecipesListScreen = ({ navigation, route }) => {
           } : {}),
           skipAuth: true
         })}
-      >
-        <AppImage 
-          source={item.imageUrl || item.image} 
-          style={styles.recipeImage}
-          placeholder="coffee"
-        />
-        <View style={styles.recipeContent}>
-          <View style={styles.recipeHeader}>
-            <View style={styles.userInfo}>
-              <AppImage 
-                source={item.creatorAvatar || item.userAvatar} 
-                style={styles.userAvatar}
-                placeholder="person"
-              />
-              <Text style={styles.userName}>{userName}</Text>
-              {isRemix && item.date && (
-                <Text style={styles.recipeDate}>{item.date}</Text>
-              )}
-            </View>
-            <View style={styles.ratingContainer}>
-              <Text>
-                <Ionicons name="star" size={16} color="#FFD700" />
-              </Text>
-              <Text style={styles.rating}>{rating}</Text>
-            </View>
-          </View>
-          
-          <Text style={styles.recipeName}>{name}</Text>
-          
-          {isRemix && item.modifications && (
-            <Text style={styles.modifications}>
-              <Text style={styles.modificationsLabel}>Changes: </Text>
-              <Text style={styles.modificationsHighlight}>{item.modifications}</Text>
-            </Text>
-          )}
-          
-          <View style={styles.recipeDetails}>
-            <View style={styles.coffeeInfo}>
-              <Text style={styles.coffeeName}>{coffeeName}</Text>
-              <Text style={styles.roasterName}>{roaster}</Text>
-            </View>
-            <View style={styles.methodContainer}>
-              <Text style={styles.method}>{method}</Text>
-            </View>
-          </View>
-          
-          {isRemix && (
-            <View style={styles.remixStats}>
-              <View style={styles.remixStat}>
-                <Ionicons name="arrow-up" size={14} color="#666666" />
-                <Text style={styles.remixStatText}>{item.likes || 0}</Text>
-              </View>
-              <View style={styles.remixStat}>
-                <Ionicons name="people-outline" size={14} color="#666666" />
-                <Text style={styles.remixStatText}>{item.saves || 0}</Text>
-              </View>
-            </View>
-          )}
-        </View>
-      </TouchableOpacity>
+        onUserPress={() => navigation.navigate('UserProfileBridge', { 
+          userId: item.creatorId || item.userId, 
+          userName: item.userName || item.creatorName,
+          userAvatar: item.creatorAvatar || item.userAvatar,
+          skipAuth: true 
+        })}
+        showCoffeeInfo={true}
+        style={{ marginBottom: 16 }}
+      />
     );
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Text>
-            <Ionicons name="arrow-back" size={24} color="#000000" />
-          </Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{screenTitle}</Text>
-        <View style={{ width: 40 }} /> {/* Placeholder for balance */}
-      </View>
+    <View style={[styles.container, { paddingTop: 0 }]}>
+      {/* Rating filter */}
+      {allRecipes.length > 0 && renderRatingFilter()}
 
-      <FlatList
-        data={filteredRecipes}
-        renderItem={renderRecipeItem}
-        keyExtractor={item => item.id || Math.random().toString()}
-        contentContainerStyle={styles.recipesList}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No recipes found</Text>
-          </View>
-        }
-      />
+      {coffeeCollection.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Ionicons name="cafe-outline" size={48} color="#CCCCCC" />
+          <Text style={styles.emptyTitle}>No coffees in collection</Text>
+          <Text style={styles.emptyText}>Add coffees to your collection to see recipes</Text>
+        </View>
+      ) : filteredRecipes.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          {ratingFilter === 'all' ? (
+            <>
+              <Ionicons name="document-text-outline" size={48} color="#CCCCCC" />
+              <Text style={styles.emptyTitle}>No recipes found</Text>
+              <Text style={styles.emptyText}>There are no recipes for coffees in your collection</Text>
+            </>
+          ) : (
+            <>
+              <Ionicons name="filter-outline" size={48} color="#CCCCCC" />
+              <Text style={styles.emptyTitle}>No recipes match this filter</Text>
+              <TouchableOpacity
+                style={styles.resetFilterButton}
+                onPress={() => setRatingFilter('all')}
+              >
+                <Text style={styles.resetFilterText}>Show All Recipes</Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
+      ) : (
+        <FlatList
+          data={filteredRecipes}
+          renderItem={renderRecipeItem}
+          keyExtractor={item => item.id || Math.random().toString()}
+          contentContainerStyle={styles.recipesList}
+          horizontal={false}
+        />
+      )}
     </View>
   );
 };
@@ -253,23 +298,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-  },
-  backButton: {
-    padding: 8,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    textAlign: 'center',
   },
   recipesList: {
     padding: 16,
@@ -362,10 +390,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
   },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333333',
+    marginTop: 16,
+    marginBottom: 8,
+  },
   emptyText: {
     fontSize: 16,
     textAlign: 'center',
     color: '#666666',
+    marginBottom: 16,
   },
   modifications: {
     fontSize: 14,
@@ -391,6 +427,52 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666666',
     marginLeft: 4,
+  },
+  ratingFilterContainer: {
+    marginVertical: 12,
+    paddingHorizontal: 16,
+  },
+  ratingFilterScrollContent: {
+    paddingVertical: 8,
+  },
+  ratingFilterChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: '#F2F2F7',
+    marginHorizontal: 4,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+  },
+  activeRatingFilterChip: {
+    backgroundColor: '#000000',
+    borderColor: '#000000',
+  },
+  ratingFilterText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#000000',
+  },
+  activeRatingFilterText: {
+    color: '#FFFFFF',
+  },
+  ratingFilterStars: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+  },
+  resetFilterButton: {
+    marginTop: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: '#F2F2F7',
+  },
+  resetFilterText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#000000',
   },
 });
 

@@ -38,6 +38,7 @@ import CoffeeStat from '../components/CoffeeStat';
 import UserAvatar from '../components/UserAvatar';
 import TasteProfile from '../components/TasteProfile';
 import ReviewStars from '../components/ReviewStars';
+import mockRecipes from '../data/mockRecipes.json';
 
 export default function CoffeeDetailScreen() {
   const { 
@@ -60,6 +61,8 @@ export default function CoffeeDetailScreen() {
   
   const [coffee, setCoffee] = useState(null);
   const [relatedRecipes, setRelatedRecipes] = useState([]);
+  const [filteredRelatedRecipes, setFilteredRelatedRecipes] = useState([]);
+  const [ratingFilter, setRatingFilter] = useState('all');
   const [loading, setLoading] = useState(true);
   const [isInCollection, setIsInCollection] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
@@ -79,18 +82,45 @@ export default function CoffeeDetailScreen() {
       setLoading(true);
       try {
         // First check if coffee was passed through route params
-        if (route.params?.coffee) {
-          const { coffee: routeCoffee } = route.params;
+        const routeCoffee = route.params?.coffee;
+        if (routeCoffee) {
           console.log('Using coffee object from route params:', routeCoffee.name);
-          setCoffee(routeCoffee);
-          setIsInCollection(routeCoffee.isInCollection);
-          setIsSaved(routeCoffee.isInCollection);
+          
+          // Create a complete coffee object with all required fields
+          const enhancedCoffee = {
+            ...routeCoffee,
+            // Ensure all needed properties exist
+            id: routeCoffee.id || routeCoffee.coffeeId || coffeeId,
+            name: routeCoffee.name || routeCoffee.coffeeName || 'Unknown Coffee',
+            roaster: routeCoffee.roaster || 'Unknown Roaster',
+            // Use the first available image source
+            image: routeCoffee.image || routeCoffee.imageUrl || 'https://images.unsplash.com/photo-1447933601403-0c6688de566e',
+            // Add defaults for missing properties
+            origin: routeCoffee.origin || 'Unknown',
+            process: routeCoffee.process || 'Unknown',
+            roastLevel: routeCoffee.roastLevel || 'Medium',
+            price: routeCoffee.price || '$--',
+            description: routeCoffee.description || 'No description available',
+            // Ensure stats object exists
+            stats: routeCoffee.stats || {
+              rating: routeCoffee.rating || 0,
+              reviews: routeCoffee.reviews || 0,
+              brews: routeCoffee.brews || 0,
+              wishlist: routeCoffee.wishlist || 0
+            }
+          };
+          
+          setCoffee(enhancedCoffee);
+          setIsInCollection(routeCoffee.isInCollection || false);
+          setIsSaved(routeCoffee.isInWishlist || false);
+          
           if (routeCoffee.recipes) {
             setRelatedRecipes(routeCoffee.recipes);
+            setFilteredRelatedRecipes(routeCoffee.recipes);
           }
           
           // Set sellers for this coffee from mockCoffees
-          const sellersList = mockCoffees.sellers[routeCoffee.id] || [];
+          const sellersList = mockCoffees.sellers[enhancedCoffee.id] || [];
           
           // Enhance seller info with additional business data if available
           const enhancedSellers = sellersList.map(seller => {
@@ -107,7 +137,6 @@ export default function CoffeeDetailScreen() {
           });
           
           setSellers(enhancedSellers);
-          
           setLoading(false);
           return;
         }
@@ -211,6 +240,8 @@ export default function CoffeeDetailScreen() {
             });
             
             setSellers(enhancedSellers);
+            setLoading(false);
+            return;
           } else {
             // Otherwise use the event data
             console.log('Creating coffee object from event data:', eventCoffee.coffeeName);
@@ -250,6 +281,8 @@ export default function CoffeeDetailScreen() {
             });
             
             setSellers(enhancedSellers);
+            setLoading(false);
+            return;
           }
         } else {
           // As a last resort, use the first coffee in the mock data
@@ -276,6 +309,8 @@ export default function CoffeeDetailScreen() {
           });
           
           setSellers(enhancedSellers);
+          setLoading(false);
+          return;
         }
       } catch (error) {
         console.error('Error fetching coffee:', error);
@@ -285,17 +320,52 @@ export default function CoffeeDetailScreen() {
     };
 
     fetchCoffee();
-  }, [coffeeId, coffeeEvents, route.params]);
+    // Only run this effect when coffeeId or coffeeEvents change, NOT when route.params changes
+  }, [coffeeId, coffeeEvents]);
 
   // Fetch related recipes when coffee is loaded (only if recipes weren't passed in route params)
   useEffect(() => {
     if (coffee && !route.params?.coffee?.recipes) {
-      // Get recipes for this coffee
-      const recipes = getRecipesForCoffee(coffee.id);
-      console.log(`Found ${recipes.length} recipes for coffee ${coffee.id}`);
-      setRelatedRecipes(recipes);
+      // First try to get recipes from mockRecipes.json that match this coffee's ID
+      const matchingRecipes = mockRecipes.recipes.filter(r => 
+        r.coffeeId === coffee.id || 
+        r.coffeeId === (coffee.id?.replace('coffee-', '') || '')
+      );
+      
+      // If we found matching recipes in mockRecipes, use those
+      if (matchingRecipes.length > 0) {
+        console.log(`Found ${matchingRecipes.length} recipes for coffee ${coffee.id} in mockRecipes`);
+        setRelatedRecipes(matchingRecipes);
+        setFilteredRelatedRecipes(matchingRecipes);
+      } else {
+        // Otherwise fall back to context recipes
+        const contextRecipes = getRecipesForCoffee(coffee.id);
+        console.log(`Found ${contextRecipes.length} recipes for coffee ${coffee.id} in context`);
+        setRelatedRecipes(contextRecipes);
+        setFilteredRelatedRecipes(contextRecipes);
+      }
     }
-  }, [coffee, getRecipesForCoffee, route.params?.coffee?.recipes]);
+  // Only run this effect when coffee object changes, not on every render
+  }, [coffee?.id, getRecipesForCoffee]);
+
+  // Effect to filter recipes when ratingFilter changes
+  useEffect(() => {
+    if (relatedRecipes.length === 0) return;
+    
+    if (ratingFilter === 'all') {
+      setFilteredRelatedRecipes(relatedRecipes);
+      return;
+    }
+    
+    // Filter recipes based on rating
+    const ratingValue = parseInt(ratingFilter, 10);
+    const filtered = relatedRecipes.filter(recipe => {
+      const recipeRating = recipe.averageRating || recipe.rating || 0;
+      return recipeRating >= ratingValue && recipeRating < ratingValue + 1;
+    });
+    
+    setFilteredRelatedRecipes(filtered);
+  }, [ratingFilter, relatedRecipes]);
 
   // Update favorite state whenever coffee or favorites change
   useEffect(() => {
@@ -322,18 +392,25 @@ export default function CoffeeDetailScreen() {
 
   // Update navigation options with favorite state and toggle function
   useEffect(() => {
-    // Configure header options
+    if (!coffee) return; // Don't set up navigation if coffee isn't loaded yet
+    
+    // Configure header options only if coffee exists
     navigation.setParams({
       isFavorite,
       handleToggleFavorite,
       isInCollection,
-      coffee
+      coffee: {
+        id: coffee.id,
+        name: coffee.name
+      } // Only send minimal coffee data to avoid circular references
     });
     
     // Force header to be shown on this screen - this is crucial
     const initialSetup = () => {
       navigation.setOptions({
-        headerShown: true
+        headerShown: true,
+        // Hide the options button if no coffee is found
+        headerRight: coffee ? undefined : () => null
       });
     };
     
@@ -363,7 +440,7 @@ export default function CoffeeDetailScreen() {
       blurUnsubscribe();
       beforeRemoveUnsubscribe();
     };
-  }, [isFavorite, isInCollection, navigation, coffee]);
+  }, [coffee?.id, isFavorite, isInCollection, navigation]);
 
   // Find and set roaster info when coffee or sellers change
   useEffect(() => {
@@ -410,6 +487,7 @@ export default function CoffeeDetailScreen() {
     // Find the recipe in the related recipes
     const recipe = relatedRecipes.find(r => r.id === recipeId);
     if (recipe) {
+      console.log(`Navigating to recipe detail for: ${recipe.name}`);
       navigation.navigate('RecipeDetail', {
         recipeId: recipe.id,
         coffeeId: coffee.id,
@@ -419,6 +497,8 @@ export default function CoffeeDetailScreen() {
         roaster: coffee.roaster,
         recipe: recipe // Pass the full recipe for immediate rendering
       });
+    } else {
+      console.warn(`Recipe with ID ${recipeId} not found`);
     }
   };
 
@@ -584,6 +664,55 @@ export default function CoffeeDetailScreen() {
         </View>
         <Ionicons name="chevron-forward" size={20} color="#000000" />
       </TouchableOpacity>
+    );
+  };
+
+  // Add a renderRatingFilter function to render the rating filter chips
+  const renderRatingFilter = () => {
+    return (
+      <View style={styles.ratingFilterContainer}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.ratingFilterScrollContent}
+        >
+          <TouchableOpacity
+            style={[
+              styles.ratingFilterChip,
+              ratingFilter === 'all' && styles.activeRatingFilterChip
+            ]}
+            onPress={() => setRatingFilter('all')}
+          >
+            <Text style={[
+              styles.ratingFilterText,
+              ratingFilter === 'all' && styles.activeRatingFilterText
+            ]}>All</Text>
+          </TouchableOpacity>
+          
+          {[5, 4, 3, 2, 1].map(rating => (
+            <TouchableOpacity
+              key={`rating-${rating}`}
+              style={[
+                styles.ratingFilterChip,
+                ratingFilter === rating.toString() && styles.activeRatingFilterChip
+              ]}
+              onPress={() => setRatingFilter(rating.toString())}
+            >
+              <View style={styles.ratingFilterStars}>
+                <Text style={[
+                  styles.ratingFilterText,
+                  ratingFilter === rating.toString() && styles.activeRatingFilterText
+                ]}>{rating}</Text>
+                <Ionicons
+                  name="star"
+                  size={14}
+                  color={ratingFilter === rating.toString() ? '#FFFFFF' : '#FFD700'}
+                />
+              </View>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
     );
   };
 
@@ -781,7 +910,7 @@ export default function CoffeeDetailScreen() {
               onPress={() => setDescriptionExpanded(!descriptionExpanded)}
             >
               <Text style={styles.viewMoreText}>
-                {descriptionExpanded ? 'View Less' : 'View More'}
+                {descriptionExpanded ? 'View less' : 'View more'}
               </Text>
             </TouchableOpacity>
           )}
@@ -811,28 +940,43 @@ export default function CoffeeDetailScreen() {
               <Text style={styles.createRecipeText}>Create Recipe</Text>
             </TouchableOpacity>
           </View>
-          {relatedRecipes.length > 0 ? (
+          
+          {/* Rating filter */}
+          {relatedRecipes.length > 0 && renderRatingFilter()}
+          
+          {filteredRelatedRecipes.length > 0 ? (
             <FlatList
-              data={relatedRecipes}
+              data={filteredRelatedRecipes}
               renderItem={renderRecipeItem}
               keyExtractor={item => item.id}
-              horizontal={true}
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.recipeCarousel}
-              snapToInterval={300}
-              decelerationRate="fast"
-              snapToAlignment="start"
+              scrollEnabled={false}
+              contentContainerStyle={styles.recipeList}
             />
           ) : (
             <View style={styles.emptyRecipesContainer}>
-              <Ionicons name="cafe" size={24} color="#CCCCCC" />
-              <Text style={styles.emptyRecipesText}>No recipes yet for this coffee</Text>
-              <TouchableOpacity 
-                style={styles.createFirstRecipeButton}
-                onPress={navigateToCreateRecipe}
-              >
-                <Text style={styles.createFirstRecipeText}>Create Your First Recipe</Text>
-              </TouchableOpacity>
+              {relatedRecipes.length > 0 ? (
+                <>
+                  <Ionicons name="filter" size={24} color="#CCCCCC" />
+                  <Text style={styles.emptyRecipesText}>No recipes match this rating filter</Text>
+                  <TouchableOpacity 
+                    style={styles.resetFilterButton}
+                    onPress={() => setRatingFilter('all')}
+                  >
+                    <Text style={styles.resetFilterText}>Show All Recipes</Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <>
+                  <Ionicons name="cafe" size={24} color="#CCCCCC" />
+                  <Text style={styles.emptyRecipesText}>No recipes yet for this coffee</Text>
+                  <TouchableOpacity 
+                    style={styles.createFirstRecipeButton}
+                    onPress={navigateToCreateRecipe}
+                  >
+                    <Text style={styles.createFirstRecipeText}>Create Your First Recipe</Text>
+                  </TouchableOpacity>
+                </>
+              )}
             </View>
           )}
         </View>
@@ -989,7 +1133,7 @@ const styles = StyleSheet.create({
   createRecipeButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingBottom: 4,
+    paddingBottom: 2,
     borderBottomWidth: 1,
     borderBottomColor: '#000000',
   },
@@ -1004,6 +1148,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 8,
     marginTop: 12,
+    display: 'none',
   },
   createFirstRecipeText: {
     fontSize: 14,
@@ -1153,6 +1298,9 @@ const styles = StyleSheet.create({
     color: '#666666',
     textAlign: 'center',
   },
+  recipeList: {
+    paddingVertical: 8,
+  },
   recipeCarousel: {
     paddingVertical: 8,
     paddingRight: 16,
@@ -1227,12 +1375,60 @@ const styles = StyleSheet.create({
     borderRadius: 0,
   },
   viewMoreButton: {
-    marginTop: 8,
-    padding: 6,
+    marginTop: 12,
+    marginBottom: 4,
     alignSelf: 'flex-start',
   },
   viewMoreText: {
-    color: '#007AFF',
+    color: '#000000',
     fontWeight: '500',
+    borderBottomWidth: 1,
+    borderBottomColor: '#000000',
+  },
+  ratingFilterContainer: {
+    // marginVertical: 12,
+    marginBottom: 12,
+  },
+  ratingFilterScrollContent: {
+    // paddingHorizontal: 8,
+  },
+  ratingFilterChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: '#F2F2F7',
+    marginHorizontal: 4,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+  },
+  activeRatingFilterChip: {
+    backgroundColor: '#000000',
+    borderColor: '#000000',
+  },
+  ratingFilterText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#000000',
+  },
+  activeRatingFilterText: {
+    color: '#FFFFFF',
+  },
+  ratingFilterStars: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+  },
+  resetFilterButton: {
+    marginTop: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: '#F2F2F7',
+  },
+  resetFilterText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#000000',
   },
 }); 

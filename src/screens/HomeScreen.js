@@ -52,10 +52,46 @@ export default function HomeScreen({ navigation }) {
       });
       return;
     }
+
+    console.log('Handling coffee press with event:', {
+      type: event.type,
+      id: event.id || event.coffeeId,
+      name: event.name
+    });
     
+    // For coffee recommendations, directly use the properties
+    if (event.type === 'coffee_recommendation' || event.type === 'similar_coffee_recommendation') {
+      navigation.navigate('CoffeeDetail', { 
+        coffeeId: event.coffeeId || event.id,
+        skipAuth: true,
+        // Use the coffee properties directly rather than nesting
+        coffee: {
+          id: event.coffeeId || event.id,
+          name: event.name,
+          roaster: event.roaster,
+          image: event.image || event.imageUrl,
+          origin: event.origin,
+          process: event.process,
+          description: event.description
+        }
+      });
+      return;
+    }
+    
+    // Standard navigation with just the ID
     navigation.navigate('CoffeeDetail', { 
       coffeeId: event.coffeeId,
-      skipAuth: true
+      skipAuth: true,
+      // If the event has coffee properties, pass them directly
+      coffee: event.name ? {
+        id: event.coffeeId,
+        name: event.name || event.coffeeName,
+        roaster: event.roaster || event.roasterName,
+        image: event.image || event.imageUrl,
+        description: event.description,
+        origin: event.origin,
+        process: event.process
+      } : undefined
     });
   };
 
@@ -219,8 +255,8 @@ export default function HomeScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F2F2F7',
-    // backgroundColor: '#FFFFFF',
+    // backgroundColor: '#F2F2F7',
+    backgroundColor: '#FFFFFF',
   },
   loadingContainer: {
     flex: 1,

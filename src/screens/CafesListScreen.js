@@ -434,8 +434,8 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 16,
     marginBottom: 0,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
+    // borderBottomWidth: 1,
+    // borderBottomColor: '#E5E5EA',
   },
   filterRow: {
     flexDirection: 'row',
