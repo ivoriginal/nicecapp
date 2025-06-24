@@ -149,27 +149,14 @@ export default function AddCoffeeScreen({ navigation, route }) {
   // Extract all cafés from mockCafes for the selector
   const cafeLocations = [
     { id: 'home', name: 'Home', isDefault: true },
-    ...mockCafes.businesses
-      .filter(business => business.addresses && business.addresses.length > 0)
-      .flatMap(business => 
-        business.addresses.map(address => ({
-          id: address.id,
-          name: address.name,
-          address: address.address,
-          businessId: business.id,
-          logo: business.logo || business.avatar
-        }))
-      ),
-    // Add businesses without addresses property
-    ...mockCafes.businesses
-      .filter(business => !business.addresses || business.addresses.length === 0)
-      .map(business => ({
-        id: business.id,
-        name: business.name,
-        address: business.address,
-        businessId: business.id,
-        logo: business.logo || business.avatar
-      }))
+    // Add cafes from the cafes array
+    ...(mockCafes.cafes || []).map(cafe => ({
+      id: cafe.id,
+      name: cafe.name,
+      address: cafe.address,
+      businessId: cafe.roasterId,
+      logo: cafe.avatar
+    }))
   ];
 
   // State for location search and filtering
@@ -187,7 +174,7 @@ export default function AddCoffeeScreen({ navigation, route }) {
   useEffect(() => {
     // Initialize filtered users with all users from mockUsers.json
     // Filter out businesses (cafés) and the current user
-    const filteredUserList = mockUsers.users.filter(user => 
+    const filteredUserList = (mockUsers?.users || []).filter(user => 
       // Remove business accounts that have a businessType property
       !user.businessType &&
       // Remove current user
@@ -201,7 +188,7 @@ export default function AddCoffeeScreen({ navigation, route }) {
     setFriendSearchText(text);
     
     // Filter out businesses and current user first
-    const baseUserList = mockUsers.users.filter(user => 
+    const baseUserList = (mockUsers?.users || []).filter(user => 
       !user.businessType && 
       user.id !== currentAccount?.id
     );
@@ -325,7 +312,7 @@ export default function AddCoffeeScreen({ navigation, route }) {
       
       // Set initial suggestions to popular coffees
       if (coffeeSuggestions.length === 0) {
-        setCoffeeSuggestions(mockCoffees.coffees.slice(0, 5));
+        setCoffeeSuggestions((mockCoffees?.coffees || []).slice(0, 5));
       }
     }, 500); // Increased timeout
     
@@ -390,14 +377,14 @@ export default function AddCoffeeScreen({ navigation, route }) {
       
       // Set initial suggestions to popular coffees
       if (coffeeSuggestions.length === 0) {
-        setCoffeeSuggestions(mockCoffees.coffees.slice(0, 5));
+        setCoffeeSuggestions((mockCoffees?.coffees || []).slice(0, 5));
       }
       
       // Set initial filtered locations
       setFilteredLocations(cafeLocations);
       
       // Set initial filtered users for friend tagging
-      const filteredUserList = mockUsers.users.filter(user => 
+      const filteredUserList = (mockUsers?.users || []).filter(user => 
         !user.businessType && 
         user.id !== currentAccount?.id
       );
@@ -495,14 +482,14 @@ export default function AddCoffeeScreen({ navigation, route }) {
   const searchCoffeeDatabase = async (query) => {
     if (!query.trim()) {
       // Instead of clearing, show popular coffees
-      setCoffeeSuggestions(mockCoffees.coffees.slice(0, 5));
+      setCoffeeSuggestions((mockCoffees?.coffees || []).slice(0, 5));
       return;
     }
 
     setIsLoading(true);
     try {
       // Search through mock coffees
-      const filteredCoffees = mockCoffees.coffees.filter(coffee =>
+      const filteredCoffees = (mockCoffees?.coffees || []).filter(coffee =>
         coffee.name.toLowerCase().includes(query.toLowerCase())
       );
       setCoffeeSuggestions(filteredCoffees);
@@ -517,7 +504,7 @@ export default function AddCoffeeScreen({ navigation, route }) {
     setIsLoading(true);
     try {
       // Get recipes that match the selected coffee ID from mockRecipes.json
-      const matchingRecipes = mockRecipes.recipes.filter(recipe => recipe.coffeeId === coffeeId);
+      const matchingRecipes = (mockRecipes?.recipes || []).filter(recipe => recipe.coffeeId === coffeeId);
       setRecipeSuggestions(matchingRecipes);
     } catch (error) {
       console.error('Error searching recipe database:', error);
@@ -531,7 +518,7 @@ export default function AddCoffeeScreen({ navigation, route }) {
     
     // If text is empty, show popular coffees instead of searching
     if (!text.trim()) {
-      setCoffeeSuggestions(mockCoffees.coffees.slice(0, 5));
+      setCoffeeSuggestions((mockCoffees?.coffees || []).slice(0, 5));
       return;
     }
     
@@ -574,7 +561,7 @@ export default function AddCoffeeScreen({ navigation, route }) {
     });
     
     // Set popular coffees instead of clearing suggestions
-    setCoffeeSuggestions(mockCoffees.coffees.slice(0, 5));
+    setCoffeeSuggestions((mockCoffees?.coffees || []).slice(0, 5));
     setRecipeSuggestions([]);
   };
 

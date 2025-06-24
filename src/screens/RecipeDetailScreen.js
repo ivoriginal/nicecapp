@@ -30,6 +30,7 @@ import RecipeStepCard from '../components/RecipeStepCard';
 import RecipeAttributes from '../components/RecipeAttributes';
 import { COLORS, FONTS, SIZES } from '../constants';
 import ToolBar from '../components/common/ToolBar';
+import { useTheme } from '../context/ThemeContext';
 
 const { width, height } = Dimensions.get('window');
 
@@ -58,6 +59,7 @@ export default function RecipeDetailScreen() {
   } = useCoffee();
   
   const insets = useSafeAreaInsets();
+  const { theme, isDarkMode } = useTheme();
   const [recipe, setRecipe] = useState(null);
   const [coffee, setCoffee] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -823,10 +825,10 @@ export default function RecipeDetailScreen() {
 
   if (loading) {
     return (
-      <View style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#000000" />
-          <Text style={styles.loadingText}>Loading recipe details...</Text>
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
+        <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
+          <ActivityIndicator size="large" color={theme.primaryText} />
+          <Text style={[styles.loadingText, { color: theme.primaryText }]}>Loading recipe details...</Text>
         </View>
       </View>
     );
@@ -834,18 +836,24 @@ export default function RecipeDetailScreen() {
 
   if (!recipe) {
     return (
-      <View style={styles.container}>
-        <View style={styles.errorContainer}>
-          <Ionicons name="alert-circle" size={50} color="#CCCCCC" />
-          <Text style={styles.errorText}>Recipe not found</Text>
-          <Text style={styles.errorSubtext}>The recipe you're looking for doesn't exist or has been removed.</Text>
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
+        <View style={[styles.errorContainer, { backgroundColor: theme.background }]}>
+          <Ionicons name="alert-circle" size={50} color={theme.primaryText} />
+          <Text style={[styles.errorText, { color: theme.primaryText }]}>Recipe not found</Text>
+          <Text style={[styles.errorSubtext, { color: theme.secondaryText }]}>The recipe you're looking for doesn't exist or has been removed.</Text>
+          <TouchableOpacity
+            style={[styles.backButton, { backgroundColor: theme.primaryText }]}
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={[styles.backButtonText, { color: theme.background }]}>Go Back</Text>
+          </TouchableOpacity>
         </View>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <Toast 
         visible={toastVisible}
         message={toastMessage}
@@ -864,52 +872,52 @@ export default function RecipeDetailScreen() {
       >
         <KeyboardAvoidingView 
           behavior={Platform.OS === "ios" ? "padding" : undefined}
-          style={styles.modalContainer}
+          style={[styles.modalContainer, { backgroundColor: theme.background }]}
         >
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Log this brew</Text>
+          <View style={[styles.modalContent, { backgroundColor: theme.cardBackground }]}>
+            <View style={[styles.modalHeader, { backgroundColor: theme.cardBackground }]}>
+              <Text style={[styles.modalTitle, { color: theme.primaryText }]}>Log this brew</Text>
               <TouchableOpacity 
                 onPress={() => setShowLogModal(false)}
-                style={styles.closeButton}
+                style={[styles.closeButton, { backgroundColor: theme.cardBackground }]}
               >
-                <Ionicons name="close" size={24} color="#000" />
+                <Ionicons name="close" size={24} color={theme.primaryText} />
               </TouchableOpacity>
             </View>
             
-            <ScrollView style={styles.modalBody} keyboardShouldPersistTaps="handled">
-              <View style={styles.previewCoffeeInfo}>
-                <Text style={styles.previewTitle}>{recipe?.name}</Text>
-                <Text style={styles.previewSubtitle}>{coffee?.name} by {coffee?.roaster}</Text>
+            <ScrollView style={[styles.modalBody, { backgroundColor: theme.background }]} keyboardShouldPersistTaps="handled">
+              <View style={[styles.previewCoffeeInfo, { backgroundColor: theme.cardBackground }]}>
+                <Text style={[styles.previewTitle, { color: theme.primaryText }]}>{recipe?.name}</Text>
+                <Text style={[styles.previewSubtitle, { color: theme.secondaryText }]}>{coffee?.name} by {coffee?.roaster}</Text>
               </View>
               
-              <View style={styles.ratingContainer}>
-                <Text style={styles.ratingLabel}>Rate this brew (optional)</Text>
-                <View style={styles.starsContainer}>
+              <View style={[styles.ratingContainer, { backgroundColor: theme.cardBackground }]}>
+                <Text style={[styles.ratingLabel, { color: theme.primaryText }]}>Rate this brew (optional)</Text>
+                <View style={[styles.starsContainer, { backgroundColor: theme.background }]}>
                   {[1, 2, 3, 4, 5].map((star) => (
                     <TouchableOpacity
                       key={star}
                       onPress={() => setRating(star)}
-                      style={styles.starButton}
+                      style={[styles.starButton, { backgroundColor: theme.background }]}
                     >
                       <Ionicons
                         name={star <= rating ? "star" : "star-outline"}
                         size={28}
-                        color={star <= rating ? "#FFD700" : "#CCCCCC"}
+                        color={star <= rating ? "#FFD700" : theme.secondaryText}
                       />
                     </TouchableOpacity>
                   ))}
                 </View>
               </View>
               
-              <View style={styles.notesContainer}>
-                <Text style={styles.notesLabel}>Notes (optional)</Text>
+              <View style={[styles.notesContainer, { backgroundColor: theme.cardBackground }]}>
+                <Text style={[styles.notesLabel, { color: theme.primaryText }]}>Notes (optional)</Text>
                 <TextInput
-                  style={styles.notesInput}
+                  style={[styles.notesInput, { color: theme.primaryText, borderColor: theme.border, backgroundColor: theme.recipeContainer }]}
                   value={notes}
                   onChangeText={setNotes}
                   placeholder="Add any notes about this brew..."
-                  placeholderTextColor="#999"
+                  placeholderTextColor={theme.secondaryText}
                   multiline
                   numberOfLines={4}
                   textAlignVertical="top"
@@ -917,12 +925,12 @@ export default function RecipeDetailScreen() {
               </View>
             </ScrollView>
             
-            <View style={[styles.modalFooter, { paddingBottom: insets.bottom }]}>
+            <View style={[styles.modalFooter, { paddingBottom: insets.bottom, backgroundColor: theme.cardBackground }]}>
               <TouchableOpacity 
-                style={styles.saveButton}
+                style={[styles.saveButton, { backgroundColor: "#007AFF" }]}
                 onPress={handleLogSubmit}
               >
-                <Text style={styles.saveButtonText}>Log this brew</Text>
+                <Text style={[styles.saveButtonText, { color: "#FFFFFF" }]}>Log this brew</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -930,27 +938,28 @@ export default function RecipeDetailScreen() {
       </Modal>
       
       <ScrollView 
-        contentContainerStyle={{ paddingBottom: insets.bottom }}
+        style={[styles.scrollView, { backgroundColor: theme.background }]}
+        contentContainerStyle={[styles.contentContainer, { paddingBottom: insets.bottom }]}
+        showsVerticalScrollIndicator={false}
       >
         {/* For deleted recipes */}
         {recipe && recipe.deleted && (
-          <View style={styles.deletedRecipeContainer}>
-            <Ionicons name="warning-outline" size={50} color="#CCCCCC" />
-            <Text style={styles.deletedRecipeTitle}>Recipe no longer available</Text>
-            <Text style={styles.deletedRecipeText}>
+          <View style={[styles.deletedRecipeContainer, { backgroundColor: theme.background }]}>
+            <Ionicons name="warning-outline" size={50} color={theme.primaryText} />
+            <Text style={[styles.deletedRecipeTitle, { color: theme.primaryText }]}>Recipe no longer available</Text>
+            <Text style={[styles.deletedRecipeText, { color: theme.secondaryText }]}>
               This recipe has been deleted or is temporarily unavailable.
             </Text>
             
             {recipe.userName && (
-              <View style={styles.deletedRecipeUserInfo}>
-                <Text style={styles.deletedRecipeUserText}>
-                  Created by <Text style={styles.deletedRecipeUserName}>{recipe.userName}</Text>
+              <View style={[styles.deletedRecipeUserInfo, { backgroundColor: theme.cardBackground }]}>
+                <Text style={[styles.deletedRecipeUserText, { color: theme.primaryText }]}>
+                  Created by <Text style={[styles.deletedRecipeUserName, { fontWeight: '600' }]}>{recipe.userName}</Text>
                 </Text>
                 {recipe.userAvatar && (
                   <AppImage
                     source={recipe.userAvatar}
-                    style={styles.deletedRecipeUserAvatar}
-                    placeholder="person"
+                    style={[styles.deletedRecipeUserAvatar, { borderColor: theme.border }]}
                   />
                 )}
               </View>
@@ -958,10 +967,10 @@ export default function RecipeDetailScreen() {
             
             {basedOnRecipe && basedOnRecipe.id && (
               <TouchableOpacity 
-                style={styles.viewOriginalButton}
+                style={[styles.viewOriginalButton, { backgroundColor: theme.primaryText }]}
                 onPress={navigateToOriginalRecipe}
               >
-                <Text style={styles.viewOriginalButtonText}>
+                <Text style={[styles.viewOriginalButtonText, { color: "#FFFFFF" }]}>
                   View Original Recipe
                 </Text>
               </TouchableOpacity>
@@ -974,84 +983,85 @@ export default function RecipeDetailScreen() {
           <>
             {/* Remixed from - Moved to the top */}
             {basedOnRecipe && basedOnRecipe.id && basedOnRecipe.userName && (
-              <View style={styles.basedOnContainer}>
+              <View style={[styles.basedOnContainer, { backgroundColor: theme.cardBackground }]}>
                 <TouchableOpacity 
                   onPress={navigateToOriginalRecipe}
-                  style={styles.basedOnRow}
+                  style={[styles.basedOnRow, { backgroundColor: theme.background }]}
                 >
-                  <Ionicons name="git-branch-outline" size={14} color="#666666" style={styles.basedOnIcon} />
-                  <Text style={styles.basedOnText}>
-                    Remixed from a recipe by <Text style={[styles.basedOnHighlight, styles.basedOnLink]}>{basedOnRecipe.userName}</Text>
+                  <Ionicons name="git-branch-outline" size={14} color={theme.secondaryText} style={[styles.basedOnIcon, { backgroundColor: theme.background }]} />
+                  <Text style={[styles.basedOnText, { color: theme.primaryText }]}>
+                    Remixed from a recipe by <Text style={[styles.basedOnHighlight, styles.basedOnLink, { fontWeight: '600' }]}>{basedOnRecipe.userName}</Text>
                   </Text>
                 </TouchableOpacity>
               </View>
             )}
           
             {/* Recipe Title with Chips */}
-            <View style={styles.recipeHeaderContainer}>
-              <View style={styles.recipeMethodCoffeeContainer}>
+            <View style={[styles.recipeHeader, { backgroundColor: theme.cardBackground }]}>
+              <View style={[styles.recipeMethodCoffeeContainer, { backgroundColor: theme.background }]}>
                 {/* Method/Gear Chip */}
                 <TouchableOpacity 
-                  style={styles.chip}
+                  style={[styles.chip, { backgroundColor: theme.background }]}
                   onPress={() => navigation.navigate('GearDetail', { 
                     gearName: recipe.method || recipe.brewingMethod || 'Pour Over'
                   })}
                 >
-                  <Ionicons name="cafe" size={20} color="#000000" style={styles.chipIcon} />
-                  <Text style={styles.chipText}>
+                  <Ionicons name="cafe" size={20} color={theme.primaryText} style={[styles.chipIcon, { backgroundColor: theme.background }]} />
+                  <Text style={[styles.chipText, { color: theme.primaryText }]}>
                     {recipe.method || recipe.brewingMethod || 'Pour Over'}
                   </Text>
                 </TouchableOpacity>
 
-                <Text style={styles.recipeText}>recipe for</Text>
+                <Text style={[styles.recipeText, { color: theme.secondaryText }]}>recipe for</Text>
                 
                 {/* Coffee Chip */}
                 <TouchableOpacity 
-                  style={styles.chip}
+                  style={[styles.chip, { backgroundColor: theme.background }]}
                   onPress={navigateToCoffeeDetail}
                 >
                   <AppImage 
                     source={coffee.image}
-                    style={styles.chipAvatar}
-                    placeholder="coffee"
+                    style={[styles.chipAvatar, { borderColor: theme.border }]}
+                    placeholder="cafe"
                   />
-                  <Text style={styles.chipText}>{coffee.name}</Text>
+                  <Text style={[styles.chipText, { color: theme.primaryText }]}>{coffee.name}</Text>
                 </TouchableOpacity>
               </View>
               
               {/* User Chip in separate row */}
-              <View style={styles.recipeUserContainer}>
-                <Text style={styles.recipeByText}>by</Text>
+              <View style={[styles.recipeUserContainer, { backgroundColor: theme.background }]}>
+                <Text style={[styles.recipeByText, { color: theme.secondaryText }]}>by</Text>
                 <TouchableOpacity 
-                  style={styles.chip}
+                  style={[styles.chip, { backgroundColor: theme.background }]}
                   onPress={() => recipe.userId && navigateToUserProfile(recipe.userId)}
                 >
                   <AppImage 
                     source={recipe.userAvatar} 
                     style={[
                       styles.chipAvatar,
-                      isBusinessAccount && styles.businessAvatarChip
+                      isBusinessAccount && styles.businessAvatarChip,
+                      { borderColor: theme.border }
                     ]} 
                     placeholder="person"
                   />
-                  <Text style={styles.userChipText}>{recipe.userName}</Text>
+                  <Text style={[styles.userChipText, { color: theme.primaryText }]}>{recipe.userName}</Text>
                 </TouchableOpacity>
               </View>
             </View>
 
             {/* Buttons for log and save - moved outside the container */}
-            <View style={styles.actionsOuterContainer}>
-              <View style={styles.actionButtonsContainer}>
+            <View style={[styles.actionsOuterContainer, { backgroundColor: theme.background }]}>
+              <View style={[styles.actionButtonsContainer, { backgroundColor: theme.background }]}>
                 <TouchableOpacity 
-                  style={styles.actionButton} 
+                  style={[styles.actionButton, { backgroundColor: theme.background }]} 
                   onPress={handleUpvote}
                 >
                   <Ionicons 
                     name="add-circle-outline" 
                     size={20} 
-                    color="#000000" 
+                    color={logged ? "#FF3B30" : theme.primaryText} 
                   />
-                  <Text style={styles.actionButtonText}>
+                  <Text style={[styles.actionButtonText, { color: theme.primaryText }]}>
                     Log
                   </Text>
                 </TouchableOpacity>
@@ -1059,18 +1069,20 @@ export default function RecipeDetailScreen() {
                 <TouchableOpacity 
                   style={[
                     styles.actionButton,
-                    saved && styles.actionButtonActive
+                    saved && styles.actionButtonActive,
+                    { backgroundColor: theme.background }
                   ]} 
                   onPress={handleSave}
                 >
                   <Ionicons 
                     name={saved ? "bookmark" : "bookmark-outline"} 
                     size={20} 
-                    color={saved ? "#FFFFFF" : "#000000"} 
+                    color={saved ? "#007AFF" : theme.primaryText} 
                   />
                   <Text style={[
                     styles.actionButtonText,
-                    saved && styles.actionButtonTextActive
+                    saved && styles.actionButtonTextActive,
+                    { color: theme.primaryText }
                   ]}>
                     {saved ? "Saved" : "Save"}
                   </Text>
@@ -1080,37 +1092,38 @@ export default function RecipeDetailScreen() {
               {/* Who tried it section - moved outside the container */}
               <View style={[
                 styles.whoTriedContainer,
-                !averageRating && styles.whoTriedContainerCentered
+                !averageRating && styles.whoTriedContainerCentered,
+                { backgroundColor: theme.background }
               ]}>
-                <View style={styles.whoTriedGroup}>
+                <View style={[styles.whoTriedGroup, { backgroundColor: theme.background }]}>
                   {(logCount > 0 || (recipe.loggedUsers && recipe.loggedUsers.length > 0)) ? (
                     <>
-                      <View style={styles.avatarRow}>
+                      <View style={[styles.avatarRow, { backgroundColor: theme.background }]}>
                         {/* Render up to 3 sample avatars - in real app, these would come from the API */}
-                        <View style={[styles.triedAvatar, { zIndex: 5 }]}>
+                        <View style={[styles.triedAvatar, { zIndex: 5, backgroundColor: theme.background }]}>
                           <AppImage 
                             source="https://randomuser.me/api/portraits/women/33.jpg" 
-                            style={styles.triedAvatarImage} 
+                            style={[styles.triedAvatarImage, { borderColor: theme.border }]} 
                           />
                         </View>
                         {(logCount >= 2 || (recipe.loggedUsers && recipe.loggedUsers.length >= 2)) && (
-                          <View style={[styles.triedAvatar, { zIndex: 4, marginLeft: -10 }]}>
+                          <View style={[styles.triedAvatar, { zIndex: 4, marginLeft: -10, backgroundColor: theme.background }]}>
                             <AppImage 
                               source="https://randomuser.me/api/portraits/men/45.jpg" 
-                              style={styles.triedAvatarImage} 
+                              style={[styles.triedAvatarImage, { borderColor: theme.border }]} 
                             />
                           </View>
                         )}
                         {(logCount >= 3 || (recipe.loggedUsers && recipe.loggedUsers.length >= 3)) && (
-                          <View style={[styles.triedAvatar, { zIndex: 3, marginLeft: -10 }]}>
+                          <View style={[styles.triedAvatar, { zIndex: 3, marginLeft: -10, backgroundColor: theme.background }]}>
                             <AppImage 
                               source="https://randomuser.me/api/portraits/women/68.jpg" 
-                              style={styles.triedAvatarImage} 
+                              style={[styles.triedAvatarImage, { borderColor: theme.border }]} 
                             />
                           </View>
                         )}
                       </View>
-                      <Text style={styles.whoTriedText}>
+                      <Text style={[styles.whoTriedText, { color: theme.primaryText }]}>
                         {(logCount === 1 || (recipe.loggedUsers && recipe.loggedUsers.length === 1)) ? 
                           "Logged 1 time" : 
                           `Logged ${safeRender(logCount || recipe.loggedUsers?.length)} times`}
@@ -1118,17 +1131,17 @@ export default function RecipeDetailScreen() {
                     </>
                   ) : (
                     <TouchableOpacity 
-                      style={styles.beFirstContainer}
+                      style={[styles.beFirstContainer, { backgroundColor: theme.background }]}
                       onPress={handleUpvote}
                     >
-                      <Text style={styles.beFirstText}>Be the first to try it</Text>
+                      <Text style={[styles.beFirstText, { color: theme.primaryText }]}>Be the first to try it</Text>
                     </TouchableOpacity>
                   )}
                 </View>
                 {averageRating > 0 && logCount > 0 && (
-                  <View style={styles.averageRatingContainer}>
+                  <View style={[styles.averageRatingContainer, { backgroundColor: theme.background }]}>
                     <Ionicons name="star" size={16} color="#FFD700" />
-                    <Text style={styles.averageRatingText}>
+                    <Text style={[styles.averageRatingText, { color: theme.primaryText }]}>
                       {safeRender(averageRating.toFixed(1), '0.0')}
                     </Text>
                   </View>
@@ -1137,49 +1150,49 @@ export default function RecipeDetailScreen() {
             </View>
 
             {/* Recipe Details */}
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Text style={[styles.sectionTitle, styles.sectionTitleInHeader]}>Recipe Details</Text>
+            <View style={[styles.section, { backgroundColor: theme.background }]}>
+              <View style={[styles.sectionHeader, { backgroundColor: theme.background }]}>
+                <Text style={[styles.sectionTitle, styles.sectionTitleInHeader, { color: theme.primaryText }]}>Recipe Details</Text>
               </View>
-              <View style={styles.detailsGrid}>
-                <View style={styles.detailItem}>
-                  <Text style={styles.detailLabel}>Coffee</Text>
-                  <Text style={styles.detailValue}>{safeRender(recipe.amount, '18')}g</Text>
+              <View style={[styles.detailsGrid, { backgroundColor: theme.background }]}>
+                <View style={[styles.detailItem, { backgroundColor: theme.background }]}>
+                  <Text style={[styles.detailLabel, { color: theme.primaryText }]}>Coffee</Text>
+                  <Text style={[styles.detailValue, { color: theme.primaryText }]}>{safeRender(recipe.amount, '18')}g</Text>
                 </View>
-                <View style={styles.detailItem}>
-                  <Text style={styles.detailLabel}>Grind Size</Text>
-                  <Text style={styles.detailValue}>{safeRender(recipe.grindSize, 'Medium')}</Text>
+                <View style={[styles.detailItem, { backgroundColor: theme.background }]}>
+                  <Text style={[styles.detailLabel, { color: theme.primaryText }]}>Grind Size</Text>
+                  <Text style={[styles.detailValue, { color: theme.primaryText }]}>{safeRender(recipe.grindSize, 'Medium')}</Text>
                 </View>
-                <View style={styles.detailItem}>
-                  <Text style={styles.detailLabel}>Water</Text>
-                  <Text style={styles.detailValue}>{safeRender(recipe.waterVolume, '300')}ml</Text>
+                <View style={[styles.detailItem, { backgroundColor: theme.background }]}>
+                  <Text style={[styles.detailLabel, { color: theme.primaryText }]}>Water</Text>
+                  <Text style={[styles.detailValue, { color: theme.primaryText }]}>{safeRender(recipe.waterVolume, '300')}ml</Text>
                 </View>
-                <View style={styles.detailItem}>
-                  <Text style={styles.detailLabel}>Brew Time</Text>
-                  <Text style={styles.detailValue}>{safeRender(recipe.brewTime, '3:00')}</Text>
+                <View style={[styles.detailItem, { backgroundColor: theme.background }]}>
+                  <Text style={[styles.detailLabel, { color: theme.primaryText }]}>Brew Time</Text>
+                  <Text style={[styles.detailValue, { color: theme.primaryText }]}>{safeRender(recipe.brewTime, '3:00')}</Text>
                 </View>
               </View>
             </View>
 
             {/* Brewing Steps - only show if recipe has steps */}
             {recipe && recipe.steps && Array.isArray(recipe.steps) && recipe.steps.length > 0 && (
-              <View style={styles.section}>
-                <View style={styles.sectionHeader}>
-                  <Text style={[styles.sectionTitle, styles.sectionTitleInHeader]}>Brewing Steps</Text>
+              <View style={[styles.section, { backgroundColor: theme.background }]}>
+                <View style={[styles.sectionHeader, { backgroundColor: theme.background }]}>
+                  <Text style={[styles.sectionTitle, styles.sectionTitleInHeader, { color: theme.primaryText }]}>Brewing Steps</Text>
                 </View>
                 {recipe.steps.map((step, index) => (
-                  <View key={index} style={styles.stepItem}>
-                    <View style={styles.stepNumber}>
-                      <Text style={styles.stepNumberText}>{index + 1}</Text>
+                  <View key={index} style={[styles.stepItem, { backgroundColor: theme.background }]}>
+                    <View style={[styles.stepNumber, { backgroundColor: theme.background }]}>
+                      <Text style={[styles.stepNumberText, { color: theme.primaryText }]}>{index + 1}</Text>
                     </View>
-                    <View style={styles.stepContentContainer}>
-                      <Text style={styles.stepText}>{step.description}</Text>
-                      <View style={styles.stepDetailContainer}>
+                    <View style={[styles.stepContentContainer, { backgroundColor: theme.background }]}>
+                      <Text style={[styles.stepText, { color: theme.primaryText }]}>{step.description}</Text>
+                      <View style={[styles.stepDetailContainer, { backgroundColor: theme.background }]}>
                         {step.time && (
-                          <Text style={styles.stepTime}>Time: {safeRender(step.time)}</Text>
+                          <Text style={[styles.stepTime, { color: theme.secondaryText }]}>Time: {safeRender(step.time)}</Text>
                         )}
                         {step.water && parseInt(safeRender(step.water, '0')) > 0 && (
-                          <Text style={styles.stepWater}>Water: {safeRender(step.water)}g</Text>
+                          <Text style={[styles.stepWater, { color: theme.secondaryText }]}>Water: {safeRender(step.water)}g</Text>
                         )}
                       </View>
                     </View>
@@ -1190,21 +1203,21 @@ export default function RecipeDetailScreen() {
 
             {/* Notes */}
             {recipe && recipe.notes && (
-              <View style={styles.section}>
-                <View style={styles.sectionHeader}>
-                  <Text style={[styles.sectionTitle, styles.sectionTitleInHeader]}>Notes</Text>
+              <View style={[styles.section, { backgroundColor: theme.background }]}>
+                <View style={[styles.sectionHeader, { backgroundColor: theme.background }]}>
+                  <Text style={[styles.sectionTitle, styles.sectionTitleInHeader, { color: theme.primaryText }]}>Notes</Text>
                 </View>
-                <Text style={styles.notesText}>{recipe.notes}</Text>
+                <Text style={[styles.notesText, { color: theme.secondaryText }]}>{recipe.notes}</Text>
               </View>
             )}
 
             {/* New section: Remixes by Other Users */}
             {recipe && recipe.hasRemixes && (
-              <View style={styles.section}>
-                <View style={styles.sectionHeader}>
-                  <Text style={[styles.sectionTitle, styles.sectionTitleInHeader]}>Remixes</Text>
+              <View style={[styles.section, { backgroundColor: theme.background }]}>
+                <View style={[styles.sectionHeader, { backgroundColor: theme.background }]}>
+                  <Text style={[styles.sectionTitle, styles.sectionTitleInHeader, { color: theme.primaryText }]}>Remixes</Text>
                 </View>
-                <View style={styles.remixesContainer}>
+                <View style={[styles.remixesContainer, { backgroundColor: theme.background }]}>
                   {/* Sample remixes - in a real app, these would come from the API */}
                   {sampleRemixes.length > 0 ? (
                     sampleRemixes.map((remix, index) => (
@@ -1212,7 +1225,8 @@ export default function RecipeDetailScreen() {
                         key={remix.id}
                         style={[
                           styles.remixCard,
-                          index === sampleRemixes.length - 1 && styles.lastRemixCard
+                          index === sampleRemixes.length - 1 && styles.lastRemixCard,
+                          { backgroundColor: theme.background }
                         ]}
                         onPress={() => {
                           // Create a remix based on the original recipe
@@ -1264,41 +1278,41 @@ export default function RecipeDetailScreen() {
                           });
                         }}
                       >
-                        <View style={styles.remixUserRow}>
+                        <View style={[styles.remixUserRow, { backgroundColor: theme.background }]}>
                           <AppImage 
                             source={remix.userAvatar} 
-                            style={styles.remixUserAvatar} 
+                            style={[styles.remixUserAvatar, { borderColor: theme.border }]} 
                           />
-                          <View style={styles.remixUserInfo}>
-                            <Text style={styles.remixUserName}>{remix.userName}</Text>
-                            <Text style={styles.remixDate}>{remix.date}</Text>
+                          <View style={[styles.remixUserInfo, { backgroundColor: theme.background }]}>
+                            <Text style={[styles.remixUserName, { color: theme.primaryText }]}>{remix.userName}</Text>
+                            <Text style={[styles.remixDate, { color: theme.secondaryText }]}>{remix.date}</Text>
                           </View>
                           <View>
-                            <Ionicons name="chevron-forward" size={20} color="#666666" />
+                            <Ionicons name="chevron-forward" size={20} color={theme.secondaryText} />
                           </View>
                         </View>
-                        <View style={styles.remixDetails}>
-                          <Text style={styles.remixModification}>
+                        <View style={[styles.remixDetails, { backgroundColor: theme.background }]}>
+                          <Text style={[styles.remixModification, { color: theme.primaryText }]}>
                             {remix.modifications}
                           </Text>
-                          <View style={styles.remixStats}>
-                            <View style={styles.remixStat}>
-                              <Ionicons name="arrow-up" size={14} color="#666666" />
-                              <Text style={styles.remixStatText}>{remix.upvotes}</Text>
+                          <View style={[styles.remixStats, { backgroundColor: theme.background }]}>
+                            <View style={[styles.remixStat, { backgroundColor: theme.background }]}>
+                              <Ionicons name="arrow-up" size={14} color={theme.secondaryText} />
+                              <Text style={[styles.remixStatText, { color: theme.primaryText }]}>{remix.upvotes}</Text>
                             </View>
-                            <View style={styles.remixStat}>
-                              <Ionicons name="people-outline" size={14} color="#666666" />
-                              <Text style={styles.remixStatText}>{remix.saves}</Text>
+                            <View style={[styles.remixStat, { backgroundColor: theme.background }]}>
+                              <Ionicons name="people-outline" size={14} color={theme.secondaryText} />
+                              <Text style={[styles.remixStatText, { color: theme.primaryText }]}>{remix.saves}</Text>
                             </View>
                           </View>
                         </View>
                       </TouchableOpacity>
                     ))
                   ) : (
-                    <View style={styles.emptyRemixesContainer}>
-                      <Ionicons name="git-branch" size={40} color="#CCCCCC" />
-                      <Text style={styles.emptyRemixesText}>No remixes yet</Text>
-                      <Text style={styles.emptyRemixesSubtext}>Be the first to remix this recipe</Text>
+                    <View style={[styles.emptyRemixesContainer, { backgroundColor: theme.background }]}>
+                      <Ionicons name="git-branch" size={40} color={theme.primaryText} />
+                      <Text style={[styles.emptyRemixesText, { color: theme.primaryText }]}>No remixes yet</Text>
+                      <Text style={[styles.emptyRemixesSubtext, { color: theme.secondaryText }]}>Be the first to remix this recipe</Text>
                     </View>
                   )}
                 </View>
@@ -1307,6 +1321,64 @@ export default function RecipeDetailScreen() {
           </>
         )}
       </ScrollView>
+      
+      {/* Bottom toolbar */}
+      <View style={[styles.toolbar, { backgroundColor: theme.cardBackground, borderTopColor: theme.divider }]}>
+        <TouchableOpacity 
+          style={[styles.toolbarButton, { backgroundColor: theme.background }]}
+          onPress={handleUpvote}
+        >
+          <Ionicons 
+            name={logged ? "heart" : "heart-outline"} 
+            size={24} 
+            color={logged ? "#FF3B30" : theme.primaryText} 
+          />
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={[styles.toolbarButton, { backgroundColor: theme.background }]}
+          onPress={() => setShowLogModal(true)}
+        >
+          <Ionicons 
+            name="book-outline" 
+            size={24} 
+            color={theme.primaryText} 
+          />
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={[styles.toolbarButton, { backgroundColor: theme.background }]}
+          onPress={handleSave}
+        >
+          <Ionicons 
+            name={saved ? "bookmark" : "bookmark-outline"} 
+            size={24} 
+            color={saved ? "#007AFF" : theme.primaryText} 
+          />
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={[styles.toolbarButton, { backgroundColor: theme.background }]}
+          onPress={handleShare}
+        >
+          <Ionicons 
+            name="share-outline" 
+            size={24} 
+            color={theme.primaryText} 
+          />
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={[styles.toolbarButton, { backgroundColor: theme.background }]}
+          onPress={showActionSheet}
+        >
+          <Ionicons 
+            name="ellipsis-horizontal" 
+            size={24} 
+            color={theme.primaryText} 
+          />
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -1921,5 +1993,34 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     // borderBottomWidth: 1,
     // borderBottomColor: '#E5E5EA',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  contentContainer: {
+    paddingBottom: 80,
+  },
+  toolbar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E5EA',
+  },
+  toolbarButton: {
+    padding: 8,
+  },
+  toolbarButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#007AFF',
+  },
+  toolbarButtonActive: {
+    backgroundColor: '#000000',
+    borderColor: '#000000',
+  },
+  toolbarButtonTextActive: {
+    color: '#FFFFFF',
   },
 }); 

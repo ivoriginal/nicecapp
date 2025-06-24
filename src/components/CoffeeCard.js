@@ -18,7 +18,7 @@ export default function CoffeeCard({
         <AppImage 
           source={imageUrl}
           style={styles.image}
-          placeholder="coffee"
+          placeholder="cafe"
         />
       </View>
       <View style={styles.content}>

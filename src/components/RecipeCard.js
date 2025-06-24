@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AppImage from './common/AppImage';
 import mockCoffeesData from '../data/mockCoffees.json';
+import { useTheme } from '../context/ThemeContext';
 
 const RecipeCard = ({ 
   recipe, 
@@ -12,6 +13,8 @@ const RecipeCard = ({
   style,
   compact = false
 }) => {
+  const { theme, isDarkMode } = useTheme();
+  
   // Find the coffee if we have a coffeeId
   const coffee = recipe.coffeeId ? 
     mockCoffeesData.coffees.find(c => c.id === recipe.coffeeId) : 
@@ -51,7 +54,15 @@ const RecipeCard = ({
 
   return (
     <TouchableOpacity 
-      style={[styles.container, compact ? styles.compactContainer : {}, style]} 
+      style={[
+        styles.container, 
+        compact ? styles.compactContainer : {}, 
+        { 
+          backgroundColor: theme.cardBackground,
+          borderColor: theme.divider 
+        },
+        style
+      ]} 
       onPress={handleRecipePress}
     >
       <View style={styles.recipeContent}>
@@ -62,8 +73,8 @@ const RecipeCard = ({
               style={styles.remixInfoContainer}
               onPress={handleOriginalRecipePress}
             >
-              <Ionicons name="git-branch" size={14} color="#666666" />
-              <Text style={styles.remixInfoText}>
+              <Ionicons name="git-branch" size={14} color={theme.secondaryText} />
+              <Text style={[styles.remixInfoText, { color: theme.secondaryText }]}>
                 Remixed from a recipe by {originalCreator}
               </Text>
             </TouchableOpacity>
@@ -73,13 +84,13 @@ const RecipeCard = ({
           {rating > 0 && (
             <View style={styles.ratingContainer}>
               <Ionicons name="star" size={16} color="#FFD700" />
-              <Text style={styles.ratingText}>{rating.toFixed(1)}</Text>
+              <Text style={[styles.ratingText, { color: theme.primaryText }]}>{rating.toFixed(1)}</Text>
             </View>
           )}
           
           {/* Recipe Title showing Coffee + Method */}
           <View style={styles.recipeTitleContainer}>
-            <Text style={styles.recipeTitle}>
+            <Text style={[styles.recipeTitle, { color: theme.primaryText }]}>
               {coffeeName} recipe for {method}
             </Text>
           </View>
@@ -90,26 +101,26 @@ const RecipeCard = ({
               style={styles.authorContainer}
               onPress={handleUserPress}
             >
-              <Text style={styles.authorName}>by {creatorName}</Text>
+              <Text style={[styles.authorName, { color: theme.secondaryText }]}>by {creatorName}</Text>
             </TouchableOpacity>
           </View>
         </View>
         
         {/* Recipe Stats - Always at bottom */}
-        <View style={styles.recipeStats}>
+        <View style={[styles.recipeStats, { borderTopColor: theme.divider }]}>
           <View style={styles.statItem}>
-            <Text style={styles.statLabel}>Time</Text>
-            <Text style={styles.statValue}>{recipe.brewTime || '3:00'}</Text>
+            <Text style={[styles.statLabel, { color: theme.secondaryText }]}>Time</Text>
+            <Text style={[styles.statValue, { color: theme.primaryText }]}>{recipe.brewTime || '3:00'}</Text>
           </View>
           
           <View style={styles.statItem}>
-            <Text style={styles.statLabel}>Grind</Text>
-            <Text style={styles.statValue}>{recipe.grindSize || 'Medium'}</Text>
+            <Text style={[styles.statLabel, { color: theme.secondaryText }]}>Grind</Text>
+            <Text style={[styles.statValue, { color: theme.primaryText }]}>{recipe.grindSize || 'Medium'}</Text>
           </View>
           
           <View style={[styles.statItem, styles.lastStatItem]}>
-            <Text style={styles.statLabel}>Dose</Text>
-            <Text style={styles.statValue}>{recipe.dose || '18g'}</Text>
+            <Text style={[styles.statLabel, { color: theme.secondaryText }]}>Dose</Text>
+            <Text style={[styles.statValue, { color: theme.primaryText }]}>{recipe.dose || '18g'}</Text>
           </View>
         </View>
       </View>
@@ -119,8 +130,6 @@ const RecipeCard = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#FFFFFF',
-    // backgroundColor: '#F2F2F7',
     backgroundColor: '#f9f9f9',
     borderRadius: 12,
     borderWidth: 1,

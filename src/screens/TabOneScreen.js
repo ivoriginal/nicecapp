@@ -12,6 +12,7 @@ import AppImage from '../components/common/AppImage';
 import CoffeeCard from '../components/CoffeeCard';
 import EventCard from '../components/EventCard';
 import RecipeCard from '../components/RecipeCard';
+import ThemeCoffeeLogCard from '../components/ThemeCoffeeLogCard';
 import { COLORS, FONTS } from '../constants';
 
 export default function TabOneScreen() {

@@ -1,98 +1,121 @@
 {
-  "businesses": [
+  "roasters": [
     {
       "id": "business-kima",
       "name": "Kima Coffee",
-      "type": "roaster_coffee_shop",
+      "type": "roaster",
       "description": "Specialty coffee roaster in Málaga, offering premium coffees from around the world.",
       "logo": "assets/businesses/kima-logo.jpg",
       "avatar": "assets/businesses/kima-logo.jpg",
       "coverImage": "https://estaticos-cdn.prensaiberica.es/clip/406688f8-fe13-4e3a-9f0e-05b19c8a97df_16-9-discover-aspect-ratio_default_0.jpg",
       "location": "Málaga, Spain",
-      "isBusiness": true,
       "isRoaster": true,
       "rating": 4.9,
       "reviewCount": 145,
-      "neighborhood": "Centro",
-      "categories": [
-        "specialty coffee",
-        "roaster",
-        "café"
-      ],
+      "categories": ["specialty coffee", "roaster"],
       "priceRange": "$$",
       "website": "https://kima.coffee",
-      "addresses": [
-        {
-          "id": "kima-malaga",
-          "name": "Kima Coffee Málaga",
-          "address": "Calle Sebastián Souvirón, 9, 29005 Málaga",
-          "coordinates": {
-            "lat": 36.7212,
-            "lng": -4.4248
-          },
-          "phone": "+34 952 123 456",
-          "openingHours": {
-            "monday": "8:00-20:00",
-            "tuesday": "8:00-20:00",
-            "wednesday": "8:00-20:00",
-            "thursday": "8:00-20:00",
-            "friday": "8:00-20:00",
-            "saturday": "9:00-20:00",
-            "sunday": "9:00-18:00"
-          }
-        },
-        {
-          "id": "kima-marbella",
-          "name": "Kima Coffee Marbella",
-          "address": "Av. Ricardo Soriano, 28, 29601 Marbella",
-          "coordinates": {
-            "lat": 36.5093,
-            "lng": -4.8852
-          },
-          "phone": "+34 952 789 012",
-          "openingHours": {
-            "monday": "8:00-19:00",
-            "tuesday": "8:00-19:00",
-            "wednesday": "8:00-19:00",
-            "thursday": "8:00-19:00",
-            "friday": "8:00-20:00",
-            "saturday": "9:00-20:00",
-            "sunday": "10:00-18:00"
-          }
-        }
-      ]
+      "instagram": "@kimacoffee"
     },
     {
-      "id": "user2",
-      "name": "Vértigo y Calambre",
-      "businessId": "business1",
-      "address": "Calle Example 456, Murcia",
-      "avatar": "assets/businesses/vertigo-logo.jpg",
-      "coverImage": "assets/businesses/vertigo-cover.jpg",
-      "isBusiness": true,
+      "id": "business-cafelab",
+      "name": "CaféLab",
+      "type": "roaster",
+      "description": "Especialistas en café de especialidad en España. Ofrecemos una experiencia única con los mejores granos y métodos de preparación.",
+      "logo": "assets/businesses/cafelab-logo.png",
+      "avatar": "assets/businesses/cafelab-logo.png",
+      "coverImage": "assets/businesses/cafelab-murcia-cover.png",
+      "location": "España",
+      "isRoaster": true,
+      "rating": 4.8,
+      "reviewCount": 230,
+      "categories": ["specialty coffee", "roaster"],
+      "priceRange": "$$",
+      "website": "https://cafelab.es",
+      "instagram": "@cafelabcafe"
+    },
+    {
+      "id": "business-toma",
+      "name": "Toma Café",
+      "type": "roaster",
+      "description": "Iconic specialty coffee roaster and café with multiple locations in Madrid.",
+      "logo": "assets/businesses/toma-logo.jpg",
+      "avatar": "assets/businesses/toma-logo.jpg",
+      "coverImage": "assets/businesses/toma-cover.jpg",
+      "location": "Madrid, Spain",
+      "isRoaster": true,
+      "rating": 4.8,
+      "reviewCount": 465,
+      "categories": ["specialty coffee", "roaster"],
+      "priceRange": "$$",
+      "website": "https://www.tomacafe.es",
+      "instagram": "@tomacafe"
+    },
+    {
+      "id": "business-thefix",
+      "name": "The Fix",
+      "type": "roaster",
+      "description": "Specialty coffee roaster and café in Madrid. They also sell barista tools and accessories.",
+      "logo": "assets/businesses/thefix-logo.jpg",
+      "avatar": "assets/businesses/thefix-logo.jpg",
+      "coverImage": "assets/businesses/thefix-cover.jpg",
+      "location": "Madrid, Spain",
+      "isRoaster": true,
+      "rating": 4.8,
+      "reviewCount": 115,
+      "categories": ["specialty coffee", "roaster", "barista tools"],
+      "priceRange": "$$",
+      "website": "https://www.thefixmadrid.com",
+      "instagram": "@thefixmadrid"
+    }
+  ],
+  "cafes": [
+    {
+      "id": "kima-coffee",
+      "name": "Kima Coffee",
+      "roasterId": "business-kima",
+      "address": "Calle Sebastián Souvirón, 9, 29005 Málaga",
+      "coordinates": {
+        "lat": 36.7212,
+        "lng": -4.4248
+      },
+      "phone": "+34 952 123 456",
+      "location": "Málaga, Spain",
+      "neighborhood": "Centro",
       "rating": 4.9,
       "reviewCount": 145,
-      "neighborhood": "Centro",
-      "categories": [
-        "specialty coffee",
-        "roaster",
-        "café"
-      ],
+      "categories": ["specialty coffee", "café"],
       "priceRange": "$$",
-      "location": "Murcia, Spain"
+      "avatar": "assets/businesses/kima-logo.jpg",
+      "coverImage": "https://estaticos-cdn.prensaiberica.es/clip/406688f8-fe13-4e3a-9f0e-05b19c8a97df_16-9-discover-aspect-ratio_default_0.jpg",
+      "openingHours": {
+        "monday": "8:00-20:00",
+        "tuesday": "8:00-20:00",
+        "wednesday": "8:00-20:00",
+        "thursday": "8:00-20:00",
+        "friday": "8:00-20:00",
+        "saturday": "9:00-20:00",
+        "sunday": "9:00-18:00"
+      }
     },
     {
-      "id": "business1",
-      "name": "Vértigo y Calambre",
-      "type": "coffee_shop",
-      "description": "A cozy coffee shop in the heart of the city, serving specialty coffee and pastries.",
-      "logo": "assets/businesses/vertigo-logo.jpg",
-      "avatar": "assets/businesses/vertigo-logo.jpg",
-      "coverImage": "assets/businesses/vertigo-cover.jpg",
-      "location": "Buenos Aires, Argentina",
-      "address": "Av. Corrientes 1234",
-      "website": "https://vertigoycalambre.com",
-      "instagram": "@vertigoycalambre",
+      "id": "cafelab-murcia",
+      "name": "CaféLab Murcia",
+      "roasterId": "business-cafelab",
+      "address": "Calle Example 123, Murcia",
+      "coordinates": {
+        "lat": 37.9922,
+        "lng": -1.1307
+      },
+      "phone": "+34 968 123 456",
+      "location": "Murcia, Spain",
+      "neighborhood": "Centro",
+      "rating": 4.8,
+      "reviewCount": 132,
+      "categories": ["specialty coffee", "café", "breakfast"],
+      "priceRange": "$$",
+      "avatar": "assets/businesses/cafelab-logo.png",
+      "coverImage": "assets/businesses/cafelab-murcia-cover.png",
       "openingHours": {
         "monday": "8:00-20:00",
         "tuesday": "8:00-20:00",
@@ -101,227 +124,138 @@
         "friday": "8:00-22:00",
         "saturday": "9:00-22:00",
         "sunday": "9:00-20:00"
+      }
+    },
+    {
+      "id": "cafelab-cartagena",
+      "name": "CaféLab Cartagena",
+      "roasterId": "business-cafelab",
+      "address": "Calle Example 456, Cartagena",
+      "coordinates": {
+        "lat": 37.6057,
+        "lng": -0.9912
       },
-      "menu": [
-        {
-          "id": "menu1",
-          "name": "Espresso",
-          "price": 3.5,
-          "description": "Double shot espresso"
-        },
-        {
-          "id": "menu2",
-          "name": "Cappuccino",
-          "price": 4.5,
-          "description": "Espresso with steamed milk and foam"
-        },
-        {
-          "id": "menu3",
-          "name": "Pour Over",
-          "price": 5,
-          "description": "Single origin coffee brewed with V60"
-        },
-        {
-          "id": "menu4",
-          "name": "Cold Brew",
-          "price": 5.5,
-          "description": "24-hour cold brewed coffee"
-        }
-      ]
-    },
-    {
-      "id": "business2",
-      "name": "The Fix",
-      "type": "roaster_coffee_shop",
-      "description": "Specialty coffee roaster and café. We roast our own beans and serve them in our café.",
-      "logo": "https://images.unsplash.com/photo-1554118811-1e0d58224f24?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80",
-      "coverImage": "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80",
-      "location": "Austin, TX",
-      "address": "123 Main St",
-      "website": "https://thefixcoffee.com",
-      "instagram": "@thefixcoffee",
-      "openingHours": {
-        "monday": "7:00-19:00",
-        "tuesday": "7:00-19:00",
-        "wednesday": "7:00-19:00",
-        "thursday": "7:00-19:00",
-        "friday": "7:00-20:00",
-        "saturday": "8:00-20:00",
-        "sunday": "8:00-18:00"
-      },
-      "menu": [
-        {
-          "id": "menu1",
-          "name": "Espresso",
-          "price": 3,
-          "description": "Double shot espresso"
-        },
-        {
-          "id": "menu2",
-          "name": "Cappuccino",
-          "price": 4,
-          "description": "Espresso with steamed milk and foam"
-        },
-        {
-          "id": "menu3",
-          "name": "Pour Over",
-          "price": 4.5,
-          "description": "Single origin coffee brewed with V60"
-        },
-        {
-          "id": "menu4",
-          "name": "Cold Brew",
-          "price": 5,
-          "description": "24-hour cold brewed coffee"
-        }
-      ],
-      "roastedBeans": [
-        {
-          "id": "bean1",
-          "name": "Ethiopian Yirgacheffe",
-          "origin": "Ethiopia",
-          "process": "Washed",
-          "roastLevel": "Light",
-          "price": 18,
-          "description": "Bright acidity with floral notes. Very clean cup.",
-          "image": "https://images.unsplash.com/photo-1447933601403-0c6688de566e?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80"
-        },
-        {
-          "id": "bean2",
-          "name": "Colombian Supremo",
-          "origin": "Colombia",
-          "process": "Washed",
-          "roastLevel": "Medium",
-          "price": 16,
-          "description": "Rich chocolate notes with a hint of caramel. Good body.",
-          "image": "https://images.unsplash.com/photo-1447933601403-0c6688de566e?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80"
-        }
-      ]
-    },
-    {
-      "id": "business-toma",
-      "name": "Toma Café",
-      "type": "roaster_coffee_shop",
-      "description": "Iconic specialty coffee roaster and café with multiple locations in Madrid.",
-      "logo": "assets/businesses/toma-logo.jpg",
-      "avatar": "assets/businesses/toma-logo.jpg",
-      "coverImage": "assets/businesses/toma-cover.jpg",
-      "location": "Madrid, Spain",
-      "address": "Central Roastery, Madrid",
-      "isBusiness": true,
-      "isRoaster": true,
-      "rating": 4.8,
-      "reviewCount": 245,
-      "categories": [
-        "specialty coffee",
-        "roaster",
-        "café"
-      ],
-      "priceRange": "$$",
-      "website": "https://www.tomacafe.es",
-      "instagram": "@tomacafe"
-    },
-    {
-      "id": "business-cafelab",
-      "name": "CaféLab",
-      "type": "coffee_shop",
-      "description": "Especialistas en café de especialidad en España. Ofrecemos una experiencia única con los mejores granos y métodos de preparación.",
-      "logo": "assets/businesses/cafelab-logo.png",
-      "avatar": "assets/businesses/cafelab-logo.png",
-      "coverImage": "assets/businesses/cafelab-murcia-cover.png",
-      "location": "España",
-      "website": "https://cafelab.es",
-      "instagram": "@cafelabcafe",
-      "addresses": [
-        {
-          "id": "cafelab-murcia",
-          "name": "CaféLab Murcia",
-          "address": "Calle Example 123, Murcia",
-          "coordinates": {
-            "lat": 37.9922,
-            "lng": -1.1307
-          },
-          "phone": "+34 968 123 456",
-          "openingHours": {
-            "monday": "8:00-20:00",
-            "tuesday": "8:00-20:00",
-            "wednesday": "8:00-20:00",
-            "thursday": "8:00-20:00",
-            "friday": "8:00-22:00",
-            "saturday": "9:00-22:00",
-            "sunday": "9:00-20:00"
-          }
-        },
-        {
-          "id": "cafelab-cartagena",
-          "name": "CaféLab Cartagena",
-          "address": "Calle Example 456, Cartagena",
-          "coordinates": {
-            "lat": 37.6057,
-            "lng": -0.9912
-          },
-          "phone": "+34 968 789 012",
-          "openingHours": {
-            "monday": "8:00-20:00",
-            "tuesday": "8:00-20:00",
-            "wednesday": "8:00-20:00",
-            "thursday": "8:00-20:00",
-            "friday": "8:00-22:00",
-            "saturday": "9:00-22:00",
-            "sunday": "9:00-20:00"
-          }
-        }
-      ]
-    },
-    {
-      "id": "kima-coffee",
-      "name": "Kima Coffee",
-      "businessId": "business-kima",
-      "address": "Calle Sebastián Souvirón, 9, 29005 Málaga",
-      "avatar": "assets/businesses/kima-logo.jpg",
-      "coverImage": "https://estaticos-cdn.prensaiberica.es/clip/406688f8-fe13-4e3a-9f0e-05b19c8a97df_16-9-discover-aspect-ratio_default_0.jpg",
-      "isGoodCafe": true,
-      "isTrending": true,
-      "isBusiness": true,
-      "rating": 4.9,
-      "reviewCount": 145,
+      "phone": "+34 968 789 012",
+      "location": "Cartagena, Spain",
       "neighborhood": "Centro",
-      "categories": [
-        "specialty coffee",
-        "roaster",
-        "café"
-      ],
+      "rating": 4.7,
+      "reviewCount": 98,
+      "categories": ["specialty coffee", "café", "breakfast"],
       "priceRange": "$$",
-      "location": "Málaga, Spain"
+      "avatar": "assets/businesses/cafelab-logo.png",
+      "coverImage": "assets/businesses/cafelab-cartagena-cover.png",
+      "openingHours": {
+        "monday": "8:00-20:00",
+        "tuesday": "8:00-20:00",
+        "wednesday": "8:00-20:00",
+        "thursday": "8:00-20:00",
+        "friday": "8:00-22:00",
+        "saturday": "9:00-22:00",
+        "sunday": "9:00-20:00"
+      }
     },
     {
-      "id": "business-thefix",
-      "name": "The Fix",
-      "type": "roaster_coffee_shop",
-      "description": "Specialty coffee roaster and café in Madrid. They also sell barista tools and accessories.",
-      "logo": "assets/businesses/thefix-logo.jpg",
-      "avatar": "assets/businesses/thefix-logo.jpg",
-      "coverImage": "assets/businesses/thefix-cover.jpg",
+      "id": "toma-cafe-1",
+      "name": "Toma Café 1",
+      "roasterId": "business-toma",
+      "address": "Calle Santa María, 19, 28014 Madrid",
+      "coordinates": {
+        "lat": 40.4287,
+        "lng": -3.7005
+      },
+      "phone": "+34 915 123 456",
       "location": "Madrid, Spain",
+      "neighborhood": "Malasaña",
+      "rating": 4.7,
+      "reviewCount": 122,
+      "categories": ["specialty coffee", "café", "breakfast"],
+      "priceRange": "$$",
+      "avatar": "assets/businesses/toma-logo.jpg",
+      "coverImage": "assets/businesses/toma-1-cover.jpg",
+      "openingHours": {
+        "monday": "8:00-20:00",
+        "tuesday": "8:00-20:00",
+        "wednesday": "8:00-20:00",
+        "thursday": "8:00-20:00",
+        "friday": "8:00-21:00",
+        "saturday": "9:00-21:00",
+        "sunday": "9:00-20:00"
+      }
+    },
+    {
+      "id": "toma-cafe-2",
+      "name": "Toma Café 2",
+      "roasterId": "business-toma",
+      "address": "Calle Santa Engracia, 88, 28010 Madrid",
+      "coordinates": {
+        "lat": 40.4356,
+        "lng": -3.6989
+      },
+      "phone": "+34 915 234 567",
+      "location": "Madrid, Spain",
+      "neighborhood": "Almagro",
+      "rating": 4.5,
+      "reviewCount": 98,
+      "categories": ["specialty coffee", "café", "breakfast"],
+      "priceRange": "$$",
+      "avatar": "assets/businesses/toma-logo.jpg",
+      "coverImage": "assets/businesses/toma-2-cover.jpg",
+      "openingHours": {
+        "monday": "8:00-20:00",
+        "tuesday": "8:00-20:00",
+        "wednesday": "8:00-20:00",
+        "thursday": "8:00-20:00",
+        "friday": "8:00-21:00",
+        "saturday": "9:00-21:00",
+        "sunday": "9:00-20:00"
+      }
+    },
+    {
+      "id": "toma-cafe-3",
+      "name": "Toma Café 3 / Proper Sound",
+      "roasterId": "business-toma",
+      "address": "Calle Alonso Cano, 10, 28010 Madrid",
+      "coordinates": {
+        "lat": 40.4378,
+        "lng": -3.6945
+      },
+      "phone": "+34 915 345 678",
+      "location": "Madrid, Spain",
+      "neighborhood": "Trafalgar",
+      "rating": 4.8,
+      "reviewCount": 156,
+      "categories": ["specialty coffee", "café", "roastery"],
+      "priceRange": "$$",
+      "avatar": "assets/businesses/toma-logo.jpg",
+      "coverImage": "assets/businesses/toma-3-cover.jpg",
+      "openingHours": {
+        "monday": "8:00-20:00",
+        "tuesday": "8:00-20:00",
+        "wednesday": "8:00-20:00",
+        "thursday": "8:00-20:00",
+        "friday": "8:00-21:00",
+        "saturday": "9:00-21:00",
+        "sunday": "9:00-20:00"
+      }
+    },
+    {
+      "id": "thefix-madrid",
+      "name": "The Fix Madrid",
+      "roasterId": "business-thefix",
       "address": "Calle del Barquillo, 39, 28004 Madrid",
       "coordinates": {
         "lat": 40.42343,
         "lng": -3.69661
       },
-      "isBusiness": true,
-      "isRoaster": true,
+      "phone": "+34 915 456 789",
+      "location": "Madrid, Spain",
+      "neighborhood": "Chueca",
       "rating": 4.8,
       "reviewCount": 115,
-      "neighborhood": "Chueca",
-      "categories": [
-        "specialty coffee",
-        "roaster",
-        "café",
-        "barista tools"
-      ],
+      "categories": ["specialty coffee", "café", "barista tools"],
       "priceRange": "$$",
-      "website": "https://www.thefixmadrid.com",
-      "instagram": "@thefixmadrid",
+      "avatar": "assets/businesses/thefix-logo.jpg",
+      "coverImage": "assets/businesses/thefix-cover.jpg",
       "openingHours": {
         "monday": "8:30-18:00",
         "tuesday": "8:30-18:00",
@@ -331,224 +265,43 @@
         "saturday": "9:30-18:00",
         "sunday": "9:30-17:00"
       }
-    }
-  ],
-  "trendingCafes": [
-    {
-      "id": "toma-cafe-1",
-      "name": "Toma Café 1",
-      "businessId": "business-toma",
-      "avatar": "assets/businesses/toma-logo.jpg",
-      "coverImage": "assets/businesses/toma-1-cover.jpg",
-      "isGoodCafe": true,
-      "isTrending": false,
-      "isBusiness": true,
-      "rating": 4.7,
-      "reviewCount": 122,
-      "neighborhood": "Malasaña",
-      "categories": [
-        "specialty coffee",
-        "café",
-        "breakfast"
-      ],
-      "location": "Madrid, Spain"
-    },
-    {
-      "id": "toma-cafe-2",
-      "name": "Toma Café 2",
-      "businessId": "business-toma",
-      "avatar": "assets/businesses/toma-logo.jpg",
-      "coverImage": "assets/businesses/toma-2-cover.jpg",
-      "isGoodCafe": true,
-      "isTrending": false,
-      "isBusiness": true,
-      "rating": 4.5,
-      "reviewCount": 98,
-      "neighborhood": "Almagro",
-      "categories": [
-        "specialty coffee",
-        "café",
-        "breakfast"
-      ],
-      "location": "Madrid, Spain"
-    },
-    {
-      "id": "toma-cafe-3",
-      "name": "Toma Café 3 / Proper Sound",
-      "businessId": "business-toma",
-      "avatar": "assets/businesses/toma-logo.jpg",
-      "coverImage": "assets/businesses/toma-3-cover.jpg",
-      "isGoodCafe": true,
-      "isTrending": false,
-      "isBusiness": true,
-      "rating": 4.8,
-      "reviewCount": 156,
-      "neighborhood": "Trafalgar",
-      "categories": [
-        "specialty coffee",
-        "café",
-        "roastery"
-      ],
-      "location": "Madrid, Spain"
-    },
-    {
-      "id": "kima-coffee",
-      "name": "Kima Coffee",
-      "businessId": "business-kima",
-      "address": "Calle Example 123, Málaga",
-      "avatar": "assets/businesses/kima-logo.jpg",
-      "coverImage": "https://estaticos-cdn.prensaiberica.es/clip/406688f8-fe13-4e3a-9f0e-05b19c8a97df_16-9-discover-aspect-ratio_default_0.jpg",
-      "isBusiness": true,
-      "rating": 4.9,
-      "reviewCount": 145,
-      "neighborhood": "Centro",
-      "categories": [
-        "specialty coffee",
-        "roaster",
-        "café"
-      ],
-      "priceRange": "$$",
-      "location": "Málaga, Spain",
-      "isGoodCafe": true,
-      "isTrending": true
     },
     {
       "id": "vertigo-calambre",
       "name": "Vértigo y Calambre",
-      "businessId": "business1",
+      "roasterId": null,
       "address": "Calle Example 456, Murcia",
-      "avatar": "assets/businesses/vertigo-logo.jpg",
-      "coverImage": "assets/businesses/vertigo-cover.jpg",
-      "isBusiness": true,
+      "coordinates": {
+        "lat": 37.9922,
+        "lng": -1.1307
+      },
+      "phone": "+34 968 456 789",
+      "location": "Murcia, Spain",
+      "neighborhood": "Centro",
       "rating": 4.9,
       "reviewCount": 145,
-      "neighborhood": "Centro",
-      "categories": [
-        "specialty coffee",
-        "roaster",
-        "café"
-      ],
+      "categories": ["specialty coffee", "café"],
       "priceRange": "$$",
-      "location": "Murcia, Spain"
-    },
-    {
-      "id": "cafelab-murcia",
-      "name": "CaféLab Murcia",
-      "businessId": "business-cafelab",
-      "address": "Calle Example 123, Murcia",
-      "avatar": "assets/businesses/cafelab-logo.png",
-      "coverImage": "assets/businesses/cafelab-murcia-cover.png",
-      "isBusiness": true,
-      "rating": 4.8,
-      "reviewCount": 132,
-      "neighborhood": "Centro",
-      "categories": [
-        "specialty coffee",
-        "café",
-        "breakfast"
-      ],
-      "priceRange": "$$",
-      "location": "Murcia, Spain"
-    },
-    {
-      "id": "cafelab-cartagena",
-      "name": "CaféLab Cartagena",
-      "businessId": "business-cafelab",
-      "address": "Calle Example 456, Cartagena",
-      "avatar": "assets/businesses/cafelab-logo.png",
-      "coverImage": "assets/businesses/cafelab-cartagena-cover.png",
-      "isBusiness": true,
-      "rating": 4.7,
-      "reviewCount": 98,
-      "neighborhood": "Centro",
-      "categories": [
-        "specialty coffee",
-        "café",
-        "breakfast"
-      ],
-      "priceRange": "$$",
-      "location": "Cartagena, Spain"
-    },
-    {
-      "id": "thefix-madrid",
-      "name": "The Fix",
-      "businessId": "business-thefix",
-      "address": "Calle del Barquillo, 39, 28004 Madrid",
-      "avatar": "assets/businesses/thefix-logo.jpg",
-      "coverImage": "assets/businesses/thefix-cover.jpg",
-      "isBusiness": true,
-      "isGoodCafe": true,
-      "isTrending": true,
-      "rating": 4.8,
-      "reviewCount": 115,
-      "neighborhood": "Chueca",
-      "categories": [
-        "specialty coffee",
-        "roaster",
-        "café",
-        "barista tools"
-      ],
-      "priceRange": "$$",
-      "location": "Madrid, Spain"
+      "website": "https://vertigoycalambre.com",
+      "instagram": "@vertigoycalambre",
+      "avatar": "assets/businesses/vertigo-logo.jpg",
+      "coverImage": "assets/businesses/vertigo-cover.jpg",
+      "openingHours": {
+        "monday": "8:00-20:00",
+        "tuesday": "8:00-20:00",
+        "wednesday": "8:00-20:00",
+        "thursday": "8:00-20:00",
+        "friday": "8:00-22:00",
+        "saturday": "9:00-22:00",
+        "sunday": "9:00-20:00"
+      }
     }
   ],
-  "locations": [
-    {
-      "id": "toma-cafe-1",
-      "name": "Toma Café 1",
-      "parentBusinessId": "business-toma",
-      "address": "Calle Santa María, 19, 28014 Madrid",
-      "avatar": "assets/businesses/toma-logo.jpg",
-      "logo": "assets/businesses/toma-logo.jpg",
-      "coverImage": "assets/businesses/toma-1-cover.jpg",
-      "isBusiness": true,
-      "rating": 4.7,
-      "reviewCount": 122,
-      "neighborhood": "Malasaña",
-      "categories": [
-        "specialty coffee",
-        "café",
-        "breakfast"
-      ],
-      "location": "Madrid, Spain"
-    },
-    {
-      "id": "toma-cafe-2",
-      "name": "Toma Café 2",
-      "parentBusinessId": "business-toma",
-      "address": "Calle Santa Engracia, 88, 28010 Madrid",
-      "avatar": "assets/businesses/toma-logo.jpg",
-      "logo": "assets/businesses/toma-logo.jpg",
-      "coverImage": "assets/businesses/toma-2-cover.jpg",
-      "isBusiness": true,
-      "rating": 4.5,
-      "reviewCount": 98,
-      "neighborhood": "Almagro",
-      "categories": [
-        "specialty coffee",
-        "café",
-        "breakfast"
-      ],
-      "location": "Madrid, Spain"
-    },
-    {
-      "id": "toma-cafe-3",
-      "name": "Toma Café 3 / Proper Sound",
-      "parentBusinessId": "business-toma",
-      "address": "Calle Alonso Cano, 10, 28010 Madrid",
-      "avatar": "assets/businesses/toma-logo.jpg",
-      "logo": "assets/businesses/toma-logo.jpg",
-      "coverImage": "assets/businesses/toma-3-cover.jpg",
-      "isBusiness": true,
-      "rating": 4.8,
-      "reviewCount": 156,
-      "neighborhood": "Trafalgar",
-      "categories": [
-        "specialty coffee",
-        "café",
-        "roastery"
-      ],
-      "location": "Madrid, Spain"
-    }
+  "goodCafes": [
+    "toma-cafe-1",
+    "kima-coffee",
+    "vertigo-calambre",
+    "cafelab-murcia",
+    "thefix-madrid"
   ]
 } 

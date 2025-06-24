@@ -25,6 +25,7 @@ import * as ImagePicker from 'expo-image-picker';
 import mockGear from '../data/mockGear.json';
 import gearDetails from '../data/gearDetails';
 import eventEmitter from '../utils/EventEmitter';
+import { useTheme } from '../context/ThemeContext';
 
 // Sample list of cities in Spain
 const CITIES = [
@@ -49,6 +50,7 @@ const CITIES = [
 // Custom Toast component for iOS
 const Toast = ({ visible, message, duration = 2000 }) => {
   const opacity = useRef(new Animated.Value(0)).current;
+  const { theme } = useTheme();
 
   useEffect(() => {
     if (visible) {
@@ -71,8 +73,8 @@ const Toast = ({ visible, message, duration = 2000 }) => {
   if (!visible) return null;
 
   return (
-    <Animated.View style={[styles.toast, { opacity }]}>
-      <Text style={styles.toastText}>{message}</Text>
+    <Animated.View style={[styles.toast, { opacity, backgroundColor: theme.cardBackground }]}>
+      <Text style={[styles.toastText, { color: theme.primaryText }]}>{message}</Text>
     </Animated.View>
   );
 };
@@ -83,6 +85,7 @@ export default function EditProfileScreen() {
   const route = useRoute();
   const { userData: initialUserData } = route.params || {};
   const searchInputRef = useRef(null);
+  const { theme, isDarkMode } = useTheme();
   
   const { 
     user,
@@ -426,291 +429,247 @@ export default function EditProfileScreen() {
 
   return (
     <KeyboardAvoidingView 
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : null}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 84 : 0}
+      style={[styles.container, { backgroundColor: theme.background }]} 
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <StatusBar barStyle="dark-content" />
-      
+      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
       <ScrollView 
-        style={styles.scrollContainer}
-        contentContainerStyle={{ paddingBottom: 100 }}
-        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.header}>
-          <View style={styles.avatarContainer}>
+        {/* Profile Image Section */}
+        <View style={styles.avatarContainer}>
+          <View style={styles.avatarWrapper}>
             {userData.userAvatar ? (
               <Image 
-                source={typeof userData.userAvatar === 'string' ? { uri: userData.userAvatar } : userData.userAvatar} 
-                style={styles.avatar} 
+                source={{ uri: userData.userAvatar }}
+                style={styles.avatar}
               />
             ) : (
-              <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                <Ionicons name="person" size={40} color="#999999" />
+              <View style={[styles.avatar, styles.placeholderAvatar, { backgroundColor: theme.placeholder }]}>
+                <Ionicons name="person" size={50} color={theme.secondaryText} />
               </View>
             )}
-            <TouchableOpacity style={styles.editAvatarButton} onPress={pickImage}>
-              <Ionicons name="camera" size={20} color="#FFFFFF" />
+            <TouchableOpacity 
+              style={[styles.changePhotoButton, { backgroundColor: theme.cardBackground }]}
+              onPress={pickImage}
+            >
+              <Ionicons name="camera" size={20} color={theme.primaryText} />
             </TouchableOpacity>
           </View>
-          
-          <Text style={styles.usernameLabel}>Name</Text>
-          <TextInput
-            style={styles.input}
-            value={userData.userName}
-            onChangeText={(text) => setUserData(prev => ({ ...prev, userName: text }))}
-            placeholder="Your name"
-            placeholderTextColor="#999999"
-          />
-          
-          <Text style={styles.usernameLabel}>Username</Text>
-          <View style={styles.handleInputContainer}>
-            <Text style={styles.handlePrefix}>@</Text>
+        </View>
+
+        {/* Form Fields */}
+        <View style={styles.formContainer}>
+          <View style={styles.inputGroup}>
+            <Text style={[styles.label, { color: theme.primaryText }]}>Display Name</Text>
             <TextInput
-              style={styles.handleInput}
-              value={userData.userHandle}
-              onChangeText={(text) => setUserData(prev => ({ ...prev, userHandle: text }))}
-              placeholder="username"
-              placeholderTextColor="#999999"
-              autoCapitalize="none"
-              autoCorrect={false}
+              style={[styles.input, { color: theme.primaryText, backgroundColor: theme.cardBackground, borderColor: theme.border }]}
+              value={userData.userName}
+              onChangeText={(text) => setUserData({...userData, userName: text})}
+              placeholder="Your name"
+              placeholderTextColor={theme.secondaryText}
             />
           </View>
-          
-          <Text style={styles.usernameLabel}>Location</Text>
-          <TouchableOpacity 
-            style={styles.locationSelector}
-            onPress={() => setShowLocationModal(true)}
-          >
-            <Text style={userData.location ? styles.locationText : styles.locationPlaceholder}>
-              {userData.location || "Select your location"}
-            </Text>
-            <Ionicons name="chevron-down" size={18} color="#666666" />
-          </TouchableOpacity>
-        </View>
-        
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>My Gear</Text>
-            <TouchableOpacity onPress={handleOpenGearModal}>
-              <Text style={styles.editText}>Edit</Text>
+
+          <View style={styles.inputGroup}>
+            <Text style={[styles.label, { color: theme.primaryText }]}>Username</Text>
+            <TextInput
+              style={[styles.input, { color: theme.primaryText, backgroundColor: theme.cardBackground, borderColor: theme.border }]}
+              value={userData.userHandle}
+              onChangeText={(text) => setUserData({...userData, userHandle: text})}
+              placeholder="@username"
+              placeholderTextColor={theme.secondaryText}
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={[styles.label, { color: theme.primaryText }]}>Location</Text>
+            <TouchableOpacity
+              style={[styles.input, styles.locationInput, { color: theme.primaryText, backgroundColor: theme.cardBackground, borderColor: theme.border }]}
+              onPress={() => setShowLocationModal(true)}
+            >
+              <Text style={{ color: userData.location ? theme.primaryText : theme.secondaryText }}>
+                {userData.location || "Select your location"}
+              </Text>
+              <Ionicons name="chevron-down" size={20} color={theme.secondaryText} />
             </TouchableOpacity>
           </View>
-          
-          <View style={styles.gearList}>
-            {userData.gear && userData.gear.length > 0 ? (
-              userData.gear.map((item, index) => (
-                <React.Fragment key={index}>
-                  {renderGearItem(item)}
-                </React.Fragment>
-              ))
-            ) : (
-              <Text style={styles.noGearText}>No gear added yet</Text>
+
+          <View style={styles.inputGroup}>
+            <Text style={[styles.label, { color: theme.primaryText }]}>Your Gear</Text>
+            <TouchableOpacity
+              style={[styles.gearButton, { borderColor: theme.border, backgroundColor: theme.cardBackground }]}
+              onPress={handleOpenGearModal}
+            >
+              <Text style={[styles.gearButtonText, { color: theme.primaryText }]}>
+                {selectedGear.length > 0 ? `${selectedGear.length} items selected` : 'Add your gear'}
+              </Text>
+              <Ionicons name="add-circle-outline" size={20} color={theme.primaryText} />
+            </TouchableOpacity>
+
+            {selectedGear.length > 0 && (
+              <FlatList
+                data={selectedGear}
+                keyExtractor={(item, index) => `gear-${index}`}
+                renderItem={renderGearItem}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.gearList}
+              />
             )}
           </View>
         </View>
       </ScrollView>
-      
-      <View style={[styles.footer, { paddingBottom: insets.bottom || 16 }]}>
-        <TouchableOpacity style={styles.cancelButton} onPress={handleCancel}>
-          <Text style={styles.cancelButtonText}>Cancel</Text>
+
+      {/* Action Buttons */}
+      <View style={[styles.buttonContainer, { backgroundColor: theme.cardBackground, borderTopColor: theme.divider }]}>
+        <TouchableOpacity 
+          style={[styles.button, styles.cancelButton, { borderColor: theme.border }]}
+          onPress={handleCancel}
+        >
+          <Text style={[styles.buttonText, styles.cancelButtonText, { color: theme.primaryText }]}>Cancel</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-          <Text style={styles.saveButtonText}>Save</Text>
+        <TouchableOpacity 
+          style={[styles.button, styles.saveButton, { backgroundColor: hasChanges() ? '#000000' : theme.secondaryBackground }]}
+          onPress={handleSave}
+          disabled={!hasChanges()}
+        >
+          <Text style={[styles.buttonText, styles.saveButtonText, { color: hasChanges() ? '#FFFFFF' : theme.secondaryText }]}>Save</Text>
         </TouchableOpacity>
       </View>
-      
+
+      {/* Gear Selection Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={showGearModal}
+        onRequestClose={() => setShowGearModal(false)}
+      >
+        <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+          <View style={[styles.modalContent, { backgroundColor: theme.cardBackground }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: theme.divider }]}>
+              <Text style={[styles.modalTitle, { color: theme.primaryText }]}>Select Your Gear</Text>
+              <TouchableOpacity onPress={() => setShowGearModal(false)}>
+                <Ionicons name="close" size={24} color={theme.primaryText} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={[styles.searchContainer, { backgroundColor: theme.secondaryBackground }]}>
+              <Ionicons name="search" size={20} color={theme.secondaryText} style={styles.searchIcon} />
+              <TextInput
+                ref={searchInputRef}
+                style={[styles.searchInput, { color: theme.primaryText }]}
+                placeholder="Search gear..."
+                placeholderTextColor={theme.secondaryText}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity onPress={() => setSearchQuery('')}>
+                  <Ionicons name="close-circle" size={20} color={theme.secondaryText} />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            <FlatList
+              data={gearOptions.filter(gear => 
+                gear.toLowerCase().includes(searchQuery.toLowerCase())
+              )}
+              keyExtractor={(item, index) => `option-${index}`}
+              renderItem={({ item }) => {
+                const isSelected = selectedGear.includes(item);
+                return (
+                  <TouchableOpacity 
+                    style={[styles.gearOption, { borderBottomColor: theme.divider }]}
+                    onPress={() => handleAddGear(item)}
+                  >
+                    <Text style={[styles.gearOptionText, { color: theme.primaryText }]}>{item}</Text>
+                    {isSelected && (
+                      <Ionicons name="checkmark" size={24} color={theme.primaryText} />
+                    )}
+                  </TouchableOpacity>
+                );
+              }}
+            />
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity 
+                style={[styles.button, styles.confirmButton, { backgroundColor: '#000000' }]}
+                onPress={handleConfirmGearSelection}
+              >
+                <Text style={styles.confirmButtonText}>Confirm Selection</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Location Selection Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={showLocationModal}
+        onRequestClose={() => setShowLocationModal(false)}
+      >
+        <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+          <View style={[styles.modalContent, { backgroundColor: theme.cardBackground }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: theme.divider }]}>
+              <Text style={[styles.modalTitle, { color: theme.primaryText }]}>Select Location</Text>
+              <TouchableOpacity onPress={() => setShowLocationModal(false)}>
+                <Ionicons name="close" size={24} color={theme.primaryText} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={[styles.searchContainer, { backgroundColor: theme.secondaryBackground }]}>
+              <Ionicons name="search" size={20} color={theme.secondaryText} style={styles.searchIcon} />
+              <TextInput
+                style={[styles.searchInput, { color: theme.primaryText }]}
+                placeholder="Search cities..."
+                placeholderTextColor={theme.secondaryText}
+                value={locationSearchQuery}
+                onChangeText={setLocationSearchQuery}
+              />
+              {locationSearchQuery.length > 0 && (
+                <TouchableOpacity onPress={() => setLocationSearchQuery('')}>
+                  <Ionicons name="close-circle" size={20} color={theme.secondaryText} />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            <FlatList
+              data={CITIES.filter(city => 
+                city.toLowerCase().includes(locationSearchQuery.toLowerCase())
+              )}
+              keyExtractor={(item, index) => `city-${index}`}
+              renderItem={({ item }) => (
+                <TouchableOpacity 
+                  style={[styles.locationOption, { borderBottomColor: theme.divider }]}
+                  onPress={() => {
+                    setUserData({...userData, location: item});
+                    setShowLocationModal(false);
+                    setLocationSearchQuery('');
+                  }}
+                >
+                  <Text style={[styles.locationOptionText, { color: theme.primaryText }]}>{item}</Text>
+                  {userData.location === item && (
+                    <Ionicons name="checkmark" size={24} color={theme.primaryText} />
+                  )}
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </View>
+      </Modal>
+
       {/* Custom Toast for iOS */}
       {Platform.OS === 'ios' && (
         <Toast 
           visible={toastVisible} 
           message={toastMessage} 
-          duration={2000}
+          duration={2000} 
         />
       )}
-      
-      {/* Gear Selection Modal */}
-      <Modal
-        visible={showGearModal}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowGearModal(false)}
-      >
-        <KeyboardAvoidingView 
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={{ flex: 1 }}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}
-        >
-          <View style={styles.modalContainer}>
-            <View style={[styles.modalContent, { paddingBottom: insets.bottom + 12 }]}>
-              <View style={styles.modalHeader}>
-                <TouchableOpacity onPress={() => setShowGearModal(false)}>
-                  <Ionicons name="close" size={24} color="#000000" />
-                </TouchableOpacity>
-                <Text style={styles.modalTitle}>Select Gear</Text>
-                <TouchableOpacity onPress={handleConfirmGearSelection}>
-                  <Text style={styles.doneText}>Done</Text>
-                </TouchableOpacity>
-              </View>
-              
-              <View style={styles.searchContainer}>
-                <Ionicons name="search" size={18} color="#999999" style={styles.searchIcon} />
-                <TextInput
-                  style={styles.searchInput}
-                  value={searchQuery}
-                  onChangeText={setSearchQuery}
-                  placeholder="Search gear..."
-                  placeholderTextColor="#999999"
-                  clearButtonMode="while-editing"
-                  autoCorrect={false}
-                  autoCapitalize="none"
-                  returnKeyType="search"
-                />
-              </View>
-              
-              <FlatList
-                data={filteredGearOptions}
-                keyExtractor={(item, index) => `gear-${index}`}
-                renderItem={({ item }) => {
-                  const gearImage = getGearImage(item);
-                  
-                  return (
-                    <TouchableOpacity
-                      style={styles.gearOption}
-                      onPress={() => handleAddGear(item)}
-                    >
-                      <View style={styles.gearOptionContent}>
-                        <View style={styles.gearItemAvatarContainer}>
-                          {gearImage ? (
-                            <Image
-                              source={{ uri: gearImage }}
-                              style={styles.gearItemAvatar}
-                              resizeMode="cover"
-                              onError={() => console.log(`Failed to load image for gear: ${item}`)}
-                            />
-                          ) : (
-                            <View style={styles.gearItemAvatarPlaceholder}>
-                              <Ionicons name="hardware-chip-outline" size={16} color="#999999" />
-                            </View>
-                          )}
-                        </View>
-                        <Text style={styles.gearOptionText}>{item}</Text>
-                      </View>
-                      <View style={styles.checkboxContainer}>
-                        {selectedGear.includes(item) ? (
-                          <Ionicons name="checkmark-circle" size={24} color="#34C759" />
-                        ) : (
-                          <Ionicons name="ellipse-outline" size={24} color="#CCCCCC" />
-                        )}
-                      </View>
-                    </TouchableOpacity>
-                  );
-                }}
-                contentContainerStyle={{ paddingBottom: 100 }}
-                showsVerticalScrollIndicator={false}
-                keyboardShouldPersistTaps="handled"
-                keyboardDismissMode="on-drag"
-              />
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
-      
-      {/* Location Selection Modal */}
-      <Modal
-        visible={showLocationModal}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowLocationModal(false)}
-      >
-        <KeyboardAvoidingView 
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={{ flex: 1 }}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}
-        >
-          <View style={styles.modalContainer}>
-            <View style={[styles.modalContent, { paddingBottom: insets.bottom + 12 }]}>
-              <View style={styles.modalHeader}>
-                <TouchableOpacity onPress={() => setShowLocationModal(false)}>
-                  <Ionicons name="close" size={24} color="#000000" />
-                </TouchableOpacity>
-                <Text style={styles.modalTitle}>Select Location</Text>
-                <View style={{width: 24}} />
-              </View>
-              
-              <View style={styles.searchContainer}>
-                <Ionicons name="search" size={18} color="#999999" style={styles.searchIcon} />
-                <TextInput
-                  ref={searchInputRef}
-                  style={styles.searchInput}
-                  value={locationSearchQuery}
-                  onChangeText={setLocationSearchQuery}
-                  placeholder="Search cities or type a custom location"
-                  placeholderTextColor="#999999"
-                  clearButtonMode="while-editing"
-                  autoCorrect={false}
-                  autoCapitalize="none"
-                  returnKeyType="search"
-                />
-                {locationSearchQuery.length > 0 && (
-                  <TouchableOpacity 
-                    style={styles.clearButton}
-                    onPress={() => setLocationSearchQuery('')}
-                  >
-                    <Ionicons name="close-circle" size={18} color="#999999" />
-                  </TouchableOpacity>
-                )}
-              </View>
-              
-              <FlatList
-                data={CITIES.filter(city => 
-                  city.toLowerCase().includes(locationSearchQuery.toLowerCase())
-                )}
-                keyExtractor={(item) => item}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={styles.locationOption}
-                    onPress={() => {
-                      setUserData(prev => ({ ...prev, location: item }));
-                      setShowLocationModal(false);
-                      setLocationSearchQuery('');  // Reset search after selection
-                    }}
-                  >
-                    <Text style={styles.locationOptionText}>{item}</Text>
-                    {userData.location === item && (
-                      <Ionicons name="checkmark-circle" size={24} color="#34C759" />
-                    )}
-                  </TouchableOpacity>
-                )}
-                ListHeaderComponent={() => (
-                  // Show current search as a selectable option if it's not empty and not in the list
-                  locationSearchQuery && !CITIES.find(city => 
-                    city.toLowerCase() === locationSearchQuery.toLowerCase()
-                  ) ? (
-                    <TouchableOpacity
-                      style={[styles.locationOption, styles.customLocationOption]}
-                      onPress={() => {
-                        setUserData(prev => ({ ...prev, location: locationSearchQuery }));
-                        setShowLocationModal(false);
-                        setLocationSearchQuery('');  // Reset search after selection
-                      }}
-                    >
-                      <View style={styles.customLocationContent}>
-                        <Text style={styles.locationOptionText}>{locationSearchQuery}</Text>
-                        <Text style={styles.customLocationLabel}>Add custom location</Text>
-                      </View>
-                      <Ionicons name="add-circle" size={24} color="#34C759" />
-                    </TouchableOpacity>
-                  ) : null
-                )}
-                ListFooterComponent={null}
-                contentContainerStyle={{ paddingBottom: 40 }}
-              />
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -718,21 +677,16 @@ export default function EditProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
   },
-  scrollContainer: {
-    flex: 1,
-  },
-  header: {
-    backgroundColor: '#FFFFFF',
-    padding: 20,
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
+  scrollContent: {
+    paddingBottom: 100,
   },
   avatarContainer: {
     position: 'relative',
     marginBottom: 20,
+  },
+  avatarWrapper: {
+    position: 'relative',
   },
   avatar: {
     width: 100,
@@ -741,12 +695,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E5E5EA',
   },
-  avatarPlaceholder: {
+  placeholderAvatar: {
     backgroundColor: '#F2F2F7',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  editAvatarButton: {
+  changePhotoButton: {
     position: 'absolute',
     bottom: 0,
     right: 0,
@@ -759,8 +713,13 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#FFFFFF',
   },
-  usernameLabel: {
-    alignSelf: 'flex-start',
+  formContainer: {
+    padding: 20,
+  },
+  inputGroup: {
+    marginBottom: 16,
+  },
+  label: {
     fontSize: 14,
     color: '#666666',
     marginBottom: 8,
@@ -773,50 +732,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     fontSize: 16,
     color: '#000000',
-    marginBottom: 16,
   },
-  handleInputContainer: {
+  locationInput: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  gearButton: {
+    width: '100%',
+    height: 44,
     backgroundColor: '#F2F2F7',
     borderRadius: 8,
-    marginBottom: 16,
-    width: '100%',
-    paddingLeft: 16,
-  },
-  handlePrefix: {
-    fontSize: 16,
-    color: '#666666',
-  },
-  handleInput: {
-    flex: 1,
-    height: 44,
-    fontSize: 16,
-    color: '#000000',
-    paddingHorizontal: 8,
-  },
-  section: {
-    backgroundColor: '#FFFFFF',
-    paddingVertical: 16,
-    // borderTopWidth: 1,
-    borderColor: '#E5E5EA',
-  },
-  sectionHeader: {
+    paddingHorizontal: 16,
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 12,
+    justifyContent: 'space-between',
   },
-  sectionTitle: {
-    fontSize: 18,
+  gearButtonText: {
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#000000',
-    paddingTop: 8,
-  },
-  editText: {
-    fontSize: 16,
-    color: '#007AFF',
   },
   gearList: {
     paddingHorizontal: 20,
@@ -864,14 +799,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#000000',
   },
-  noGearText: {
-    fontSize: 16,
-    color: '#999999',
-    fontStyle: 'italic',
-    textAlign: 'center',
-    paddingVertical: 20,
-  },
-  footer: {
+  buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     padding: 16,
@@ -879,7 +807,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#E5E5EA',
   },
-  cancelButton: {
+  button: {
     flex: 1,
     height: 48,
     borderWidth: 1,
@@ -887,6 +815,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  cancelButton: {
     marginRight: 8,
   },
   cancelButtonText: {
@@ -895,12 +825,6 @@ const styles = StyleSheet.create({
     color: '#000000',
   },
   saveButton: {
-    flex: 1,
-    height: 48,
-    backgroundColor: '#000000',
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
     marginLeft: 8,
   },
   saveButtonText: {
@@ -908,9 +832,12 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#FFFFFF',
   },
-  modalContainer: {
+  buttonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
   },
   modalContent: {
@@ -934,11 +861,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#000000',
   },
-  doneText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#007AFF',
-  },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -959,75 +881,20 @@ const styles = StyleSheet.create({
     color: '#000000',
     paddingVertical: 0,
   },
-  clearButton: {
-    padding: 5,
-  },
-  gearOption: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-  },
-  gearOptionContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  gearOptionText: {
-    fontSize: 16,
-    color: '#000000',
-  },
-  checkboxContainer: {
-    width: 24,
-    height: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  removeGearButton: {
-    padding: 4,
-    marginLeft: 8,
-    height: 30,
-    width: 30,
-    borderRadius: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  toast: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: '#000000',
+  modalFooter: {
     padding: 16,
-    // borderTopWidth: 1,
-    // borderTopColor: '#E5E5EA',
+    borderTopWidth: 1,
+    borderTopColor: '#E5E5EA',
   },
-  toastText: {
+  confirmButton: {
+    backgroundColor: '#000000',
+    borderRadius: 8,
+    padding: 16,
+  },
+  confirmButtonText: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#FFFFFF',
-  },
-  locationSelector: {
-    width: '100%',
-    height: 44,
-    backgroundColor: '#F2F2F7',
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    marginBottom: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  locationText: {
-    fontSize: 16,
-    color: '#000000',
-  },
-  locationPlaceholder: {
-    fontSize: 16,
-    color: '#999999',
   },
   locationOption: {
     flexDirection: 'row',
@@ -1041,19 +908,5 @@ const styles = StyleSheet.create({
   locationOptionText: {
     fontSize: 16,
     color: '#000000',
-  },
-  customLocationOption: {
-    backgroundColor: '#F9F9F9',
-    borderLeftWidth: 3,
-    borderLeftColor: '#34C759',
-  },
-  customLocationContent: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  customLocationLabel: {
-    fontSize: 12,
-    color: '#666666',
-    marginTop: 4,
   },
 }); 

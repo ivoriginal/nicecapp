@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AppImage from './common/AppImage';
+import { useTheme } from '../context/ThemeContext';
 
 const { width } = Dimensions.get('window');
 // Adjust the width calculation to work better with the parent container sizing
@@ -25,6 +26,8 @@ const GearCard = ({
   isWishlist = false,
   showAvatars = true
 }) => {
+  const { theme, isDarkMode } = useTheme();
+  
   if (!item) return null;
 
   // Ensure we have the data structure we need
@@ -51,7 +54,7 @@ const GearCard = ({
     
     return (
       <View style={styles.avatarsSection}>
-        <Text style={styles.avatarsLabel}>Owned by</Text>
+        <Text style={[styles.avatarsLabel, { color: theme.secondaryText }]}>Owned by</Text>
         <View style={styles.avatarsContainer}>
           {usedBy.slice(0, 3).map((user, index) => {
             // Handle both URL and relative path images
@@ -69,13 +72,13 @@ const GearCard = ({
             return (
               <TouchableOpacity
                 key={`${user.id || index}-${index}`}
-                style={[styles.avatarWrapper, { zIndex: 10 - index }]}
+                style={[styles.avatarWrapper, { zIndex: 10 - index, borderColor: theme.cardBackground }]}
                 onPress={() => onUserPress && onUserPress(user.id)}
               >
                 <View style={styles.avatar}>
                   {/* Use a default background color as fallback */}
-                  <View style={styles.avatarFallback}>
-                    <Text style={styles.avatarFallbackText}>
+                  <View style={[styles.avatarFallback, { backgroundColor: isDarkMode ? '#2C2C2E' : '#E0E0E0' }]}>
+                    <Text style={[styles.avatarFallbackText, { color: theme.secondaryText }]}>
                       {(user.name || user.id || '?').charAt(0).toUpperCase()}
                     </Text>
                   </View>
@@ -89,8 +92,8 @@ const GearCard = ({
             );
           })}
           {usedBy.length > 3 && (
-            <View style={[styles.avatarWrapper, styles.moreAvatars]}>
-              <Text style={styles.moreAvatarsText}>+{usedBy.length - 3}</Text>
+            <View style={[styles.avatarWrapper, styles.moreAvatars, { backgroundColor: isDarkMode ? '#2C2C2E' : '#E0E0E0', borderColor: theme.cardBackground }]}>
+              <Text style={[styles.moreAvatarsText, { color: theme.secondaryText }]}>+{usedBy.length - 3}</Text>
             </View>
           )}
         </View>
@@ -100,12 +103,19 @@ const GearCard = ({
 
   return (
     <TouchableOpacity
-      style={styles.card}
+      style={[
+        styles.card, 
+        { 
+          borderWidth: isDarkMode ? 0 : 1,
+          borderColor: isDarkMode ? 'transparent' : theme.divider,
+          backgroundColor: isDarkMode ? theme.cardBackground : 'transparent' 
+        }
+      ]}
       onPress={() => onPress && onPress(item)}
       activeOpacity={0.8}
     >
       {/* Image */}
-      <View style={styles.imageContainer}>
+      <View style={[styles.imageContainer, { backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F5' }]}>
         <AppImage
           source={imageUrl}
           style={styles.image}
@@ -115,14 +125,14 @@ const GearCard = ({
 
       {/* Content */}
       <View style={styles.contentContainer}>
-        {brand && <Text style={styles.brand}>{brand}</Text>}
-        <Text style={styles.name} numberOfLines={1}>{name}</Text>
+        {brand && <Text style={[styles.brand, { color: theme.secondaryText }]}>{brand}</Text>}
+        <Text style={[styles.name, { color: theme.primaryText }]} numberOfLines={1}>{name}</Text>
         
         {/* Rating */}
         {rating > 0 && (
           <View style={styles.ratingContainer}>
             <Ionicons name="star" size={14} color="#FFD700" />
-            <Text style={styles.rating}>
+            <Text style={[styles.rating, { color: theme.secondaryText }]}>
               {rating.toFixed(1)} ({reviewCount || 0})
             </Text>
           </View>
@@ -138,11 +148,8 @@ const GearCard = ({
 const styles = StyleSheet.create({
   card: {
     width: CARD_WIDTH,
-    backgroundColor: 'white',
     borderRadius: 12,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
     minHeight: 220, // Minimum height to ensure consistency
   },
   imageContainer: {

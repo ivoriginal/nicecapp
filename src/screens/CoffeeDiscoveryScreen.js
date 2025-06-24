@@ -4,9 +4,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import mockCoffees from '../data/mockCoffees.json';
 import AppImage from '../components/common/AppImage';
+import { useTheme } from '../context/ThemeContext';
 
 const CoffeeDiscoveryScreen = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
+  const { theme, isDarkMode } = useTheme();
   const { filter = null, sortBy = 'default' } = (route && route.params) || {};
   const [coffees, setCoffees] = useState([]);
   const [activeFilter, setActiveFilter] = useState(filter);
@@ -575,24 +577,24 @@ const CoffeeDiscoveryScreen = ({ navigation, route }) => {
     }
     
     return (
-      <View style={styles.coffeeCardContainer}>
+      <View style={[styles.coffeeCardContainer, { borderBottomColor: theme.divider }]}>
         <TouchableOpacity 
-          style={styles.coffeeCard}
+          style={[styles.coffeeCard, { backgroundColor: 'transparent' }]}
           onPress={() => navigation.navigate('CoffeeDetail', { coffeeId: item.id })}
         >
           <AppImage 
             source={item.image || item.images?.[0]} 
             style={styles.coffeeImage}
-            placeholder="coffee"
+            placeholder="cafe"
           />
           <View style={styles.coffeeContent}>
-            <Text style={styles.coffeeName}>{item.name}</Text>
-            <Text style={styles.coffeeRoaster}>{item.roaster}</Text>
+            <Text style={[styles.coffeeName, { color: theme.primaryText }]}>{item.name}</Text>
+            <Text style={[styles.coffeeRoaster, { color: theme.secondaryText }]}>{item.roaster}</Text>
             <View style={styles.coffeeDetailsRow}>
-              <Text style={styles.coffeeOrigin}>{item.origin}</Text>
-              <Text style={styles.coffeePrice}>${item.price.toFixed(2)}</Text>
+              <Text style={[styles.coffeeOrigin, { color: theme.secondaryText }]}>{item.origin}</Text>
+              <Text style={[styles.coffeePrice, { color: theme.primaryText }]}>${item.price.toFixed(2)}</Text>
             </View>
-            {item.process && <Text style={styles.coffeeProcess}>{item.process}</Text>}
+            {item.process && <Text style={[styles.coffeeProcess, { color: theme.secondaryText }]}>{item.process}</Text>}
           </View>
         </TouchableOpacity>
       </View>
@@ -600,7 +602,7 @@ const CoffeeDiscoveryScreen = ({ navigation, route }) => {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <FlatList
         data={coffees}
         renderItem={renderCoffeeItem}
@@ -614,7 +616,7 @@ const CoffeeDiscoveryScreen = ({ navigation, route }) => {
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No coffees found</Text>
+            <Text style={[styles.emptyText, { color: theme.secondaryText }]}>No coffees found</Text>
           </View>
         }
       />
@@ -628,7 +630,6 @@ const CoffeeDiscoveryScreen = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
   },
   filterBarContainer: {
     flexDirection: 'row',

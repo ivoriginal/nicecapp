@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { TouchableOpacity, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { COLORS, FONTS, SIZES } from '../constants';
+import { useTheme } from '../context/ThemeContext';
 
 const FollowButton = ({ 
   userId, 
@@ -8,6 +9,7 @@ const FollowButton = ({
   onFollowChanged,
   style
 }) => {
+  const { theme } = useTheme();
   const [isFollowing, setIsFollowing] = useState(initialIsFollowing);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -36,19 +38,19 @@ const FollowButton = ({
     <TouchableOpacity
       style={[
         styles.container,
-        isFollowing ? styles.followingContainer : styles.notFollowingContainer,
+        isFollowing ? [styles.followingContainer, { backgroundColor: theme.cardBackground, borderColor: theme.primaryText }] : [styles.notFollowingContainer, { backgroundColor: theme.primaryText }],
         style
       ]}
       onPress={handlePress}
       disabled={isLoading}
     >
       {isLoading ? (
-        <ActivityIndicator size="small" color={isFollowing ? COLORS.primary : COLORS.white} />
+        <ActivityIndicator size="small" color={isFollowing ? theme.primaryText : theme.cardBackground} />
       ) : (
         <Text 
           style={[
             styles.buttonText,
-            isFollowing ? styles.followingText : styles.notFollowingText
+            isFollowing ? [styles.followingText, { color: theme.primaryText }] : [styles.notFollowingText, { color: theme.cardBackground }]
           ]}
         >
           {isFollowing ? 'Following' : 'Follow'}

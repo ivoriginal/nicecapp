@@ -14,6 +14,7 @@ import mockGear from '../data/mockGear.json';
 import gearDetails from '../data/gearDetails';
 import AppImage from '../components/common/AppImage';
 import GearCard from '../components/GearCard';
+import { useTheme } from '../context/ThemeContext';
 
 // Helper function to get the gear details by name
 const getGearDetails = (gearName) => {
@@ -54,6 +55,7 @@ const getUsersByGear = (gearName) => {
 };
 
 const GearWishlistScreen = () => {
+  const { theme, isDarkMode } = useTheme();
   const navigation = useNavigation();
   const route = useRoute();
   const { userId, userName, isCurrentUser } = route.params || {};
@@ -101,7 +103,11 @@ const GearWishlistScreen = () => {
 
   const renderWishlistItem = ({ item, index }) => (
     <TouchableOpacity 
-      style={[styles.gearCard, index % 2 === 0 ? { marginRight: 8 } : { marginLeft: 8 }]}
+      style={[
+        styles.gearCard, 
+        { backgroundColor: theme.cardBackground },
+        index % 2 === 0 ? { marginRight: 8 } : { marginLeft: 8 }
+      ]}
       onPress={() => navigation.navigate('GearDetail', { 
         gearName: item.name,
         gear: item
@@ -116,26 +122,26 @@ const GearWishlistScreen = () => {
             placeholder="hardware-chip"
           />
         ) : (
-          <View style={styles.gearImagePlaceholder}>
-            <Ionicons name="hardware-chip-outline" size={30} color="#666666" />
+          <View style={[styles.gearImagePlaceholder, { backgroundColor: theme.placeholder }]}>
+            <Ionicons name="hardware-chip-outline" size={30} color={theme.secondaryText} />
           </View>
         )}
       </View>
       <View style={styles.gearInfo}>
-        <Text style={styles.gearBrand}>{item.brand}</Text>
-        <Text style={styles.gearName}>{item.name}</Text>
-        <Text style={styles.gearPrice}>{typeof item.price === 'number' ? `€${item.price.toFixed(2)}` : item.price}</Text>
+        <Text style={[styles.gearBrand, { color: theme.secondaryText }]}>{item.brand}</Text>
+        <Text style={[styles.gearName, { color: theme.primaryText }]}>{item.name}</Text>
+        <Text style={[styles.gearPrice, { color: theme.primaryText }]}>{typeof item.price === 'number' ? `€${item.price.toFixed(2)}` : item.price}</Text>
       </View>
     </TouchableOpacity>
   );
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" />
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
       
       {loading ? (
-        <View style={styles.loadingContainer}>
-          <Text>Loading...</Text>
+        <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
+          <Text style={{ color: theme.primaryText }}>Loading...</Text>
         </View>
       ) : (
         <FlatList
@@ -146,11 +152,11 @@ const GearWishlistScreen = () => {
           contentContainerStyle={styles.flatListContent}
           columnWrapperStyle={styles.columnWrapper}
           ListEmptyComponent={() => (
-            <View style={styles.emptyContainer}>
+            <View style={[styles.emptyContainer, { backgroundColor: theme.background }]}>
               {/* <Ionicons name="hardware-chip-outline" size={50} color="#CCCCCC" /> */}
-              <Text style={styles.emptyText}>No items in the wishlist</Text>
+              <Text style={[styles.emptyText, { color: theme.secondaryText }]}>No items in the wishlist</Text>
               {isCurrentUser && (
-                <Text style={styles.emptySubText}>Browse coffee gear to add items to your wishlist</Text>
+                <Text style={[styles.emptySubText, { color: theme.tertiaryText }]}>Browse coffee gear to add items to your wishlist</Text>
               )}
             </View>
           )}

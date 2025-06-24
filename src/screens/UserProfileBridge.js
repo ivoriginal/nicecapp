@@ -10,68 +10,51 @@ import UserProfileScreen from './UserProfileScreen';
 export default function UserProfileBridge() {
   const navigation = useNavigation();
   const route = useRoute();
-  const { userId, userName, skipAuth = false, isLocation = false, parentBusinessId = null } = route.params || {};
-  const [loading, setLoading] = useState(true);
+  const { 
+    userId, 
+    userName, 
+    skipAuth = false, 
+    isLocation = false, 
+    parentBusinessId = null,
+    isBusinessAccount = false,
+    isRoaster = false,
+    location
+  } = route.params || {};
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    async function navigateToProfile() {
+    // Prevent multiple navigation attempts
+    let hasNavigated = false;
+    let timeoutId;
+
+    const navigateToProfile = () => {
       try {
+        // Debug: Log what parameters we received
+        console.log('UserProfileBridge received params:', route.params);
+        console.log('UserProfileBridge processing navigation for userId:', userId, 'userName:', userName);
+        
+        if (!userId && !userName) {
+          console.error('UserProfileBridge: No userId or userName provided');
+          setError('No user information provided');
+          setLoading(false);
+          return;
+        }
+        
         // Handle location-specific cafes first (e.g., Toma Café 1)
-        if (isLocation) {
-          console.log(`Handling location: ${userId}, parentBusinessId: ${parentBusinessId}`);
-          
-          // Special handling for Toma Café locations
-          if (userId && userId.includes('toma-cafe')) {
-            let locationNumber = "1";
-            if (userId === 'toma-cafe-1' || userName === 'Toma Café 1') locationNumber = "1";
-            if (userId === 'toma-cafe-2' || userName === 'Toma Café 2') locationNumber = "2";
-            if (userId === 'toma-cafe-3' || userName === 'Toma Café 3 / Proper Sound') locationNumber = "3";
-            
-            const locationCoverImage = `assets/businesses/toma-${locationNumber}-cover.jpg`;
-            
-            navigation.replace('UserProfileScreen', {
-              userId: userId || `toma-cafe-${locationNumber}`,
-              userName: userName || `Toma Café ${locationNumber}`,
-              userAvatar: 'assets/businesses/toma-logo.jpg',
-              coverImage: locationCoverImage,
-              isBusinessAccount: true,
-              isLocation: true,
-              parentBusinessId,
-              parentBusinessName: 'Toma Café',
-              skipAuth
-            });
-            return;
-          }
-          
-          // General handling for other locations
-          const parentCafe = mockCafes.businesses.find(b => b.id === parentBusinessId);
-          const location = mockCafes.locations.find(loc => loc.id === userId || loc.name === userName)
-                       || mockCafes.trendingCafes.find(loc => loc.id === userId || loc.name === userName);
-          
-          if (location) {
-            navigation.replace('UserProfileScreen', {
-              userId: location.id,
-              userName: location.name,
-              userAvatar: location.avatar || location.logo || (parentCafe ? parentCafe.avatar : null),
-              coverImage: location.coverImage,
-              isBusinessAccount: true,
-              isLocation: true,
-              parentBusinessId,
-              parentBusinessName: parentCafe ? parentCafe.name : null,
-              skipAuth
-            });
-            return;
-          }
+        if (isLocation && handleLocationProfile()) {
+          return;
         }
 
         // Handle cafe businesses
-        const foundCafe = handleCafeProfile();
-        if (foundCafe) return;
+        if (handleCafeProfile()) {
+          return;
+        }
         
         // Handle user profiles
-        const foundUser = handleUserProfile();
-        if (foundUser) return;
+        if (handleUserProfile()) {
+          return;
+        }
 
         // Fallback for unknown profiles
         handleUnknownProfile();
@@ -80,105 +63,140 @@ export default function UserProfileBridge() {
         setError(error.message);
         setLoading(false);
       }
-    }
+    };
     
-    function handleCafeProfile() {
-      // Check businesses data in mockCafes
-      const cafe = mockCafes.businesses.find(b => b.id === userId || b.name === userName);
-      if (cafe) {
-        console.log("Found cafe:", cafe.name);
+    const handleLocationProfile = () => {
+      console.log(`Handling location: ${userId}, parentBusinessId: ${parentBusinessId}`);
+      
+      // Special handling for Toma Café locations
+      if (userId && userId.includes('toma-cafe')) {
+        let locationNumber = "1";
+        if (userId === 'toma-cafe-1' || userName === 'Toma Café 1') locationNumber = "1";
+        if (userId === 'toma-cafe-2' || userName === 'Toma Café 2') locationNumber = "2";
+        if (userId === 'toma-cafe-3' || userName === 'Toma Café 3 / Proper Sound') locationNumber = "3";
         
-        // Special cases for different cafes
-        if (cafe.name === 'The Fix' || cafe.id === 'business-thefix') {
-          navigation.replace('UserProfileScreen', {
-            userId: cafe.id,
-            userName: cafe.name,
-            userAvatar: 'assets/businesses/thefix-logo.jpg',
-            coverImage: 'assets/businesses/thefix-cover.jpg',
-            isBusinessAccount: true,
-            skipAuth
-          });
-          return true;
-        }
+        const locationCoverImage = `assets/businesses/toma-${locationNumber}-cover.jpg`;
         
-        if (cafe.name === 'Vértigo y Calambre' || cafe.id === 'business-vertigo') {
-          navigation.replace('UserProfileScreen', {
-            userId: cafe.id,
-            userName: cafe.name,
-            userAvatar: 'assets/businesses/vertigo-logo.jpg',
-            coverImage: cafe.coverImage || 'assets/businesses/vertigo-cover.jpg',
-            isBusinessAccount: true,
-            skipAuth
-          });
-          return true;
-        }
-        
-        if (cafe.name === 'CaféLab' || cafe.id === 'business-cafelab') {
-          navigation.replace('UserProfileScreen', {
-            userId: cafe.id,
-            userName: cafe.name,
-            userAvatar: 'assets/businesses/cafelab-logo.jpg',
-            coverImage: 'assets/businesses/cafelab-cover.jpg',
-            isBusinessAccount: true,
-            skipAuth
-          });
-          return true;
-        }
-        
-        // Check in trendingCafes for missing cafe data
-        if (!cafe.avatar && !cafe.logo) {
-          const trendingCafe = mockCafes.trendingCafes.find(tc => tc.id === userId || tc.name === userName);
-          if (trendingCafe && (trendingCafe.avatar || trendingCafe.logo || trendingCafe.coverImage)) {
-            navigation.replace('UserProfileScreen', {
-              userId: trendingCafe.id,
-              userName: trendingCafe.name,
-              userAvatar: trendingCafe.avatar || trendingCafe.logo,
-              coverImage: trendingCafe.coverImage,
-              isBusinessAccount: true,
-              skipAuth
-            });
-            return true;
-          }
-        }
-        
-        // For all other cafes
-        navigation.replace('UserProfileScreen', {
-          userId: cafe.id,
-          userName: cafe.name,
-          userAvatar: cafe.avatar || cafe.logo,
-          coverImage: cafe.coverImage,
+        console.log(`UserProfileBridge: Navigating to Toma Café ${locationNumber} with userId: ${userId}`);
+        navigateToUserProfile({
+          userId: userId || `toma-cafe-${locationNumber}`,
+          userName: userName || `Toma Café ${locationNumber}`,
+          userAvatar: 'assets/businesses/toma-logo.jpg',
+          coverImage: locationCoverImage,
           isBusinessAccount: true,
+          isLocation: true,
+          parentBusinessId,
+          parentBusinessName: 'Toma Café',
           skipAuth
         });
         return true;
       }
       
-      // Check trending cafes
-      const trendingCafe = mockCafes.trendingCafes.find(tc => tc.id === userId || tc.name === userName);
-      if (trendingCafe) {
-        console.log("Found trending cafe:", trendingCafe.name);
-        navigation.replace('UserProfileScreen', {
-          userId: trendingCafe.id,
-          userName: trendingCafe.name,
-          userAvatar: trendingCafe.avatar || trendingCafe.logo,
-          coverImage: trendingCafe.coverImage,
+      // General handling for other locations
+      const parentCafe = mockCafes.roasters.find(b => b.id === parentBusinessId);
+      const locationData = mockCafes.cafes.find(loc => loc.id === userId || loc.name === userName);
+      
+      if (locationData) {
+        console.log(`UserProfileBridge: Navigating to general location: ${locationData.name}`);
+        navigateToUserProfile({
+          userId: locationData.id,
+          userName: locationData.name,
+          userAvatar: locationData.avatar || locationData.logo || (parentCafe ? parentCafe.avatar : null),
+          coverImage: locationData.coverImage,
           isBusinessAccount: true,
+          isLocation: true,
+          parentBusinessId,
+          parentBusinessName: parentCafe ? parentCafe.name : null,
           skipAuth
         });
         return true;
       }
       
       return false;
-    }
+    };
     
-    function handleUserProfile() {
+    const handleCafeProfile = () => {
+      console.log('UserProfileBridge: Searching for café with userId:', userId, 'userName:', userName);
+      
+      // First check roasters (for main business profiles)
+      const roaster = mockCafes.roasters.find(r => r.id === userId || r.name === userName);
+      if (roaster) {
+        console.log("Found roaster:", roaster.name);
+        navigateToUserProfile({
+          userId: roaster.id,
+          userName: roaster.name,
+          userAvatar: roaster.avatar || roaster.logo,
+          coverImage: roaster.coverImage,
+          isBusinessAccount: true,
+          isRoaster: true,
+          location: location || roaster.location,
+          skipAuth
+        });
+        return true;
+      }
+      
+      // Then check cafes (for specific café locations)
+      const cafe = mockCafes.cafes.find(c => c.id === userId || c.name === userName);
+      if (cafe) {
+        console.log("Found cafe:", cafe.name);
+        
+        // Get roaster info if available
+        const parentRoaster = cafe.roasterId ? mockCafes.roasters.find(r => r.id === cafe.roasterId) : null;
+        
+        // Special handling for Toma Café locations
+        if (cafe.id && cafe.id.startsWith('toma-cafe')) {
+          let locationNumber = "1";
+          if (cafe.id === 'toma-cafe-1') locationNumber = "1";
+          if (cafe.id === 'toma-cafe-2') locationNumber = "2";
+          if (cafe.id === 'toma-cafe-3') locationNumber = "3";
+          
+          const locationCoverImage = `assets/businesses/toma-${locationNumber}-cover.jpg`;
+          
+          console.log(`UserProfileBridge: Found Toma Café ${locationNumber}, navigating with special handling`);
+          navigateToUserProfile({
+            userId: cafe.id,
+            userName: cafe.name,
+            userAvatar: 'assets/businesses/toma-logo.jpg',
+            coverImage: locationCoverImage,
+            isBusinessAccount: true,
+            isLocation: true,
+            parentBusinessId: 'business-toma',
+            parentBusinessName: 'Toma Café',
+            location: location || cafe.location,
+            skipAuth
+          });
+          return true;
+        }
+        
+        // Use image paths from mockCafes.json for other cafes
+        console.log(`UserProfileBridge: Found regular cafe ${cafe.name}, navigating normally`);
+        navigateToUserProfile({
+          userId: cafe.id,
+          userName: cafe.name,
+          userAvatar: cafe.avatar,
+          coverImage: cafe.coverImage,
+          isBusinessAccount: true,
+          isLocation: !!cafe.roasterId,
+          parentBusinessId: cafe.roasterId,
+          parentBusinessName: parentRoaster ? parentRoaster.name : null,
+          location: location || cafe.location,
+          skipAuth
+        });
+        return true;
+      }
+      
+      console.log('UserProfileBridge: No café found with userId:', userId, 'userName:', userName);
+      return false;
+    };
+    
+    const handleUserProfile = () => {
       const user = mockUsers.users.find(u => u.id === userId || u.userName === userName);
       if (user) {
         console.log("Found user:", user.userName);
         
         // Special handling for specific users
         if (user.userName === 'Carlos Hernández' || user.id === 'user3') {
-          navigation.replace('UserProfileScreen', {
+          navigateToUserProfile({
             userId: user.id,
             userName: user.userName,
             userAvatar: user.userAvatar || 'assets/users/carlos-hernandez.jpg',
@@ -189,30 +207,74 @@ export default function UserProfileBridge() {
         }
         
         // For all other users
-        navigation.replace('UserProfileScreen', {
+        navigateToUserProfile({
           userId: user.id,
           userName: user.userName,
           userAvatar: user.userAvatar,
-          isBusinessAccount: !!user.isBusinessAccount,
+          isBusinessAccount: !!user.isBusinessAccount || isBusinessAccount,
+          isRoaster: isRoaster,
+          location: location || user.location,
           skipAuth
         });
         return true;
       }
       
       return false;
-    }
+    };
     
-    function handleUnknownProfile() {
+    const handleUnknownProfile = () => {
       console.warn(`User/Cafe not found for ID: ${userId} or name: ${userName}`);
-      navigation.replace('UserProfileScreen', {
+      console.log('Available users in mockUsers:', mockUsers.users.map(u => ({ id: u.id, userName: u.userName })));
+      navigateToUserProfile({
         userId: userId || 'unknown',
         userName: userName || 'Unknown User',
+        isBusinessAccount: isBusinessAccount,
+        isRoaster: isRoaster,
+        location: location,
         skipAuth
       });
-    }
+    };
 
+    const navigateToUserProfile = (params) => {
+      if (hasNavigated) {
+        console.log('Navigation already attempted, skipping...');
+        return;
+      }
+      
+      hasNavigated = true;
+      console.log('UserProfileBridge: Navigating with params:', params);
+      
+      // Clear timeout before navigating
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      
+      // Use replace instead of navigate to avoid showing loading when going back
+      // Use immediate navigation without delay
+      setTimeout(() => {
+        navigation.replace('UserProfileScreen', params);
+      }, 0);
+      setLoading(false);
+    };
+
+    // Set up fallback timeout
+    timeoutId = setTimeout(() => {
+      if (!hasNavigated) {
+        console.warn('UserProfileBridge: Navigation taking too long, forcing fallback');
+        setError('Navigation timeout - unable to load profile');
+        setLoading(false);
+      }
+    }, 1000); // Further reduced to 1 second
+
+    // Start navigation process immediately
     navigateToProfile();
-  }, [navigation, userId, userName, skipAuth, isLocation, parentBusinessId]);
+    
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [navigation, userId, userName]); // Simplified dependency array
 
   if (error) {
     return (
@@ -222,7 +284,13 @@ export default function UserProfileBridge() {
     );
   }
 
-  return null;  // Return null to avoid showing the intermediate loading screen
+  // Show loading while processing navigation
+  return (
+    <View style={styles.container}>
+      <ActivityIndicator size="large" color="#000000" />
+      <Text style={styles.loadingText}>Loading profile...</Text>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({

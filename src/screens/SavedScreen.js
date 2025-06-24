@@ -161,7 +161,7 @@ export default function SavedScreen() {
           <AppImage 
             source={coffeeData?.image || coffeeData?.imageUrl || item.image || item.imageUrl} 
             style={styles.coffeeImage}
-            placeholder="coffee"
+            placeholder="cafe"
           />
         </View>
         <View style={styles.coffeeInfo}>

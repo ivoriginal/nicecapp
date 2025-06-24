@@ -62,7 +62,7 @@ const localAssets = {
 const AppImage = ({ 
   source, 
   style, 
-  placeholder = 'coffee',
+  placeholder = 'cafe',
   resizeMode = 'cover',
   onError,
   ...props 

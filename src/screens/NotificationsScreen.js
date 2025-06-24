@@ -3,8 +3,9 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, Alert } from
 import { Ionicons } from '@expo/vector-icons';
 import { useNotifications } from '../context/NotificationsContext';
 import { useFocusEffect } from '@react-navigation/native';
+import { useTheme } from '../context/ThemeContext';
 
-const NotificationItem = ({ notification, onPress, isLast }) => {
+const NotificationItem = ({ notification, onPress, isLast, theme }) => {
   const formatDate = (dateString) => {
     try {
       const date = new Date(dateString);
@@ -89,7 +90,8 @@ const NotificationItem = ({ notification, onPress, isLast }) => {
     <TouchableOpacity
       style={[
         styles.notificationItem,
-        !notification.read && styles.unreadNotification,
+        { backgroundColor: theme.cardBackground, borderBottomColor: theme.divider },
+        !notification.read && [styles.unreadNotification, { backgroundColor: theme.secondaryBackground || (theme.isDarkMode ? '#1C1C1E' : '#F2F2F7') }],
         isLast && { borderBottomWidth: 0 }
       ]}
       onPress={() => onPress(notification)}
@@ -107,11 +109,11 @@ const NotificationItem = ({ notification, onPress, isLast }) => {
         </View>
       </TouchableOpacity>
       <View style={styles.notificationContent}>
-        <Text style={styles.notificationMessage}>
+        <Text style={[styles.notificationMessage, { color: theme.primaryText }]}>
           {getNotificationMessage()}
         </Text>
-        {secondaryText && <Text style={styles.secondaryText}>{secondaryText}</Text>}
-        <Text style={styles.notificationTime}>{formatDate(notification.date)}</Text>
+        {secondaryText && <Text style={[styles.secondaryText, { color: theme.secondaryText }]}>{secondaryText}</Text>}
+        <Text style={[styles.notificationTime, { color: theme.secondaryText }]}>{formatDate(notification.date)}</Text>
       </View>
       {!notification.read && <View style={styles.unreadIndicator} />}
     </TouchableOpacity>
@@ -120,6 +122,7 @@ const NotificationItem = ({ notification, onPress, isLast }) => {
 
 const NotificationsScreen = ({ navigation }) => {
   const { notifications, markAsRead, markAllAsRead, getNotificationData } = useNotifications();
+  const { theme, isDarkMode } = useTheme();
   const [loading, setLoading] = useState(true);
   const [screenFocused, setScreenFocused] = useState(false);
 
@@ -275,39 +278,42 @@ const NotificationsScreen = ({ navigation }) => {
     }
   };
 
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Text>Loading notifications...</Text>
-      </View>
-    );
-  }
-
-  if (notifications.length === 0) {
-    return (
-      <View style={styles.emptyContainer}>
-        <Ionicons name="notifications-off-outline" size={64} color="#CCCCCC" />
-        <Text style={styles.emptyText}>No Notifications</Text>
-        <Text style={styles.emptySubtext}>
-          You don't have any notifications yet.
-        </Text>
-      </View>
-    );
-  }
-
   return (
-    <FlatList
-      data={notifications}
-      keyExtractor={(item) => item.id}
-      renderItem={({ item, index }) => (
-        <NotificationItem 
-          notification={item} 
-          onPress={handleNotificationPress} 
-          isLast={index === notifications.length - 1}
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <Text style={[styles.emptyText, { color: theme.secondaryText }]}>Loading notifications...</Text>
+        </View>
+      ) : notifications.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Ionicons name="notifications-outline" size={48} color={theme.secondaryText} />
+          <Text style={[styles.emptyText, { color: theme.secondaryText }]}>No notifications yet</Text>
+          <Text style={[styles.emptySubtext, { color: theme.secondaryText }]}>You'll see notifications here when people interact with your content</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={notifications}
+          renderItem={({ item, index }) => (
+            <NotificationItem 
+              notification={item} 
+              onPress={handleNotificationPress} 
+              isLast={index === notifications.length - 1}
+              theme={theme}
+            />
+          )}
+          keyExtractor={item => item.id}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={[styles.notificationsList, notifications.length === 0 && styles.emptyList]}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Ionicons name="notifications-outline" size={48} color={theme.secondaryText} />
+              <Text style={[styles.emptyText, { color: theme.secondaryText }]}>No notifications yet</Text>
+              <Text style={[styles.emptySubtext, { color: theme.secondaryText }]}>You'll see notifications here when people interact with your content</Text>
+            </View>
+          }
         />
       )}
-      contentContainerStyle={styles.listContent}
-    />
+    </View>
   );
 };
 
@@ -397,6 +403,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#007AFF',
     alignSelf: 'center',
     marginLeft: 8,
+  },
+  container: {
+    flex: 1,
+  },
+  notificationsList: {
+    paddingVertical: 0,
+  },
+  emptyList: {
+    paddingVertical: 0,
   },
 });
 

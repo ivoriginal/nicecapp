@@ -13,6 +13,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, CommonActions } from '@react-navigation/native';
 import { useCoffee } from '../context/CoffeeContext';
 import mockGearData from '../data/mockGear.json';
+import { useTheme } from '../context/ThemeContext';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import AppImage from '../components/common/AppImage';
 
 // Transform mockGear.json data to the format expected by the component
 const gearData = mockGearData.gear.reduce((acc, item) => {
@@ -50,6 +53,8 @@ export default function GearDetailScreen() {
   const route = useRoute();
   const navigation = useNavigation();
   const { gearName, gearId } = route.params || {};
+  const insets = useSafeAreaInsets();
+  const { theme, isDarkMode } = useTheme();
   const [inWishlist, setInWishlist] = useState(false);
   const { coffeeWishlist, addToWishlist, removeFromWishlist } = useCoffee();
   
@@ -129,147 +134,234 @@ export default function GearDetailScreen() {
     Alert.alert('Coming Soon', `You'll be able to visit ${shop.name} soon.`);
   };
   
+  // Create a simple star rating component
+  const StarRating = ({ rating, size = 16 }) => {
+    const fullStars = Math.floor(rating);
+    const halfStar = rating % 1 >= 0.5;
+    const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
+    
+    return (
+      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        {[...Array(fullStars)].map((_, i) => (
+          <Ionicons key={`full-${i}`} name="star" size={size} color="#FFD700" />
+        ))}
+        {halfStar && (
+          <Ionicons key="half" name="star-half" size={size} color="#FFD700" />
+        )}
+        {[...Array(emptyStars)].map((_, i) => (
+          <Ionicons key={`empty-${i}`} name="star-outline" size={size} color="#FFD700" />
+        ))}
+      </View>
+    );
+  };
+  
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Hero Image */}
-        <View style={styles.imageContainer}>
-          <Image 
-            source={{ uri: gear.image }} 
-            style={styles.image}
-            resizeMode="cover"
-          />
-          <TouchableOpacity 
-            style={styles.wishlistButton}
-            onPress={toggleWishlist}
-          >
-            <Ionicons 
-              name={inWishlist ? "gift" : "gift-outline"} 
-              size={28} 
-              color={inWishlist ? "#FFFFFF" : "#FFFFFF"} 
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <ScrollView
+        style={[styles.scrollView, { backgroundColor: theme.background }]}
+        contentContainerStyle={styles.scrollContent}
+      >
+        {/* Gear Header */}
+        <View style={[styles.header, { backgroundColor: theme.cardBackground }]}>
+          {/* Gear Image */}
+          <View style={styles.imageContainer}>
+            <AppImage
+              source={{ uri: gear.image }}
+              style={styles.gearImage}
+              resizeMode="contain"
             />
-          </TouchableOpacity>
-        </View>
-        
-        {/* Details */}
-        <View style={styles.detailsContainer}>
-          <Text style={styles.name}>{gear.name}</Text>
-          <Text style={styles.price}>${gear.price.toFixed(2)}</Text>
-          <Text style={styles.description}>{gear.description}</Text>
-          
-          {/* Where to Buy */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Where to Buy</Text>
-            {gear.whereToBuy.map((shop, index) => (
-              <TouchableOpacity 
-                key={index} 
-                style={styles.shopItem}
-                onPress={() => handleShopPress(shop)}
-              >
-                <View style={styles.shopInfo}>
-                  <Text style={styles.shopName}>{shop.name}</Text>
-                  <Text style={styles.shopLocation}>{shop.location}</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color="#000000" />
-              </TouchableOpacity>
-            ))}
           </View>
+
+          {/* Gear Details */}
+          <View style={styles.gearInfo}>
+            <Text style={[styles.gearName, { color: theme.primaryText }]}>{gear.name}</Text>
+            <Text style={[styles.brandName, { color: theme.secondaryText }]}>{gear.brand}</Text>
+            
+            {/* Rating */}
+            <View style={styles.ratingContainer}>
+              <StarRating rating={gear.rating || 4.5} size={16} />
+              <Text style={[styles.ratingText, { color: theme.secondaryText }]}>
+                {gear.rating || 4.5} ({gear.numReviews || 254} reviews)
+              </Text>
+            </View>
+
+            {/* Price */}
+            <Text style={[styles.price, { color: theme.primaryText }]}>
+              ${gear.price ? gear.price.toFixed(2) : '0.00'}
+            </Text>
+
+            {/* Action buttons */}
+            <View style={styles.actionButtons}>
+              <TouchableOpacity
+                style={[styles.wishlistButton, { backgroundColor: inWishlist ? '#007AFF' : theme.cardBackground, borderColor: theme.border }]}
+                onPress={toggleWishlist}
+              >
+                <Ionicons
+                  name={inWishlist ? "heart" : "heart-outline"}
+                  size={20}
+                  color={inWishlist ? '#FFFFFF' : theme.primaryText}
+                  style={styles.wishlistIcon}
+                />
+                <Text style={[styles.wishlistText, { color: inWishlist ? '#FFFFFF' : theme.primaryText }]}>
+                  {inWishlist ? 'In Wishlist' : 'Add to Wishlist'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+
+        {/* Gear Description */}
+        <View style={[styles.section, { backgroundColor: theme.cardBackground }]}>
+          <Text style={[styles.sectionTitle, { color: theme.primaryText }]}>About this gear</Text>
+          <Text style={[styles.description, { color: theme.secondaryText }]}>{gear.description}</Text>
+        </View>
+
+        {/* People who use this */}
+        <View style={[styles.section, { backgroundColor: theme.cardBackground }]}>
+          <Text style={[styles.sectionTitle, { color: theme.primaryText }]}>People who use this</Text>
           
-          {/* Used By */}
-          {gear.usedBy && gear.usedBy.length > 0 && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Used By</Text>
+          {gear.usedBy && gear.usedBy.length > 0 ? (
+            <View style={styles.usersList}>
               {gear.usedBy.map((user, index) => (
-                <TouchableOpacity 
-                  key={index} 
-                  style={styles.userItem}
+                <TouchableOpacity
+                  key={index}
+                  style={[styles.userItem, { borderBottomColor: theme.divider }]}
                   onPress={() => handleUserPress(user.id, user.name)}
                 >
-                  <Image 
-                    source={typeof user.avatar === 'string' ? { uri: user.avatar } : user.avatar} 
-                    style={styles.userAvatar} 
+                  <AppImage
+                    source={typeof user.avatar === 'string' ? { uri: user.avatar } : user.avatar}
+                    style={styles.userAvatar}
+                    resizeMode="cover"
                   />
-                  <Text style={styles.userName}>{user.name}</Text>
-                  <Ionicons name="chevron-forward" size={20} color="#000000" />
+                  <View style={styles.userInfo}>
+                    <Text style={[styles.userName, { color: theme.primaryText }]}>{user.name}</Text>
+                    {user.location && (
+                      <Text style={[styles.userLocation, { color: theme.secondaryText }]}>{user.location}</Text>
+                    )}
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color={theme.secondaryText} />
                 </TouchableOpacity>
               ))}
             </View>
+          ) : (
+            <View style={styles.emptyState}>
+              <Text style={[styles.emptyStateText, { color: theme.secondaryText }]}>No users found</Text>
+            </View>
           )}
+        </View>
+
+        {/* Where to buy */}
+        <View style={[styles.section, { backgroundColor: theme.cardBackground }]}>
+          <Text style={[styles.sectionTitle, { color: theme.primaryText }]}>Where to buy</Text>
           
-          {/* Wanted By */}
-          {gear.wantedBy && gear.wantedBy.length > 0 && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Wanted By</Text>
-              {gear.wantedBy.map((user, index) => (
-                <TouchableOpacity 
-                  key={index} 
-                  style={styles.userItem}
-                  onPress={() => handleUserPress(user.id, user.name)}
+          {gear.whereToBuy && gear.whereToBuy.length > 0 ? (
+            <View style={styles.shopsList}>
+              {gear.whereToBuy.map((shop, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={[styles.shopItem, { borderBottomColor: theme.divider }]}
+                  onPress={() => handleShopPress(shop)}
                 >
-                  <Image 
-                    source={typeof user.avatar === 'string' ? { uri: user.avatar } : user.avatar} 
-                    style={styles.userAvatar} 
+                  <AppImage
+                    source={typeof shop.logo === 'string' ? { uri: shop.logo } : shop.logo}
+                    style={styles.shopLogo}
+                    resizeMode="contain"
                   />
-                  <Text style={styles.userName}>{user.name}</Text>
-                  <Ionicons name="chevron-forward" size={20} color="#000000" />
+                  <View style={styles.shopInfo}>
+                    <Text style={[styles.shopName, { color: theme.primaryText }]}>{shop.name}</Text>
+                    <Text style={[styles.shopPrice, { color: theme.primaryText }]}>
+                      {typeof shop.price === 'number' ? `$${shop.price.toFixed(2)}` : shop.price}
+                    </Text>
+                  </View>
+                  <View style={[styles.shopButton, { backgroundColor: theme.primaryText }]}>
+                    <Text style={[styles.shopButtonText, { color: theme.background }]}>Visit</Text>
+                  </View>
                 </TouchableOpacity>
               ))}
+            </View>
+          ) : (
+            <View style={styles.emptyState}>
+              <Text style={[styles.emptyStateText, { color: theme.secondaryText }]}>No shops found</Text>
             </View>
           )}
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 20,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 20,
   },
   imageContainer: {
-    position: 'relative',
-    height: 300,
-    width: '100%',
+    width: 100,
+    height: 100,
+    borderRadius: 10,
+    overflow: 'hidden',
+    marginRight: 20,
   },
-  image: {
+  gearImage: {
     width: '100%',
     height: '100%',
   },
-  wishlistButton: {
-    position: 'absolute',
-    top: 20,
-    right: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    borderRadius: 20,
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
+  gearInfo: {
+    flex: 1,
   },
-  detailsContainer: {
-    padding: 20,
-    width: '100%',
-    maxWidth: 500,
-    alignSelf: 'center',
-  },
-  name: {
+  gearName: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#000000',
     marginBottom: 8,
+  },
+  brandName: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#666666',
+    marginBottom: 16,
+  },
+  ratingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  ratingText: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
   },
   price: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#000000',
     marginBottom: 16,
   },
-  description: {
+  actionButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  wishlistButton: {
+    borderWidth: 2,
+    borderColor: '#007AFF',
+    borderRadius: 10,
+    padding: 12,
+  },
+  wishlistIcon: {
+    marginRight: 8,
+  },
+  wishlistText: {
     fontSize: 16,
-    lineHeight: 24,
-    color: '#333333',
-    marginBottom: 24,
+    fontWeight: '600',
   },
   section: {
     marginBottom: 24,
@@ -278,33 +370,13 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#000000',
     marginBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#E5E5EA',
     paddingBottom: 8,
   },
-  shopItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
+  usersList: {
     width: '100%',
-  },
-  shopInfo: {
-    flex: 1,
-  },
-  shopName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000000',
-    marginBottom: 4,
-  },
-  shopLocation: {
-    fontSize: 14,
-    color: '#666666',
   },
   userItem: {
     flexDirection: 'row',
@@ -323,9 +395,66 @@ const styles = StyleSheet.create({
     borderColor: '#F0F0F0',
     backgroundColor: '#E5E5EA',
   },
-  userName: {
+  userInfo: {
     flex: 1,
+  },
+  userName: {
     fontSize: 16,
+    fontWeight: '600',
     color: '#000000',
+  },
+  userLocation: {
+    fontSize: 14,
+    color: '#666666',
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyStateText: {
+    fontSize: 16,
+    color: '#666666',
+  },
+  shopsList: {
+    width: '100%',
+  },
+  shopItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5EA',
+    width: '100%',
+  },
+  shopLogo: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    overflow: 'hidden',
+    marginRight: 12,
+  },
+  shopInfo: {
+    flex: 1,
+  },
+  shopName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000000',
+    marginBottom: 4,
+  },
+  shopPrice: {
+    fontSize: 14,
+    color: '#666666',
+  },
+  shopButton: {
+    padding: 12,
+    borderRadius: 10,
+    backgroundColor: '#007AFF',
+  },
+  shopButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 }); 

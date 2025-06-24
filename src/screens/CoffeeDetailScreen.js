@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { 
   View, 
   Text, 
@@ -39,8 +39,10 @@ import UserAvatar from '../components/UserAvatar';
 import TasteProfile from '../components/TasteProfile';
 import ReviewStars from '../components/ReviewStars';
 import mockRecipes from '../data/mockRecipes.json';
+import { useTheme } from '../context/ThemeContext';
 
 export default function CoffeeDetailScreen() {
+  const { theme, isDarkMode } = useTheme();
   const { 
     coffeeEvents, 
     coffeeCollection, 
@@ -125,7 +127,7 @@ export default function CoffeeDetailScreen() {
           // Enhance seller info with additional business data if available
           const enhancedSellers = sellersList.map(seller => {
             // Check if this is a business that has a corresponding entry in businesses
-            const businessData = mockCafes.businesses.find(b => b.id === seller.id);
+            const businessData = mockCafes.roasters.find(b => b.id === seller.id);
             if (businessData) {
               return {
                 ...seller,
@@ -156,7 +158,7 @@ export default function CoffeeDetailScreen() {
           // Set sellers
           const sellersList = mockCoffees.sellers[exactCoffeeMatch.id] || [];
           const enhancedSellers = sellersList.map(seller => {
-            const businessData = mockCafes.businesses.find(b => b.id === seller.id);
+            const businessData = mockCafes.roasters.find(b => b.id === seller.id);
             if (businessData) {
               return {
                 ...seller,
@@ -184,7 +186,7 @@ export default function CoffeeDetailScreen() {
           // Set sellers
           const sellersList = mockCoffees.sellers[coffeeByName.id] || [];
           const enhancedSellers = sellersList.map(seller => {
-            const businessData = mockCafes.businesses.find(b => b.id === seller.id);
+            const businessData = mockCafes.roasters.find(b => b.id === seller.id);
             if (businessData) {
               return {
                 ...seller,
@@ -228,7 +230,7 @@ export default function CoffeeDetailScreen() {
             // Enhance seller info with additional business data if available
             const enhancedSellers = sellersList.map(seller => {
               // Check if this is a business that has a corresponding entry in businesses
-              const businessData = mockCafes.businesses.find(b => b.id === seller.id);
+              const businessData = mockCafes.roasters.find(b => b.id === seller.id);
               if (businessData) {
                 return {
                   ...seller,
@@ -269,7 +271,7 @@ export default function CoffeeDetailScreen() {
             // Enhance seller info with additional business data if available
             const enhancedSellers = sellersList.map(seller => {
               // Check if this is a business that has a corresponding entry in businesses
-              const businessData = mockCafes.businesses.find(b => b.id === seller.id);
+              const businessData = mockCafes.roasters.find(b => b.id === seller.id);
               if (businessData) {
                 return {
                   ...seller,
@@ -297,7 +299,7 @@ export default function CoffeeDetailScreen() {
           // Enhance seller info with additional business data if available
           const enhancedSellers = sellersList.map(seller => {
             // Check if this is a business that has a corresponding entry in businesses
-            const businessData = mockCafes.businesses.find(b => b.id === seller.id);
+            const businessData = mockCafes.roasters.find(b => b.id === seller.id);
             if (businessData) {
               return {
                 ...seller,
@@ -390,75 +392,36 @@ export default function CoffeeDetailScreen() {
     }
   }, [coffee, coffeeWishlist]);
 
-  // Update navigation options with favorite state and toggle function
-  useEffect(() => {
-    if (!coffee) return; // Don't set up navigation if coffee isn't loaded yet
-    
-    // Configure header options only if coffee exists
-    navigation.setParams({
-      isFavorite,
-      handleToggleFavorite,
-      isInCollection,
-      coffee: {
-        id: coffee.id,
-        name: coffee.name
-      } // Only send minimal coffee data to avoid circular references
-    });
-    
-    // Force header to be shown on this screen - this is crucial
-    const initialSetup = () => {
+  // Set up navigation options
+  useLayoutEffect(() => {
+    if (coffee) {
       navigation.setOptions({
         headerShown: true,
-        // Hide the options button if no coffee is found
-        headerRight: coffee ? undefined : () => null
+        headerStyle: {
+          backgroundColor: theme.background,
+        },
+        headerTintColor: theme.primaryText, // Set back button color
       });
-    };
-    
-    // Initial setup
-    initialSetup();
-    
-    // Listen for focus events to restore header when returning to this screen
-    const focusUnsubscribe = navigation.addListener('focus', () => {
-      console.log('CoffeeDetailScreen focused, ensuring header is shown');
-      initialSetup();
-    });
-    
-    // Listen for blur events to handle transition properly
-    const blurUnsubscribe = navigation.addListener('blur', () => {
-      // When leaving this screen, make sure next one has proper header
-      console.log('CoffeeDetailScreen blurred');
-    });
-    
-    // Listen for beforeRemove to clean up
-    const beforeRemoveUnsubscribe = navigation.addListener('beforeRemove', () => {
-      console.log('CoffeeDetailScreen before remove, cleanup');
-    });
-    
-    // Clean up all listeners when component unmounts
-    return () => {
-      focusUnsubscribe();
-      blurUnsubscribe();
-      beforeRemoveUnsubscribe();
-    };
-  }, [coffee?.id, isFavorite, isInCollection, navigation]);
+    }
+  }, [navigation, coffee, theme]);
 
   // Find and set roaster info when coffee or sellers change
   useEffect(() => {
     if (coffee && coffee.roaster) {
-      // First, check if the coffee has a roasterId
-      if (coffee.roasterId) {
-        // Find the business with matching ID
-        const businessRoaster = mockCafes.businesses.find(b => b.id === coffee.roasterId);
-        if (businessRoaster) {
-          setRoasterInfo({
-            id: businessRoaster.id,
-            name: businessRoaster.name,
-            avatar: businessRoaster.avatar || businessRoaster.logo,
-            isBusinessAccount: true
-          });
-          return;
+              // First, check if the coffee has a roasterId
+        if (coffee.roasterId) {
+          // Find the roaster with matching ID
+          const businessRoaster = mockCafes.roasters.find(b => b.id === coffee.roasterId);
+          if (businessRoaster) {
+            setRoasterInfo({
+              id: businessRoaster.id,
+              name: businessRoaster.name,
+              avatar: businessRoaster.avatar || businessRoaster.logo,
+              isBusinessAccount: true
+            });
+            return;
+          }
         }
-      }
       
       // Otherwise, check if any sellers match the roaster name
       const roasterSeller = sellers.find(s => 
@@ -588,6 +551,7 @@ export default function CoffeeDetailScreen() {
 
   const navigateToRoasterProfile = () => {
     if (roasterInfo && roasterInfo.id) {
+      console.log('Navigating to roaster profile:', roasterInfo);
       // Navigate to UserProfileBridge instead of directly to UserProfile
       navigation.navigate('UserProfileBridge', { 
         userId: roasterInfo.id, 
@@ -595,8 +559,6 @@ export default function CoffeeDetailScreen() {
         skipAuth: true,
         isBusinessAccount: roasterInfo.isBusinessAccount,
         isRoaster: true
-      }, {
-        animation: 'slide_from_right' 
       });
     }
   };
@@ -740,7 +702,7 @@ export default function CoffeeDetailScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <Toast 
         visible={toastVisible}
         message={toastMessage}
@@ -752,7 +714,7 @@ export default function CoffeeDetailScreen() {
       
       <ScrollView>
         {/* Coffee Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, { backgroundColor: theme.cardBackground }]}>
           {/* Coffee Image */}
           <AppImage 
             source={coffee.image} 
@@ -760,7 +722,7 @@ export default function CoffeeDetailScreen() {
             resizeMode="cover"
           />
           <View style={styles.headerContent}>
-            <Text style={styles.coffeeName}>{coffee.name}</Text>
+            <Text style={[styles.coffeeName, { color: theme.primaryText }]}>{coffee.name}</Text>
             
             {/* Roaster with avatar (tappable) */}
             <TouchableOpacity 
@@ -778,27 +740,27 @@ export default function CoffeeDetailScreen() {
                   resizeMode="cover"
                 />
               )}
-              <Text style={styles.roasterName}>{coffee.roaster}</Text>
+              <Text style={[styles.roasterName, { color: theme.secondaryText }]}>{coffee.roaster}</Text>
               {roasterInfo && roasterInfo.id && (
-                <Ionicons name="chevron-forward" size={16} color="#666666" />
+                <Ionicons name="chevron-forward" size={16} color={theme.secondaryText} />
               )}
             </TouchableOpacity>
             
             <View style={styles.statsContainer}>
               <View style={styles.statItem}>
-                <Ionicons name="star" size={16} color="#000000" />
-                <Text style={styles.statText}>{coffee.stats?.rating || 0}</Text>
-                <Text style={styles.statLabel}>({coffee.stats?.reviews || 0})</Text>
+                <Ionicons name="star" size={16} color={theme.primaryText} />
+                <Text style={[styles.statText, { color: theme.primaryText }]}>{coffee.stats?.rating || 0}</Text>
+                <Text style={[styles.statLabel, { color: theme.secondaryText }]}>({coffee.stats?.reviews || 0})</Text>
               </View>
               <View style={styles.statItem}>
-                <Ionicons name="cafe" size={16} color="#000000" />
-                <Text style={styles.statText}>{coffee.stats?.brews || 0}</Text>
-                <Text style={styles.statLabel}>brews</Text>
+                <Ionicons name="cafe" size={16} color={theme.primaryText} />
+                <Text style={[styles.statText, { color: theme.primaryText }]}>{coffee.stats?.brews || 0}</Text>
+                <Text style={[styles.statLabel, { color: theme.secondaryText }]}>brews</Text>
               </View>
               <View style={styles.statItem}>
-                <Ionicons name="heart" size={16} color="#000000" />
-                <Text style={styles.statText}>{coffee.stats?.wishlist || 0}</Text>
-                <Text style={styles.statLabel}>saved</Text>
+                <Ionicons name="heart" size={16} color={theme.primaryText} />
+                <Text style={[styles.statText, { color: theme.primaryText }]}>{coffee.stats?.wishlist || 0}</Text>
+                <Text style={[styles.statLabel, { color: theme.secondaryText }]}>saved</Text>
               </View>
             </View>
             
@@ -807,17 +769,19 @@ export default function CoffeeDetailScreen() {
               <TouchableOpacity 
                 style={[
                   styles.actionButton, 
-                  isInCollection ? styles.actionButtonActive : null
+                  { backgroundColor: theme.secondaryBack },
+                  isInCollection ? [styles.actionButtonActive, { backgroundColor: theme.accent }] : null
                 ]}
                 onPress={handleAddToCollection}
               >
                 <Ionicons 
                   name={isInCollection ? "checkmark-circle" : "checkmark-circle-outline"} 
                   size={20} 
-                  color={isInCollection ? "#FFFFFF" : "#000000"} 
+                  color={isInCollection ? "#FFFFFF" : theme.primaryText} 
                 />
                 <Text style={[
                   styles.actionButtonText,
+                  { color: theme.primaryText },
                   isInCollection ? styles.actionButtonTextActive : null
                 ]}>
                   {isInCollection ? "Tried" : "Mark as Tried"}
@@ -827,17 +791,19 @@ export default function CoffeeDetailScreen() {
               <TouchableOpacity 
                 style={[
                   styles.actionButton, 
-                  isSaved ? styles.actionButtonActive : null
+                  { backgroundColor: theme.secondaryBack },
+                  isSaved ? [styles.actionButtonActive, { backgroundColor: theme.accent }] : null
                 ]}
                 onPress={handleSave}
               >
                 <Ionicons 
                   name={isSaved ? "bookmark" : "bookmark-outline"} 
                   size={20} 
-                  color={isSaved ? "#FFFFFF" : "#000000"} 
+                  color={isSaved ? "#FFFFFF" : theme.primaryText} 
                 />
                 <Text style={[
                   styles.actionButtonText,
+                  { color: theme.primaryText },
                   isSaved ? styles.actionButtonTextActive : null
                 ]}>
                   {isSaved ? "Saved" : "Save"}
@@ -848,68 +814,68 @@ export default function CoffeeDetailScreen() {
         </View>
 
         {/* Coffee Details */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Details</Text>
+        <View style={[styles.section, { backgroundColor: theme.cardBackground }]}>
+          <Text style={[styles.sectionTitle, { color: theme.primaryText }]}>Details</Text>
           <View style={styles.detailsGrid}>
             <View style={styles.detailItem}>
-              <Text style={styles.detailLabel}>Origin</Text>
-              <Text style={styles.detailValue}>{coffee.origin}</Text>
+              <Text style={[styles.detailLabel, { color: theme.secondaryText }]}>Origin</Text>
+              <Text style={[styles.detailValue, { color: theme.primaryText }]}>{coffee.origin}</Text>
             </View>
             {coffee.region && (
               <View style={styles.detailItem}>
-                <Text style={styles.detailLabel}>Region</Text>
-                <Text style={styles.detailValue}>{coffee.region}</Text>
+                <Text style={[styles.detailLabel, { color: theme.secondaryText }]}>Region</Text>
+                <Text style={[styles.detailValue, { color: theme.primaryText }]}>{coffee.region}</Text>
               </View>
             )}
             {coffee.producer && (
               <View style={styles.detailItem}>
-                <Text style={styles.detailLabel}>Producer</Text>
-                <Text style={styles.detailValue}>{coffee.producer}</Text>
+                <Text style={[styles.detailLabel, { color: theme.secondaryText }]}>Producer</Text>
+                <Text style={[styles.detailValue, { color: theme.primaryText }]}>{coffee.producer}</Text>
               </View>
             )}
             {coffee.altitude && (
               <View style={styles.detailItem}>
-                <Text style={styles.detailLabel}>Altitude</Text>
-                <Text style={styles.detailValue}>{coffee.altitude}</Text>
+                <Text style={[styles.detailLabel, { color: theme.secondaryText }]}>Altitude</Text>
+                <Text style={[styles.detailValue, { color: theme.primaryText }]}>{coffee.altitude}</Text>
               </View>
             )}
             {coffee.varietal && (
               <View style={styles.detailItem}>
-                <Text style={styles.detailLabel}>Varietal</Text>
-                <Text style={styles.detailValue}>{coffee.varietal}</Text>
+                <Text style={[styles.detailLabel, { color: theme.secondaryText }]}>Varietal</Text>
+                <Text style={[styles.detailValue, { color: theme.primaryText }]}>{coffee.varietal}</Text>
               </View>
             )}
             <View style={styles.detailItem}>
-              <Text style={styles.detailLabel}>Process</Text>
-              <Text style={styles.detailValue}>{coffee.process}</Text>
+              <Text style={[styles.detailLabel, { color: theme.secondaryText }]}>Process</Text>
+              <Text style={[styles.detailValue, { color: theme.primaryText }]}>{coffee.process}</Text>
             </View>
             {coffee.profile && (
               <View style={styles.detailItem}>
-                <Text style={styles.detailLabel}>Profile</Text>
-                <Text style={styles.detailValue}>{coffee.profile}</Text>
+                <Text style={[styles.detailLabel, { color: theme.secondaryText }]}>Profile</Text>
+                <Text style={[styles.detailValue, { color: theme.primaryText }]}>{coffee.profile}</Text>
               </View>
             )}
             <View style={styles.detailItem}>
-              <Text style={styles.detailLabel}>Roast Level</Text>
-              <Text style={styles.detailValue}>{coffee.roastLevel || 'Medium'}</Text>
+              <Text style={[styles.detailLabel, { color: theme.secondaryText }]}>Roast Level</Text>
+              <Text style={[styles.detailValue, { color: theme.primaryText }]}>{coffee.roastLevel || 'Medium'}</Text>
             </View>
             <View style={styles.detailItem}>
-              <Text style={styles.detailLabel}>Price</Text>
-              <Text style={styles.detailValue}>{typeof coffee.price === 'number' ? `€${coffee.price.toFixed(2)}` : coffee.price}</Text>
+              <Text style={[styles.detailLabel, { color: theme.secondaryText }]}>Price</Text>
+              <Text style={[styles.detailValue, { color: theme.primaryText }]}>{typeof coffee.price === 'number' ? `€${coffee.price.toFixed(2)}` : coffee.price}</Text>
             </View>
           </View>
         </View>
 
         {/* Description */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Description</Text>
-          <Text style={styles.descriptionText} numberOfLines={descriptionExpanded ? undefined : 4}>{coffee.description}</Text>
+        <View style={[styles.section, { backgroundColor: theme.cardBackground }]}>
+          <Text style={[styles.sectionTitle, { color: theme.primaryText }]}>Description</Text>
+          <Text style={[styles.descriptionText, { color: theme.primaryText }]} numberOfLines={descriptionExpanded ? undefined : 4}>{coffee.description}</Text>
           {coffee.description && coffee.description.length > 150 && (
             <TouchableOpacity 
               style={styles.viewMoreButton} 
               onPress={() => setDescriptionExpanded(!descriptionExpanded)}
             >
-              <Text style={styles.viewMoreText}>
+              <Text style={[styles.viewMoreText, { color: theme.accent }]}>
                 {descriptionExpanded ? 'View less' : 'View more'}
               </Text>
             </TouchableOpacity>
@@ -918,11 +884,62 @@ export default function CoffeeDetailScreen() {
 
         {/* Sold By Section */}
         {sellers.length > 0 && (
-          <View style={styles.sellersContainer}>
-            <Text style={styles.sectionTitle}>Sold By</Text>
+          <View style={[styles.sellersContainer, { backgroundColor: theme.cardBackground }]}>
+            <Text style={[styles.sectionTitle, { color: theme.primaryText }]}>Sold By</Text>
             <FlatList
               data={sellers}
-              renderItem={renderSellerItem}
+              renderItem={({ item, index }) => {
+                // Check if this is the only seller or the last one in the list
+                const isLastOrOnlySeller = index === sellers.length - 1;
+                
+                return (
+                  <TouchableOpacity 
+                    style={[
+                      styles.sellerItem,
+                      { borderBottomColor: theme.divider },
+                      isLastOrOnlySeller ? styles.sellerItemNoBorder : null
+                    ]}
+                    onPress={() => {
+                      // Special handling for Toma Café locations
+                      if (item.name && item.name.includes('Toma Café') && item.name !== 'Toma Café') {
+                        // For Toma Café locations (like Toma Café 1), find the right ID from trendingCafes
+                        const locationId = item.name.replace(/\s+/g, '-').toLowerCase();
+                        navigation.navigate('UserProfileBridge', { 
+                          userId: locationId, // This should match the ID in trendingCafes (e.g., "toma-cafe-1")
+                          userName: item.name,
+                          skipAuth: true,
+                          isLocation: true,
+                          parentBusinessId: 'business-toma'
+                        });
+                      } else {
+                        // For other sellers, use standard navigation
+                        navigateToUserProfile(item.id, item.name);
+                      }
+                    }}
+                  >
+                    <AppImage 
+                      source={item.avatar}
+                      style={[
+                        styles.sellerAvatar,
+                        item.businessAccount ? styles.businessAvatar : styles.userAvatar
+                      ]}
+                      resizeMode="cover"
+                    />
+                    <View style={styles.sellerInfo}>
+                      <View style={styles.sellerNameContainer}>
+                        <Text style={[styles.sellerName, { color: theme.primaryText }]}>{item.name}</Text>
+                        {item.isRoaster && (
+                          <View style={styles.roasterBadge}>
+                            <Text style={styles.roasterBadgeText}>Roaster</Text>
+                          </View>
+                        )}
+                      </View>
+                      <Text style={[styles.sellerLocation, { color: theme.secondaryText }]}>{item.location}</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={20} color={theme.secondaryText} />
+                  </TouchableOpacity>
+                );
+              }}
               keyExtractor={(item) => item.id}
               scrollEnabled={false}
             />
@@ -930,19 +947,67 @@ export default function CoffeeDetailScreen() {
         )}
 
         {/* Related Recipes */}
-        <View style={styles.section}>
+        <View style={[styles.section, { backgroundColor: theme.cardBackground }]}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Brewing Recipes</Text>
+            <Text style={[styles.sectionTitle, { color: theme.primaryText }]}>Brewing Recipes</Text>
             <TouchableOpacity 
-              style={styles.createRecipeButton}
+              style={[styles.createRecipeButton, { borderBottomColor: theme.accent }]}
               onPress={navigateToCreateRecipe}
             >
-              <Text style={styles.createRecipeText}>Create Recipe</Text>
+              <Text style={[styles.createRecipeText, { color: theme.accent }]}>Create Recipe</Text>
             </TouchableOpacity>
           </View>
           
           {/* Rating filter */}
-          {relatedRecipes.length > 0 && renderRatingFilter()}
+          {relatedRecipes.length > 0 && (
+            <View style={styles.ratingFilterContainer}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.ratingFilterScrollContent}
+              >
+                <TouchableOpacity
+                  style={[
+                    styles.ratingFilterChip,
+                    { backgroundColor: theme.secondaryBack, borderColor: theme.border },
+                    ratingFilter === 'all' && [styles.activeRatingFilterChip, { backgroundColor: theme.accent, borderColor: theme.accent }]
+                  ]}
+                  onPress={() => setRatingFilter('all')}
+                >
+                  <Text style={[
+                    styles.ratingFilterText,
+                    { color: theme.primaryText },
+                    ratingFilter === 'all' && styles.activeRatingFilterText
+                  ]}>All</Text>
+                </TouchableOpacity>
+                
+                {[5, 4, 3, 2, 1].map(rating => (
+                  <TouchableOpacity
+                    key={`rating-${rating}`}
+                    style={[
+                      styles.ratingFilterChip,
+                      { backgroundColor: theme.secondaryBack, borderColor: theme.border },
+                      ratingFilter === rating.toString() && [styles.activeRatingFilterChip, { backgroundColor: theme.accent, borderColor: theme.accent }]
+                    ]}
+                    onPress={() => setRatingFilter(rating.toString())}
+                  >
+                    <View style={styles.ratingFilterStars}>
+                      <Text style={[
+                        styles.ratingFilterText,
+                        { color: theme.primaryText },
+                        ratingFilter === rating.toString() && styles.activeRatingFilterText
+                      ]}>{rating}</Text>
+                      <Ionicons
+                        name="star"
+                        size={14}
+                        color={ratingFilter === rating.toString() ? '#FFFFFF' : '#FFD700'}
+                      />
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          )}
           
           {filteredRelatedRecipes.length > 0 ? (
             <FlatList
@@ -956,24 +1021,24 @@ export default function CoffeeDetailScreen() {
             <View style={styles.emptyRecipesContainer}>
               {relatedRecipes.length > 0 ? (
                 <>
-                  <Ionicons name="filter" size={24} color="#CCCCCC" />
-                  <Text style={styles.emptyRecipesText}>No recipes match this rating filter</Text>
+                  <Ionicons name="filter" size={24} color={theme.secondaryText} />
+                  <Text style={[styles.emptyRecipesText, { color: theme.secondaryText }]}>No recipes match this rating filter</Text>
                   <TouchableOpacity 
-                    style={styles.resetFilterButton}
+                    style={[styles.resetFilterButton, { backgroundColor: theme.secondaryBack }]}
                     onPress={() => setRatingFilter('all')}
                   >
-                    <Text style={styles.resetFilterText}>Show All Recipes</Text>
+                    <Text style={[styles.resetFilterText, { color: theme.primaryText }]}>Show All Recipes</Text>
                   </TouchableOpacity>
                 </>
               ) : (
                 <>
-                  <Ionicons name="cafe" size={24} color="#CCCCCC" />
-                  <Text style={styles.emptyRecipesText}>No recipes yet for this coffee</Text>
+                  <Ionicons name="cafe" size={24} color={theme.secondaryText} />
+                  <Text style={[styles.emptyRecipesText, { color: theme.secondaryText }]}>No recipes yet for this coffee</Text>
                   <TouchableOpacity 
-                    style={styles.createFirstRecipeButton}
+                    style={[styles.createFirstRecipeButton, { backgroundColor: theme.accent }]}
                     onPress={navigateToCreateRecipe}
                   >
-                    <Text style={styles.createFirstRecipeText}>Create Your First Recipe</Text>
+                    <Text style={[styles.createFirstRecipeText, { color: "#FFFFFF" }]}>Create Your First Recipe</Text>
                   </TouchableOpacity>
                 </>
               )}

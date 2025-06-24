@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
+import { createStackNavigator, CardStyleInterpolators } from '@react-navigation/stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { StyleSheet, TouchableOpacity, ActionSheetIOS, Platform, Alert, Share } from 'react-native';
+import { StyleSheet, TouchableOpacity, ActionSheetIOS, Platform, Alert, Share, StatusBar as RNStatusBar } from 'react-native';
 import BottomTabNavigator from './src/navigation/BottomTabNavigator';
 import CoffeeDetailScreen from './src/screens/CoffeeDetailScreen';
 import RecipeDetailScreen from './src/screens/RecipeDetailScreen';
@@ -19,19 +19,44 @@ import SavedScreen from './src/screens/SavedScreen';
 import NotificationsScreen from './src/screens/NotificationsScreen';
 import AddCoffeeScreen from './src/screens/AddCoffeeScreen';
 import EditProfileScreen from './src/screens/EditProfileScreen';
+import SettingsScreen from './src/screens/SettingsScreen';
+import FollowersScreen from './src/screens/FollowersScreen';
 import { CoffeeProvider } from './src/context/CoffeeContext';
 import { NotificationsProvider } from './src/context/NotificationsContext';
-import { configureNavigationBar } from './src/lib/navigationBar';
-import { useEffect } from 'react';
+import { ThemeProvider, useTheme } from './src/context/ThemeContext';
+import * as NavigationBar from 'expo-navigation-bar';
 import { Ionicons } from '@expo/vector-icons';
+import { StatusBar } from 'expo-status-bar';
 
 const Stack = createStackNavigator();
 
+// Configure the navigation bar with theme-aware background and buttons
+const configureNavigationBar = (backgroundColor, buttonColor) => {
+  if (Platform.OS === 'android') {
+    NavigationBar.setBackgroundColorAsync(backgroundColor);
+    NavigationBar.setButtonStyleAsync(buttonColor);
+  }
+};
+
+// Main App component with ThemeProvider
 export default function App() {
+  return (
+    <SafeAreaProvider>
+      <ThemeProvider>
+        <AppContent />
+      </ThemeProvider>
+    </SafeAreaProvider>
+  );
+}
+
+// Inner component that uses the theme
+function AppContent() {
+  const { theme, isDarkMode } = useTheme();
+  
   useEffect(() => {
-    // Configure the navigation bar with white background and dark buttons
-    configureNavigationBar('#ffffff', 'dark');
-  }, []);
+    // Configure the navigation bar with theme-aware background and buttons
+    configureNavigationBar(theme.cardBackground, isDarkMode ? 'light' : 'dark');
+  }, [isDarkMode, theme]);
 
   // Function to handle action sheet for recipe options
   const handleRecipeOptions = (navigation, recipe) => {
@@ -43,6 +68,7 @@ export default function App() {
         {
           options,
           cancelButtonIndex,
+          userInterfaceStyle: isDarkMode ? 'dark' : 'light'
         },
         (buttonIndex) => {
           if (buttonIndex === 0) {
@@ -107,6 +133,7 @@ export default function App() {
         {
           options,
           cancelButtonIndex,
+          userInterfaceStyle: isDarkMode ? 'dark' : 'light'
         },
         (buttonIndex) => {
           if (buttonIndex === 0) {
@@ -147,18 +174,100 @@ export default function App() {
     }
   };
 
+  // Use theme-aware colors for headers
+  const headerStyle = {
+    backgroundColor: theme.background,
+    elevation: 0, // Remove shadow on Android
+    shadowOpacity: 0, // Remove shadow on iOS
+    borderBottomWidth: 0,
+  };
+  
+  const headerTintColor = theme.primaryText;
+  
+  const cardStyle = { 
+    backgroundColor: theme.background
+  };
+
   return (
-    <SafeAreaProvider>
+    <>
+      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
       <NotificationsProvider>
-        <NavigationContainer>
+        <NavigationContainer
+          theme={{
+            dark: isDarkMode,
+            colors: {
+              primary: theme.primaryText,
+              background: theme.background,
+              card: theme.cardBackground,
+              text: theme.primaryText,
+              border: theme.divider,
+              notification: '#FF3B30',
+            },
+            fonts: Platform.select({
+              web: {
+                regular: {
+                  fontFamily: 'System',
+                  fontWeight: '400',
+                },
+                medium: {
+                  fontFamily: 'System',
+                  fontWeight: '500',
+                },
+                bold: {
+                  fontFamily: 'System',
+                  fontWeight: '600',
+                },
+                heavy: {
+                  fontFamily: 'System',
+                  fontWeight: '700',
+                },
+              },
+              ios: {
+                regular: {
+                  fontFamily: 'System',
+                  fontWeight: '400',
+                },
+                medium: {
+                  fontFamily: 'System',
+                  fontWeight: '500',
+                },
+                bold: {
+                  fontFamily: 'System',
+                  fontWeight: '600',
+                },
+                heavy: {
+                  fontFamily: 'System',
+                  fontWeight: '700',
+                },
+              },
+              default: {
+                regular: {
+                  fontFamily: 'sans-serif',
+                  fontWeight: 'normal',
+                },
+                medium: {
+                  fontFamily: 'sans-serif-medium',
+                  fontWeight: 'normal',
+                },
+                bold: {
+                  fontFamily: 'sans-serif',
+                  fontWeight: '600',
+                },
+                heavy: {
+                  fontFamily: 'sans-serif',
+                  fontWeight: '700',
+                },
+              },
+            }),
+          }}
+        >
           <CoffeeProvider>
             <Stack.Navigator
               screenOptions={{
-                headerStyle: {
-                  backgroundColor: '#ffffff',
-                },
-                headerTintColor: '#000000',
-                cardStyle: { backgroundColor: '#ffffff' }
+                headerStyle,
+                headerTintColor,
+                cardStyle,
+                cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
               }}
             >
               <Stack.Screen 
@@ -196,7 +305,7 @@ export default function App() {
                       <Ionicons 
                         name="ellipsis-horizontal" 
                         size={24} 
-                        color="#000000" 
+                        color={theme.primaryText}
                       />
                     </TouchableOpacity>
                   )
@@ -216,7 +325,7 @@ export default function App() {
                       <Ionicons 
                         name="ellipsis-horizontal" 
                         size={24} 
-                        color="#000000" 
+                        color={theme.primaryText}
                       />
                     </TouchableOpacity>
                   )
@@ -302,11 +411,27 @@ export default function App() {
                   headerBackTitle: 'Back'
                 }} 
               />
+              <Stack.Screen 
+                name="Settings" 
+                component={SettingsScreen} 
+                options={{ 
+                  title: 'Settings',
+                  headerBackTitle: 'Back'
+                }} 
+              />
+              <Stack.Screen 
+                name="FollowersScreen" 
+                component={FollowersScreen} 
+                options={({ route }) => ({ 
+                  title: route.params?.type === 'followers' ? 'Followers' : 'Following',
+                  headerBackTitle: 'Back'
+                })} 
+              />
             </Stack.Navigator>
           </CoffeeProvider>
         </NavigationContainer>
       </NotificationsProvider>
-    </SafeAreaProvider>
+    </>
   );
 }
 

@@ -13,11 +13,13 @@ import AddCoffeeScreen from '../screens/AddCoffeeScreen';
 import { useNotifications } from '../context/NotificationsContext';
 import { useCoffee } from '../context/CoffeeContext';
 import eventEmitter from '../utils/EventEmitter';
+import { useTheme } from '../context/ThemeContext';
 
 const BottomTab = createBottomTabNavigator();
 
 export default function BottomTabNavigator() {
   const colorScheme = useColorScheme();
+  const { theme, isDarkMode } = useTheme();
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [previousTab, setPreviousTab] = useState('Home');
   const insets = useSafeAreaInsets();
@@ -46,7 +48,7 @@ export default function BottomTabNavigator() {
   // Render account item in the modal
   const renderAccountItem = ({ item }) => (
     <TouchableOpacity
-      style={styles.accountItem}
+      style={[styles.accountItem, { borderBottomColor: theme.divider }]}
       onPress={() => handleAccountSwitch(item)}
     >
       <View style={styles.accountAvatarContainer}>
@@ -56,14 +58,14 @@ export default function BottomTabNavigator() {
             style={styles.accountAvatar}
           />
         ) : (
-          <View style={styles.accountAvatarPlaceholder}>
-            <Ionicons name="person" size={24} color="#000000" />
+          <View style={[styles.accountAvatarPlaceholder, { backgroundColor: theme.secondaryBackground || '#F2F2F7' }]}>
+            <Ionicons name="person" size={24} color={theme.primaryText} />
           </View>
         )}
       </View>
       <View style={styles.accountInfo}>
-        <Text style={styles.accountName}>{item.username}</Text>
-        <Text style={styles.accountEmail}>{item.email}</Text>
+        <Text style={[styles.accountName, { color: theme.primaryText }]}>{item.username}</Text>
+        <Text style={[styles.accountEmail, { color: theme.secondaryText }]}>{item.email}</Text>
       </View>
       {currentAccount.id === item.id && (
         <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
@@ -142,7 +144,7 @@ export default function BottomTabNavigator() {
 
   return (
     <>
-      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+      <StatusBar style={isDarkMode ? 'light' : 'dark'} />
       <BottomTab.Navigator
         initialRouteName="Home"
         screenOptions={({ route }) => ({
@@ -159,22 +161,24 @@ export default function BottomTabNavigator() {
 
             return <Ionicons name={iconName} size={size} color={color} />;
           },
-          tabBarActiveTintColor: '#000000',
-          tabBarInactiveTintColor: 'gray',
+          // Use explicit theme values here rather than theme object
+          tabBarActiveTintColor: theme.primaryText,
+          tabBarInactiveTintColor: theme.secondaryText,
           tabBarShowLabel: true,
           headerShown: true,
           headerTitleStyle: {
-            color: '#000000',
+            color: theme.primaryText,
             fontWeight: '600',
           },
-          headerTintColor: '#000000',
+          headerTintColor: theme.primaryText,
+          // Directly specify all style values that might be needed by react-navigation
           tabBarStyle: {
             minHeight: 56,
             paddingHorizontal: 4,
             paddingBottom: insets.bottom,
-            backgroundColor: '#ffffff',
+            backgroundColor: theme.background,
             borderTopWidth: 1,
-            borderTopColor: '#f0f0f0',
+            borderTopColor: theme.divider,
           },
           tabBarItemStyle: {
             justifyContent: 'center',
@@ -194,24 +198,34 @@ export default function BottomTabNavigator() {
             headerShown: true,
             headerStyle: {
               height: 104,
-              backgroundColor: '#FFFFFF',
+              backgroundColor: theme.background,
+              borderBottomColor: theme.divider,
+              borderBottomWidth: 1,
+              // Explicitly remove any other borders to prevent double borders in light mode
+              borderTopWidth: 0,
+              borderLeftWidth: 0,
+              borderRightWidth: 0,
+              elevation: 0, // Remove shadow on Android
+              shadowOpacity: 0, // Remove shadow on iOS
+              shadowRadius: 0,
+              shadowOffset: { width: 0, height: 0 },
             },
             headerTitle: () => (
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%'}}>
-                <Text style={{ fontSize: 24, fontWeight: '600', color: '#000000' }}>NiceCup</Text>
+                <Text style={{ fontSize: 24, fontWeight: '600', color: theme.primaryText }}>NiceCup</Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                   <TouchableOpacity 
                     onPress={() => navigation.navigate('PeopleList')}
                     style={{ marginRight: 16 }}
                   >
-                    <Ionicons name="person-add-outline" size={24} color="#000000" />
+                    <Ionicons name="person-add-outline" size={24} color={theme.primaryText} />
                   </TouchableOpacity>
                   <TouchableOpacity 
                     onPress={() => navigation.navigate('Notifications')}
                     style={{ marginRight: 14 }}
                   >
                     <View>
-                      <Ionicons name="notifications-outline" size={24} color="#000000" />
+                      <Ionicons name="notifications-outline" size={24} color={theme.primaryText} />
                       {unreadCount > 0 && (
                         <View style={{
                           position: 'absolute',
@@ -228,7 +242,7 @@ export default function BottomTabNavigator() {
                   <TouchableOpacity 
                     onPress={() => setIsModalVisible(true)}
                   >
-                    <Ionicons name="add-circle" size={28} color="#000000" />
+                    <Ionicons name="add-circle" size={28} color={theme.primaryText} />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -249,7 +263,7 @@ export default function BottomTabNavigator() {
           options={{
             headerShown: true,
             headerStyle: {
-              backgroundColor: '#FFFFFF',
+              backgroundColor: theme.background,
               elevation: 0,
               shadowOpacity: 0,
               borderBottomWidth: 0
@@ -268,16 +282,16 @@ export default function BottomTabNavigator() {
         animationType="slide"
         onRequestClose={handleCancel}
       >
-        <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
+        <SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.background }]}>
+          <View style={[styles.modalContent, { backgroundColor: theme.background }]}>
+            <View style={[styles.modalHeader, { backgroundColor: theme.background, borderBottomColor: theme.divider }]}>
               <TouchableOpacity
                 style={styles.closeButton}
                 onPress={handleCancel}
               >
-                <Ionicons name="close" size={24} color="#000000" />
+                <Ionicons name="close" size={24} color={theme.primaryText} />
               </TouchableOpacity>
-              <Text style={styles.modalHeaderTitle}>Log Coffee</Text>
+              <Text style={[styles.modalHeaderTitle, { color: theme.primaryText }]}>Log Coffee</Text>
               <View style={styles.headerSpacer} />
             </View>
             
@@ -299,12 +313,12 @@ export default function BottomTabNavigator() {
         animationType="slide"
         onRequestClose={() => setShowAccountModal(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Switch Account</Text>
+        <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0, 0, 0, 0.5)' }]}>
+          <View style={[styles.modalContainer, { backgroundColor: theme.background }]}>
+            <View style={[styles.modalHeader, { backgroundColor: theme.background, borderBottomColor: theme.divider }]}>
+              <Text style={[styles.modalTitle, { color: theme.primaryText }]}>Switch Account</Text>
               <TouchableOpacity onPress={() => setShowAccountModal(false)}>
-                <Ionicons name="close" size={24} color="#000000" />
+                <Ionicons name="close" size={24} color={theme.primaryText} />
               </TouchableOpacity>
             </View>
             <FlatList
@@ -331,9 +345,6 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
   },
   header: {
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
     paddingVertical: 8,
   },
   headerContent: {
@@ -429,8 +440,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 8,
     paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
+    // borderBottomWidth: 1,
     height: 48,
   },
   modalHeaderTitle: {

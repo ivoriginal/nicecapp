@@ -3,8 +3,9 @@ import { View, Text, StyleSheet, FlatList, RefreshControl, ActivityIndicator, Al
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useCoffee } from '../context/CoffeeContext';
-import CoffeeLogCard from '../components/CoffeeLogCard';
+import ThemeCoffeeLogCard from '../components/ThemeCoffeeLogCard';
 import Toast from '../components/Toast';
+import { useTheme } from '../context/ThemeContext';
 
 export default function HomeScreen({ navigation }) {
   const { allEvents, isLoading, loadData, recipes, addRecipe, currentAccount, removeCoffeeEvent } = useCoffee();
@@ -13,6 +14,7 @@ export default function HomeScreen({ navigation }) {
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [initialLoadDone, setInitialLoadDone] = useState(false);
+  const { theme, isDarkMode } = useTheme();
 
   console.log('HomeScreen rendering, allEvents length:', allEvents?.length || 0);
 
@@ -138,6 +140,15 @@ export default function HomeScreen({ navigation }) {
   };
 
   const handleUserPress = (event) => {
+    console.log('HomeScreen - handleUserPress called with event:', event);
+    
+    // For current user, navigate to main Profile screen
+    if (event.userId === currentAccount) {
+      navigation.navigate('Profile');
+      return;
+    }
+    
+    // For other users, navigate through UserProfileBridge for proper handling
     navigation.navigate('UserProfileBridge', { 
       userId: event.userId,
       userName: event.userName,
@@ -171,14 +182,14 @@ export default function HomeScreen({ navigation }) {
 
   if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#000000" />
+      <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
+        <ActivityIndicator size="large" color={theme.primaryText} />
       </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <FlatList
         data={allEvents}
         renderItem={({ item }) => {
@@ -204,7 +215,7 @@ export default function HomeScreen({ navigation }) {
           };
           
           return (
-            <CoffeeLogCard 
+            <ThemeCoffeeLogCard 
               event={enhancedItem}
               onCoffeePress={handleCoffeePress}
               onRecipePress={handleRecipePress}
@@ -217,20 +228,20 @@ export default function HomeScreen({ navigation }) {
           );
         }}
         keyExtractor={item => `${item.id}-${item.timestamp || Date.now()}`}
-        contentContainerStyle={styles.listContainer}
+        contentContainerStyle={[styles.listContainer, { backgroundColor: theme.background }]}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={['#000000']}
-            tintColor="#000000"
+            colors={[isDarkMode ? '#FFFFFF' : '#000000']}
+            tintColor={isDarkMode ? '#FFFFFF' : '#000000'}
           />
         }
         ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Ionicons name="cafe" size={50} color="#CCCCCC" />
-            <Text style={styles.emptyText}>No coffee logs yet</Text>
-            <Text style={styles.emptySubtext}>Log your first coffee brewing session!</Text>
+          <View style={[styles.emptyContainer, { backgroundColor: theme.background }]}>
+            <Ionicons name="cafe" size={50} color={theme.secondaryText} />
+            <Text style={[styles.emptyText, { color: theme.primaryText }]}>No coffee logs yet</Text>
+            <Text style={[styles.emptySubtext, { color: theme.secondaryText }]}>Log your first coffee brewing session!</Text>
           </View>
         }
       />
@@ -255,8 +266,9 @@ export default function HomeScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    // backgroundColor: '#F2F2F7',
-    backgroundColor: '#FFFFFF',
+  },
+  listContainer: {
+    borderTopWidth: 0,
   },
   loadingContainer: {
     flex: 1,
@@ -272,13 +284,11 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#000000',
     marginTop: 16,
     marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#666666',
     textAlign: 'center',
   },
   fab: {

@@ -8,6 +8,7 @@ import {
   Dimensions 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../context/ThemeContext';
 
 const Toast = ({ 
   visible, 
@@ -17,6 +18,7 @@ const Toast = ({
   onDismiss, 
   duration = 4000 
 }) => {
+  const { theme, isDarkMode } = useTheme();
   const translateY = useRef(new Animated.Value(-100)).current;
   const opacity = useRef(new Animated.Value(0)).current;
   const timer = useRef(null);
@@ -78,12 +80,13 @@ const Toast = ({
         styles.container, 
         { 
           transform: [{ translateY }],
-          opacity
+          opacity,
+          backgroundColor: isDarkMode ? '#1C1C1E' : '#000000'
         }
       ]}
     >
       <View style={styles.content}>
-        <Text style={styles.message}>{message}</Text>
+        <Text style={[styles.message, { color: '#FFFFFF' }]}>{message}</Text>
         {actionText && (
           <TouchableOpacity 
             style={styles.actionButton} 
@@ -94,7 +97,7 @@ const Toast = ({
               dismissToast();
             }}
           >
-            <Text style={styles.actionText}>{actionText}</Text>
+            <Text style={[styles.actionText, { color: isDarkMode ? '#0A84FF' : '#007AFF' }]}>{actionText}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -108,7 +111,6 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#000000',
     padding: 16,
     zIndex: 1000,
   },
@@ -118,7 +120,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   message: {
-    color: '#FFFFFF',
     fontSize: 16,
     flex: 1,
   },
@@ -128,7 +129,6 @@ const styles = StyleSheet.create({
     marginLeft: 16,
   },
   actionText: {
-    color: '#007AFF',
     fontSize: 16,
     fontWeight: '500',
     marginRight: 4,

@@ -14,8 +14,8 @@ export type SuggestedUser = typeof mockUsers.suggestedUsers[0];
 export type Coffee = typeof mockCoffees.coffees[0];
 export type CoffeeSuggestion = typeof mockCoffees.coffeeSuggestions[0];
 export type Seller = typeof mockCoffees.sellers["coffee-villa-rosario"][0];
-export type Business = typeof mockCafes.businesses[0];
-export type TrendingCafe = typeof mockCafes.trendingCafes[0];
+export type Business = typeof mockCafes.roasters[0];
+export type GoodCafe = typeof mockCafes.cafes[0];
 export type CoffeeEvent = typeof mockEvents.coffeeEvents[0];
 export type Notification = typeof mockEvents.notifications[0];
 export type Gear = typeof mockGear.gear[0];
@@ -90,7 +90,7 @@ export const getCoffeeSellers = async (coffeeId: string): Promise<Seller[]> => {
 export const getBusinesses = async (): Promise<Business[]> => {
   if (MOCK_MODE) {
     console.log("Mock getBusinesses called");
-    return mockCafes.businesses;
+    return mockCafes.roasters;
   }
   // Real API call would go here
   throw new Error("Real API not implemented yet");
@@ -99,16 +99,19 @@ export const getBusinesses = async (): Promise<Business[]> => {
 export const getBusinessById = async (businessId: string): Promise<Business | undefined> => {
   if (MOCK_MODE) {
     console.log("Mock getBusinessById called with:", businessId);
-    return mockCafes.businesses.find(business => business.id === businessId);
+    return mockCafes.roasters.find(business => business.id === businessId);
   }
   // Real API call would go here
   throw new Error("Real API not implemented yet");
 };
 
-export const getTrendingCafes = async (): Promise<TrendingCafe[]> => {
+export const getGoodCafes = async (): Promise<GoodCafe[]> => {
   if (MOCK_MODE) {
-    console.log("Mock getTrendingCafes called");
-    return mockCafes.trendingCafes;
+    console.log("Mock getGoodCafes called");
+    const goodCafeIds = mockCafes.goodCafes || [];
+    return goodCafeIds.map(cafeId => {
+      return mockCafes.cafes.find(cafe => cafe.id === cafeId);
+    }).filter(Boolean) as GoodCafe[];
   }
   // Real API call would go here
   throw new Error("Real API not implemented yet");

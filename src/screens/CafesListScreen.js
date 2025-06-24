@@ -4,9 +4,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import mockCafes from '../data/mockCafes.json';
 import AppImage from '../components/common/AppImage';
+import { useTheme } from '../context/ThemeContext';
 
 const CafesListScreen = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
+  const { theme, isDarkMode } = useTheme();
   const { title = 'Cafés Near You' } = route.params || {};
   
   // Set the navigation title dynamically
@@ -17,7 +19,11 @@ const CafesListScreen = ({ navigation, route }) => {
     });
   }, [navigation, title]);
   
-  const cafes = mockCafes.trendingCafes || [];
+  // Get good cafes by resolving IDs to full cafe data
+const goodCafeIds = mockCafes.goodCafes || [];
+const cafes = goodCafeIds.map(cafeId => {
+  return mockCafes.cafes.find(cafe => cafe.id === cafeId);
+}).filter(Boolean);
   
   // Filter states
   const [activeLocationFilter, setActiveLocationFilter] = useState('all');
@@ -166,38 +172,34 @@ const CafesListScreen = ({ navigation, route }) => {
   // Render filter UI
   const renderFilterUI = () => {
     return (
-      <View style={styles.filterContainer}>
+      <View style={[styles.filterContainer, { backgroundColor: theme.cardBackground }]}>
         <View style={styles.filterRow}>
           <TouchableOpacity 
-            style={styles.citySelector}
+            style={[styles.citySelector, { backgroundColor: theme.secondaryBackground }]}
             onPress={() => setCitySheetVisible(true)}
           >
             <Ionicons 
               name={isNearbyEnabled ? "locate" : "location-outline"} 
               size={20} 
-              color="#000000" 
+              color={theme.primaryText} 
             />
-            <Text style={styles.cityText}>{getLocationDisplayText()}</Text>
-            <Ionicons name="chevron-down" size={16} color="#000000" />
+            <Text style={[styles.cityText, { color: theme.primaryText }]}>{getLocationDisplayText()}</Text>
+            <Ionicons name="chevron-down" size={16} color={theme.primaryText} />
           </TouchableOpacity>
           
           <TouchableOpacity 
             style={[
               styles.filterChip,
-              isOpenNowEnabled && styles.activeFilterChip
+              { backgroundColor: theme.secondaryBackground },
+              isOpenNowEnabled && [styles.activeFilterChip, { backgroundColor: theme.primaryText }]
             ]}
             onPress={toggleOpenNow}
           >
-            {/* <Ionicons 
-              name="time-outline" 
-              size={18} 
-              color={isOpenNowEnabled ? "#FFFFFF" : "#000000"} 
-              style={styles.chipIcon}
-            /> */}
             <Text 
               style={[
                 styles.chipText,
-                isOpenNowEnabled && styles.activeChipText
+                { color: theme.primaryText },
+                isOpenNowEnabled && [styles.activeChipText, { color: theme.background }]
               ]}
             >
               Open Now
@@ -218,23 +220,24 @@ const CafesListScreen = ({ navigation, route }) => {
         onRequestClose={() => setCitySheetVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.bottomSheet, { paddingBottom: insets.bottom }]}>
-            <View style={styles.sheetHeader}>
+          <View style={[styles.bottomSheet, { paddingBottom: insets.bottom, backgroundColor: theme.cardBackground }]}>
+            <View style={[styles.sheetHeader, { borderBottomColor: theme.divider }]}>
               <TouchableOpacity 
                 style={styles.closeButton}
                 onPress={() => setCitySheetVisible(false)}
               >
-                <Ionicons name="close" size={24} color="#000000" />
+                <Ionicons name="close" size={24} color={theme.primaryText} />
               </TouchableOpacity>
-              <Text style={styles.sheetTitle}>Select Location</Text>
+              <Text style={[styles.sheetTitle, { color: theme.primaryText }]}>Select Location</Text>
               <View style={{ width: 40 }}><Text></Text></View>
             </View>
             
-            <View style={styles.searchContainer}>
-              <Ionicons name="search" size={20} color="#666666" style={styles.searchIcon} />
+            <View style={[styles.searchContainer, { backgroundColor: theme.secondaryBackground }]}>
+              <Ionicons name="search" size={20} color={theme.secondaryText} style={styles.searchIcon} />
               <TextInput
-                style={styles.searchInput}
+                style={[styles.searchInput, { color: theme.primaryText }]}
                 placeholder="Search cities"
+                placeholderTextColor={theme.secondaryText}
                 value={citySearchQuery}
                 onChangeText={setCitySearchQuery}
                 clearButtonMode="while-editing"
@@ -244,64 +247,67 @@ const CafesListScreen = ({ navigation, route }) => {
             <ScrollView style={styles.citiesList} contentContainerStyle={styles.citiesListContent}>
               {/* Nearby option */}
               <TouchableOpacity 
-                style={styles.cityItem}
+                style={[styles.cityItem, { borderBottomColor: theme.divider }]}
                 onPress={() => handleCitySelect('Nearby')}
               >
                 <View style={styles.cityItemLeftContent}>
                   <Ionicons name="locate" size={20} color="#007AFF" style={styles.cityItemIcon} />
                   <Text style={[
                     styles.cityItemText, 
+                    { color: theme.primaryText },
                     isNearbyEnabled && styles.selectedCityText
                   ]}>
                     Nearby
                   </Text>
                 </View>
                 {isNearbyEnabled && (
-                  <Ionicons name="checkmark" size={20} color="#000000" />
+                  <Ionicons name="checkmark" size={20} color={theme.primaryText} />
                 )}
               </TouchableOpacity>
               
               {/* All Cities option */}
               <TouchableOpacity 
-                style={styles.cityItem}
+                style={[styles.cityItem, { borderBottomColor: theme.divider }]}
                 onPress={() => handleCitySelect('All Cities')}
               >
                 <View style={styles.cityItemLeftContent}>
-                  <Ionicons name="earth" size={20} color="#000000" style={styles.cityItemIcon} />
+                  <Ionicons name="earth" size={20} color={theme.primaryText} style={styles.cityItemIcon} />
                   <Text style={[
                     styles.cityItemText, 
+                    { color: theme.primaryText },
                     selectedCity === 'All Cities' && !isNearbyEnabled && styles.selectedCityText
                   ]}>
                     All Cities
                   </Text>
                 </View>
                 {selectedCity === 'All Cities' && !isNearbyEnabled && (
-                  <Ionicons name="checkmark" size={20} color="#000000" />
+                  <Ionicons name="checkmark" size={20} color={theme.primaryText} />
                 )}
               </TouchableOpacity>
               
               {/* Group cities by country/region */}
               <View style={styles.cityGroup}>
-                <Text style={styles.cityGroupHeader}>Spanish Cities</Text>
+                <Text style={[styles.cityGroupHeader, { backgroundColor: theme.secondaryBackground, color: theme.secondaryText }]}>Spanish Cities</Text>
                 {filteredCities
                   .filter(city => spanishCities.includes(city))
                   .map((city, index) => (
                     <TouchableOpacity 
                       key={`spanish-${index}`}
-                      style={styles.cityItem}
+                      style={[styles.cityItem, { borderBottomColor: theme.divider }]}
                       onPress={() => handleCitySelect(city)}
                     >
                       <View style={styles.cityItemLeftContent}>
-                        <Ionicons name="location-outline" size={20} color="#000000" style={styles.cityItemIcon} />
+                        <Ionicons name="location-outline" size={20} color={theme.primaryText} style={styles.cityItemIcon} />
                         <Text style={[
                           styles.cityItemText, 
+                          { color: theme.primaryText },
                           selectedCity === city && !isNearbyEnabled && styles.selectedCityText
                         ]}>
                           {city}
                         </Text>
                       </View>
                       {selectedCity === city && !isNearbyEnabled && (
-                        <Ionicons name="checkmark" size={20} color="#000000" />
+                        <Ionicons name="checkmark" size={20} color={theme.primaryText} />
                       )}
                     </TouchableOpacity>
                   ))
@@ -309,26 +315,27 @@ const CafesListScreen = ({ navigation, route }) => {
               </View>
               
               <View style={styles.cityGroup}>
-                <Text style={styles.cityGroupHeader}>Other Cities</Text>
+                <Text style={[styles.cityGroupHeader, { backgroundColor: theme.secondaryBackground, color: theme.secondaryText }]}>Other Cities</Text>
                 {filteredCities
                   .filter(city => !spanishCities.includes(city) && city !== 'All Cities' && city !== 'Spain')
                   .map((city, index) => (
                     <TouchableOpacity 
                       key={`other-${index}`}
-                      style={styles.cityItem}
+                      style={[styles.cityItem, { borderBottomColor: theme.divider }]}
                       onPress={() => handleCitySelect(city)}
                     >
                       <View style={styles.cityItemLeftContent}>
-                        <Ionicons name="location-outline" size={20} color="#000000" style={styles.cityItemIcon} />
+                        <Ionicons name="location-outline" size={20} color={theme.primaryText} style={styles.cityItemIcon} />
                         <Text style={[
                           styles.cityItemText, 
+                          { color: theme.primaryText },
                           selectedCity === city && !isNearbyEnabled && styles.selectedCityText
                         ]}>
                           {city}
                         </Text>
                       </View>
                       {selectedCity === city && !isNearbyEnabled && (
-                        <Ionicons name="checkmark" size={20} color="#000000" />
+                        <Ionicons name="checkmark" size={20} color={theme.primaryText} />
                       )}
                     </TouchableOpacity>
                   ))
@@ -359,7 +366,7 @@ const CafesListScreen = ({ navigation, route }) => {
     
     return (
       <TouchableOpacity 
-        style={styles.cafeCard}
+        style={[styles.cafeCard, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
         onPress={() => {
           navigation.navigate('UserProfileBridge', { 
             userId: item.id, 
@@ -377,12 +384,12 @@ const CafesListScreen = ({ navigation, route }) => {
           <View style={styles.cafeHeader}>
             <AppImage 
               source={logoImageSource} 
-              style={styles.cafeLogo}
+              style={[styles.cafeLogo, { borderColor: theme.border }]}
               resizeMode="cover"
             />
             <View style={styles.cafeTitleContainer}>
-              <Text style={styles.cafeName}>{item.name}</Text>
-              <Text style={styles.cafeLocation}>{item.location}</Text>
+              <Text style={[styles.cafeName, { color: theme.primaryText }]}>{item.name}</Text>
+              <Text style={[styles.cafeLocation, { color: theme.secondaryText }]}>{item.location}</Text>
             </View>
             
             {/* Open/Closed status indicator */}
@@ -391,13 +398,18 @@ const CafesListScreen = ({ navigation, route }) => {
             </View>
           </View>
           
-          <Text style={styles.cafeDescription} numberOfLines={2}>{item.description || 'Specialty coffee shop offering a variety of brews and pastries in a cozy atmosphere.'}</Text>
+          <Text 
+            style={[styles.cafeDescription, { color: theme.secondaryText }]} 
+            numberOfLines={2}
+          >
+            {item.description || 'Specialty coffee shop offering a variety of brews and pastries in a cozy atmosphere.'}
+          </Text>
           
           <View style={styles.cafeStats}>
             <View style={styles.ratingContainer}>
               <Ionicons name="star" size={16} color="#FFD700" />
-              <Text style={styles.ratingText}>{item.rating ? item.rating.toFixed(1) : '4.5'}</Text>
-              <Text style={styles.reviewCount}>({item.reviewCount || '0'} reviews)</Text>
+              <Text style={[styles.ratingText, { color: theme.primaryText }]}>{item.rating ? item.rating.toFixed(1) : '4.5'}</Text>
+              <Text style={[styles.reviewCount, { color: theme.secondaryText }]}>({item.reviewCount || '0'} reviews)</Text>
             </View>
           </View>
         </View>
@@ -406,7 +418,7 @@ const CafesListScreen = ({ navigation, route }) => {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       {renderFilterUI()}
       {renderCitySheet()}
 
@@ -417,7 +429,7 @@ const CafesListScreen = ({ navigation, route }) => {
         contentContainerStyle={styles.cafesList}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No cafés found</Text>
+            <Text style={[styles.emptyText, { color: theme.secondaryText }]}>No cafés found</Text>
           </View>
         }
       />
@@ -428,14 +440,11 @@ const CafesListScreen = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
   },
   filterContainer: {
     paddingVertical: 16,
     paddingHorizontal: 16,
     marginBottom: 0,
-    // borderBottomWidth: 1,
-    // borderBottomColor: '#E5E5EA',
   },
   filterRow: {
     flexDirection: 'row',
@@ -444,7 +453,6 @@ const styles = StyleSheet.create({
   citySelector: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F2F2F7',
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 50,
@@ -460,7 +468,6 @@ const styles = StyleSheet.create({
   filterChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F2F2F7',
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 50,
@@ -474,7 +481,6 @@ const styles = StyleSheet.create({
   chipText: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#000000',
   },
   activeChipText: {
     color: '#FFFFFF',
@@ -485,7 +491,6 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   bottomSheet: {
-    backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12,
     minHeight: '80%',
@@ -498,7 +503,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
   },
   closeButton: {
     padding: 4,
@@ -510,7 +514,6 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F2F2F7',
     margin: 16,
     paddingHorizontal: 12,
     borderRadius: 8,
@@ -537,7 +540,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
   },
   cityItemLeftContent: {
     flexDirection: 'row',
@@ -548,7 +550,6 @@ const styles = StyleSheet.create({
   },
   cityItemText: {
     fontSize: 16,
-    color: '#000000',
   },
   selectedCityText: {
     fontWeight: '600',
@@ -559,9 +560,7 @@ const styles = StyleSheet.create({
   cityGroupHeader: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#666666',
     paddingVertical: 8,
-    backgroundColor: '#F9F9F9',
     paddingHorizontal: 16,
     marginHorizontal: -16,
   },
@@ -569,12 +568,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   cafeCard: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     marginBottom: 16,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#E0E0E0',
   },
   cafeImage: {
     width: '100%',
@@ -594,7 +591,6 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     marginRight: 12,
     borderWidth: 1,
-    borderColor: '#E5E5EA',
   },
   cafeTitleContainer: {
     flex: 1,
@@ -606,7 +602,6 @@ const styles = StyleSheet.create({
   },
   cafeLocation: {
     fontSize: 14,
-    color: '#666666',
   },
   statusIndicator: {
     paddingHorizontal: 10,
@@ -627,7 +622,6 @@ const styles = StyleSheet.create({
   },
   cafeDescription: {
     fontSize: 14,
-    color: '#666666',
     marginBottom: 12,
     lineHeight: 20,
   },
@@ -647,7 +641,6 @@ const styles = StyleSheet.create({
   },
   reviewCount: {
     fontSize: 14,
-    color: '#666666',
     marginLeft: 4,
   },
   emptyContainer: {
@@ -657,7 +650,6 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: '#666666',
   },
 });
 

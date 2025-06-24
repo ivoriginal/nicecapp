@@ -21,7 +21,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useCoffee } from '../context/CoffeeContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect, CommonActions } from '@react-navigation/native';
-import CoffeeLogCard from '../components/CoffeeLogCard';
+import ThemeCoffeeLogCard from '../components/ThemeCoffeeLogCard';
 import eventEmitter from '../utils/EventEmitter';
 import mockGear from '../data/mockGear.json';
 import mockUsers from '../data/mockUsers.json';
@@ -31,6 +31,8 @@ import gearDetails from '../data/gearDetails';
 import { businessCoffees } from '../data/businessProducts';
 import AppImage from '../components/common/AppImage';
 import RecipeCard from '../components/RecipeCard';
+import { useTheme } from '../context/ThemeContext';
+import { mockFollowersData } from '../data/mockFollowers';
 
 // Loading and error components with safe default insets
 const LoadingView = ({ insets }) => {
@@ -107,6 +109,9 @@ export default function ProfileScreen() {
     removeCoffeeEvent
   } = useCoffee();
   
+  // Add theme context at the component level
+  const { theme, isDarkMode, toggleTheme } = useTheme();
+  
   // Track current account locally with persistence in state
   const [localCurrentAccount, setLocalCurrentAccount] = useState(() => {
     // Check if we have a saved account in AsyncStorage or similar
@@ -170,6 +175,17 @@ export default function ProfileScreen() {
       location: 'Madrid, Spain',
       isBusinessAccount: false,
       gear: ["AeroPress", "Comandante C40", "Fellow Stagg EKG"]
+    },
+    'user5': {
+      id: 'user5',
+      userName: 'Emma Garcia',
+      userHandle: 'emmathebarista',
+      userAvatar: 'https://randomuser.me/api/portraits/women/33.jpg',
+      email: 'emma.garcia@example.com',
+      location: 'Austin, TX',
+      isBusinessAccount: false,
+      gear: ["Rancilio Silvia", "Eureka Mignon", "Acaia Pearl Scale"],
+      gearWishlist: ["Mahlkönig EK43", "Synesso S200", "Saint Anthony Industries Phoenix"]
     }
   };
   
@@ -477,8 +493,8 @@ export default function ProfileScreen() {
           style={[styles.usernameContainer, { marginLeft: 16 }]}
           onPress={() => setModalVisible(true)}
         >
-          <Text style={styles.usernameText}>@{userHandle}</Text>
-          <Ionicons name="chevron-down" size={16} color="#000000" />
+          <Text style={[styles.usernameText, { color: theme.primaryText }]}>@{userHandle}</Text>
+          <Ionicons name="chevron-down" size={16} color={theme.primaryText} />
         </TouchableOpacity>
       ),
       headerRight: () => (
@@ -489,18 +505,18 @@ export default function ProfileScreen() {
               navigation.navigate('Saved');
             }}
           >
-            <Ionicons name="bookmark-outline" size={24} color="#000000" />
+            <Ionicons name="bookmarks-outline" size={24} color={theme.primaryText} />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.headerButton}
             onPress={handleOptionsPress}
           >
-            <Ionicons name="ellipsis-horizontal" size={24} color="#000000" />
+            <Ionicons name="ellipsis-horizontal" size={24} color={theme.primaryText} />
           </TouchableOpacity>
         </View>
       )
     });
-  }, [navigation, userHandle, handleOptionsPress]);
+  }, [navigation, userHandle, handleOptionsPress, theme, theme.primaryText]);
 
   // Listen for tab long press events
   useEffect(() => {
@@ -652,6 +668,18 @@ export default function ProfileScreen() {
     setActiveTab(tabName);
   };
 
+  // Get followers count for current user
+  const getFollowersCount = () => {
+    const userFollowerData = mockFollowersData[currentAccount];
+    return userFollowerData?.followers?.length || 0;
+  };
+
+  // Get following count for current user
+  const getFollowingCount = () => {
+    const userFollowerData = mockFollowersData[currentAccount];
+    return userFollowerData?.following?.length || 0;
+  };
+
   // Filter recipes based on the selected filter
   const getFilteredRecipes = () => {
     console.log('Current account in getFilteredRecipes:', currentAccount);
@@ -687,7 +715,7 @@ export default function ProfileScreen() {
     
     return (
       <View style={styles.coffeeLogCardContainer}>
-        <CoffeeLogCard
+        <ThemeCoffeeLogCard
           event={enhancedItem}
           onCoffeePress={() => handleCoffeePress(enhancedItem)}
           onRecipePress={() => handleRecipePress(enhancedItem)}
@@ -703,7 +731,13 @@ export default function ProfileScreen() {
   // Render collection item
   const renderCollectionItem = ({ item }) => (
     <TouchableOpacity 
-      style={styles.collectionCard}
+      style={[
+        styles.collectionCard, 
+        { 
+          backgroundColor: isDarkMode ? theme.cardBackground : theme.background,
+          borderColor: isDarkMode ? theme.cardBackground : theme.border,
+        }
+      ]}
       onPress={() => handleCoffeePress(item)}
     >
       {item.image ? (
@@ -718,8 +752,8 @@ export default function ProfileScreen() {
         </View>
       )}
       <View style={styles.collectionCardInfo}>
-        <Text style={styles.collectionCardName} numberOfLines={1}>{item.name}</Text>
-        <Text style={styles.collectionCardRoaster} numberOfLines={1}>{item.roaster}</Text>
+        <Text style={[styles.collectionCardName, { color: theme.primaryText }]} numberOfLines={1}>{item.name}</Text>
+        <Text style={[styles.collectionCardRoaster, { color: theme.secondaryText }]} numberOfLines={1}>{item.roaster}</Text>
       </View>
     </TouchableOpacity>
   );
@@ -747,43 +781,49 @@ export default function ProfileScreen() {
       recipe={item}
       onPress={() => handleRecipePress(item)}
       onUserPress={(userId, userName) => handleUserPress({userId, userName})}
-      style={styles.fullWidthRecipe}
+      style={[
+        styles.fullWidthRecipe,
+        {
+          backgroundColor: isDarkMode ? theme.cardBackground : theme.background,
+          borderColor: isDarkMode ? theme.divider : '#E5E5EA'
+        }
+      ]}
     />
   );
 
   // Render tabs
   const renderTabs = () => (
-    <View style={styles.tabsContainer}>
+    <View style={[styles.tabsContainer, { borderBottomColor: theme.divider }, { backgroundColor: theme.background }]}>
       <TouchableOpacity
-        style={[styles.tabButton, activeTab === 'coffee' && styles.activeTabButton]}
+        style={[styles.tabButton, activeTab === 'coffee' && [styles.activeTabButton, { borderBottomColor: theme.primaryText }]]}
         onPress={() => handleTabChange('coffee')}
       >
-        <Text style={[styles.tabText, activeTab === 'coffee' && styles.activeTabText]}>Activity</Text>
+        <Text style={[styles.tabText, { color: theme.secondaryText }, activeTab === 'coffee' && { color: theme.primaryText }]}>Activity</Text>
       </TouchableOpacity>
       
       <TouchableOpacity 
-        style={[styles.tabButton, activeTab === (isBusinessAccount ? 'shop' : 'collection') && styles.activeTabButton]}
+        style={[styles.tabButton, activeTab === (isBusinessAccount ? 'shop' : 'collection') && [styles.activeTabButton, { borderBottomColor: theme.primaryText }]]}
         onPress={() => handleTabChange(isBusinessAccount ? 'shop' : 'collection')}
       >
-        <Text style={[styles.tabText, activeTab === (isBusinessAccount ? 'shop' : 'collection') && styles.activeTabText]}>
+        <Text style={[styles.tabText, { color: theme.secondaryText }, activeTab === (isBusinessAccount ? 'shop' : 'collection') && { color: theme.primaryText }]}>
           {isBusinessAccount ? 'Shop' : 'Collection'}
         </Text>
       </TouchableOpacity>
       
       <TouchableOpacity 
-        style={[styles.tabButton, activeTab === 'recipes' && styles.activeTabButton]}
+        style={[styles.tabButton, activeTab === 'recipes' && [styles.activeTabButton, { borderBottomColor: theme.primaryText }]]}
         onPress={() => handleTabChange('recipes')}
       >
-        <Text style={[styles.tabText, activeTab === 'recipes' && styles.activeTabText]}>Recipes</Text>
+        <Text style={[styles.tabText, { color: theme.secondaryText }, activeTab === 'recipes' && { color: theme.primaryText }]}>Recipes</Text>
       </TouchableOpacity>
     </View>
   );
 
   // Render empty state
   const renderEmptyState = (message) => (
-    <View style={styles.emptyContainer}>
-      <Ionicons name="cafe-outline" size={50} color="#CCCCCC" />
-      <Text style={styles.emptyText}>{message}</Text>
+    <View style={[styles.emptyContainer, { backgroundColor: theme.background }]}>
+      <Ionicons name="cafe-outline" size={50} color={theme.secondaryText} />
+      <Text style={[styles.emptyText, { color: theme.secondaryText }]}>{message}</Text>
     </View>
   );
 
@@ -808,7 +848,7 @@ export default function ProfileScreen() {
           />
         }
         showsVerticalScrollIndicator={false}
-        style={{ flex: 1 }}
+        style={{ flex: 1, backgroundColor: theme.background }}
         contentContainerStyle={{ paddingTop: 0 }}
         scrollToOverflowEnabled={false}
         automaticallyAdjustContentInsets={false}
@@ -823,7 +863,7 @@ export default function ProfileScreen() {
         }}
       >
         {/* Profile Header - Avatar, name, stats */}
-        <View style={[styles.profileHeader]}>
+        <View style={[styles.profileHeader, { backgroundColor: theme.background }]}>
           <Image 
             source={typeof avatarUrl === 'string' ? { uri: avatarUrl } : avatarUrl} 
             style={[
@@ -832,9 +872,71 @@ export default function ProfileScreen() {
             ]} 
           />
           <View style={styles.profileInfo}>
-            <Text style={styles.name}>{displayName}</Text>
-            <Text style={styles.location}>{location}</Text>
+            <Text style={[styles.name, { color: theme.primaryText }]}>{displayName}</Text>
+            <Text style={[styles.location, { color: theme.secondaryText }]}>{location}</Text>
           </View>
+        </View>
+
+        {/* Profile Stats */}
+        <View style={[styles.followStatsContainer, { backgroundColor: theme.background }]}>
+          <TouchableOpacity 
+            style={styles.followStat}
+            onPress={() => setActiveTab('coffee')}
+          >
+            <Text style={[styles.followStatNumber, { color: theme.primaryText }]}>
+              {coffeeEvents?.length || 0}
+            </Text>
+            <Text style={[styles.followStatLabel, { color: theme.secondaryText }]}>
+              coffees
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.followStat}
+            onPress={() => setActiveTab('recipes')}
+          >
+            <Text style={[styles.followStatNumber, { color: theme.primaryText }]}>
+              {getFilteredRecipes().length}
+            </Text>
+            <Text style={[styles.followStatLabel, { color: theme.secondaryText }]}>
+              recipes
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.followStat}
+            onPress={() => {
+              navigation.navigate('FollowersScreen', {
+                userId: currentAccount,
+                userName: displayName,
+                type: 'followers',
+                skipAuth: true
+              });
+            }}
+          >
+            <Text style={[styles.followStatNumber, { color: theme.primaryText }]}>
+              {getFollowersCount()}
+            </Text>
+            <Text style={[styles.followStatLabel, { color: theme.secondaryText }]}>
+              followers
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.followStat}
+            onPress={() => {
+              navigation.navigate('FollowersScreen', {
+                userId: currentAccount,
+                userName: displayName,
+                type: 'following',
+                skipAuth: true
+              });
+            }}
+          >
+            <Text style={[styles.followStatNumber, { color: theme.primaryText }]}>
+              {getFollowingCount()}
+            </Text>
+            <Text style={[styles.followStatLabel, { color: theme.secondaryText }]}>
+              following
+            </Text>
+          </TouchableOpacity>
         </View>
         
         {/* Gear Module - showing user's gear */}
@@ -845,7 +947,7 @@ export default function ProfileScreen() {
         
         {/* Tab Content */}
         {activeTab === 'coffee' && (
-          <View style={styles.sectionContainer}>
+          <View style={[styles.sectionContainer, { backgroundColor: theme.background }]}>
             {coffeeEvents && coffeeEvents.length > 0 ? (
               <FlatList
                 data={coffeeEvents}
@@ -861,33 +963,35 @@ export default function ProfileScreen() {
         )}
         
         {activeTab === (isBusinessAccount ? 'shop' : 'collection') && (
-          <View style={styles.sectionContainer}>
+          <View style={[styles.sectionContainer, { backgroundColor: theme.background }]}>
             {isBusinessAccount && (
-              <View style={styles.recipeFilterContainer}>
-                <View style={styles.segmentedControl}>
+              <View style={[styles.recipeFilterContainer, { backgroundColor: theme.background }]}>
+                <View style={[styles.segmentedControl, { backgroundColor: theme.cardBackground }]}>
                   <TouchableOpacity
                     style={[
                       styles.segment,
-                      shopFilter === 'coffee' && styles.segmentActive
+                      shopFilter === 'coffee' && [styles.segmentActive, { backgroundColor: isDarkMode ? '#3A3A3C' : theme.background }]
                     ]}
                     onPress={() => setShopFilter('coffee')}
                   >
                     <Text style={[
                       styles.segmentText,
-                      shopFilter === 'coffee' && styles.segmentTextActive
+                      { color: theme.secondaryText },
+                      shopFilter === 'coffee' && [styles.segmentTextActive, { color: theme.primaryText }]
                     ]}>Coffee</Text>
                   </TouchableOpacity>
                   
                   <TouchableOpacity
                     style={[
                       styles.segment,
-                      shopFilter === 'gear' && styles.segmentActive
+                      shopFilter === 'gear' && [styles.segmentActive, { backgroundColor: isDarkMode ? '#3A3A3C' : theme.background }]
                     ]}
                     onPress={() => setShopFilter('gear')}
                   >
                     <Text style={[
                       styles.segmentText,
-                      shopFilter === 'gear' && styles.segmentTextActive
+                      { color: theme.secondaryText },
+                      shopFilter === 'gear' && [styles.segmentTextActive, { color: theme.primaryText }]
                     ]}>Gear</Text>
                   </TouchableOpacity>
                 </View>
@@ -895,12 +999,18 @@ export default function ProfileScreen() {
             )}
             
             {isBusinessAccount && shopFilter === 'gear' ? (
-              <View style={styles.collectionSection}>
+              <View style={[styles.collectionSection, { backgroundColor: theme.background }]}>
                 <FlatList
                   data={mockGear.gear.filter(gear => getBusinessGear(currentAccount, userData?.userName).includes(gear.id))}
                   renderItem={({ item }) => (
                     <TouchableOpacity 
-                      style={styles.collectionCard}
+                      style={[
+                        styles.collectionCard, 
+                        { 
+                          backgroundColor: isDarkMode ? theme.cardBackground : theme.background,
+                          borderColor: isDarkMode ? theme.divider : '#E5E5EA'
+                        }
+                      ]}
                       onPress={() => handleGearPress(item.name)}
                     >
                       <Image
@@ -909,9 +1019,9 @@ export default function ProfileScreen() {
                         resizeMode="cover"
                       />
                       <View style={styles.collectionCardInfo}>
-                        <Text style={styles.collectionCardName} numberOfLines={1}>{item.name}</Text>
-                        <Text style={styles.collectionCardRoaster} numberOfLines={1}>{item.brand}</Text>
-                        <Text style={styles.collectionCardPrice}>{typeof item.price === 'number' ? `€${item.price.toFixed(2)}` : item.price}</Text>
+                        <Text style={[styles.collectionCardName, { color: theme.primaryText }]} numberOfLines={1}>{item.name}</Text>
+                        <Text style={[styles.collectionCardRoaster, { color: theme.secondaryText }]} numberOfLines={1}>{item.brand}</Text>
+                        <Text style={[styles.collectionCardPrice, { color: theme.primaryText }]}>{typeof item.price === 'number' ? `€${item.price.toFixed(2)}` : item.price}</Text>
                       </View>
                     </TouchableOpacity>
                   )}
@@ -921,14 +1031,14 @@ export default function ProfileScreen() {
                   scrollEnabled={false}
                   contentContainerStyle={{paddingHorizontal: 16, paddingTop: 16}}
                   ListEmptyComponent={() => (
-                    <View style={styles.emptyContainer}>
-                      <Text style={styles.emptyText}>No gear in shop</Text>
+                    <View style={[styles.emptyContainer, { backgroundColor: theme.background }]}>
+                      <Text style={[styles.emptyText, { color: theme.secondaryText }]}>No gear in shop</Text>
                     </View>
                   )}
                 />
               </View>
             ) : isBusinessAccount && shopFilter === 'coffee' ? (
-              <View style={styles.collectionSection}>
+              <View style={[styles.collectionSection, { backgroundColor: theme.background }]}>
                 <FlatList
                   data={getBusinessCoffees(currentAccount, userData?.userName)}
                   keyExtractor={(item) => item.coffeeId || item.id}
@@ -949,7 +1059,13 @@ export default function ProfileScreen() {
                     
                     return (
                       <TouchableOpacity 
-                        style={styles.collectionCard}
+                        style={[
+                          styles.collectionCard, 
+                          { 
+                            backgroundColor: isDarkMode ? theme.cardBackground : theme.background,
+                            borderColor: isDarkMode ? theme.divider : '#E5E5EA'
+                          }
+                        ]}
                         onPress={() => handleCoffeePress(item)}
                       >
                         <Image
@@ -958,9 +1074,9 @@ export default function ProfileScreen() {
                           resizeMode="cover"
                         />
                         <View style={styles.collectionCardInfo}>
-                          <Text style={styles.collectionCardName} numberOfLines={1}>{coffeeData.name}</Text>
-                          <Text style={styles.collectionCardRoaster} numberOfLines={1}>{coffeeData.roaster}</Text>
-                          <Text style={styles.collectionCardPrice}>{typeof item.price === 'number' ? `€${item.price.toFixed(2)}` : item.price}</Text>
+                          <Text style={[styles.collectionCardName, { color: theme.primaryText }]} numberOfLines={1}>{coffeeData.name}</Text>
+                          <Text style={[styles.collectionCardRoaster, { color: theme.secondaryText }]} numberOfLines={1}>{coffeeData.roaster}</Text>
+                          <Text style={[styles.collectionCardPrice, { color: theme.primaryText }]}>{typeof item.price === 'number' ? `€${item.price.toFixed(2)}` : item.price}</Text>
                         </View>
                       </TouchableOpacity>
                     );
@@ -971,14 +1087,14 @@ export default function ProfileScreen() {
                   scrollEnabled={false}
                   contentContainerStyle={{paddingHorizontal: 16, paddingTop: 16}}
                   ListEmptyComponent={() => (
-                    <View style={styles.emptyContainer}>
-                      <Text style={styles.emptyText}>No coffees in shop</Text>
+                    <View style={[styles.emptyContainer, { backgroundColor: theme.background }]}>
+                      <Text style={[styles.emptyText, { color: theme.secondaryText }]}>No coffees in shop</Text>
                     </View>
                   )}
                 />
               </View>
             ) : coffeeCollection && coffeeCollection.length > 0 ? (
-              <View style={styles.collectionSection}>
+              <View style={[styles.collectionSection, { backgroundColor: theme.background }]}>
                 <FlatList
                   data={coffeeCollection}
                   renderItem={renderCollectionItem}
@@ -997,9 +1113,9 @@ export default function ProfileScreen() {
         )}
         
         {activeTab === 'recipes' && (
-          <View style={styles.sectionContainer}>
+          <View style={[styles.sectionContainer, { backgroundColor: theme.background }]}>
             {console.log('Rendering recipes tab')}
-            <View style={styles.collectionSection}>
+            <View style={[styles.collectionSection, { backgroundColor: theme.background }]}>
               <FlatList
                 data={getFilteredRecipes()}
                 renderItem={renderRecipeItem}
@@ -1009,8 +1125,8 @@ export default function ProfileScreen() {
                 scrollEnabled={false}
                 contentContainerStyle={{paddingHorizontal: 16, paddingTop: 16}}
                 ListEmptyComponent={() => (
-                  <View style={styles.emptyContainer}>
-                    <Text style={styles.emptyText}>
+                  <View style={[styles.emptyContainer, { backgroundColor: theme.background }]}>
+                    <Text style={[styles.emptyText, { color: theme.secondaryText }]}>
                       No recipes created yet
                     </Text>
                   </View>
@@ -1041,7 +1157,7 @@ export default function ProfileScreen() {
           options: ['Edit Profile', 'Settings', 'Sign Out', 'Cancel'],
           cancelButtonIndex: 3,
           destructiveButtonIndex: 2,
-          userInterfaceStyle: 'light'
+          userInterfaceStyle: isDarkMode ? 'dark' : 'light'
         },
         (buttonIndex) => {
           if (buttonIndex === 0) {
@@ -1049,7 +1165,7 @@ export default function ProfileScreen() {
             navigation.navigate('EditProfile', { userData: completeUserData });
           } else if (buttonIndex === 1) {
             // Settings
-            Alert.alert('Coming Soon', 'Settings functionality will be available soon.');
+            navigation.navigate('Settings');
           } else if (buttonIndex === 2) {
             // Sign Out
             Alert.alert(
@@ -1077,7 +1193,7 @@ export default function ProfileScreen() {
         'Choose an option',
         [
           { text: 'Edit Profile', onPress: () => navigation.navigate('EditProfile', { userData: completeUserData }) },
-          { text: 'Settings', onPress: () => Alert.alert('Coming Soon', 'Settings functionality will be available soon.') },
+          { text: 'Settings', onPress: () => navigation.navigate('Settings') },
           { 
             text: 'Sign Out', 
             style: 'destructive',
@@ -1095,12 +1211,18 @@ export default function ProfileScreen() {
                       Alert.alert('Signed Out', 'You have been signed out successfully');
                     }
                   }
-                ]
+                ],
+                {
+                  userInterfaceStyle: isDarkMode ? 'dark' : 'light'
+                }
               );
             } 
           },
           { text: 'Cancel', style: 'cancel' }
-        ]
+        ],
+        {
+          userInterfaceStyle: isDarkMode ? 'dark' : 'light'
+        }
       );
     }
   };
@@ -1124,15 +1246,15 @@ export default function ProfileScreen() {
       <View style={styles.modalContainer}>
         <View style={[
           styles.modalContent,
-          { paddingBottom: insets.bottom + 12 }
+          { paddingBottom: insets.bottom + 12, backgroundColor: theme.cardBackground }
         ]}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Select Account</Text>
+          <View style={[styles.modalHeader, { borderBottomColor: theme.divider }]}>
+            <Text style={[styles.modalTitle, { color: theme.primaryText }]}>Select Account</Text>
             <TouchableOpacity 
               style={styles.closeButton}
               onPress={() => setModalVisible(false)}
             >
-              <Ionicons name="close" size={24} color="#000000" />
+              <Ionicons name="close" size={24} color={theme.primaryText} />
             </TouchableOpacity>
           </View>
           <FlatList
@@ -1140,7 +1262,7 @@ export default function ProfileScreen() {
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
               <TouchableOpacity
-                style={styles.accountItem}
+                style={[styles.accountItem, { borderBottomColor: theme.divider }]}
                 onPress={() => handleSwitchAccount(item.id)}
               >
                 <Image
@@ -1148,8 +1270,8 @@ export default function ProfileScreen() {
                   style={[styles.accountAvatar, defaultUsers[item.id]?.isBusinessAccount && styles.businessAvatar]}
                 />
                 <View style={styles.accountInfo}>
-                  <Text style={styles.accountName}>{item.userName || item.name}</Text>
-                  <Text style={styles.accountEmail}>{item.email}</Text>
+                  <Text style={[styles.accountName, { color: theme.primaryText }]}>{item.userName || item.name}</Text>
+                  <Text style={[styles.accountEmail, { color: theme.secondaryText }]}>{item.email}</Text>
                 </View>
                 {currentAccount === item.id && (
                   <Ionicons name="checkmark-circle" size={24} color="#34C759" />
@@ -1164,10 +1286,10 @@ export default function ProfileScreen() {
                   Alert.alert('Coming Soon', 'Create Account functionality will be available soon.');
                 }}
               >
-                <View style={styles.createAccountCircle}>
-                  <Ionicons name="add" size={24} color="#FFFFFF" />
+                <View style={[styles.createAccountCircle, { backgroundColor: theme.primaryText }]}>
+                  <Ionicons name="add" size={24} color={theme.background} />
                 </View>
-                <Text style={styles.createAccountText}>Create Account</Text>
+                <Text style={[styles.createAccountText, { color: theme.primaryText }]}>Create Account</Text>
               </TouchableOpacity>
             }
           />
@@ -1211,12 +1333,12 @@ export default function ProfileScreen() {
     };
     
     return (
-      <View style={styles.gearContainer}>
+      <View style={[styles.gearContainer, { backgroundColor: theme.background }]}>
         <View style={styles.gearTitleRow}>
-          <Text style={styles.gearTitle}>My gear</Text>
+          <Text style={[styles.gearTitle, { color: theme.primaryText }]}>My gear</Text>
           
           <TouchableOpacity onPress={handleGearWishlistNavigate}>
-            <Text style={styles.gearWishlistToggle}>
+            <Text style={[styles.gearWishlistToggle, { color: theme.primaryText, borderBottomColor: theme.primaryText }]}>
               {hasWishlist ? 'Wishlist' : 'View Wishlist'}
             </Text>
           </TouchableOpacity>
@@ -1234,7 +1356,7 @@ export default function ProfileScreen() {
               return (
                 <TouchableOpacity 
                   key={index} 
-                  style={styles.gearItem}
+                  style={[styles.gearItem, { backgroundColor: theme.cardBackground }]}
                   onPress={() => handleGearPress(item)}
                 >
                   {gearImage && (
@@ -1247,12 +1369,12 @@ export default function ProfileScreen() {
                       />
                     </View>
                   )}
-                  <Text style={styles.gearItemText}>{item}</Text>
+                  <Text style={[styles.gearItemText, { color: theme.primaryText }]}>{item}</Text>
                 </TouchableOpacity>
               );
             })
           ) : (
-            <Text style={styles.emptyGearText}>
+            <Text style={[styles.emptyGearText, { color: theme.secondaryText }]}>
               No gear added yet
             </Text>
           )}
@@ -1390,8 +1512,8 @@ export default function ProfileScreen() {
   }, [currentAccount]);
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" />
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <StatusBar barStyle={isDarkMode ? "light" : "dark"} />
 
       {renderContent()}
       {renderAccountModal()}
@@ -1411,7 +1533,7 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFFFF', // This will be overridden by inline style with theme.background
   },
   centerContent: {
     justifyContent: 'center',
@@ -1432,7 +1554,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     marginBottom: 8,
-    borderWidth: 1,
+    // borderWidth: 1,
     borderColor: '#F0F0F0',
   },
   userAvatar: {
@@ -1834,7 +1956,7 @@ const styles = StyleSheet.create({
   },
   segmentedControl: {
     flexDirection: 'row',
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#F5F5F5',
     borderRadius: 8,
     padding: 4,
   },
@@ -1899,5 +2021,33 @@ const styles = StyleSheet.create({
   headerButton: {
     padding: 8,
     marginLeft: 8,
+  },
+  followStatsContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 32,
+    paddingVertical: 12,
+    paddingBottom: 0,
+    backgroundColor: '#FFFFFF',
+    // borderBottomWidth: StyleSheet.hairlineWidth,
+    // borderBottomColor: '#E5E5EA',
+    justifyContent: 'space-between',
+  },
+  followStat: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    paddingVertical: 0,
+    paddingBottom: 4,
+    paddingHorizontal: 8,
+    flex: 1,
+  },
+  followStatNumber: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#000000',
+    marginBottom: 0,
+  },
+  followStatLabel: {
+    fontSize: 14,
+    color: '#666666',
   },
 }); 

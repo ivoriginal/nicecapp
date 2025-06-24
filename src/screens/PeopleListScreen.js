@@ -7,10 +7,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import PeopleCard from '../components/PeopleCard';
 import { COLORS, FONTS } from '../constants';
 import AppImage from '../components/common/AppImage';
+import { useTheme } from '../context/ThemeContext';
 
 const PeopleListScreen = () => {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const { theme, isDarkMode } = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
   const [people, setPeople] = useState([]);
   const [filteredPeople, setFilteredPeople] = useState([]);
@@ -63,7 +65,7 @@ const PeopleListScreen = () => {
       // Use the AppImage component with the string path which it knows how to handle
       return (
         <TouchableOpacity 
-          style={styles.userCard}
+          style={[styles.userCard, { backgroundColor: 'transparent' }]}
           onPress={() => navigation.navigate('UserProfileBridge', { 
             userId: item.id, 
             userName: item.userName || item.name,
@@ -76,11 +78,11 @@ const PeopleListScreen = () => {
             placeholder="person"
           />
           <View style={styles.userInfo}>
-            <Text style={styles.userName}>{item.userName || item.name}</Text>
-            <Text style={styles.userHandle} numberOfLines={1}>{item.handle}</Text>
+            <Text style={[styles.userName, { color: theme.primaryText }]}>{item.userName || item.name}</Text>
+            <Text style={[styles.userHandle, { color: theme.secondaryText }]} numberOfLines={1}>{item.handle}</Text>
           </View>
-          <TouchableOpacity style={styles.followButton}>
-            <Text style={styles.followButtonText}>Follow</Text>
+          <TouchableOpacity style={[styles.followButton, { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' }]}>
+            <Text style={[styles.followButtonText, { color: isDarkMode ? '#000000' : '#FFFFFF' }]}>Follow</Text>
           </TouchableOpacity>
         </TouchableOpacity>
       );
@@ -88,7 +90,7 @@ const PeopleListScreen = () => {
     
     return (
       <TouchableOpacity 
-        style={styles.userCard}
+        style={[styles.userCard, { backgroundColor: 'transparent' }]}
         onPress={() => navigation.navigate('UserProfileBridge', { 
           userId: item.id, 
           userName: item.userName || item.name,
@@ -101,18 +103,18 @@ const PeopleListScreen = () => {
           placeholder="person"
         />
         <View style={styles.userInfo}>
-          <Text style={styles.userName}>{item.userName || item.name}</Text>
-          <Text style={styles.userHandle} numberOfLines={1}>{item.handle}</Text>
+          <Text style={[styles.userName, { color: theme.primaryText }]}>{item.userName || item.name}</Text>
+          <Text style={[styles.userHandle, { color: theme.secondaryText }]} numberOfLines={1}>{item.handle}</Text>
         </View>
-        <TouchableOpacity style={styles.followButton}>
-          <Text style={styles.followButtonText}>Follow</Text>
+        <TouchableOpacity style={[styles.followButton, { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' }]}>
+          <Text style={[styles.followButtonText, { color: isDarkMode ? '#000000' : '#FFFFFF' }]}>Follow</Text>
         </TouchableOpacity>
       </TouchableOpacity>
     );
   };
 
   return (
-    <View style={[styles.container]}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <FlatList
         data={filteredPeople}
         renderItem={renderUserItem}
@@ -126,7 +128,7 @@ const PeopleListScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFFFF', // Will be overridden by inline style
   },
   usersList: {
     padding: 0,
@@ -135,9 +137,7 @@ const styles = StyleSheet.create({
   userCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    // borderBottomWidth: 1,
-    // borderBottomColor: '#E0E0E0',
+    backgroundColor: '#FFFFFF', // Will be overridden by inline style
     padding: 12,
     paddingVertical: 8,
   },
@@ -145,9 +145,6 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 50,
-    // borderWidth: 1,
-    // borderColor: '#D0D0D0',
-    // borderOpacity: 0.2,
   },
   userInfo: {
     flex: 1,
@@ -168,7 +165,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   followButton: {
-    backgroundColor: '#000000',
+    backgroundColor: '#000000', // Will be overridden by inline style
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,

@@ -11,10 +11,8 @@ import {
   Alert,
   StatusBar,
   RefreshControl,
-  Dimensions,
   Platform,
-  ActionSheetIOS,
-  Animated
+  ActionSheetIOS
 } from 'react-native';
 import { Ionicons, MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -34,12 +32,13 @@ import { mockFollowersData } from '../data/mockFollowers';
 const defaultMockData = mockUsersData || { users: [], trendingCafes: [], businesses: [] };
 import { useCoffee } from '../context/CoffeeContext';
 import AppImage from '../components/common/AppImage';
-import CoffeeLogCard from '../components/CoffeeLogCard';
+import ThemeCoffeeLogCard from '../components/ThemeCoffeeLogCard';
 import FollowButton from '../components/FollowButton';
 import { COLORS, FONTS, SIZES } from '../constants';
 import AnimatedTabBar from '../components/AnimatedTabBar';
 import { useUser } from '../context/UserContext';
 import RecipeCard from '../components/RecipeCard';
+import { useTheme } from '../context/ThemeContext';
 
 // Helper component to safely render FlatLists inside ScrollView
 const SafeFlatList = ({ data, ...props }) => {
@@ -89,9 +88,10 @@ export default function UserProfileScreen() {
   const route = useRoute();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-  const { userId, isCurrentUser, ensureHeaderShown, isLocation, parentBusinessId } = route.params || { userId: 'user1' }; // Default to Ivo Vilches
+  const { userId, userName, isCurrentUser, ensureHeaderShown, isLocation, parentBusinessId, isModalView = false } = route.params || { userId: 'user1' };
   const { allEvents, following, followers, loadData: loadGlobalData, currentAccount, removeCoffeeEvent } = useCoffee();
   const { currentUser } = useUser();
+  const { theme, isDarkMode } = useTheme();
   
   const [user, setUser] = useState(null);
   const [userCoffees, setUserCoffees] = useState([]);
@@ -106,7 +106,7 @@ export default function UserProfileScreen() {
   const [gear, setGear] = useState([]);
   const [userLogs, setUserLogs] = useState([]);
   const [enableRefreshControl, setEnableRefreshControl] = useState(false);
-  const scrollY = useRef(new Animated.Value(0)).current;
+
   const [showAllDesc, setShowAllDesc] = useState(false);
   const [expandedEvent, setExpandedEvent] = useState(null);
   const [error, setError] = useState(null);
@@ -117,54 +117,35 @@ export default function UserProfileScreen() {
   const [followingCount, setFollowingCount] = useState(0);
   const [mutualFollowers, setMutualFollowers] = useState([]);
 
+  // Get cover image URL from user data or route params  
+  const coverImageUrl = user?.coverImage || route.params?.coverImage;
+
   const isFocused = useIsFocused();
 
-  // Ensure header is visible and handle transitions properly
-  useEffect(() => {
-    const initialSetup = () => {
-      // Keep header visible but with no title or border initially
-      navigation.setOptions({
-        headerShown: true,
-        headerTransparent: false,
-        headerStyle: {
-          backgroundColor: '#FFFFFF',
-          elevation: 0, // Remove shadow for Android
-          shadowOpacity: 0, // Remove shadow for iOS
-          shadowRadius: 0,
-          borderBottomWidth: 0 // Remove bottom border
-        },
-        headerTitle: '', // Start with empty title
-        headerRight: () => (
-          <TouchableOpacity 
-            onPress={handleOptionsPress} 
-            style={{ marginRight: 16 }}
-          >
-            <Ionicons name="ellipsis-horizontal" size={24} color="#000000" />
-          </TouchableOpacity>
-        )
-      });
-    };
-    
-    // Initial setup
-    initialSetup();
-    
-    // Listen for focus events to keep header visible
-    const focusUnsubscribe = navigation.addListener('focus', () => {
-      console.log('UserProfileScreen focused, ensuring header is shown');
-      initialSetup();
+  // Set up header navigation options
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerShown: true,
+      headerTransparent: false,
+      headerStyle: {
+        backgroundColor: theme.background,
+        elevation: 0, // Remove shadow for Android
+        shadowOpacity: 0, // Remove shadow for iOS
+        shadowRadius: 0,
+        borderBottomWidth: 0 // Remove bottom border
+      },
+      headerTitle: '', // Start with empty title
+      headerTintColor: theme.primaryText, // Set back button color
+      headerRight: () => (
+        <TouchableOpacity 
+          onPress={handleOptionsPress} 
+          style={{ marginRight: 16 }}
+        >
+          <Ionicons name="ellipsis-horizontal" size={24} color={theme.primaryText} />
+        </TouchableOpacity>
+      )
     });
-    
-    // Listen for blur events to handle transition properly
-    const blurUnsubscribe = navigation.addListener('blur', () => {
-      console.log('UserProfileScreen blurred');
-    });
-    
-    // Clean up all listeners when component unmounts
-    return () => {
-      focusUnsubscribe();
-      blurUnsubscribe();
-    };
-  }, [navigation, isLocation, user]);
+  }, [navigation, theme]);
 
   // Handle options button press
   const handleOptionsPress = () => {
@@ -173,7 +154,7 @@ export default function UserProfileScreen() {
         {
           options: ['Share Profile', 'Cancel'],
           cancelButtonIndex: 1,
-          userInterfaceStyle: 'light'
+          userInterfaceStyle: isDarkMode ? 'dark' : 'light' // Match system appearance
         },
         (buttonIndex) => {
           if (buttonIndex === 0) {
@@ -194,64 +175,25 @@ export default function UserProfileScreen() {
             onPress: () => Alert.alert('Share', `Sharing ${user?.userName || 'user'}'s profile`) 
           },
           { text: 'Cancel', style: 'cancel' }
-        ]
+        ],
+        {
+          userInterfaceStyle: isDarkMode ? 'dark' : 'light'
+        }
       );
     }
   };
 
-  // Handle scroll events to update header title and border
-  const handleScroll = (event) => {
-    const currentScrollY = event.nativeEvent.contentOffset.y;
-    
-    // Show header title after scrolling past a threshold (e.g., 40 pixels)
-    if (currentScrollY > 40 && scrollY.current <= 40) {
-      // Scrolled down past threshold - show title and border
-      navigation.setOptions({
-        headerTitle: user?.userName || route.params?.userName || 'Profile',
-        headerStyle: {
-          backgroundColor: '#FFFFFF',
-          elevation: 0, // Keep 0 to avoid accidental shadow on Android
-          shadowOpacity: 0, // Keep 0 to avoid accidental shadow on iOS
-          shadowRadius: 0,
-          borderBottomWidth: 1, // Add bottom border
-          borderBottomColor: '#E5E5EA'
-        },
-        // Keep the three-dot menu
-        headerRight: () => (
-          <TouchableOpacity 
-            onPress={handleOptionsPress} 
-            style={{ marginRight: 16 }}
-          >
-            <Ionicons name="ellipsis-horizontal" size={24} color="#000000" />
-          </TouchableOpacity>
-        )
-      });
-    } else if (currentScrollY <= 40 && scrollY.current > 40) {
-      // Scrolled up to threshold - hide title and border
-      navigation.setOptions({
-        headerTitle: '',
-        headerStyle: {
-          backgroundColor: '#FFFFFF',
-          elevation: 0, // Remove shadow for Android
-          shadowOpacity: 0, // Remove shadow for iOS
-          shadowRadius: 0,
-          borderBottomWidth: 0 // Remove bottom border
-        },
-        // Keep the three-dot menu
-        headerRight: () => (
-          <TouchableOpacity 
-            onPress={handleOptionsPress} 
-            style={{ marginRight: 16 }}
-          >
-            <Ionicons name="ellipsis-horizontal" size={24} color="#000000" />
-          </TouchableOpacity>
-        )
-      });
+  // Handle back button press
+  const handleGoBack = () => {
+    console.log('handleGoBack function called - testing');
+    try {
+      navigation.goBack();
+    } catch (error) {
+      console.error('Error in handleGoBack:', error);
     }
-    
-    // Update the ref with current position
-    scrollY.current = currentScrollY;
   };
+
+
 
   // Determine tabs based on user type
   const getTabs = () => {
@@ -331,9 +273,14 @@ export default function UserProfileScreen() {
   useEffect(() => {
     const loadAllProfileData = async () => {
       console.log('Loading all profile data for:', userId);
+      console.log('Route params:', route.params);
       setLoading(true);
       
       try {
+        // Debug: Check if mock data is available
+        console.log('mockUsersData available:', !!mockUsersData);
+        console.log('mockEventsData available:', !!mockEventsData);
+        console.log('mockRecipesData available:', !!mockRecipesData);
         // First, get the user data
         let userData;
         if (isCurrentUser) {
@@ -343,7 +290,7 @@ export default function UserProfileScreen() {
           // Check if this is a business ID (roaster)
           if (userId.startsWith('business-')) {
             const businessData = mockUsersData.businesses?.find(b => b.id === userId) || 
-                               mockCafesData.businesses?.find(b => b.id === userId);
+                               mockCafesData.roasters?.find(b => b.id === userId);
             
             if (businessData) {
               userData = {
@@ -379,12 +326,61 @@ export default function UserProfileScreen() {
               }
             }
           } else {
-            // Otherwise, fetch the requested user using the fallback function
-            userData = getMockUserFallback(userId);
+            // Check if this is a cafe ID from mockCafes.json
+            const cafeData = mockCafesData.cafes?.find(c => c.id === userId);
+            
+            if (cafeData) {
+              console.log('Found cafe data for', userId, ':', cafeData);
+              
+              // Get parent roaster info if available
+              const parentRoaster = cafeData.roasterId ? 
+                mockCafesData.roasters?.find(r => r.id === cafeData.roasterId) : null;
+              
+              userData = {
+                id: cafeData.id,
+                userName: cafeData.name,
+                userAvatar: cafeData.avatar,
+                coverImage: cafeData.coverImage,
+                location: cafeData.location,
+                bio: cafeData.description || '',
+                phone: cafeData.phone,
+                address: cafeData.address,
+                rating: cafeData.rating,
+                reviewCount: cafeData.reviewCount,
+                categories: cafeData.categories,
+                priceRange: cafeData.priceRange,
+                openingHours: cafeData.openingHours,
+                coordinates: cafeData.coordinates,
+                neighborhood: cafeData.neighborhood,
+                isBusinessAccount: true,
+                isLocation: !!cafeData.roasterId,
+                parentBusinessId: cafeData.roasterId,
+                parentBusinessName: parentRoaster ? parentRoaster.name : null,
+                gear: [],
+                gearWishlist: []
+              };
+            } else {
+              // Otherwise, fetch the requested user using the fallback function
+              userData = getMockUserFallback(userId);
+              console.log('Found user data for', userId, ':', userData);
+            }
           }
         }
         
         if (userData) {
+          console.log('Setting user data:', userData);
+          
+          // Special handling for Vértigo y Calambre: if we get user2, redirect to business-vertigo
+          if (userData.id === 'user2' && userData.userName === 'Vértigo y Calambre') {
+            console.log('Redirecting user2 to business-vertigo for Vértigo y Calambre');
+            navigation.replace('UserProfileBridge', {
+              userId: 'business-vertigo',
+              userName: 'Vértigo y Calambre',
+              skipAuth: true
+            });
+            return;
+          }
+          
           // If route params include isRoaster, isBusinessAccount, or location, merge them with userData
           if (route.params?.isRoaster !== undefined || 
               route.params?.isBusinessAccount !== undefined ||
@@ -396,6 +392,14 @@ export default function UserProfileScreen() {
                 route.params.isBusinessAccount : userData.isBusinessAccount,
               location: route.params.location || userData.location
             };
+          }
+          
+          // Additional check for business accounts by name (in case the flag wasn't set in route params)
+          if (userData.userName === 'Vértigo y Calambre' || 
+              userData.userName === 'Kima Coffee' ||
+              (userData.userName && userData.userName.includes('Café')) ||
+              userData.id?.startsWith('business-')) {
+            userData.isBusinessAccount = true;
           }
           
           setUser(userData);
@@ -415,19 +419,40 @@ export default function UserProfileScreen() {
           
           setRecipes(userRecipes);
         } else {
-          // Create a default user if none found
-          setUser({
-            id: userId,
-            userName: route.params?.userName || 'User',
-            userAvatar: null,
-            location: '',
-            bio: '',
-            isBusinessAccount: route.params?.isBusinessAccount || false,
-            isRoaster: route.params?.isRoaster || false,
-            userHandle: userId,
-            gear: [],
-            gearWishlist: []
-          });
+          // Show alert that profile was not found
+          console.warn(`Profile not found for userId: ${userId}, userName: ${route.params?.userName}`);
+          Alert.alert(
+            'Profile Not Found',
+            `The profile for "${route.params?.userName || userId}" could not be found.`,
+            [
+              {
+                text: 'Go Back',
+                onPress: () => navigation.goBack(),
+                style: 'cancel'
+              },
+              {
+                text: 'OK',
+                onPress: () => {
+                  // Create a default user if none found
+                  setUser({
+                    id: userId,
+                    userName: route.params?.userName || 'User',
+                    userAvatar: null,
+                    location: '',
+                    bio: '',
+                    isBusinessAccount: route.params?.isBusinessAccount || false,
+                    isRoaster: route.params?.isRoaster || false,
+                    userHandle: userId,
+                    gear: [],
+                    gearWishlist: []
+                  });
+                }
+              }
+            ],
+            {
+              userInterfaceStyle: isDarkMode ? 'dark' : 'light'
+            }
+          );
         }
         
         // Load followers data
@@ -469,8 +494,87 @@ export default function UserProfileScreen() {
             console.error('Error loading coffee data:', error);
           });
         }
+
+        // Load collection coffees for regular users (coffees they've tried)
+        if (!userData?.isBusinessAccount && mockEventsData.coffeeEvents) {
+          const userEvents = mockEventsData.coffeeEvents.filter(event => 
+            event.userId === userId && 
+            event.coffeeId && 
+            (event.type === 'coffee_log' || !event.type)
+          );
+          
+          // Get unique coffees from user events
+          const coffeesInCollection = userEvents
+            .map(event => ({
+              id: event.coffeeId,
+              name: event.coffeeName,
+              roaster: event.roaster || event.roasterName || 'Unknown Roaster',
+              imageUrl: event.imageUrl,
+              lastBrewedDate: event.date
+            }));
+          
+          // Remove duplicates (keep only most recent brew of each coffee)
+          const uniqueCoffees = [];
+          const coffeeIds = new Set();
+          
+          coffeesInCollection.forEach(coffee => {
+            if (!coffeeIds.has(coffee.id)) {
+              coffeeIds.add(coffee.id);
+              uniqueCoffees.push(coffee);
+            }
+          });
+          
+          setCollectionCoffees(uniqueCoffees);
+        }
       } catch (error) {
         console.error('Error loading profile data:', error);
+        console.error('Error details:', error.message, error.stack);
+        
+        // Show alert about loading error
+        Alert.alert(
+          'Error Loading Profile',
+          `There was an error loading the profile for "${route.params?.userName || userId}". ${error.message}`,
+          [
+            {
+              text: 'Go Back',
+              onPress: () => navigation.goBack(),
+              style: 'cancel'
+            },
+            {
+              text: 'Retry',
+              onPress: () => {
+                                  // Retry loading
+                  setLoading(true);
+                  setTimeout(() => {
+                    if (loadAllProfileData) {
+                      loadAllProfileData();
+                    }
+                  }, 100);
+              }
+            },
+            {
+              text: 'Continue',
+              onPress: () => {
+                // Still set a default user to prevent infinite loading
+                setUser({
+                  id: userId,
+                  userName: route.params?.userName || 'User',
+                  userAvatar: null,
+                  location: '',
+                  bio: '',
+                  isBusinessAccount: route.params?.isBusinessAccount || false,
+                  isRoaster: route.params?.isRoaster || false,
+                  userHandle: userId,
+                  gear: [],
+                  gearWishlist: []
+                });
+              }
+            }
+          ],
+          {
+            userInterfaceStyle: isDarkMode ? 'dark' : 'light'
+          }
+        );
       } finally {
         setLoading(false);
         setRefreshing(false);
@@ -503,7 +607,10 @@ export default function UserProfileScreen() {
             },
             style: 'destructive', // This makes the button red
           },
-        ]
+        ],
+        {
+          userInterfaceStyle: isDarkMode ? 'dark' : 'light' // Match system appearance
+        }
       );
     } else {
       // Follow user directly without confirmation
@@ -555,7 +662,7 @@ export default function UserProfileScreen() {
     });
     
     return (
-    <CoffeeLogCard
+    <ThemeCoffeeLogCard
       event={enhancedItem}
       onCoffeePress={() => navigation.navigate('CoffeeDetail', { coffeeId: enhancedItem.coffeeId, skipAuth: true })}
       onRecipePress={() => navigation.navigate('RecipeDetail', { 
@@ -639,7 +746,7 @@ export default function UserProfileScreen() {
           return {
             id: event.coffeeId,
             name: event.coffeeName,
-            roaster: event.roaster,
+            roaster: event.roaster || event.roasterName || 'Unknown Roaster',
             imageUrl: event.imageUrl,
             lastBrewedDate: event.date
           };
@@ -682,7 +789,7 @@ export default function UserProfileScreen() {
           <View style={styles.tabContent}>
             {userLogs.length > 0 ? (
               userLogs.map(log => (
-                <CoffeeLogCard 
+                <ThemeCoffeeLogCard 
                   key={log.id} 
                   log={log} 
                   containerStyle={styles.logCard}
@@ -850,29 +957,31 @@ export default function UserProfileScreen() {
     return (
       <View style={styles.shopContainer}>
         {/* iOS-style segmented control */}
-        <View style={styles.segmentedControl}>
+        <View style={[styles.segmentedControl, { backgroundColor: isDarkMode ? '#1c1c1f' : theme.cardBackground }]}>
           <TouchableOpacity
             style={[
               styles.segment,
-              shopFilter === 'coffee' && styles.segmentActive
+              shopFilter === 'coffee' && [styles.segmentActive, { backgroundColor: isDarkMode ? '#5a5a5f' : theme.background }]
             ]}
             onPress={() => setShopFilter('coffee')}
           >
             <Text style={[
               styles.segmentText,
-              shopFilter === 'coffee' && styles.segmentTextActive
+              { color: theme.secondaryText },
+              shopFilter === 'coffee' && [styles.segmentTextActive, { color: theme.primaryText }]
             ]}>Coffees</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[
               styles.segment,
-              shopFilter === 'gear' && styles.segmentActive
+              shopFilter === 'gear' && [styles.segmentActive, { backgroundColor: isDarkMode ? '#3A3A3C' : theme.background }]
             ]}
             onPress={() => setShopFilter('gear')}
           >
             <Text style={[
               styles.segmentText,
-              shopFilter === 'gear' && styles.segmentTextActive
+              { color: theme.secondaryText },
+              shopFilter === 'gear' && [styles.segmentTextActive, { color: theme.primaryText }]
             ]}>Gear</Text>
           </TouchableOpacity>
         </View>
@@ -992,134 +1101,206 @@ export default function UserProfileScreen() {
     }
   }, [user, userId, currentUser]);
 
+  if (loading) {
+    return (
+      <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
+        <ActivityIndicator size="large" color={theme.primaryText} />
+        <Text style={[styles.emptyText, { color: theme.primaryText }]}>Loading profile...</Text>
+      </View>
+    );
+  }
+
   return (
-    <View style={styles.container}>
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#000000" />
-        </View>
-      ) : (
-        <>
-          <ScrollView
-            contentOffset={{x: 0, y: 0}}
-            refreshControl={
-              enableRefreshControl ? (
-                <RefreshControl
-                  refreshing={refreshing}
-                  onRefresh={onRefresh}
-                  tintColor={COLORS.primary}
-                />
-              ) : undefined
-            }
-            contentContainerStyle={{ paddingBottom: insets.bottom }}
-            onScroll={handleScroll}
-            scrollEventThrottle={16}
-          >
-            <View style={styles.profileSection}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <StatusBar barStyle={isDarkMode ? "light" : "dark"} />
+      
+      <ScrollView 
+        style={{ flex: 1 }}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[isDarkMode ? '#FFFFFF' : '#000000']}
+            tintColor={isDarkMode ? '#FFFFFF' : '#000000'}
+          />
+        }
+      >
+        {/* Profile Section */}
+        {user && (
+          <>
+            <View style={[styles.profileSection, { backgroundColor: theme.background }]}>
               <AppImage 
-                source={user?.userAvatar} 
+                source={user.userAvatar || 'https://via.placeholder.com/80'} 
                 style={[
                   styles.profileImage,
-                  user?.isBusinessAccount || user?.isRoaster ? styles.businessAvatar : styles.userAvatar
+                  user.isBusinessAccount ? styles.businessAvatar : styles.userAvatar
                 ]}
-                resizeMode="cover"
+                placeholder="person"
               />
-              
               <View style={styles.profileInfo}>
-                <Text style={styles.profileName}>{user?.userName}</Text>
-                {user?.isRoaster && (
+                <Text style={[styles.profileName, { color: theme.primaryText }]}>
+                  {user.userName || userName || 'Unknown User'}
+                </Text>
+                {user.isRoaster && (
                   <View style={styles.roasterBadge}>
                     <Text style={styles.roasterBadgeText}>Roaster</Text>
                   </View>
                 )}
-                <Text style={styles.profileUsername}>@{user?.userHandle || user?.userName?.toLowerCase().replace(/\s+/g, '')}</Text>
-                <Text style={styles.profileLocation}>{user?.location}</Text>
+                <Text style={[styles.profileUsername, { color: theme.secondaryText }]}>
+                  {(user.handle || user.userHandle || `@${user.userName?.toLowerCase().replace(/\s+/g, '') || 'user'}`)}
+                </Text>
+                <Text style={[styles.profileLocation, { color: theme.secondaryText }]}>
+                  {user.location || 'Location not specified'}
+                </Text>
               </View>
             </View>
-            
-            {/* Add follower stats section */}
-            <View style={styles.followStatsContainer}>
-              <TouchableOpacity style={styles.followStat} onPress={() => console.log('Show followers list')}>
-                <Text style={styles.followStatNumber}>{followersCount || 0}</Text>
-                <Text style={styles.followStatLabel}>{followersCount === 1 ? 'Follower' : 'Followers'}</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity style={styles.followStat} onPress={() => console.log('Show following list')}>
-                <Text style={styles.followStatNumber}>{followingCount || 0}</Text>
-                <Text style={styles.followStatLabel}>Following</Text>
-              </TouchableOpacity>
-              
+
+            {/* Bio */}
+            {user.bio && (
+              <Text style={[styles.profileBio, { color: theme.primaryText }]}>
+                {user.bio}
+              </Text>
+            )}
+
+            {/* Profile Stats */}
+            <View style={[styles.followStatsContainer, { backgroundColor: theme.background }]}>
               <TouchableOpacity 
-                style={styles.followStat} 
+                style={styles.followStat}
+                onPress={() => setActiveTab('collection')}
+              >
+                <Text style={[styles.followStatNumber, { color: theme.primaryText }]}>
+                  {collectionCoffees.length}
+                </Text>
+                <Text style={[styles.followStatLabel, { color: theme.secondaryText }]}>
+                  coffees
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.followStat}
+                onPress={() => setActiveTab('recipes')}
+              >
+                <Text style={[styles.followStatNumber, { color: theme.primaryText }]}>
+                  {recipes.length}
+                </Text>
+                <Text style={[styles.followStatLabel, { color: theme.secondaryText }]}>
+                  recipes
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.followStat}
                 onPress={() => {
-                  setActiveTab('collection');
+                  navigation.navigate('FollowersScreen', {
+                    userId: userId,
+                    userName: user?.userName || userName,
+                    type: 'followers',
+                    skipAuth: true
+                  });
                 }}
               >
-                <Text style={styles.followStatNumber}>{collectionCoffees.length || 0}</Text>
-                <Text style={styles.followStatLabel}>Coffees</Text>
+                <Text style={[styles.followStatNumber, { color: theme.primaryText }]}>
+                  {followersCount}
+                </Text>
+                <Text style={[styles.followStatLabel, { color: theme.secondaryText }]}>
+                  followers
+                </Text>
               </TouchableOpacity>
-              
               <TouchableOpacity 
-                style={styles.followStat} 
+                style={styles.followStat}
                 onPress={() => {
-                  setActiveTab('recipes');
+                  navigation.navigate('FollowersScreen', {
+                    userId: userId,
+                    userName: user?.userName || userName,
+                    type: 'following',
+                    skipAuth: true
+                  });
                 }}
               >
-                <Text style={styles.followStatNumber}>{recipes.length || 0}</Text>
-                <Text style={styles.followStatLabel}>Recipes</Text>
+                <Text style={[styles.followStatNumber, { color: theme.primaryText }]}>
+                  {followingCount}
+                </Text>
+                <Text style={[styles.followStatLabel, { color: theme.secondaryText }]}>
+                  following
+                </Text>
               </TouchableOpacity>
             </View>
-            
-            {/* Add mutual followers section */}
-            {!isCurrentUser && mutualFollowers.length > 0 && (
-              <View style={styles.mutualFollowersContainer}>
+
+            {/* Mutual Followers */}
+            {mutualFollowers.length > 0 && (
+              <View style={[styles.mutualFollowersContainer, { backgroundColor: theme.background }]}>
                 <View style={styles.mutualFollowersAvatars}>
                   {mutualFollowers.slice(0, 3).map((follower, index) => (
-                    <View key={follower.id} style={[styles.mutualFollowerAvatarContainer, { marginLeft: index > 0 ? -12 : 0 }]}>
-                      <AppImage
+                    <View 
+                      key={follower.id} 
+                      style={[
+                        styles.mutualFollowerAvatarContainer,
+                        { marginLeft: index > 0 ? -8 : 0 }
+                      ]}
+                    >
+                      <AppImage 
                         source={follower.userAvatar}
                         style={styles.mutualFollowerAvatar}
-                        resizeMode="cover"
+                        placeholder="person"
                       />
                     </View>
                   ))}
                 </View>
-                <View style={{flex: 1}}>
-                  <Text style={styles.mutualFollowersText}>
-                    Followed by <Text style={styles.mutualFollowerBold}>{mutualFollowers[0]?.userName}</Text> 
-                    {mutualFollowers.length > 1 ? 
-                      <Text> and <Text style={styles.mutualFollowerBold}>{mutualFollowers.length - 1} more</Text></Text> 
-                      : null}
+                <Text style={[styles.mutualFollowersText, { color: theme.secondaryText }]}>
+                  Followed by{' '}
+                  <Text style={[styles.mutualFollowerBold, { color: theme.primaryText }]}>
+                    {mutualFollowers[0].userName}
                   </Text>
-                </View>
+                  {mutualFollowers.length > 1 && (
+                    <>
+                      {mutualFollowers.length === 2 ? ' and ' : ', '}
+                      <Text style={[styles.mutualFollowerBold, { color: theme.primaryText }]}>
+                        {mutualFollowers.length === 2 
+                          ? mutualFollowers[1].userName
+                          : `${mutualFollowers.length - 1} others`
+                        }
+                      </Text>
+                    </>
+                  )}
+                  {' you follow'}
+                </Text>
               </View>
             )}
-            
-            {/* Follow button */}
+
+            {/* Follow Button */}
             {!isCurrentUser && (
-              <View style={styles.followButtonContainer}>
-                <TouchableOpacity 
-                  style={isFollowing ? styles.followingButton : styles.followButton}
+              <View style={[styles.followButtonContainer, { backgroundColor: theme.background }]}>
+                <TouchableOpacity
+                  style={[
+                    isFollowing ? styles.followingButton : styles.followButton,
+                    { 
+                      borderColor: theme.primaryText,
+                      backgroundColor: isFollowing ? 'transparent' : theme.primaryText
+                    }
+                  ]}
                   onPress={handleFollowPress}
                 >
-                  <Text style={isFollowing ? styles.followingButtonText : styles.followButtonText}>
+                  <Text style={[
+                    isFollowing ? styles.followingButtonText : styles.followButtonText,
+                    { color: isFollowing ? theme.primaryText : (isDarkMode ? theme.background : '#FFFFFF') }
+                  ]}>
                     {isFollowing ? 'Following' : 'Follow'}
                   </Text>
                 </TouchableOpacity>
               </View>
             )}
-            
-            {/* Display gear module for all user profiles except roasters */}
-            {!user?.isRoaster && (
-              <View style={styles.gearContainer}>
+
+            {/* Gear Module - showing user's gear for non-business accounts */}
+            {!user.isBusinessAccount && !user.isRoaster && (
+              <View style={[styles.gearContainer, { backgroundColor: theme.background }]}>
                 <View style={styles.gearTitleRow}>
-                  <Text style={styles.gearTitle}>Gear</Text>
-                  
-                  <TouchableOpacity onPress={handleGearWishlistPress}>
-                    <Text style={styles.gearWishlistToggle}>
-                      {user?.gearWishlist?.length > 0 ? 'Wishlist' : 'View Wishlist'}
-                    </Text>
-                  </TouchableOpacity>
+                  <Text style={[styles.gearTitle, { color: theme.primaryText }]}>Gear</Text>
+                  {user.gearWishlist && user.gearWishlist.length > 0 && (
+                    <TouchableOpacity onPress={handleGearWishlistPress}>
+                      <Text style={[styles.gearWishlistToggle, { color: theme.primaryText, borderBottomColor: theme.primaryText }]}>
+                        Wishlist
+                      </Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
                 
                 <ScrollView 
@@ -1127,221 +1308,144 @@ export default function UserProfileScreen() {
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={styles.gearScrollContainer}
                 >
-                  {user?.gear && user.gear.length > 0 ? (
+                  {user.gear && user.gear.length > 0 ? (
                     user.gear.map((item, index) => {
-                      // Get gear details including users who own this gear
-                      const gearDetail = gearDetails[item] || {};
-                      const usersOwning = gearDetail.usedBy || [];
-                      // Get the gear image from mockGear.json
                       const gearImage = getGearImage(item);
                       
                       return (
                         <TouchableOpacity 
                           key={index} 
-                          style={styles.gearItem}
+                          style={[styles.gearItem, { backgroundColor: theme.cardBackground }]}
                           onPress={() => handleGearPress(item)}
                         >
-                          <View style={styles.gearItemAvatarContainer}>
-                            {gearImage ? (
+                          {gearImage && (
+                            <View style={styles.gearItemAvatarContainer}>
                               <AppImage 
                                 source={{ uri: gearImage }}
                                 style={styles.gearItemAvatar}
                                 placeholder={null}
                                 resizeMode="cover"
                               />
-                            ) : null}
-                          </View>
-                          <Text style={styles.gearItemText}>{item}</Text>
+                            </View>
+                          )}
+                          <Text style={[styles.gearItemText, { color: theme.primaryText }]}>{item}</Text>
                         </TouchableOpacity>
                       );
                     })
                   ) : (
-                    <Text style={styles.emptyGearText}>
+                    <Text style={[styles.emptyGearText, { color: theme.secondaryText }]}>
                       No gear added yet
                     </Text>
                   )}
                 </ScrollView>
               </View>
             )}
-            
-            <View style={styles.tabsContainer}>
-              {getTabs().map((tab) => (
+
+            {/* Tabs */}
+            <View style={[styles.tabsContainer, { backgroundColor: theme.background, borderBottomColor: theme.divider }]}>
+              {getTabs().map((tab, index) => (
                 <TouchableOpacity
                   key={tab.id}
-                  style={[styles.tab, activeTab === tab.id && styles.activeTab]}
+                  style={[
+                    styles.tab,
+                    activeTab === tab.id && [styles.activeTab, { borderBottomColor: theme.primaryText }]
+                  ]}
                   onPress={() => setActiveTab(tab.id)}
                 >
-                  <Text
-                    style={[styles.tabText, activeTab === tab.id && styles.activeTabText]}
-                  >
+                  <Text style={[
+                    styles.tabText,
+                    { color: theme.secondaryText },
+                    activeTab === tab.id && [styles.activeTabText, { color: theme.primaryText }]
+                  ]}>
                     {tab.label}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
-            
-            {/* Tab content */}
-            <View style={styles.tabContent}>
-              {/* Locations tab for roasters */}
-              {user?.isRoaster && activeTab === 'locations' && (
-                <View style={styles.cafesSection}>
-                  {user.cafes && user.cafes.length > 0 ? (
-                    <>
-                      {/* <View style={styles.sectionHeader}>
-                        <Text style={styles.sectionTitle}>Our Locations</Text>
-                        <Text style={styles.locationCount}>{user.cafes.length} {user.cafes.length === 1 ? 'location' : 'locations'}</Text>
-                      </View> */}
-                      
-                      {user.cafes.map((cafe) => (
-                        <TouchableOpacity 
-                          key={cafe.id}
-                          style={styles.cafeItem}
-                          onPress={() => {
-                            // Use navigate instead of animation which isn't supported
-                            navigation.navigate('UserProfileBridge', {
-                              userId: cafe.id,
-                              userName: cafe.name,
-                              skipAuth: true,
-                              isBusinessAccount: user.isBusinessAccount,
-                              isRoaster: user.isRoaster
-                            });
-                          }}
-                        >
-                          {cafe.avatar ? (
-                            <AppImage 
-                              source={cafe.avatar} 
-                              style={styles.cafeImage}
-                              resizeMode="cover"
-                            />
-                          ) : (
-                            <View style={styles.cafeImagePlaceholder}>
-                              <Ionicons name="cafe-outline" size={30} color="#666666" />
-                            </View>
-                          )}
-                          
-                          <View style={styles.cafeInfo}>
-                            <Text style={styles.cafeName}>{cafe.name}</Text>
-                            <Text style={styles.cafeAddress}>{cafe.address || cafe.location}</Text>
-                            <View style={styles.cafeMetrics}>
-                              <Ionicons name="star" size={14} color="#FFD700" />
-                              <Text style={styles.cafeRating}>{cafe.rating}</Text>
-                              <Text style={styles.cafeReviews}>({cafe.reviewCount} reviews)</Text>
-                            </View>
-                          </View>
-                        </TouchableOpacity>
-                      ))}
-                    </>
-                  ) : user.addresses && user.addresses.length > 0 ? (
-                    <>
-                      <View style={styles.sectionHeader}>
-                        <Text style={styles.sectionTitle}>Our Locations</Text>
-                        <Text style={styles.locationCount}>{user.addresses.length} {user.addresses.length === 1 ? 'location' : 'locations'}</Text>
-                      </View>
-                      
-                      {user.addresses.map((address) => (
-                        <View key={address.id} style={styles.cafeItem}>
-                          <View style={styles.cafeImagePlaceholder}>
-                            <Ionicons name="location-outline" size={30} color="#666666" />
-                          </View>
-                          
-                          <View style={styles.cafeInfo}>
-                            <Text style={styles.cafeName}>{address.name}</Text>
-                            <Text style={styles.cafeAddress}>{address.address}</Text>
-                            {address.phone && (
-                              <Text style={styles.cafePhone}>{address.phone}</Text>
-                            )}
-                          </View>
-                        </View>
-                      ))}
-                    </>
+
+            {/* Tab Content */}
+            <View style={{ flex: 1, backgroundColor: theme.background }}>
+              {activeTab === 'coffees' && (
+                <View style={styles.coffeesContainer}>
+                  {userLogs.length > 0 ? (
+                    userLogs.map((log, index) => (
+                      <ThemeCoffeeLogCard 
+                        key={log.id} 
+                        event={log}
+                        onCoffeePress={(event) => navigation.navigate('CoffeeDetail', { coffeeId: event.coffeeId, skipAuth: true })}
+                        onRecipePress={(event) => navigation.navigate('RecipeDetail', { 
+                          recipeId: event.id,
+                          coffeeId: event.coffeeId,
+                          coffeeName: event.coffeeName,
+                          roaster: event.roaster || event.roasterName,
+                          imageUrl: event.imageUrl,
+                          recipe: event,
+                          userId: event.userId,
+                          userName: event.userName,
+                          userAvatar: event.userAvatar
+                        })}
+                        onUserPress={(event) => navigation.navigate('UserProfileBridge', { 
+                          userId: event.userId,
+                          skipAuth: true 
+                        })}
+                        onOptionsPress={handleOptionsPress}
+                        onLikePress={handleLikePress}
+                        currentUserId={currentAccount}
+                        containerStyle={{
+                          marginBottom: index === userLogs.length - 1 ? 0 : 8
+                        }}
+                      />
+                    ))
                   ) : (
-                    <View style={styles.standardEmptyContainer}>
-                      <Text style={styles.emptyText}>No locations available</Text>
+                    <View style={[styles.emptyContainer, { backgroundColor: theme.background }]}>
+                      <Text style={[styles.emptyText, { color: theme.secondaryText }]}>No activity yet</Text>
                     </View>
                   )}
                 </View>
               )}
-              
-              {/* Shop tab for cafés (non-roaster business accounts) */}
-              {!user?.isRoaster && user?.isBusinessAccount && activeTab === 'shop' && (
-                renderShopTab()
-              )}
-              
-              {/* Coffees tab (for regular users) */}
-              {!user?.isRoaster && activeTab === 'coffees' && (
-                <View style={[styles.coffeesContainer]}>
-                  <SafeFlatList
-                    data={userCoffees}
-                    renderItem={renderCoffeeItem}
-                    keyExtractor={item => item.id}
-                    style={[styles.coffeesList, { 
-                      elevation: 0,
-                      shadowOpacity: 0,
-                      borderWidth: 0
-                    }]}
-                    ItemSeparatorComponent={() => <View style={styles.listSeparator} />}
-                    ListEmptyComponent={() => (
-                      <View style={styles.emptyContainer}>
-                        <Text style={[styles.emptyText]}>No coffee activity yet</Text>
-                      </View>
-                    )}
-                    // ListFooterComponent={() => <View style={{ height: 60, backgroundColor: '#F2F2F7' }} />}
-                    // contentContainerStyle={{ 
-                    //   backgroundColor: '#F2F2F7',
-                    //   paddingTop: 0,
-                    //   paddingBottom: 60
-                    // }}
-                  />
-                </View>
-              )}
-              
-              {/* Collection tab (for regular users) */}
-              {!user?.isRoaster && activeTab === 'collection' && (
+
+              {activeTab === 'collection' && (
                 <View style={styles.collectionSection}>
-                  <SafeFlatList
-                    data={collectionCoffees}
-                    renderItem={({ item }) => (
-                      <TouchableOpacity 
-                        style={styles.collectionCard}
-                        onPress={() => navigation.navigate('CoffeeDetail', { 
-                          coffeeId: item.id,
-                          skipAuth: true 
-                        })}
-                      >
-                        {item.imageUrl ? (
-                          <AppImage 
-                            source={item.imageUrl} 
+                  {collectionCoffees.length > 0 ? (
+                    <SafeFlatList
+                      data={collectionCoffees}
+                      keyExtractor={(item) => item.id}
+                      renderItem={({ item }) => (
+                        <TouchableOpacity 
+                          style={[styles.collectionCard, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
+                          onPress={() => navigation.navigate('CoffeeDetail', { coffeeId: item.id, skipAuth: true })}
+                        >
+                          <AppImage
+                            source={item.imageUrl}
                             style={styles.collectionCardImage}
-                            resizeMode="cover"
+                            placeholder="cafe"
                           />
-                        ) : (
-                          <View style={styles.collectionCardImagePlaceholder}>
-                            <Ionicons name="cafe-outline" size={30} color="#666666" />
+                          <View style={styles.collectionCardInfo}>
+                            <Text style={[styles.collectionCardName, { color: theme.primaryText }]} numberOfLines={1}>
+                              {item.name}
+                            </Text>
+                            <Text style={[styles.collectionCardRoaster, { color: theme.secondaryText }]} numberOfLines={1}>
+                              {item.roaster}
+                            </Text>
                           </View>
-                        )}
-                        <View style={styles.collectionCardInfo}>
-                          <Text style={styles.collectionCardName} numberOfLines={1}>{item.name}</Text>
-                          <Text style={styles.collectionCardRoaster} numberOfLines={1}>{item.roaster}</Text>
-                        </View>
-                      </TouchableOpacity>
-                    )}
-                    numColumns={2}
-                    columnWrapperStyle={styles.collectionCardRow}
-                    keyExtractor={item => item.id}
-                    style={styles.collectionContainer}
-                    ListEmptyComponent={() => (
-                      <View style={styles.standardEmptyContainer}>
-                        <Text style={styles.emptyText}>No coffees in collection yet</Text>
-                      </View>
-                    )}
-                    // ListFooterComponent={() => <View style={{ height: 60 }} />}
-                  />
+                        </TouchableOpacity>
+                      )}
+                      numColumns={2}
+                      columnWrapperStyle={styles.collectionCardRow}
+                      contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 16 }}
+                    />
+                  ) : (
+                    <View style={[styles.emptyContainer, { backgroundColor: theme.background }]}>
+                      <Text style={[styles.emptyText, { color: theme.secondaryText }]}>No coffees in collection yet</Text>
+                    </View>
+                  )}
                 </View>
               )}
-              
-              {/* Recipes tab (for all users) */}
+
+              {activeTab === 'shop' && renderShopTab()}
+
               {activeTab === 'recipes' && (
-                <View style={styles.recipesContainer}>
+                <View style={[styles.recipesContainer, { backgroundColor: theme.background }]}>
                   {recipes && recipes.length > 0 ? (
                     <SafeFlatList
                       data={recipes}
@@ -1350,32 +1454,71 @@ export default function UserProfileScreen() {
                         <RecipeCard
                           recipe={item}
                           onPress={() => handleRecipePress(item)}
-                          onUserPress={() => null} // We don't need to navigate to the user since we're already on their profile
+                          onUserPress={() => null}
                           showCoffeeInfo={true}
-                          style={styles.recipeCard}
+                          style={[styles.recipeCard, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
                         />
                       )}
                       contentContainerStyle={styles.recipeListContainer}
                     />
                   ) : (
-                    <View style={styles.standardEmptyContainer}>
-                      <Text style={styles.emptyText}>No recipes yet</Text>
-                      {user?.id === 'user1' && (
-                        <TouchableOpacity 
-                          style={styles.createButton}
-                          onPress={() => navigation.navigate('CreateRecipe')}
-                        >
-                          <Text style={styles.createButtonText}>Create Recipe</Text>
-                        </TouchableOpacity>
-                      )}
+                    <View style={[styles.standardEmptyContainer, { backgroundColor: theme.background }]}>
+                      <Text style={[styles.emptyText, { color: theme.secondaryText }]}>No recipes yet</Text>
+                    </View>
+                  )}
+                </View>
+              )}
+
+              {activeTab === 'locations' && user?.isRoaster && (
+                <View style={styles.cafesSection}>
+                  <View style={styles.sectionHeader}>
+                    <Text style={[styles.sectionTitle, { color: theme.primaryText }]}>Locations</Text>
+                    <Text style={[styles.locationCount, { color: theme.secondaryText }]}>
+                      {user.cafes?.length || 0} locations
+                    </Text>
+                  </View>
+                  {user.cafes && user.cafes.length > 0 ? (
+                    user.cafes.map((cafe) => (
+                      <TouchableOpacity
+                        key={cafe.id}
+                        style={[styles.cafeItem, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
+                        onPress={() => navigation.navigate('UserProfileBridge', {
+                          userId: cafe.id,
+                          userName: cafe.name,
+                          skipAuth: true
+                        })}
+                      >
+                        <View style={styles.cafeImagePlaceholder}>
+                          <AppImage
+                            source={cafe.avatar}
+                            style={styles.cafeImage}
+                            placeholder="business"
+                          />
+                        </View>
+                        <View style={styles.cafeInfo}>
+                          <Text style={[styles.cafeName, { color: theme.primaryText }]}>{cafe.name}</Text>
+                          <Text style={[styles.cafeAddress, { color: theme.secondaryText }]}>{cafe.address}</Text>
+                          <View style={styles.cafeMetrics}>
+                            <Ionicons name="star" size={14} color="#FFD700" />
+                            <Text style={[styles.cafeRating, { color: theme.primaryText }]}>{cafe.rating}</Text>
+                            <Text style={[styles.cafeReviews, { color: theme.secondaryText }]}>
+                              ({cafe.reviewCount} reviews)
+                            </Text>
+                          </View>
+                        </View>
+                      </TouchableOpacity>
+                    ))
+                  ) : (
+                    <View style={[styles.emptyContainer, { backgroundColor: theme.background }]}>
+                      <Text style={[styles.emptyText, { color: theme.secondaryText }]}>No locations yet</Text>
                     </View>
                   )}
                 </View>
               )}
             </View>
-          </ScrollView>
-        </>
-      )}
+          </>
+        )}
+      </ScrollView>
     </View>
   );
 }
@@ -1405,8 +1548,8 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     marginRight: 16,
-    borderWidth: 1,
-    borderColor: '#F0F0F0',
+    // borderWidth: 1,
+    // borderColor: '#F0F0F0',
     backgroundColor: '#F0F0F0',
   },
   profileInfo: {
@@ -1777,7 +1920,7 @@ const styles = StyleSheet.create({
     borderRadius: 40,
   },
   collectionSection: {
-    padding: 16,
+    // padding: 16,
   },
   collectionCount: {
     fontSize: 14,
@@ -1963,7 +2106,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginTop: 16,
     marginHorizontal: 16,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#F5F5F5',
     borderRadius: 8,
     padding: 4,
   },
@@ -1984,10 +2127,9 @@ const styles = StyleSheet.create({
   segmentText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#666666',
   },
   segmentTextActive: {
-    color: '#000000',
+    fontWeight: '600',
   },
   emptyShopContainer: {
     padding: 40,
@@ -2041,7 +2183,7 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
     paddingBottom: 4,
     paddingHorizontal: 8,
-    // marginRight: 16,
+    flex: 1,
   },
   followStatNumber: {
     fontSize: 14,
@@ -2086,5 +2228,64 @@ const styles = StyleSheet.create({
   mutualFollowerBold: {
     fontWeight: '600',
     color: '#000000',
+  },
+  header: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1,
+  },
+  headerOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+  },
+  headerLeft: {
+    flex: 1,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerButton: {
+    padding: 8,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  coverImage: {
+    width: '100%',
+    height: '100%',
+  },
+  coverPlaceholder: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerOpacity: {
+    opacity: 1,
+  },
+  headerTranslate: {
+    translateY: 0,
+  },
+  headerTitleOpacity: {
+    opacity: 1,
+  },
+  headerTitleTranslate: {
+    translateY: 0,
+  },
+  headerHeight: {
+    height: 100,
   },
 }); 

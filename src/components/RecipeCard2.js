@@ -28,7 +28,7 @@ const RecipeCard2 = ({ item, onPress }) => {
       <AppImage 
         source={item.imageUrl || item.image} 
         style={styles.recipeImage} 
-        placeholder="coffee"
+        placeholder="cafe"
       />
       <View style={styles.recipeContent}>
         <Text style={styles.recipeName}>{name}</Text>

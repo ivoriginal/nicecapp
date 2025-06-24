@@ -65,4 +65,48 @@ export const FONTS = {
   body3: { fontFamily: 'System', fontSize: SIZES.body3, lineHeight: 22 },
   body4: { fontFamily: 'System', fontSize: SIZES.body4, lineHeight: 20 },
   body5: { fontFamily: 'System', fontSize: SIZES.body5, lineHeight: 18 },
+};
+
+// Light theme color scheme
+export const lightTheme = {
+  background: '#FFFFFF',
+  altBackground: '#F2F2F7',
+  cardBackground: '#F6F6F6',
+  recipeContainer: '#F5F5F5',
+  secondaryBackground: '#F9F9F9',
+  primaryText: '#000000',
+  secondaryText: '#666666',
+  subText: '#898989',
+  border: '#E5E5EA',
+  divider: '#E5E5EA',
+  placeholder: '#F5F5F5',
+  iconColor: '#666666',
+  methodBackground: '#FFFFFF',
+  medium: '#F0F0F0',
+};
+
+// Dark theme color scheme
+export const darkTheme = {
+  background: '#000000',
+  // iOS
+  altBackground: '#1C1C1E',
+  // Spotify
+  cardBackground: '#292929',
+  // iOS
+  cardBackground: '#2c2c2e',
+  // iOS
+  altCardBackground: '#1C1C1F',
+  // cardBackground: '#333333',
+  // recipeContainer: '#2C2C2E',
+  recipeContainer: '#1C1C1E',
+  secondaryBackground: '#1C1C1E',
+  primaryText: '#FFFFFF',
+  secondaryText: '#BBBBBB',
+  subText: '#8E8E93',
+  border: '#38383A',
+  divider: '#2C2C2E',
+  placeholder: '#2C2C2E',
+  iconColor: '#BBBBBB',
+  methodBackground: '#000000',
+  medium: '#2C2C2E',
 }; 

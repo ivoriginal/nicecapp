@@ -9,8 +9,11 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import AppImage from './common/AppImage';
+import { useTheme } from '../context/ThemeContext';
 
 const AccountSheet = forwardRef(({ accounts, currentAccount, onSwitchAccount }, ref) => {
+  const { theme, isDarkMode } = useTheme();
+  
   useImperativeHandle(ref, () => ({
     close: () => {
       // Handle closing the sheet if needed
@@ -18,14 +21,14 @@ const AccountSheet = forwardRef(({ accounts, currentAccount, onSwitchAccount }, 
   }));
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.cardBackground }]}>
       <View style={styles.header}>
-        <Text style={styles.title}>Switch Account</Text>
+        <Text style={[styles.title, { color: theme.primaryText }]}>Switch Account</Text>
         <TouchableOpacity
           style={styles.closeButton}
           onPress={() => onSwitchAccount(null)}
         >
-          <Ionicons name="close" size={24} color="#000" />
+          <Ionicons name="close" size={24} color={theme.primaryText} />
         </TouchableOpacity>
       </View>
       
@@ -35,7 +38,10 @@ const AccountSheet = forwardRef(({ accounts, currentAccount, onSwitchAccount }, 
             key={account.id}
             style={[
               styles.accountItem,
-              account.id === currentAccount && styles.selectedAccount,
+              account.id === currentAccount && [
+                styles.selectedAccount, 
+                { backgroundColor: isDarkMode ? '#2C2C2E' : '#F2F2F7' }
+              ],
             ]}
             onPress={() => onSwitchAccount(account)}
           >
@@ -48,8 +54,8 @@ const AccountSheet = forwardRef(({ accounts, currentAccount, onSwitchAccount }, 
                     placeholder="person"
                   />
                 ) : (
-                  <View style={styles.avatarPlaceholder}>
-                    <Text style={styles.avatarInitials}>
+                  <View style={[styles.avatarPlaceholder, { backgroundColor: isDarkMode ? '#2C2C2E' : '#F2F2F7' }]}>
+                    <Text style={[styles.avatarInitials, { color: theme.primaryText }]}>
                       {account.user_metadata?.full_name
                         ?.split(' ')
                         .map((n) => n[0])
@@ -59,16 +65,16 @@ const AccountSheet = forwardRef(({ accounts, currentAccount, onSwitchAccount }, 
                 )}
               </View>
               <View style={styles.accountDetails}>
-                <Text style={styles.accountName}>
+                <Text style={[styles.accountName, { color: theme.primaryText }]}>
                   {account.user_metadata?.full_name || 'User'}
                 </Text>
-                <Text style={styles.accountType}>
+                <Text style={[styles.accountType, { color: theme.secondaryText }]}>
                   {account.user_metadata?.isBusiness ? 'Business' : 'Personal'}
                 </Text>
               </View>
             </View>
             {account.id === currentAccount && (
-              <Ionicons name="checkmark" size={24} color="#000" />
+              <Ionicons name="checkmark" size={24} color={theme.primaryText} />
             )}
           </TouchableOpacity>
         ))}
@@ -79,7 +85,6 @@ const AccountSheet = forwardRef(({ accounts, currentAccount, onSwitchAccount }, 
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
@@ -110,7 +115,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   selectedAccount: {
-    backgroundColor: '#F2F2F7',
+    // backgroundColor color is set inline with theme
   },
   accountInfo: {
     flexDirection: 'row',
@@ -131,14 +136,12 @@ const styles = StyleSheet.create({
   avatarPlaceholder: {
     width: '100%',
     height: '100%',
-    backgroundColor: '#F2F2F7',
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarInitials: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#000',
   },
   accountDetails: {
     flex: 1,
@@ -150,7 +153,6 @@ const styles = StyleSheet.create({
   },
   accountType: {
     fontSize: 14,
-    color: '#666',
   },
 });
 
