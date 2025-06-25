@@ -18,6 +18,7 @@ import CafesListScreen from './src/screens/CafesListScreen';
 import SavedScreen from './src/screens/SavedScreen';
 import NotificationsScreen from './src/screens/NotificationsScreen';
 import AddCoffeeScreen from './src/screens/AddCoffeeScreen';
+import CreateRecipeScreen from './src/screens/CreateRecipeScreen';
 import EditProfileScreen from './src/screens/EditProfileScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import FollowersScreen from './src/screens/FollowersScreen';
@@ -272,9 +273,10 @@ function AppContent() {
             >
               <Stack.Screen 
                 name="MainTabs" 
-                component={BottomTabNavigator} 
                 options={{ headerShown: false }} 
-              />
+              >
+                {(props) => <BottomTabNavigator {...props} />}
+              </Stack.Screen>
               <Stack.Screen 
                 name="Notifications" 
                 component={NotificationsScreen} 
@@ -406,6 +408,13 @@ function AppContent() {
               <Stack.Screen 
                 name="AddCoffee" 
                 component={AddCoffeeScreen} 
+                options={{ 
+                  headerBackTitle: 'Back'
+                }} 
+              />
+              <Stack.Screen 
+                name="CreateRecipe" 
+                component={CreateRecipeScreen} 
                 options={{ 
                   title: 'Create Recipe',
                   headerBackTitle: 'Back'

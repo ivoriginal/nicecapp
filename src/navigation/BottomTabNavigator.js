@@ -17,7 +17,7 @@ import { useTheme } from '../context/ThemeContext';
 
 const BottomTab = createBottomTabNavigator();
 
-export default function BottomTabNavigator() {
+export default function BottomTabNavigator({ navigation: mainNavigation }) {
   const colorScheme = useColorScheme();
   const { theme, isDarkMode } = useTheme();
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -25,6 +25,7 @@ export default function BottomTabNavigator() {
   const insets = useSafeAreaInsets();
   const [shouldSave, setShouldSave] = useState(false);
   const [selectedCoffee, setSelectedCoffee] = useState(null);
+  const [canSave, setCanSave] = useState(false);
   const { unreadCount, markAllAsRead } = useNotifications();
   const { accounts, currentAccount, switchAccount } = useCoffee();
 
@@ -77,6 +78,7 @@ export default function BottomTabNavigator() {
     setIsModalVisible(false);
     setShouldSave(false);
     setSelectedCoffee(null);
+    setCanSave(false);
   };
 
   const handleLogPress = (e) => {
@@ -105,6 +107,7 @@ export default function BottomTabNavigator() {
     setIsModalVisible(false);
     setShouldSave(false);
     setSelectedCoffee(null);
+    setCanSave(false);
   };
 
   // Update the customNavigation object to ensure it fully implements needed methods
@@ -112,10 +115,21 @@ export default function BottomTabNavigator() {
     goBack: handleSaveComplete,
     navigate: (screen, params) => {
       console.log('Custom navigation navigate to:', screen, params);
-      handleSaveComplete();
-      if (screen === 'Home') {
+      console.log('mainNavigation available:', !!mainNavigation);
+      if (screen === 'CreateRecipe') {
+        // For CreateRecipe navigation, keep the modal open and show recipe creation within it
+        console.log('Showing recipe creation within the modal');
+        // Don't close the modal, instead trigger recipe creation mode in AddCoffee
+        if (params && params.onCreateRecipe) {
+          params.onCreateRecipe(params);
+        } else {
+          console.log('No onCreateRecipe callback provided');
+        }
+      } else if (screen === 'Home') {
         // If navigating to Home, just close the modal
         setIsModalVisible(false);
+      } else {
+        handleSaveComplete();
       }
     },
     setParams: (params) => {
@@ -125,6 +139,9 @@ export default function BottomTabNavigator() {
       }
       if (params.selectedCoffee) {
         setSelectedCoffee(params.selectedCoffee);
+      }
+      if (params.canSave !== undefined) {
+        setCanSave(params.canSave);
       }
       if (params.shouldSave === true) {
         handleSaveComplete();
@@ -285,14 +302,25 @@ export default function BottomTabNavigator() {
         <SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.background }]}>
           <View style={[styles.modalContent, { backgroundColor: theme.background }]}>
             <View style={[styles.modalHeader, { backgroundColor: theme.background, borderBottomColor: theme.divider }]}>
-              <TouchableOpacity
-                style={styles.closeButton}
-                onPress={handleCancel}
-              >
-                <Ionicons name="close" size={24} color={theme.primaryText} />
-              </TouchableOpacity>
+              <View style={styles.headerLeft}>
+                <TouchableOpacity
+                  style={styles.closeButton}
+                  onPress={handleCancel}
+                >
+                  <Ionicons name="close" size={24} color={theme.primaryText} />
+                </TouchableOpacity>
+              </View>
               <Text style={[styles.modalHeaderTitle, { color: theme.primaryText }]}>Log Coffee</Text>
-              <View style={styles.headerSpacer} />
+              <View style={styles.headerRight}>
+                {canSave && (
+                  <TouchableOpacity
+                    style={[styles.saveButton, { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' }]}
+                    onPress={handleSave}
+                  >
+                    <Text style={[styles.saveButtonText, { color: isDarkMode ? '#000000' : '#FFFFFF' }]}>Save</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
             
             <View style={{ flex: 1 }}>
@@ -447,7 +475,20 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     textAlign: 'center',
-    flex: 1,
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    zIndex: 1,
+  },
+  headerLeft: {
+    width: 80,
+    alignItems: 'flex-start',
+    zIndex: 2,
+  },
+  headerRight: {
+    width: 80,
+    alignItems: 'flex-end',
+    zIndex: 2,
   },
   closeButton: {
     padding: 6,
@@ -456,9 +497,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerSpacer: {
-    width: 36,
-    height: 36,
+  saveButton: {
+    backgroundColor: '#000000',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 50,
+    width: 60,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  saveButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 });
 

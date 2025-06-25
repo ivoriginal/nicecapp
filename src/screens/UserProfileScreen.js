@@ -1225,6 +1225,61 @@ export default function UserProfileScreen() {
               </TouchableOpacity>
             </View>
 
+            {/* Gear Module - showing user's gear for non-business accounts */}
+            {!user.isBusinessAccount && !user.isRoaster && (
+              <View style={[styles.gearContainer, { backgroundColor: theme.background }]}>
+                <View style={styles.gearTitleRow}>
+                  <Text style={[styles.gearTitle, { color: theme.primaryText }]}>Gear</Text>
+                  {user.gearWishlist && user.gearWishlist.length > 0 && (
+                    <TouchableOpacity onPress={handleGearWishlistPress}>
+                      <Text style={[styles.gearWishlistToggle, { color: theme.primaryText, borderBottomColor: theme.primaryText }]}>
+                        Wishlist
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+                
+                <ScrollView 
+                  horizontal 
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.gearScrollContainer}
+                >
+                  {user.gear && user.gear.length > 0 ? (
+                    user.gear.map((item, index) => {
+                      const gearImage = getGearImage(item);
+                      
+                      return (
+                        <TouchableOpacity 
+                          key={index} 
+                          style={[styles.gearItem, { backgroundColor: theme.cardBackground }]}
+                          onPress={() => handleGearPress(item)}
+                        >
+                          <View style={[styles.gearItemAvatarContainer, { borderColor: theme.background }]}>
+                            {gearImage ? (
+                              <Image 
+                                source={{ uri: gearImage }}
+                                style={styles.gearItemAvatar}
+                                resizeMode="cover"
+                              />
+                            ) : (
+                              <View style={[styles.gearItemAvatar, { backgroundColor: '#F0F0F0', justifyContent: 'center', alignItems: 'center' }]}>
+                                <Ionicons name="hardware-chip" size={12} color="#666666" />
+                              </View>
+                            )}
+                          </View>
+                          <Text style={[styles.gearItemText, { color: theme.primaryText }]}>{item}</Text>
+                        </TouchableOpacity>
+                      );
+                    })
+                  ) : (
+                    <Text style={[styles.emptyGearText, { color: theme.secondaryText }]}>
+                      No gear added yet
+                    </Text>
+                  )}
+                </ScrollView>
+              </View>
+            )}
+
             {/* Mutual Followers */}
             {mutualFollowers.length > 0 && (
               <View style={[styles.mutualFollowersContainer, { backgroundColor: theme.background }]}>
@@ -1234,7 +1289,10 @@ export default function UserProfileScreen() {
                       key={follower.id} 
                       style={[
                         styles.mutualFollowerAvatarContainer,
-                        { marginLeft: index > 0 ? -8 : 0 }
+                        { 
+                          marginLeft: index > 0 ? -8 : 0,
+                          borderColor: theme.background 
+                        }
                       ]}
                     >
                       <AppImage 
@@ -1286,58 +1344,6 @@ export default function UserProfileScreen() {
                     {isFollowing ? 'Following' : 'Follow'}
                   </Text>
                 </TouchableOpacity>
-              </View>
-            )}
-
-            {/* Gear Module - showing user's gear for non-business accounts */}
-            {!user.isBusinessAccount && !user.isRoaster && (
-              <View style={[styles.gearContainer, { backgroundColor: theme.background }]}>
-                <View style={styles.gearTitleRow}>
-                  <Text style={[styles.gearTitle, { color: theme.primaryText }]}>Gear</Text>
-                  {user.gearWishlist && user.gearWishlist.length > 0 && (
-                    <TouchableOpacity onPress={handleGearWishlistPress}>
-                      <Text style={[styles.gearWishlistToggle, { color: theme.primaryText, borderBottomColor: theme.primaryText }]}>
-                        Wishlist
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-                
-                <ScrollView 
-                  horizontal 
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.gearScrollContainer}
-                >
-                  {user.gear && user.gear.length > 0 ? (
-                    user.gear.map((item, index) => {
-                      const gearImage = getGearImage(item);
-                      
-                      return (
-                        <TouchableOpacity 
-                          key={index} 
-                          style={[styles.gearItem, { backgroundColor: theme.cardBackground }]}
-                          onPress={() => handleGearPress(item)}
-                        >
-                          {gearImage && (
-                            <View style={styles.gearItemAvatarContainer}>
-                              <AppImage 
-                                source={{ uri: gearImage }}
-                                style={styles.gearItemAvatar}
-                                placeholder={null}
-                                resizeMode="cover"
-                              />
-                            </View>
-                          )}
-                          <Text style={[styles.gearItemText, { color: theme.primaryText }]}>{item}</Text>
-                        </TouchableOpacity>
-                      );
-                    })
-                  ) : (
-                    <Text style={[styles.emptyGearText, { color: theme.secondaryText }]}>
-                      No gear added yet
-                    </Text>
-                  )}
-                </ScrollView>
               </View>
             )}
 
@@ -1732,6 +1738,7 @@ const styles = StyleSheet.create({
     paddingTop: 4,
     paddingRight: 0,
     paddingBottom: 12,
+    marginTop: 8,
   },
   gearTitleRow: {
     flexDirection: 'row',

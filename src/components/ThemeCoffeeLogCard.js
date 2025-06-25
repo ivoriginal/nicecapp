@@ -238,9 +238,10 @@ const ThemeCoffeeLogCard = ({
             />
           </TouchableOpacity>
 
-          {/* Recipe details - only show if there's a recipe */}
+          {/* Recipe details - show if there's recipe data, unless explicitly marked as no recipe */}
           {(event.type === 'coffee_log' || event.type === 'coffee_announcement') && 
-           (event.brewingMethod || event.method) && (
+           (event.brewingMethod || event.method) && 
+           event.hasRecipe !== false && (
             <TouchableOpacity 
               style={styles.recipeContainer}
               onPress={() => onRecipePress && onRecipePress(event)}
@@ -270,7 +271,42 @@ const ThemeCoffeeLogCard = ({
           )}
         </View>
         
-        {/* Notes and rating outside the recipe container */}
+        {/* Metadata section - location and friends before notes - only show if there's metadata */}
+        {((event.location && event.location !== 'Home') || (event.friends && event.friends.length > 0)) && (
+          <View style={styles.metadataContainer}>
+            {event.location && event.location !== 'Home' && (
+              <TouchableOpacity 
+                style={styles.metadataRow}
+                onPress={() => {
+                  if (event.locationId && event.locationId !== 'home') {
+                    // Pass the full location data to onUserPress
+                    onUserPress && onUserPress({
+                      id: event.locationId,
+                      type: 'location',
+                      name: event.location,
+                      avatar: event.locationAvatar,
+                      isBusiness: true
+                    });
+                  }
+                }}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="location" size={16} color={theme.secondaryText} />
+                <Text style={styles.metadataText}>{event.location}</Text>
+              </TouchableOpacity>
+            )}
+            {event.friends && event.friends.length > 0 && (
+              <View style={styles.metadataRow}>
+                <Ionicons name="people" size={16} color={theme.secondaryText} />
+                <Text style={styles.metadataText}>
+                  With {event.friends.map(friend => friend.name || friend.userName).join(', ')}
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* Notes and rating after metadata */}
         {(event.notes && event.notes.trim() !== '') || event.rating ? (
           <View style={styles.notesContainer}>
             {/* Rating stars would go here */}
@@ -281,39 +317,6 @@ const ThemeCoffeeLogCard = ({
             )}
           </View>
         ) : null}
-
-        {/* Metadata section */}
-        <View style={styles.metadataContainer}>
-          {event.location && (
-            <TouchableOpacity 
-              style={styles.metadataRow}
-              onPress={() => {
-                if (event.locationId && event.locationId !== 'home') {
-                  // Pass the full location data to onUserPress
-                  onUserPress && onUserPress({
-                    id: event.locationId,
-                    type: 'location',
-                    name: event.location,
-                    avatar: event.locationAvatar,
-                    isBusiness: true
-                  });
-                }
-              }}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="location" size={16} color={theme.secondaryText} />
-              <Text style={styles.metadataText}>{event.location}</Text>
-            </TouchableOpacity>
-          )}
-          {event.friends && event.friends.length > 0 && (
-            <View style={styles.metadataRow}>
-              <Ionicons name="people" size={16} color={theme.secondaryText} />
-              <Text style={styles.metadataText}>
-                With {event.friends.map(friend => friend.name || friend.userName).join(', ')}
-              </Text>
-            </View>
-          )}
-        </View>
       </View>
     );
   };
@@ -754,7 +757,7 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
     borderRadius: 6,
   },
   notesContainer: {
-    marginTop: 16,
+    marginTop: 12,
     paddingHorizontal: 8,
   },
   notesText: {
@@ -762,6 +765,8 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
     color: theme.secondaryText,
   },
   metadataContainer: {
+    marginTop: 12,
+    marginBottom: 0,
     paddingTop: 4,
     paddingHorizontal: 8,
   },

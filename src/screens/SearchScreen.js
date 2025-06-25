@@ -556,8 +556,8 @@ export default function SearchScreen() {
     if (item.name && item.name.includes("CaféLab")) {
       console.log(`Found CaféLab item in search results:`, item);
       
-      // Force CaféLab to be a roaster
-      if (!item.isRoaster) {
+      // Only the main CaféLab business should be a roaster, not individual café locations
+      if (item.id === 'business-cafelab' && !item.isRoaster) {
         item.isRoaster = true;
         item.type = 'roaster';
       }
@@ -597,7 +597,7 @@ export default function SearchScreen() {
     
     // Check for CaféLab items - main business vs specific locations
     const isCafeLabItem = item.name && item.name.includes("CaféLab");
-    const isCafeLabMainBusiness = item.id === 'business-cafelab' || (item.name === 'CaféLab' && !item.name.includes('Murcia') && !item.name.includes('Cartagena'));
+    const isCafeLabMainBusiness = item.id === 'business-cafelab';
     const isCafeLabLocation = isCafeLabItem && !isCafeLabMainBusiness;
     
     // Check for Kima Coffee - main business vs specific location
@@ -820,15 +820,18 @@ export default function SearchScreen() {
     
     return (
       <TouchableOpacity 
-        style={[styles.resultItem, { backgroundColor: theme.cardBackground }]}
+        style={[styles.resultItem, { backgroundColor: theme.background }]}
         onPress={handlePress}
       >
         <Image 
           source={imageSource}
-          style={isGearItem ? styles.resultCoffeeImage : 
-                 isCoffeeItem ? styles.resultCoffeeImage : 
-                 isRoaster || isCafeLocation ? styles.resultBusinessImage : 
-                 styles.resultUserImage} 
+          style={[
+            isGearItem ? styles.resultCoffeeImage : 
+            isCoffeeItem ? styles.resultCoffeeImage : 
+            isRoaster || isCafeLocation ? styles.resultBusinessImage : 
+            styles.resultUserImage,
+            { borderColor: theme.divider }
+          ]} 
           resizeMode="cover"
         />
         <View style={styles.resultContent}>
@@ -861,7 +864,7 @@ export default function SearchScreen() {
     ];
 
     return (
-      <View style={[styles.filterChipsContainer, { backgroundColor: theme.cardBackground, borderBottomColor: theme.divider }]}>
+      <View style={[styles.filterChipsContainer, { backgroundColor: theme.background, borderBottomColor: theme.divider }]}>
         <ScrollView 
           horizontal 
           showsHorizontalScrollIndicator={false}
@@ -872,8 +875,8 @@ export default function SearchScreen() {
               key={filter.id}
               style={[
                 styles.filterChip,
-                { backgroundColor: isDarkMode ? '#2C2C2E' : '#F2F2F7', borderColor: theme.border },
-                activeFilter === filter.id && { backgroundColor: isDarkMode ? '#000000' : '#000000', borderColor: isDarkMode ? '#000000' : '#000000' }
+                { backgroundColor: isDarkMode ? theme.altCardBackground : theme.cardBackground, borderColor: isDarkMode ? theme.altCardBackground : theme.cardBackground },
+                activeFilter === filter.id && { backgroundColor: isDarkMode ? theme.cardBackground : theme.border, borderColor: isDarkMode ? theme.cardBackground : theme.border }
               ]}
               onPress={() => setActiveFilter(filter.id)}
             >
@@ -881,7 +884,7 @@ export default function SearchScreen() {
                 style={[
                   styles.filterText,
                   { color: theme.primaryText },
-                  activeFilter === filter.id && { color: '#FFFFFF' }
+                  activeFilter === filter.id && { color: theme.primaryText }
                 ]}
               >
                 {filter.label}
@@ -1125,7 +1128,14 @@ export default function SearchScreen() {
             
             return (
               <TouchableOpacity 
-                style={[styles.cafeListCard, { backgroundColor: theme.cardBackground, borderColor: theme.divider }]}
+                style={[
+                  styles.cafeListCard, 
+                  { 
+                    backgroundColor: isDarkMode ? theme.cardBackground : 'transparent',
+                    borderColor: theme.divider,
+                    borderWidth: isDarkMode ? 0 : 1
+                  }
+                ]}
                 onPress={() => {
                   // Debug: Log the item data
                   console.log('Good Cafés: Tapped café card:', item);
@@ -1174,12 +1184,12 @@ export default function SearchScreen() {
                   source={coverImagePath} 
                   style={styles.cafeListImage}
                 />
-                <View style={[styles.cafeListContent, { backgroundColor: theme.background }]}>
+                <View style={styles.cafeListContent}>
                   <View style={styles.cafeListHeader}>
-                    <AppImage 
-                      source={logoImagePath} 
-                      style={styles.cafeListLogo}
-                    />
+                                      <AppImage 
+                    source={logoImagePath} 
+                    style={[styles.cafeListLogo, { borderColor: theme.divider }]}
+                  />
                     <View style={styles.cafeListTitleContainer}>
                       <Text style={[styles.cafeListName, { color: theme.primaryText }]} numberOfLines={1} ellipsizeMode="tail">{item.name}</Text>
                       <Text style={[styles.cafeListLocation, { color: theme.secondaryText }]}>{item.location}</Text>
@@ -1307,25 +1317,19 @@ export default function SearchScreen() {
                 skipAuth: true 
               })}
             >
-              {/* Render HTTP URLs directly with uri prop, use getImageSource for local assets */}
-              {avatarUrl && avatarUrl.startsWith('http') ? (
-                <AppImage 
-                  source={{ uri: avatarUrl }}
-                  style={styles.suggestedUserAvatar} 
-                />
-              ) : (
-                <Image 
-                  source={getImageSource(avatarUrl)}
-                  style={styles.suggestedUserAvatar} 
-                />
-              )}
+              {/* Use regular Image for all cases since AppImage has loading overlay issues with remote URLs */}
+              <Image 
+                source={avatarUrl && avatarUrl.startsWith('http') ? { uri: avatarUrl } : getImageSource(avatarUrl)}
+                style={[styles.suggestedUserAvatar, { borderColor: theme.divider }]} 
+                resizeMode="cover"
+              />
               <Text style={[styles.suggestedUserName, { color: theme.primaryText }]}>{item.userName}</Text>
               <Text style={[styles.suggestedUserHandle, { color: theme.secondaryText }]}>{item.handle}</Text>
               <Text style={[styles.mutualFriendsText, { color: theme.secondaryText }]}>
                 {item.mutualFriends} {item.mutualFriends === 1 ? 'mutual' : 'mutuals'}
               </Text>
-              <TouchableOpacity style={styles.followButton}>
-                <Text style={styles.followButtonText}>Follow</Text>
+              <TouchableOpacity style={[styles.followButton, { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' }]}>
+                <Text style={[styles.followButtonText, { color: isDarkMode ? '#000000' : '#FFFFFF' }]}>Follow</Text>
               </TouchableOpacity>
             </TouchableOpacity>
             );
@@ -1442,7 +1446,7 @@ export default function SearchScreen() {
         >
           {renderPopularCoffeeCarousel()}
           {renderGoodCafesSection()}
-          {renderRecipesForYouSection()}
+          {/* {renderRecipesForYouSection()} */}
           
           {/* Coffee Gear Section */}
           {popularGear.length > 0 && (
@@ -1721,7 +1725,6 @@ const styles = StyleSheet.create({
     borderRadius: 40,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#F0F0F0',
   },
   userInfo: {
     width: '100%',
@@ -1782,7 +1785,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginRight: 8,
     borderWidth: 1,
-    borderColor: '#F0F0F0',
   },
   eventUserName: {
     fontSize: 16,
@@ -1911,7 +1913,6 @@ const styles = StyleSheet.create({
     marginRight: 12,
     backgroundColor: '#F2F2F7',
     borderWidth: 1,
-    borderColor: '#E5E5EA',
   },
   resultBusinessImage: {
     width: 44,
@@ -1920,7 +1921,6 @@ const styles = StyleSheet.create({
     marginRight: 12,
     backgroundColor: '#F2F2F7',
     borderWidth: 1,
-    borderColor: '#E5E5EA',
   },
   resultCoffeeImage: {
     width: 44,
@@ -1929,7 +1929,6 @@ const styles = StyleSheet.create({
     marginRight: 12,
     backgroundColor: '#F2F2F7',
     borderWidth: 1,
-    borderColor: '#E5E5EA',
   },
   carouselRoasterContainer: {
     flexDirection: 'row',
@@ -2015,7 +2014,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     backgroundColor: '#E5E5EA',
     borderWidth: 1,
-    borderColor: '#F0F0F0',
   },
   suggestedUserName: {
     fontSize: 16,
@@ -2037,13 +2035,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   cafeListCard: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     marginRight: 12,
     width: 280,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
   },
   cafeListImage: {
     width: '100%',
@@ -2063,7 +2058,6 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     marginRight: 8,
     borderWidth: 1,
-    borderColor: '#E5E5EA',
   },
   cafeListTitleContainer: {
     flex: 1,

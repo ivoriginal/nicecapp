@@ -79,10 +79,11 @@ export default function SettingsScreen({ navigation }) {
         </View>
         
         {/* Account Section */}
-        <View style={[styles.section, { backgroundColor: isDarkMode ? theme.altCardBackground : '#FFFFFF', borderBottomColor: theme.divider }]}>
+        <View style={[styles.section, { backgroundColor: isDarkMode ? theme.altCardBackground : '#FFFFFF' }]}>
           <Text style={[styles.sectionTitle, { color: theme.primaryText }]}>Account</Text>
           
           {/* Account Options - These would be actual options in a real app */}
+          <View style={[styles.optionsContainer, { borderTopColor: theme.divider }]}>
           <TouchableOpacity 
             style={[styles.optionRow, { borderBottomColor: theme.divider }]}
             onPress={() => Alert.alert('Coming Soon', 'This feature is not available yet.')}
@@ -108,12 +109,14 @@ export default function SettingsScreen({ navigation }) {
           >
             <Text style={[styles.optionText, { color: '#FF3B30' }]}>Sign Out</Text>
           </TouchableOpacity>
+          </View>
         </View>
         
         {/* App Info Section */}
-        <View style={[styles.section, { backgroundColor: isDarkMode ? theme.altCardBackground : '#FFFFFF', borderBottomColor: theme.divider }]}>
+        <View style={[styles.section, { backgroundColor: isDarkMode ? theme.altCardBackground : '#FFFFFF' }]}>
           <Text style={[styles.sectionTitle, { color: theme.primaryText }]}>About</Text>
           
+          <View style={[styles.optionsContainer, { borderTopColor: theme.divider }]}>
           <TouchableOpacity 
             style={[styles.optionRowLast, { borderBottomColor: theme.divider }]}
             onPress={() => Alert.alert('Version', 'NiceCup v1.0.0')}
@@ -121,6 +124,7 @@ export default function SettingsScreen({ navigation }) {
             <Text style={[styles.optionText, { color: theme.primaryText }]}>Version</Text>
             <Text style={[styles.versionText, { color: theme.secondaryText }]}>1.0.0</Text>
           </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
     </View>

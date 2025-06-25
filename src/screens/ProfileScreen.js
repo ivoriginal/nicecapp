@@ -1361,10 +1361,9 @@ export default function ProfileScreen() {
                 >
                   {gearImage && (
                     <View style={styles.gearItemAvatarContainer}>
-                      <AppImage 
+                      <Image 
                         source={{ uri: gearImage }}
                         style={styles.gearItemAvatar}
-                        placeholder={null}
                         resizeMode="cover"
                       />
                     </View>
