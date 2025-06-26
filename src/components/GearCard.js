@@ -124,13 +124,13 @@ const GearCard = ({
       </View>
 
       {/* Content */}
-      <View style={styles.contentContainer}>
+      <View style={!showAvatars ? styles.contentContainerCompact : styles.contentContainer}>
         {brand && <Text style={[styles.brand, { color: theme.secondaryText }]}>{brand}</Text>}
         <Text style={[styles.name, { color: theme.primaryText }]} numberOfLines={1}>{name}</Text>
         
         {/* Rating */}
         {rating > 0 && (
-          <View style={styles.ratingContainer}>
+          <View style={[styles.ratingContainer]}>
             <Ionicons name="star" size={14} color="#FFD700" />
             <Text style={[styles.rating, { color: theme.secondaryText }]}>
               {rating.toFixed(1)} ({reviewCount || 0})
@@ -150,7 +150,7 @@ const styles = StyleSheet.create({
     width: CARD_WIDTH,
     borderRadius: 12,
     overflow: 'hidden',
-    minHeight: 220, // Minimum height to ensure consistency
+    // minHeight: 220,
   },
   imageContainer: {
     width: '100%',
@@ -166,7 +166,11 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     padding: 12,
-    height: 110, // Fixed height for all content
+    // height: 110,
+  },
+  contentContainerCompact: {
+    padding: 12,
+    paddingBottom: 6, // Controlled bottom padding when no avatars
   },
   brand: {
     fontSize: 12,

@@ -117,40 +117,19 @@ export default function SearchScreen() {
       console.log('Emma Garcia not found in mockUsers.suggestedUsers array');
     }
     
-    // Enhance gear with usedBy data
+    // Load gear from mock data without usedBy data
     if (mockGear.gear && mockGear.gear.length > 0) {
       console.log('Loading gear from mockGear...');
-      
-      // Check if gearDetails has entries for Carlos and CaféLab
-      console.log('Checking for Carlos Hernández and CaféLab in gearDetails:');
-      Object.keys(gearDetails).forEach(gearName => {
-        const gear = gearDetails[gearName];
-        if (gear.usedBy) {
-          gear.usedBy.forEach(user => {
-            if (user.name === 'Carlos Hernández' || user.name.includes('CaféLab')) {
-              console.log(`Found ${user.name} in ${gearName} with avatar: ${user.avatar}`);
-            }
-          });
-        }
-      });
       
       const enhancedGear = mockGear.gear.map(item => {
         const detailedItem = gearDetails[item.name];
         if (detailedItem) {
-          console.log(`Enhanced gear for ${item.name} with usedBy data:`, detailedItem.usedBy);
-          
-          // Log each usedBy entry to check avatar paths
-          if (detailedItem.usedBy && detailedItem.usedBy.length > 0) {
-            detailedItem.usedBy.forEach(user => {
-              console.log(`- User ${user.name} has avatar: ${user.avatar}`);
-            });
-          }
-          
           return {
             ...item,
             ...detailedItem,
             imageUrl: detailedItem.image || item.imageUrl,
-            usedBy: detailedItem.usedBy || []
+            // Remove usedBy data for search screen
+            usedBy: []
           };
         }
         return {
@@ -229,6 +208,46 @@ export default function SearchScreen() {
     } catch (error) {
       console.error('Error clearing recent searches:', error);
     }
+  };
+
+  const handleGearPress = (item) => {
+    const gearName = item.name;
+    console.log(`Navigating to gear detail for ${gearName}`);
+    
+    // Find the exact key in gearData that corresponds to this gear
+    const exactMatchKey = Object.keys(gearData).find(key => 
+      key.toLowerCase() === gearName.toLowerCase()
+    );
+    
+    if (exactMatchKey) {
+      navigation.navigate('GearDetail', { gearName: exactMatchKey });
+      return;
+    }
+    
+    // Try to find a partial match in gearData keys
+    const partialMatchKey = Object.keys(gearData).find(key => {
+      return key.toLowerCase().includes(gearName.toLowerCase()) || 
+             gearName.toLowerCase().includes(key.toLowerCase());
+    });
+    
+    if (partialMatchKey) {
+      navigation.navigate('GearDetail', { gearName: partialMatchKey });
+      return;
+    }
+    
+    // Special cases
+    if (gearName.includes("Baratza Encore")) {
+      navigation.navigate('GearDetail', { gearName: "Baratza Encore" });
+      return;
+    }
+    
+    if (gearName.toLowerCase().includes("aeropress")) {
+      navigation.navigate('GearDetail', { gearName: "AeroPress" });
+      return;
+    }
+    
+    // Fallback
+    navigation.navigate('GearDetail', { gearName: gearName });
   };
 
   const handleSearch = async (text) => {
@@ -315,7 +334,7 @@ export default function SearchScreen() {
             reviewCount: gear.reviewCount,
             description: gear.description,
             type: 'gear',
-            usedBy: gearDetail ? gearDetail.usedBy : []
+            usedBy: [] // Remove usedBy data for search screen
           });
           addedNames.add(gear.name.toLowerCase());
         }
@@ -1325,9 +1344,6 @@ export default function SearchScreen() {
               />
               <Text style={[styles.suggestedUserName, { color: theme.primaryText }]}>{item.userName}</Text>
               <Text style={[styles.suggestedUserHandle, { color: theme.secondaryText }]}>{item.handle}</Text>
-              <Text style={[styles.mutualFriendsText, { color: theme.secondaryText }]}>
-                {item.mutualFriends} {item.mutualFriends === 1 ? 'mutual' : 'mutuals'}
-              </Text>
               <TouchableOpacity style={[styles.followButton, { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' }]}>
                 <Text style={[styles.followButtonText, { color: isDarkMode ? '#000000' : '#FFFFFF' }]}>Follow</Text>
               </TouchableOpacity>
@@ -1465,6 +1481,7 @@ export default function SearchScreen() {
                       item={item}
                       onPress={() => handleGearPress(item)}
                       theme={theme}
+                      showAvatars={false}
                     />
                   </View>
                 )}
@@ -2025,12 +2042,6 @@ const styles = StyleSheet.create({
   suggestedUserHandle: {
     fontSize: 14,
     color: '#666666',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  mutualFriendsText: {
-    fontSize: 12,
-    color: '#666666',
     marginBottom: 12,
     textAlign: 'center',
   },
@@ -2111,41 +2122,7 @@ const styles = StyleSheet.create({
     paddingLeft: 16,
     paddingRight: 4,
   },
-  gearCardContainer: {
-    marginVertical: 12,
-    marginHorizontal: 16,
-    width: '90%',
-  },
-  gearUsersList: {
-    marginTop: 8,
-  },
-  gearUsersListTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#000000',
-    marginBottom: 4,
-  },
-  gearUserItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  gearUserAvatarContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 8,
-  },
-  gearUserAvatar: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 20,
-  },
-  gearUserName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#000000',
-  },
+
   searchResultItem: {
     flexDirection: 'row',
     alignItems: 'center',
