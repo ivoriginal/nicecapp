@@ -112,7 +112,8 @@
       "userName": "Carlos Hernández",
       "userAvatar": "assets/users/carlos-hernandez.jpg",
       "handle": "@CodingCarlos",
-      "gear": [],
+      "gear": ["AeroPress"],
+      "gearWishlist": ["Fellow Stagg EKG", "Baratza Encore"],
       "location": "Madrid, Spain",
       "joinedDate": "2022-02-10T00:00:00Z"
     },
@@ -125,12 +126,14 @@
       "gear": [
         "Rancilio Silvia",
         "Eureka Mignon",
-        "Acaia Pearl Scale"
+        "Acaia Pearl Scale",
+        "AeroPress"
       ],
       "gearWishlist": [
         "Mahlkönig EK43",
         "Synesso S200",
-        "Saint Anthony Industries Phoenix"
+        "Saint Anthony Industries Phoenix",
+        "Fellow Stagg EKG"
       ],
       "location": "Austin, TX",
       "joinedDate": "2022-04-12T00:00:00Z",
@@ -210,12 +213,14 @@
       "gear": [
         "Chemex",
         "Baratza Encore",
-        "Bonavita Kettle"
+        "Bonavita Kettle",
+        "AeroPress"
       ],
       "gearWishlist": [
         "KitchenAid Pro Line",
         "Rocket Appartamento",
-        "Baratza Forte AP"
+        "Baratza Forte AP",
+        "Fellow Stagg EKG"
       ],
       "location": "Boston, MA",
       "joinedDate": "2022-05-22T00:00:00Z"
