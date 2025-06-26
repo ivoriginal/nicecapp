@@ -24,8 +24,8 @@ export default function SettingsScreen({ navigation }) {
         backgroundColor: isDarkMode ? theme.altCardBackground : '#FFFFFF',
         elevation: 0,
         shadowOpacity: 0,
-        // borderBottomWidth: 1,
-        // borderBottomColor: theme.divider,
+        borderBottomWidth: 1,
+        borderBottomColor: theme.divider,
       },
       headerTintColor: theme.primaryText,
       headerTitleStyle: {
@@ -51,6 +51,8 @@ export default function SettingsScreen({ navigation }) {
     <TouchableOpacity
       style={[styles.optionRow, { borderBottomColor: theme.divider }]}
       onPress={() => handleThemeSelection(value)}
+      activeOpacity={1.0}
+      underlayColor="transparent"
     >
       <Text style={[styles.optionText, { color: theme.primaryText }]}>{label}</Text>
       <View style={[styles.radioButton, { borderColor: theme.primaryText }]}>
@@ -191,7 +193,6 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: '#000000',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -199,6 +200,5 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#000000',
   },
 }); 
