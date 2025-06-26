@@ -103,6 +103,7 @@ export default function AddCoffeeScreen({ navigation, route }) {
   const [coffeeSearchLoading, setCoffeeSearchLoading] = useState(false);
   const [recipesLoading, setRecipesLoading] = useState(false);
   const [showLocationSelector, setShowLocationSelector] = useState(false);
+  const [showTopBorder, setShowTopBorder] = useState(false);
   const nameInputRef = useRef(null);
   const scrollViewRef = useRef(null);
   const { autoSelectCoffee } = route.params || {};
@@ -149,6 +150,11 @@ export default function AddCoffeeScreen({ navigation, route }) {
     const filteredUserList = (mockUsers?.users || []).filter(user => 
       // Remove business accounts that have a businessType property
       !user.businessType &&
+      // Remove users with business-like names
+      !user.userName.includes('Café') &&
+      !user.userName.includes('Coffee') &&
+      !user.userName.includes('Vértigo') &&
+      !user.userName.includes('Kima') &&
       // Remove current user
       user.id !== currentAccount?.id
     );
@@ -162,6 +168,11 @@ export default function AddCoffeeScreen({ navigation, route }) {
     // Filter out businesses and current user first
     const baseUserList = (mockUsers?.users || []).filter(user => 
       !user.businessType && 
+      // Remove users with business-like names
+      !user.userName.includes('Café') &&
+      !user.userName.includes('Coffee') &&
+      !user.userName.includes('Vértigo') &&
+      !user.userName.includes('Kima') &&
       user.id !== currentAccount?.id
     );
     
@@ -187,6 +198,12 @@ export default function AddCoffeeScreen({ navigation, route }) {
   // Handler for removing tagged friend
   const handleRemoveFriend = (friendId) => {
     setTaggedFriends(taggedFriends.filter(friend => friend.id !== friendId));
+  };
+
+  // Handle scroll to show/hide top border
+  const handleScroll = (event) => {
+    const offsetY = event.nativeEvent.contentOffset.y;
+    setShowTopBorder(offsetY > 10);
   };
 
   // Function to get proper image source based on path
@@ -315,21 +332,25 @@ export default function AddCoffeeScreen({ navigation, route }) {
   }, [recipes?.length, coffeeData.coffeeId]); // Use recipes.length instead of recipes to avoid infinite loops
 
   useEffect(() => {
-    // Auto-focus the coffee name input when the screen mounts
+    // Auto-focus the coffee name input when the screen mounts only if modal is visible
     console.log('AddCoffeeScreen mounted - setting up input focus');
     
-    // Let's use a single focus attempt instead of multiple ones
-    const focusTimer = setTimeout(() => {
-      if (nameInputRef.current) {
-        console.log('Setting input focus');
-        nameInputRef.current.focus();
-      }
-      
-      // Set initial suggestions to popular coffees
-      if (coffeeSuggestions.length === 0) {
-        setCoffeeSuggestions((mockCoffees?.coffees || []).slice(0, 5));
-      }
-    }, 500); // Increased timeout
+    let focusTimer;
+    
+    // Only auto-focus if the modal is visible
+    if (route.params?.isModalVisible) {
+      focusTimer = setTimeout(() => {
+        if (nameInputRef.current && route.params?.isModalVisible) {
+          console.log('Setting input focus');
+          nameInputRef.current.focus();
+        }
+        
+        // Set initial suggestions to popular coffees
+        if (coffeeSuggestions.length === 0) {
+          setCoffeeSuggestions((mockCoffees?.coffees || []).slice(0, 5));
+        }
+      }, 500);
+    }
     
     // Add keyboard listeners
     const keyboardDidShowListener = Keyboard.addListener(
@@ -338,20 +359,8 @@ export default function AddCoffeeScreen({ navigation, route }) {
         setKeyboardVisible(true);
         setKeyboardHeight(e.endCoordinates.height);
         
-        // Check if notes input is focused and scroll to it
-        const currentlyFocusedField = TextInput.State.currentlyFocusedInput();
-        if (currentlyFocusedField && scrollViewRef.current) {
-          // Add safety timeout to ensure scrollViewRef is available
-          setTimeout(() => {
-            if (scrollViewRef.current) {
-              try {
-                scrollViewRef.current.scrollToEnd({ animated: true });
-              } catch (error) {
-                console.log('Error scrolling to end:', error);
-              }
-            }
-          }, 100);
-        }
+        // Don't auto-scroll when keyboard shows for coffee name input
+        // Let the user manually scroll if needed
       }
     );
     const keyboardDidHideListener = Keyboard.addListener(
@@ -363,29 +372,14 @@ export default function AddCoffeeScreen({ navigation, route }) {
     );
 
     return () => {
-      console.log('Component unmounting - cleaning up keyboard');
+      console.log('Component unmounting - cleaning up');
       keyboardDidShowListener.remove();
       keyboardDidHideListener.remove();
-      clearTimeout(focusTimer);
-      
-      // Explicitly dismiss keyboard when unmounting
-      Keyboard.dismiss();
-      
-      // Reset any focus state
-      if (nameInputRef.current) {
-        nameInputRef.current.blur();
-      }
-      
-      // Clear any TextInput.State focus
-      try {
-        if (TextInput.State && TextInput.State.currentlyFocusedInput && TextInput.State.blurTextInput) {
-          TextInput.State.blurTextInput(TextInput.State.currentlyFocusedInput());
-        }
-      } catch (error) {
-        console.log('Error clearing TextInput focus state:', error);
+      if (focusTimer) {
+        clearTimeout(focusTimer);
       }
     };
-  }, []);
+  }, [route.params?.isModalVisible]);
 
   useEffect(() => {
     // Check if we should save (triggered by the Save button in the modal)
@@ -422,26 +416,9 @@ export default function AddCoffeeScreen({ navigation, route }) {
       }
     } else if (route.params?.isModalVisible === false) {
       // Modal is closing - clean up
-      console.log('Modal closing - dismissing keyboard and resetting state');
+      console.log('Modal closing - resetting state');
       
-      // Dismiss keyboard
-      Keyboard.dismiss();
-      
-      // Reset any focus state
-      if (nameInputRef.current) {
-        nameInputRef.current.blur();
-      }
-      
-      // Clear any TextInput.State focus
-      try {
-        if (TextInput.State && TextInput.State.currentlyFocusedInput && TextInput.State.blurTextInput) {
-          TextInput.State.blurTextInput(TextInput.State.currentlyFocusedInput());
-        }
-      } catch (error) {
-        console.log('Error clearing TextInput focus state:', error);
-      }
-      
-      // Reset all state to initial values
+      // Reset all state to initial values without aggressive keyboard/focus management
       setCoffeeData({
         name: '',
         coffeeId: null,
@@ -662,11 +639,17 @@ export default function AddCoffeeScreen({ navigation, route }) {
 
   const handleSave = async () => {
     try {
+      // Dismiss keyboard immediately before saving
+      Keyboard.dismiss();
+      
       // Create a mock event ID for local storage
       const mockEventId = `local-${Date.now()}`;
       
       // Get the recipe to use (custom or selected)
       const recipeToUse = customRecipe || selectedRecipe;
+      
+      // Get location info for café locations
+      const selectedLocation = cafeLocations.find(loc => loc.id === coffeeData.locationId);
       
       const eventData = {
         id: mockEventId,
@@ -680,6 +663,7 @@ export default function AddCoffeeScreen({ navigation, route }) {
         notes: coffeeData.notes,
         location: coffeeData.location,
         locationId: coffeeData.locationId,
+        locationAvatar: selectedLocation?.logo,
         friends: taggedFriends.map(friend => ({
           id: friend.id,
           name: friend.name,
@@ -747,8 +731,10 @@ export default function AddCoffeeScreen({ navigation, route }) {
       setCustomRecipe(null);
       setRating(0);
       
-      // Close the modal and return to the previous screen
-      navigation.goBack();
+      // Add a small delay before navigation to ensure keyboard is dismissed
+      setTimeout(() => {
+        navigation.goBack();
+      }, 100);
     } catch (error) {
       console.error('Error saving coffee:', error);
       Alert.alert('Error', 'Failed to save coffee event. Please try again.');
@@ -1024,6 +1010,7 @@ export default function AddCoffeeScreen({ navigation, route }) {
                 multiline
                 numberOfLines={4}
                 textAlignVertical="top"
+                keyboardAppearance={isDarkMode ? 'dark' : 'light'}
               />
             </View>
             
@@ -1160,6 +1147,7 @@ export default function AddCoffeeScreen({ navigation, route }) {
               placeholder="Search locations..."
               value={locationSearchText}
               onChangeText={handleLocationSearch}
+              keyboardAppearance={isDarkMode ? 'dark' : 'light'}
               clearButtonMode="while-editing"
             />
             {locationSearchText ? (
@@ -1256,6 +1244,7 @@ export default function AddCoffeeScreen({ navigation, route }) {
               placeholder="Search friends..."
               value={friendSearchText}
               onChangeText={handleFriendSearch}
+              keyboardAppearance={isDarkMode ? 'dark' : 'light'}
               clearButtonMode="while-editing"
               autoCapitalize="none"
             />
@@ -1479,6 +1468,8 @@ export default function AddCoffeeScreen({ navigation, route }) {
           contentContainerStyle={{ paddingBottom: 100 }}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="interactive"
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
         >
           {/* Coffee Header */}
           <View style={styles.recipeFormHeader}>
@@ -1529,13 +1520,25 @@ export default function AddCoffeeScreen({ navigation, route }) {
     }
 
     return (
-      <View style={styles.container}>
+      <KeyboardAvoidingView 
+        style={[
+          styles.container,
+          showTopBorder && {
+            borderTopWidth: 1,
+            borderTopColor: theme.divider,
+          }
+        ]}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
+      >
         <ScrollView 
           ref={scrollViewRef}
           style={styles.scrollView}
-          contentContainerStyle={{ paddingBottom: 50 }}
+          contentContainerStyle={{ paddingBottom: keyboardVisible ? keyboardHeight + 50 : 50 }}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="interactive"
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
         >
           <View style={styles.inputContainer}>
             {coffeeData.coffeeId ? (
@@ -1576,6 +1579,7 @@ export default function AddCoffeeScreen({ navigation, route }) {
                       placeholderTextColor={theme.secondaryText || '#666666'}
                       autoFocus={true}
                       keyboardType="default"
+                      keyboardAppearance={isDarkMode ? 'dark' : 'light'}
                       clearButtonMode="never"
                       editable={true}
                       contextMenuHidden={false}
@@ -1587,20 +1591,13 @@ export default function AddCoffeeScreen({ navigation, route }) {
                         }
                       }}
                       onFocus={() => {
-                        if (route.params?.isModalVisible) {
-                          setKeyboardVisible(true);
-                          console.log('Name input focused - modal visible');
-                        } else {
-                          console.log('Name input focused - modal not visible, ignoring');
-                          nameInputRef.current?.blur();
-                        }
+                        console.log('Name input focused');
+                        setKeyboardVisible(true);
                       }}
                       onBlur={() => {
-                        if (nameInputRef.current && route.params?.isModalVisible) {
+                        console.log('Name input blurred');
+                        if (nameInputRef.current) {
                           nameInputRef.current.setNativeProps({ text: coffeeData.name });
-                          console.log('Name input blurred - modal visible');
-                        } else {
-                          console.log('Name input blurred - modal not visible or ref missing');
                         }
                       }}
                     />
@@ -1699,8 +1696,8 @@ export default function AddCoffeeScreen({ navigation, route }) {
             </View>
           )}
 
-          {/* Rating and Notes Section - shown when coffee is selected */}
-          {coffeeData.coffeeId && (
+          {/* Rating and Notes Section - shown when coffee is selected and has a recipe */}
+          {coffeeData.coffeeId && (customRecipe || selectedRecipe) && (
             <View style={styles.ratingNotesContainer}>
               <View style={styles.inputContainer}>
                 <Text style={styles.labelLarge}>Rating</Text>
@@ -1743,12 +1740,15 @@ export default function AddCoffeeScreen({ navigation, route }) {
                   multiline
                   numberOfLines={3}
                   textAlignVertical="top"
+                  keyboardAppearance={isDarkMode ? 'dark' : 'light'}
                   onFocus={() => {
+                    // Scroll to show notes field above keyboard
                     setTimeout(() => {
                       if (scrollViewRef.current) {
+                        // Use scrollToEnd which works reliably for the bottom field
                         scrollViewRef.current.scrollToEnd({ animated: true });
                       }
-                    }, 300);
+                    }, 100);
                   }}
                 />
               </View>
@@ -1757,7 +1757,7 @@ export default function AddCoffeeScreen({ navigation, route }) {
         </ScrollView>
         
 
-      </View>
+      </KeyboardAvoidingView>
     );
   };
 
@@ -1970,6 +1970,7 @@ export default function AddCoffeeScreen({ navigation, route }) {
                     onChangeText={(text) => setRecipeData({...recipeData, amount: text})}
                     placeholder="20"
                     keyboardType="numeric"
+                    keyboardAppearance={isDarkMode ? 'dark' : 'light'}
                     placeholderTextColor="#999"
                   />
                 </View>
@@ -2003,6 +2004,7 @@ export default function AddCoffeeScreen({ navigation, route }) {
                     onChangeText={(text) => setRecipeData({...recipeData, waterVolume: text})}
                     placeholder="300"
                     keyboardType="numeric"
+                    keyboardAppearance={isDarkMode ? 'dark' : 'light'}
                     placeholderTextColor="#999"
                   />
                 </View>
@@ -2014,6 +2016,7 @@ export default function AddCoffeeScreen({ navigation, route }) {
                     value={recipeData.brewTime}
                     onChangeText={(text) => setRecipeData({...recipeData, brewTime: text})}
                     placeholder="3:30"
+                    keyboardAppearance={isDarkMode ? 'dark' : 'light'}
                     placeholderTextColor="#999"
                   />
                 </View>
@@ -2027,9 +2030,10 @@ export default function AddCoffeeScreen({ navigation, route }) {
                     placeholder="Any brewing notes..."
                     multiline
                     textAlignVertical="top"
+                    keyboardAppearance={isDarkMode ? 'dark' : 'light'}
                     placeholderTextColor="#999"
-                                     />
-                 </View>
+                  />
+                </View>
                  
                  {/* Save Button */}
                  <TouchableOpacity
@@ -2321,7 +2325,7 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: theme.background,
+    backgroundColor: theme.cardBackground || (isDarkMode ? '#2C2C2E' : '#FFFFFF'),
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     minHeight: '50%',
@@ -2525,7 +2529,7 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   selectorModalContent: {
-    backgroundColor: theme.background,
+    backgroundColor: theme.cardBackground || (isDarkMode ? '#2C2C2E' : '#FFFFFF'),
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12,
     maxHeight: '80%',
@@ -2959,7 +2963,7 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 12,
-    backgroundColor: theme.background,
+    backgroundColor: theme.cardBackground || (isDarkMode ? '#2C2C2E' : '#FFFFFF'),
     borderTopWidth: 1,
     borderTopColor: theme.divider || '#E5E5EA',
     borderBottomWidth: 1,
@@ -3357,11 +3361,12 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
     marginBottom: 16,
   },
   horizontalRecipeCard: {
-    width: 250,
+    width: 280,
     marginRight: 12,
   },
   horizontalRecipesList: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 0,
+    paddingLeft: 16,
   },
   selectedRecipeCardContainer: {
     position: 'relative',
