@@ -172,7 +172,7 @@ const cafes = goodCafeIds.map(cafeId => {
   // Render filter UI
   const renderFilterUI = () => {
     return (
-      <View style={[styles.filterContainer, { backgroundColor: theme.cardBackground }]}>
+      <View style={[styles.filterContainer, { backgroundColor: theme.background }]}>
         <View style={styles.filterRow}>
           <TouchableOpacity 
             style={[styles.citySelector, { backgroundColor: theme.secondaryBackground }]}
@@ -366,7 +366,12 @@ const cafes = goodCafeIds.map(cafeId => {
     
     return (
       <TouchableOpacity 
-        style={[styles.cafeCard, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
+        style={[
+          styles.cafeCard, 
+          isDarkMode 
+            ? { backgroundColor: theme.cardBackground, borderWidth: 0 }
+            : { backgroundColor: 'transparent', borderColor: theme.border }
+        ]}
         onPress={() => {
           navigation.navigate('UserProfileBridge', { 
             userId: item.id, 
@@ -418,7 +423,7 @@ const cafes = goodCafeIds.map(cafeId => {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
+    <View style={[styles.container, { backgroundColor: isDarkMode ? theme.background : '#FFFFFF' }]}>
       {renderFilterUI()}
       {renderCitySheet()}
 
