@@ -104,7 +104,7 @@ export const darkTheme = {
   secondaryText: '#BBBBBB',
   subText: '#8E8E93',
   border: '#38383A',
-  divider: '#2C2C2E',
+  divider: '#333333',
   placeholder: '#2C2C2E',
   iconColor: '#BBBBBB',
   methodBackground: '#000000',
