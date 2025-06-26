@@ -22,19 +22,16 @@ const PeopleListScreen = () => {
   // Simulate fetching people data
   useEffect(() => {
     const fetchPeople = () => {
-      // Simulate API call delay
-      setTimeout(() => {
-        // Get users from mockUsers and filter out business accounts
-        const usersData = (mockUsers.users || []).filter(user => 
-          !user.isBusinessAccount && 
-          user.userName !== 'Vértigo y Calambre' && 
-          user.userName !== 'You' &&
-          !user.id.includes('business')
-        );
-        setPeople(usersData);
-        setFilteredPeople(usersData);
-        setLoading(false);
-      }, 1000);
+      // Get users from mockUsers and filter out business accounts
+      const usersData = (mockUsers.users || []).filter(user => 
+        !user.isBusinessAccount && 
+        user.userName !== 'Vértigo y Calambre' && 
+        user.userName !== 'You' &&
+        !user.id.includes('business')
+      );
+      setPeople(usersData);
+      setFilteredPeople(usersData);
+      setLoading(false);
     };
     
     fetchPeople();
