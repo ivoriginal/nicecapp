@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ActionSheetIOS, Share, Platform, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ActionSheetIOS, Share, Platform, ScrollView, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AppImage from './common/AppImage';
 import RecipeCard from './RecipeCard';
 import FollowButton from './FollowButton';
 import { useTheme } from '../context/ThemeContext';
+import { useNavigation } from '@react-navigation/native';
 
 // A replacement for CoffeeLogCard that properly handles themes
 const ThemeCoffeeLogCard = ({ 
@@ -27,6 +28,7 @@ const ThemeCoffeeLogCard = ({
   // Local state to handle UI updates before backend sync
   const [isLiked, setIsLiked] = useState(event.isLiked || false);
   const [likeCount, setLikeCount] = useState(event.likes || 0);
+  const [showFriendsModal, setShowFriendsModal] = useState(false);
 
   // Ensure we have a valid event object
   if (!event) {
@@ -68,11 +70,15 @@ const ThemeCoffeeLogCard = ({
           cancelButtonIndex,
         },
         (buttonIndex) => {
-          if (buttonIndex === 0) {
+          if (isCurrentUserPost && buttonIndex === 0) {
+            // Share for current user's post
             handleShare();
           } else if (!isCurrentUserPost && buttonIndex === 0) {
-            // Report
+            // Report for other user's post
             onOptionsPress && onOptionsPress(event, 'report');
+          } else if (!isCurrentUserPost && buttonIndex === 1) {
+            // Share for other user's post
+            handleShare();
           } else if (isCurrentUserPost && buttonIndex === 1) {
             // Delete post
             Alert.alert(
@@ -271,42 +277,7 @@ const ThemeCoffeeLogCard = ({
           )}
         </View>
         
-        {/* Metadata section - location and friends before notes - only show if there's metadata */}
-        {((event.location && event.location !== 'Home') || (event.friends && event.friends.length > 0)) && (
-          <View style={styles.metadataContainer}>
-            {event.location && event.location !== 'Home' && (
-              <TouchableOpacity 
-                style={styles.metadataRow}
-                onPress={() => {
-                  if (event.locationId && event.locationId !== 'home') {
-                    // Pass the full location data to onUserPress
-                    onUserPress && onUserPress({
-                      id: event.locationId,
-                      type: 'location',
-                      name: event.location,
-                      avatar: event.locationAvatar,
-                      isBusiness: true
-                    });
-                  }
-                }}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="location" size={16} color={theme.secondaryText} />
-                <Text style={styles.metadataText}>{event.location}</Text>
-              </TouchableOpacity>
-            )}
-            {event.friends && event.friends.length > 0 && (
-              <View style={styles.metadataRow}>
-                <Ionicons name="people" size={16} color={theme.secondaryText} />
-                <Text style={styles.metadataText}>
-                  With {event.friends.map(friend => friend.name || friend.userName).join(', ')}
-                </Text>
-              </View>
-            )}
-          </View>
-        )}
-
-        {/* Notes and rating after metadata */}
+        {/* Notes and rating first */}
         {(event.notes && event.notes.trim() !== '') || event.rating ? (
           <View style={styles.notesContainer}>
             {/* Rating stars would go here */}
@@ -317,6 +288,28 @@ const ThemeCoffeeLogCard = ({
             )}
           </View>
         ) : null}
+
+        {/* Tagged friends section with tap functionality - after notes */}
+        {event.friends && event.friends.length > 0 && (
+          <TouchableOpacity 
+            style={styles.friendsContainer}
+            onPress={() => setShowFriendsModal(true)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.friendsRow}>
+              <Ionicons name="people" size={16} color={theme.secondaryText} />
+              <Text style={styles.friendsText} numberOfLines={1} ellipsizeMode="tail">
+                <Text style={styles.friendsWithText}>With </Text>
+                {event.friends.map((friend, index) => (
+                  <Text key={friend.id || index} style={styles.friendNameText}>
+                    {friend.name || friend.userName}
+                    {index < event.friends.length - 1 ? ', ' : ''}
+                  </Text>
+                ))}
+              </Text>
+            </View>
+          </TouchableOpacity>
+        )}
       </View>
     );
   };
@@ -509,6 +502,8 @@ const ThemeCoffeeLogCard = ({
     );
   };
   
+  const navigation = useNavigation();
+
   return (
     <View style={[styles.container, containerStyle]}>
       {/* Header with user info and timestamp */}
@@ -557,9 +552,34 @@ const ThemeCoffeeLogCard = ({
               ]}
               placeholder="person"
             />
-            <View style={styles.userNameContainer}>
-              <Text style={styles.userName}>{event.userName || 'Unknown User'}</Text>
-              <Text style={styles.userAction}>{getEventTypeLabel()}</Text>
+            <View style={styles.userTextContainer}>
+              <View style={styles.userNameContainer}>
+                <Text style={styles.userName} numberOfLines={1}>{event.userName || 'Unknown User'}</Text>
+                <Text style={styles.userAction} numberOfLines={1}>{getEventTypeLabel()}</Text>
+              </View>
+              {/* Location as second line in header */}
+              {event.location && event.location !== 'Home' && (
+                <TouchableOpacity 
+                  style={styles.locationInHeaderContainer}
+                                      onPress={() => {
+                      if (event.locationId && event.locationId !== 'home') {
+                        // Pass the full location data to onUserPress with proper café structure
+                        onUserPress && onUserPress({
+                          userId: event.locationId,
+                          userName: event.location,
+                          userAvatar: event.locationAvatar,
+                          isBusiness: true,
+                          type: 'cafe',
+                          isCafe: true
+                        });
+                      }
+                    }}
+                  activeOpacity={0.7}
+                >
+                  {/* <Ionicons name="location" size={14} color={theme.secondaryText} /> */}
+                  <Text style={styles.locationInHeaderText}>{event.location}</Text>
+                </TouchableOpacity>
+              )}
             </View>
           </TouchableOpacity>
           <View style={styles.headerActionsContainer}>
@@ -576,6 +596,51 @@ const ThemeCoffeeLogCard = ({
 
       {/* Event content */}
       {renderEventContent()}
+
+      {/* Friends Modal */}
+      <Modal
+        visible={showFriendsModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowFriendsModal(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Tagged Friends</Text>
+            <TouchableOpacity 
+              style={styles.modalCloseButton}
+              onPress={() => setShowFriendsModal(false)}
+            >
+              <Ionicons name="close" size={24} color={theme.primaryText} />
+            </TouchableOpacity>
+          </View>
+          <ScrollView style={styles.modalContent}>
+            {event.friends && event.friends.map((friend, index) => (
+              <TouchableOpacity 
+                key={friend.id || index}
+                style={styles.friendModalItem}
+                onPress={() => {
+                  setShowFriendsModal(false);
+                  onUserPress && onUserPress({
+                    userId: friend.id || friend.userId,
+                    userName: friend.name || friend.userName,
+                    userAvatar: friend.avatar || friend.userAvatar
+                  });
+                }}
+                activeOpacity={0.7}
+              >
+                <AppImage 
+                  source={friend.avatar || friend.userAvatar} 
+                  style={styles.friendModalAvatar}
+                  placeholder="person" 
+                />
+                <Text style={styles.friendModalName}>{friend.name || friend.userName}</Text>
+                <Ionicons name="chevron-forward" size={20} color={theme.secondaryText} />
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -596,7 +661,7 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
   },
   contentContainer: {
     padding: 12,
-    paddingBottom: 16,
+    paddingBottom: 20,
     paddingTop: 0,
   },
   headerContainer: {
@@ -609,6 +674,12 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
   userInfoContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
+    marginRight: 8,
+  },
+  userTextContainer: {
+    flex: 1,
+    justifyContent: 'center',
   },
   userNameContainer: {
     flexDirection: 'row',
@@ -616,14 +687,16 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
   },
   userName: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '600',
     color: theme.primaryText,
-    marginRight: 5,
+    marginRight: 4,
+    flexShrink: 1,
   },
   userAction: {
     fontSize: 14,
     fontWeight: '400',
-    color: theme.secondaryText,
+    flexShrink: 1,
+    // color: theme.secondaryText,
   },
   userAvatar: {
     width: 32,
@@ -679,7 +752,6 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
     width: '100%',
     height: '100%',
     resizeMode: 'cover',
-    // unsure about this
     backgroundColor: theme.placeholder,
   },
   placeholderImage: {
@@ -710,10 +782,11 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
     padding: 12,
     paddingHorizontal: 12,
     paddingRight: 24,
-    backgroundColor: theme.recipeContainer,
+    // backgroundColor: theme.recipeContainer,
     borderTopWidth: 1,
-    borderTopColor: theme.divider,
-    marginTop: 1,
+    borderTopColor: theme.border,
+    borderTopColor: isDarkMode ? '#444444' : theme.border,
+    // marginTop: 1,
   },
   recipeRow: {
     flexDirection: 'row',
@@ -750,19 +823,20 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
     height: 24,
     borderRadius: 12,
     marginRight: 0,
-    borderWidth: 1,
-    borderColor: theme.border,
+    // borderWidth: 1,
+    // borderColor: theme.border,
   },
   businessCreatorAvatar: {
     borderRadius: 6,
   },
   notesContainer: {
-    marginTop: 12,
+    marginTop: 16,
     paddingHorizontal: 8,
   },
   notesText: {
     fontSize: 14,
-    color: theme.secondaryText,
+    // color: theme.secondaryText,
+    color: theme.primaryText,
   },
   metadataContainer: {
     marginTop: 12,
@@ -987,6 +1061,92 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
   recommendedUserHandle: {
     fontSize: 14,
     color: theme.secondaryText,
+  },
+  // Location in header styles
+  locationInHeaderContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  locationInHeaderText: {
+    fontSize: 12,
+    color: theme.primaryText,
+    // marginLeft: 4,
+    color: theme.secondaryText,
+  },
+  // Friends styles
+  friendsContainer: {
+    marginHorizontal: 12,
+    marginTop: 16,
+  },
+  friendsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  friendsText: {
+    flex: 1,
+    fontSize: 14,
+    marginLeft: 8,
+    color: theme.secondaryText,
+  },
+  friendsWithText: {
+    fontWeight: '400',
+    color: theme.secondaryText,
+  },
+  friendNameText: {
+    fontWeight: '600',
+    color: theme.primaryText,
+  },
+  // Modal styles
+  modalContainer: {
+    flex: 1,
+    backgroundColor: theme.background,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.divider,
+    backgroundColor: theme.cardBackground,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: theme.primaryText,
+  },
+  modalCloseButton: {
+    padding: 8,
+  },
+  modalContent: {
+    flex: 1,
+    backgroundColor: theme.background,
+  },
+  friendModalItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.divider,
+    backgroundColor: theme.cardBackground,
+    marginHorizontal: 16,
+    marginTop: 8,
+    borderRadius: 12,
+  },
+  friendModalAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 12,
+    borderWidth: 1,
+    borderColor: theme.border,
+  },
+  friendModalName: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '500',
+    color: theme.primaryText,
   },
 });
 
