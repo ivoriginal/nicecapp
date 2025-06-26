@@ -148,10 +148,12 @@ export default function HomeScreen({ navigation }) {
       return;
     }
     
-    // For other users, navigate through UserProfileBridge for proper handling
-    navigation.navigate('UserProfileBridge', { 
+    // For other users, navigate directly to UserProfileScreen instead of UserProfileBridge
+    navigation.navigate('UserProfileScreen', { 
       userId: event.userId,
       userName: event.userName,
+      userAvatar: event.userAvatar,
+      isBusinessAccount: event.isBusinessAccount || false,
       skipAuth: true
     });
   };
