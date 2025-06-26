@@ -180,7 +180,8 @@ function AppContent() {
     backgroundColor: theme.background,
     elevation: 0, // Remove shadow on Android
     shadowOpacity: 0, // Remove shadow on iOS
-    borderBottomWidth: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.divider,
   };
   
   const headerTintColor = theme.primaryText;
