@@ -1824,7 +1824,7 @@ const styles = StyleSheet.create({
   gearContainer: {
     backgroundColor: '#FFFFFF',
     padding: 16,
-    paddingTop: 8,
+    marginTop: 8,
     paddingRight: 0,
     paddingBottom: 12,
   },

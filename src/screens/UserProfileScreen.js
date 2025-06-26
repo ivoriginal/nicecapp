@@ -676,8 +676,11 @@ export default function UserProfileScreen() {
         userName: enhancedItem.userName,
         userAvatar: enhancedItem.userAvatar
       })}
-      onUserPress={() => navigation.navigate('UserProfileBridge', { 
-        userId: enhancedItem.userId,
+      onUserPress={(event) => navigation.navigate('UserProfileScreen', { 
+        userId: event.userId,
+        userName: event.userName,
+        userAvatar: event.userAvatar,
+        isBusinessAccount: event.isBusinessAccount || false,
         skipAuth: true 
       })}
       onOptionsPress={handleOptionsPress}
@@ -1390,8 +1393,11 @@ export default function UserProfileScreen() {
                           userName: event.userName,
                           userAvatar: event.userAvatar
                         })}
-                        onUserPress={(event) => navigation.navigate('UserProfileBridge', { 
+                        onUserPress={(event) => navigation.navigate('UserProfileScreen', { 
                           userId: event.userId,
+                          userName: event.userName,
+                          userAvatar: event.userAvatar,
+                          isBusinessAccount: event.isBusinessAccount || false,
                           skipAuth: true 
                         })}
                         onOptionsPress={handleOptionsPress}
@@ -1488,9 +1494,11 @@ export default function UserProfileScreen() {
                       <TouchableOpacity
                         key={cafe.id}
                         style={[styles.cafeItem, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
-                        onPress={() => navigation.navigate('UserProfileBridge', {
+                        onPress={() => navigation.navigate('UserProfileScreen', {
                           userId: cafe.id,
                           userName: cafe.name,
+                          userAvatar: cafe.avatar,
+                          isBusinessAccount: true,
                           skipAuth: true
                         })}
                       >
@@ -1735,7 +1743,7 @@ const styles = StyleSheet.create({
   gearContainer: {
     backgroundColor: '#FFFFFF',
     padding: 16,
-    paddingTop: 4,
+    marginTop: 4,
     paddingRight: 0,
     paddingBottom: 12,
     marginTop: 8,

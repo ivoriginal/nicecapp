@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import mockCafes from '../data/mockCafes.json';
@@ -20,26 +20,33 @@ export default function UserProfileBridge() {
     isRoaster = false,
     location
   } = route.params || {};
+  
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const hasNavigatedRef = useRef(false);
 
   useEffect(() => {
-    // Prevent multiple navigation attempts
-    let hasNavigated = false;
-    let timeoutId;
+    // Reset navigation state
+    hasNavigatedRef.current = false;
+    
+    // Don't proceed if no user info provided
+    if (!userId && !userName) {
+      console.error('UserProfileBridge: No userId or userName provided');
+      setError('No user information provided');
+      return;
+    }
 
+    // Set loading and start navigation process
+    setLoading(true);
+    
     const navigateToProfile = () => {
+      if (hasNavigatedRef.current) {
+        return;
+      }
+
       try {
-        // Debug: Log what parameters we received
         console.log('UserProfileBridge received params:', route.params);
         console.log('UserProfileBridge processing navigation for userId:', userId, 'userName:', userName);
-        
-        if (!userId && !userName) {
-          console.error('UserProfileBridge: No userId or userName provided');
-          setError('No user information provided');
-          setLoading(false);
-          return;
-        }
         
         // Handle location-specific cafes first (e.g., Toma Café 1)
         if (isLocation && handleLocationProfile()) {
@@ -236,45 +243,26 @@ export default function UserProfileBridge() {
     };
 
     const navigateToUserProfile = (params) => {
-      if (hasNavigated) {
+      if (hasNavigatedRef.current) {
         console.log('Navigation already attempted, skipping...');
         return;
       }
       
-      hasNavigated = true;
+      hasNavigatedRef.current = true;
       console.log('UserProfileBridge: Navigating with params:', params);
       
-      // Clear timeout before navigating
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
-      
-      // Use replace instead of navigate to avoid showing loading when going back
-      // Use immediate navigation without delay
-      setTimeout(() => {
-        navigation.replace('UserProfileScreen', params);
-      }, 0);
+      // Navigate immediately without delay
+      navigation.push('UserProfileScreen', params);
       setLoading(false);
     };
 
-    // Set up fallback timeout
-    timeoutId = setTimeout(() => {
-      if (!hasNavigated) {
-        console.warn('UserProfileBridge: Navigation taking too long, forcing fallback');
-        setError('Navigation timeout - unable to load profile');
-        setLoading(false);
-      }
-    }, 1000); // Further reduced to 1 second
-
-    // Start navigation process immediately
-    navigateToProfile();
+    // Start navigation with minimal delay to prevent flash
+    const timeoutId = setTimeout(navigateToProfile, 50);
     
     return () => {
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
+      clearTimeout(timeoutId);
     };
-  }, [navigation, userId, userName]); // Simplified dependency array
+  }, [navigation, userId, userName]);
 
   if (error) {
     return (
@@ -284,7 +272,12 @@ export default function UserProfileBridge() {
     );
   }
 
-  // Show loading while processing navigation
+  if (!loading) {
+    // Return empty view instead of null to maintain navigation structure
+    return <View />;
+  }
+
+  // Show loading only when actively processing
   return (
     <View style={styles.container}>
       <ActivityIndicator size="large" color="#000000" />
