@@ -90,7 +90,10 @@ const NotificationItem = ({ notification, onPress, isLast, theme }) => {
     <TouchableOpacity
       style={[
         styles.notificationItem,
-        { backgroundColor: theme.cardBackground, borderBottomColor: theme.divider },
+        { 
+          backgroundColor: notification.read ? theme.background : theme.cardBackground, 
+          borderBottomColor: theme.divider 
+        },
         !notification.read && [styles.unreadNotification, { backgroundColor: theme.secondaryBackground || (theme.isDarkMode ? '#1C1C1E' : '#F2F2F7') }],
         isLast && { borderBottomWidth: 0 }
       ]}
