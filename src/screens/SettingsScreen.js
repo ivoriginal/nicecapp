@@ -21,7 +21,7 @@ export default function SettingsScreen({ navigation }) {
   useLayoutEffect(() => {
     navigation.setOptions({
       headerStyle: {
-        backgroundColor: isDarkMode ? theme.altCardBackground : '#FFFFFF',
+        backgroundColor: theme.background,
         elevation: 0,
         shadowOpacity: 0,
         borderBottomWidth: 1,
@@ -47,9 +47,9 @@ export default function SettingsScreen({ navigation }) {
   };
 
   // Render a radio button option
-  const renderThemeOption = (label, value) => (
+  const renderThemeOption = (label, value, isLast = false) => (
     <TouchableOpacity
-      style={[styles.optionRow, { borderBottomColor: theme.divider }]}
+      style={[isLast ? styles.optionRowLast : styles.optionRow, { borderBottomColor: theme.divider }]}
       onPress={() => handleThemeSelection(value)}
       activeOpacity={1.0}
       underlayColor="transparent"
@@ -76,7 +76,7 @@ export default function SettingsScreen({ navigation }) {
           <View style={[styles.optionsContainer, { borderTopColor: theme.divider }]}>
             {renderThemeOption('Automatic (Follow Device)', 'auto')}
             {renderThemeOption('Light Mode', 'light')}
-            {renderThemeOption('Dark Mode', 'dark')}
+            {renderThemeOption('Dark Mode', 'dark', true)}
           </View>
         </View>
         
@@ -88,7 +88,9 @@ export default function SettingsScreen({ navigation }) {
           <View style={[styles.optionsContainer, { borderTopColor: theme.divider }]}>
           <TouchableOpacity 
             style={[styles.optionRow, { borderBottomColor: theme.divider }]}
-            onPress={() => Alert.alert('Coming Soon', 'This feature is not available yet.')}
+            onPress={() => Alert.alert('Coming Soon', 'This feature is not available yet.', [], {
+              userInterfaceStyle: isDarkMode ? 'dark' : 'light'
+            })}
           >
             <Text style={[styles.optionText, { color: theme.primaryText }]}>Notifications</Text>
             <Ionicons name="chevron-forward" size={20} color={theme.secondaryText} />
@@ -96,7 +98,9 @@ export default function SettingsScreen({ navigation }) {
           
           <TouchableOpacity 
             style={[styles.optionRow, { borderBottomColor: theme.divider }]}
-            onPress={() => Alert.alert('Coming Soon', 'This feature is not available yet.')}
+            onPress={() => Alert.alert('Coming Soon', 'This feature is not available yet.', [], {
+              userInterfaceStyle: isDarkMode ? 'dark' : 'light'
+            })}
           >
             <Text style={[styles.optionText, { color: theme.primaryText }]}>Privacy</Text>
             <Ionicons name="chevron-forward" size={20} color={theme.secondaryText} />
@@ -107,7 +111,9 @@ export default function SettingsScreen({ navigation }) {
             onPress={() => Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
               { text: 'Cancel', style: 'cancel' },
               { text: 'Sign Out', style: 'destructive' }
-            ])}
+            ], {
+              userInterfaceStyle: isDarkMode ? 'dark' : 'light'
+            })}
           >
             <Text style={[styles.optionText, { color: '#FF3B30' }]}>Sign Out</Text>
           </TouchableOpacity>
@@ -121,7 +127,9 @@ export default function SettingsScreen({ navigation }) {
           <View style={[styles.optionsContainer, { borderTopColor: theme.divider }]}>
           <TouchableOpacity 
             style={[styles.optionRowLast, { borderBottomColor: theme.divider }]}
-            onPress={() => Alert.alert('Version', 'NiceCup v1.0.0')}
+            onPress={() => Alert.alert('Version', 'NiceCup v1.0.0', [], {
+              userInterfaceStyle: isDarkMode ? 'dark' : 'light'
+            })}
           >
             <Text style={[styles.optionText, { color: theme.primaryText }]}>Version</Text>
             <Text style={[styles.versionText, { color: theme.secondaryText }]}>1.0.0</Text>
