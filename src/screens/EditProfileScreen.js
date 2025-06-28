@@ -113,6 +113,31 @@ export default function EditProfileScreen() {
   // Toast state
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  
+  // Flag to bypass the beforeRemove warning when saving
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Configure navigation header
+  useEffect(() => {
+    navigation.setOptions({
+      title: 'Edit Profile',
+      headerRight: () => (
+        <TouchableOpacity
+          onPress={handleSave}
+          disabled={!hasChanges()}
+          style={{ marginRight: 16, opacity: hasChanges() ? 1 : 0.5 }}
+        >
+          <Text style={{ 
+            color: hasChanges() ? theme.primaryText : theme.secondaryText, 
+            fontSize: 16, 
+            fontWeight: '600' 
+          }}>
+            Save
+          </Text>
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation, userData, selectedGear, user, route.params, theme.primaryText, theme.secondaryText]);
 
   // Load user data on mount
   useEffect(() => {
@@ -126,22 +151,30 @@ export default function EditProfileScreen() {
     const locationFromParams = routeParamsUserData.location;
     console.log("EditProfileScreen - Location from route params:", locationFromParams);
     
-    if (user) {
-      console.log("EditProfileScreen - User gear:", user.gear);
-      setUserData({
-        userName: user.userName || '',
+    if (user || routeParamsUserData.userName) {
+      console.log("EditProfileScreen - User gear:", user?.gear || routeParamsUserData.gear);
+      
+      // Handle avatar properly - convert require() to URI if needed
+      const rawAvatar = user?.userAvatar || routeParamsUserData.userAvatar;
+      const avatarUri = getAvatarUri(rawAvatar);
+      console.log("EditProfileScreen - Raw avatar:", rawAvatar, "Processed URI:", avatarUri);
+      
+      const finalUserData = {
+        userName: user?.userName || routeParamsUserData.userName || '',
         // Prioritize location from route params if available, fallback to user context location
-        location: locationFromParams || user.location || 'Murcia, Spain',
-        userAvatar: user.userAvatar || null,
-        userHandle: user.userHandle || '',
-        gear: user.gear || []
-      });
+        location: locationFromParams || user?.location || 'Murcia, Spain',
+        userAvatar: avatarUri,
+        userHandle: user?.userHandle || routeParamsUserData.userHandle || '',
+        gear: user?.gear || routeParamsUserData.gear || []
+      };
+      
+      setUserData(finalUserData);
       
       // Ensure we log the location after setting userData
-      console.log("EditProfileScreen - Set location to:", locationFromParams || user.location || 'Murcia, Spain');
+      console.log("EditProfileScreen - Set location to:", finalUserData.location);
       
-      setInitialGear(user.gear || []);
-      setSelectedGear(user.gear || []);
+      setInitialGear(finalUserData.gear);
+      setSelectedGear(finalUserData.gear);
 
       // If gear is missing but we know which user we're editing, try to get default gear
       if ((!user.gear || user.gear.length === 0) && currentAccount) {
@@ -197,6 +230,26 @@ export default function EditProfileScreen() {
     }
   };
 
+  // Helper function to convert avatar to displayable URI
+  const getAvatarUri = (avatar) => {
+    if (!avatar) return null;
+    
+    // If it's already a string (URI), return as is
+    if (typeof avatar === 'string') {
+      return avatar;
+    }
+    
+    // If it's a require() statement (number), we need to handle it differently
+    if (typeof avatar === 'number') {
+      // For now, we'll return null to show placeholder
+      // In a real app, you might convert require() to URI or use Image.resolveAssetSource()
+      console.log("Avatar is a require() statement, showing placeholder");
+      return null;
+    }
+    
+    return null;
+  };
+
   // Handle image picker
   const pickImage = async () => {
     try {
@@ -228,12 +281,35 @@ export default function EditProfileScreen() {
 
   // Check if user has made changes
   const hasChanges = () => {
-    if (user) {
-      return user.userName !== userData.userName || 
-             user.location !== userData.location || 
-             user.userAvatar !== userData.userAvatar ||
-             !arraysEqual(user.gear || [], userData.gear || []);
+    // Get the original data from either user context or route params
+    const routeParamsUserData = route.params?.userData || {};
+    const originalData = user || routeParamsUserData;
+    
+    console.log('hasChanges check:');
+    console.log('  originalData:', originalData);
+    console.log('  userData:', userData);
+    console.log('  selectedGear:', selectedGear);
+    
+    if (originalData && originalData.userName && userData.userName) {
+      const changes = {
+        nameChanged: originalData.userName !== userData.userName,
+        locationChanged: originalData.location !== userData.location,
+        avatarChanged: originalData.userAvatar !== userData.userAvatar,
+        handleChanged: originalData.userHandle !== userData.userHandle,
+        gearChanged: !arraysEqual(originalData.gear || [], selectedGear || [])
+      };
+      
+      console.log('  changes:', changes);
+      
+      const hasAnyChanges = changes.nameChanged || changes.locationChanged || 
+                           changes.avatarChanged || changes.handleChanged || changes.gearChanged;
+      
+      console.log('  hasAnyChanges:', hasAnyChanges);
+      
+      return hasAnyChanges;
     }
+    
+    console.log('  returning false (no original data or userData)');
     return false;
   };
   
@@ -263,8 +339,13 @@ export default function EditProfileScreen() {
 
   // Handle saving profile changes
   const handleSave = () => {
+    // Debug logging
+    console.log('handleSave called with userData:', userData);
+    console.log('userData.userName:', userData.userName);
+    console.log('hasChanges():', hasChanges());
+    
     // Validate fields
-    if (!userData.userName.trim()) {
+    if (!userData.userName || !userData.userName.trim()) {
       Alert.alert('Error', 'Name cannot be empty');
       return;
     }
@@ -276,73 +357,71 @@ export default function EditProfileScreen() {
       return;
     }
     
-    console.log('Saving profile with data:', userData);
-    console.log('Location being saved:', userData.location);
+    // Set saving flag to bypass the beforeRemove warning IMMEDIATELY
+    setIsSaving(true);
     
-    // Create updated user data
-    const updatedUser = {
-      ...user,
-      id: currentAccount,
-      userName: userData.userName,
-      location: userData.location || 'Murcia, Spain', // Ensure location is never empty
-      userAvatar: userData.userAvatar,
-      userHandle: userData.userHandle || user.userHandle,
-      gear: selectedGear
-    };
-    
-    console.log('Final updated user data:', updatedUser);
-    
-    // In a real app, you would update the backend here
-    // For our mock app, we can update the context
-    try {
-      // Get the route that opened this screen
-      const route = navigation.getState().routes.find(r => r.name === 'EditProfile');
-      const sourceScreen = route?.params?.sourceScreen || 'Profile';
+    // Use setTimeout to ensure the flag is set before the navigation listener checks it
+    setTimeout(() => {
+      console.log('Saving profile with data:', userData);
+      console.log('Location being saved:', userData.location);
       
-      // Use goBack with updatedUserData directly in the context
-      if (currentAccount) {
-        // Update local user data in context directly
-        const existingUser = user || {};
-        const mergedUser = {
-          ...existingUser,
-          id: currentAccount,
-          userName: userData.userName,
-          location: userData.location,
-          userAvatar: userData.userAvatar,
-          userHandle: userData.userHandle || existingUser.userHandle,
-          gear: selectedGear
-        };
-        
-        // Go back to Profile screen
+      // Create updated user data
+      const updatedUser = {
+        ...user,
+        id: currentAccount,
+        userName: userData.userName,
+        location: userData.location || 'Murcia, Spain', // Ensure location is never empty
+        userAvatar: userData.userAvatar,
+        userHandle: userData.userHandle || user.userHandle,
+        gear: selectedGear
+      };
+      
+      console.log('Final updated user data:', updatedUser);
+      
+      // In a real app, you would update the backend here
+      // For our mock app, we can update the context
+      try {
+        // Go back to Profile screen first to avoid navigation conflicts
         navigation.goBack();
         
         // After a short delay to allow navigation to complete, update the ProfileScreen
         setTimeout(() => {
           // Create a profile update event for the profile screen to detect
-          console.log('Emitting profile update with location:', mergedUser.location);
+          console.log('Emitting profile update with location:', updatedUser.location);
           eventEmitter.emit('profileUpdated', { 
             user: {
-              ...mergedUser,
+              ...updatedUser,
               // Ensure location is explicitly included with a fallback value
-              location: mergedUser.location || 'Murcia, Spain'
+              location: updatedUser.location || 'Murcia, Spain'
             },
             message: 'Profile updated'
           });
         }, 100);
-      } else {
-        // Fallback: just go back
-        navigation.goBack();
+      } catch (error) {
+        console.error('Error saving profile:', error);
+        setIsSaving(false); // Reset the saving flag on error
+        Alert.alert('Error', 'Failed to update profile');
       }
-    } catch (error) {
-      console.error('Error saving profile:', error);
-      Alert.alert('Error', 'Failed to update profile');
-    }
+    }, 50); // Small delay to ensure isSaving flag is set
   };
 
-  // Handle canceling edits
-  const handleCancel = () => {
-    // Only show confirmation if there are changes
-    if (hasChanges()) {
+  // Handle back navigation with unsaved changes warning
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+      // If we're saving, don't show the warning
+      if (isSaving) {
+        return;
+      }
+      
+      if (!hasChanges()) {
+        // If there are no changes, let the user leave normally
+        return;
+      }
+
+      // Prevent default behavior of leaving the screen
+      e.preventDefault();
+
+      // Prompt the user before leaving the screen
       Alert.alert(
         'Discard Changes',
         'Are you sure you want to discard your changes?',
@@ -351,15 +430,14 @@ export default function EditProfileScreen() {
           { 
             text: 'Yes', 
             style: 'destructive',
-            onPress: () => navigation.goBack() 
+            onPress: () => navigation.dispatch(e.data.action) 
           }
         ]
       );
-    } else {
-      // No changes, just go back
-      navigation.goBack();
-    }
-  };
+    });
+
+    return unsubscribe;
+  }, [navigation, hasChanges, isSaving]);
 
   // Handle opening gear modal
   const handleOpenGearModal = () => {
@@ -376,8 +454,33 @@ export default function EditProfileScreen() {
     }
   };
 
+  // Handle adding new gear that doesn't exist in the list
+  const handleAddNewGear = (gearName) => {
+    // For now, just add it to the gear options and select it
+    // Later we'll implement the full flow to add it to the app
+    Alert.alert(
+      'Add New Gear',
+      `We'll work on the flow to add "${gearName}" to the app later. For now, it will be added to your personal gear list.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Add', 
+          onPress: () => {
+            // Add to gear options
+            setGearOptions(prev => [...prev, gearName].sort());
+            // Add to selected gear
+            setSelectedGear(prev => [...prev, gearName]);
+            // Clear search
+            setSearchQuery('');
+          }
+        }
+      ]
+    );
+  };
+
   // Handle confirming gear selection
   const handleConfirmGearSelection = () => {
+    console.log('Confirming gear selection:', selectedGear);
     setUserData(prev => ({
       ...prev,
       gear: selectedGear
@@ -395,7 +498,7 @@ export default function EditProfileScreen() {
     const gearImage = getGearImage(item);
     
     return (
-      <View style={styles.gearItem}>
+      <View style={[styles.gearItem, { backgroundColor: theme.cardBackground }]}>
         <View style={styles.gearItemContent}>
           <View style={styles.gearItemAvatarContainer}>
             {gearImage ? (
@@ -407,11 +510,11 @@ export default function EditProfileScreen() {
               />
             ) : (
               <View style={styles.gearItemAvatarPlaceholder}>
-                <Ionicons name="hardware-chip-outline" size={16} color="#999999" />
+                <Ionicons name="hardware-chip-outline" size={16} color={theme.secondaryText} />
               </View>
             )}
           </View>
-          <Text style={styles.gearItemText}>{item}</Text>
+          <Text style={[styles.gearItemText, { color: theme.primaryText }]}>{item}</Text>
         </View>
         <TouchableOpacity 
           style={styles.removeGearButton} 
@@ -421,7 +524,7 @@ export default function EditProfileScreen() {
             setSelectedGear(updatedGear);
           }}
         >
-          <Ionicons name="close-circle" size={22} color="#999999" />
+          <Ionicons name="close-circle" size={22} color={theme.secondaryText} />
         </TouchableOpacity>
       </View>
     );
@@ -434,29 +537,35 @@ export default function EditProfileScreen() {
     >
       <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
       <ScrollView 
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: 20 }]}
         keyboardShouldPersistTaps="handled"
       >
         {/* Profile Image Section */}
         <View style={styles.avatarContainer}>
-          <View style={styles.avatarWrapper}>
+          <TouchableOpacity 
+            style={styles.avatarWrapper}
+            onPress={pickImage}
+            activeOpacity={0.7}
+          >
             {userData.userAvatar ? (
               <Image 
                 source={{ uri: userData.userAvatar }}
                 style={styles.avatar}
+                onError={(error) => {
+                  console.log('Avatar image error:', error);
+                  // On error, clear the avatar to show placeholder
+                  setUserData(prev => ({ ...prev, userAvatar: null }));
+                }}
               />
             ) : (
               <View style={[styles.avatar, styles.placeholderAvatar, { backgroundColor: theme.placeholder }]}>
                 <Ionicons name="person" size={50} color={theme.secondaryText} />
               </View>
             )}
-            <TouchableOpacity 
-              style={[styles.changePhotoButton, { backgroundColor: theme.cardBackground }]}
-              onPress={pickImage}
-            >
+            <View style={[styles.changePhotoButton, { backgroundColor: theme.cardBackground }]}>
               <Ionicons name="camera" size={20} color={theme.primaryText} />
-            </TouchableOpacity>
-          </View>
+            </View>
+          </TouchableOpacity>
         </View>
 
         {/* Form Fields */}
@@ -512,32 +621,16 @@ export default function EditProfileScreen() {
               <FlatList
                 data={selectedGear}
                 keyExtractor={(item, index) => `gear-${index}`}
-                renderItem={renderGearItem}
+                renderItem={({ item }) => renderGearItem(item)}
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.gearList}
+                style={{ marginTop: 12 }}
               />
             )}
           </View>
         </View>
       </ScrollView>
-
-      {/* Action Buttons */}
-      <View style={[styles.buttonContainer, { backgroundColor: theme.cardBackground, borderTopColor: theme.divider }]}>
-        <TouchableOpacity 
-          style={[styles.button, styles.cancelButton, { borderColor: theme.border }]}
-          onPress={handleCancel}
-        >
-          <Text style={[styles.buttonText, styles.cancelButtonText, { color: theme.primaryText }]}>Cancel</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.button, styles.saveButton, { backgroundColor: hasChanges() ? '#000000' : theme.secondaryBackground }]}
-          onPress={handleSave}
-          disabled={!hasChanges()}
-        >
-          <Text style={[styles.buttonText, styles.saveButtonText, { color: hasChanges() ? '#FFFFFF' : theme.secondaryText }]}>Save</Text>
-        </TouchableOpacity>
-      </View>
 
       {/* Gear Selection Modal */}
       <Modal
@@ -591,14 +684,35 @@ export default function EditProfileScreen() {
                   </TouchableOpacity>
                 );
               }}
+              ListEmptyComponent={() => {
+                if (searchQuery.trim().length > 0) {
+                  return (
+                    <View style={styles.emptyGearSearchContainer}>
+                      <Text style={[styles.emptyGearSearchText, { color: theme.secondaryText }]}>
+                        No gear found for "{searchQuery}"
+                      </Text>
+                      <TouchableOpacity 
+                        style={[styles.addNewGearButton, { backgroundColor: theme.primaryText }]}
+                        onPress={() => handleAddNewGear(searchQuery.trim())}
+                      >
+                        <Ionicons name="add" size={20} color={theme.background} style={{ marginRight: 8 }} />
+                        <Text style={[styles.addNewGearButtonText, { color: theme.background }]}>
+                          Add "{searchQuery.trim()}" as new gear
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  );
+                }
+                return null;
+              }}
             />
 
-            <View style={styles.modalFooter}>
+            <View style={[styles.modalFooter, { paddingBottom: Math.max(insets.bottom, 16) }]}>
               <TouchableOpacity 
-                style={[styles.button, styles.confirmButton, { backgroundColor: '#000000' }]}
+                style={[styles.confirmButton, { backgroundColor: theme.primaryText }]}
                 onPress={handleConfirmGearSelection}
               >
-                <Text style={styles.confirmButtonText}>Confirm Selection</Text>
+                <Text style={[styles.confirmButtonText, { color: theme.background }]}>Confirm</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -679,11 +793,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 100,
+    paddingBottom: 20,
   },
   avatarContainer: {
-    position: 'relative',
+    alignItems: 'center',
     marginBottom: 20,
+    paddingTop: 20,
   },
   avatarWrapper: {
     position: 'relative',
@@ -754,7 +869,6 @@ const styles = StyleSheet.create({
     color: '#000000',
   },
   gearList: {
-    paddingHorizontal: 20,
     paddingTop: 8,
   },
   gearItem: {
@@ -763,6 +877,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 8,
     marginBottom: 8,
+    marginRight: 8,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -799,42 +914,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#000000',
   },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    padding: 16,
-    backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderTopColor: '#E5E5EA',
-  },
-  button: {
-    flex: 1,
-    height: 48,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  cancelButton: {
-    marginRight: 8,
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#000000',
-  },
-  saveButton: {
+  removeGearButton: {
     marginLeft: 8,
-  },
-  saveButtonText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-  },
-  buttonText: {
-    fontSize: 16,
-    fontWeight: 'bold',
   },
   modalOverlay: {
     flex: 1,
@@ -890,6 +971,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000',
     borderRadius: 8,
     padding: 16,
+    height: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   confirmButtonText: {
     fontSize: 16,
@@ -908,5 +992,42 @@ const styles = StyleSheet.create({
   locationOptionText: {
     fontSize: 16,
     color: '#000000',
+  },
+  gearOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5EA',
+  },
+  gearOptionText: {
+    fontSize: 16,
+    color: '#000000',
+  },
+  emptyGearSearchContainer: {
+    padding: 24,
+    alignItems: 'center',
+  },
+  emptyGearSearchText: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 16,
+    color: '#666666',
+  },
+  addNewGearButton: {
+    backgroundColor: '#000000',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addNewGearButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 }); 
