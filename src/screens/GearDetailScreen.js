@@ -167,7 +167,9 @@ export default function GearDetailScreen() {
     if (inWishlist) {
       removeFromWishlist(gear.id);
       setInWishlist(false);
-      Alert.alert('Removed', `${gear.name} removed from your wishlist`);
+      Alert.alert('Removed', `${gear.name} removed from your wishlist`, [], {
+        userInterfaceStyle: isDarkMode ? 'dark' : 'light'
+      });
     } else {
       const wishlistItem = {
         id: gear.id,
@@ -178,7 +180,9 @@ export default function GearDetailScreen() {
       };
       addToWishlist(wishlistItem);
       setInWishlist(true);
-      Alert.alert('Added', `${gear.name} added to your wishlist`);
+      Alert.alert('Added', `${gear.name} added to your wishlist`, [], {
+        userInterfaceStyle: isDarkMode ? 'dark' : 'light'
+      });
     }
   };
   
@@ -217,6 +221,7 @@ export default function GearDetailScreen() {
           cancelButtonIndex,
           title: 'Options',
           message: `Choose an action for ${gear.name}`,
+          userInterfaceStyle: isDarkMode ? 'dark' : 'light',
         },
         (buttonIndex) => {
           if (buttonIndex === 0) {
@@ -237,7 +242,10 @@ export default function GearDetailScreen() {
           { text: 'Share', onPress: () => Alert.alert('Share', 'Sharing functionality coming soon!') },
           { text: 'Add to Collection', onPress: () => Alert.alert('Collection', 'Add to collection coming soon!') },
           { text: 'Cancel', style: 'cancel' }
-        ]
+        ],
+        {
+          userInterfaceStyle: isDarkMode ? 'dark' : 'light'
+        }
       );
     }
   };
