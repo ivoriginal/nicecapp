@@ -116,6 +116,11 @@ export default function UserProfileScreen() {
   const [followersCount, setFollowersCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
   const [mutualFollowers, setMutualFollowers] = useState([]);
+  
+  // Add refs and state for scroll-based header
+  const scrollViewRef = useRef(null);
+  const [showHeaderTitle, setShowHeaderTitle] = useState(false);
+  const profileSectionHeight = 100; // Height threshold to show header title
 
   // Get cover image URL from user data or route params  
   const coverImageUrl = user?.coverImage || route.params?.coverImage;
@@ -124,6 +129,7 @@ export default function UserProfileScreen() {
 
   // Set up header navigation options
   useLayoutEffect(() => {
+    const displayName = user?.userName || userName || 'Profile';
     navigation.setOptions({
       headerShown: true,
       headerTransparent: false,
@@ -132,9 +138,10 @@ export default function UserProfileScreen() {
         elevation: 0, // Remove shadow for Android
         shadowOpacity: 0, // Remove shadow for iOS
         shadowRadius: 0,
-        borderBottomWidth: 0 // Remove bottom border
+        borderBottomWidth: showHeaderTitle ? 1 : 0, // Show border when title is visible
+        borderBottomColor: theme.divider
       },
-      headerTitle: '', // Start with empty title
+      headerTitle: showHeaderTitle ? displayName : '', // Show title based on scroll position
       headerTintColor: theme.primaryText, // Set back button color
       headerRight: () => (
         <TouchableOpacity 
@@ -145,7 +152,7 @@ export default function UserProfileScreen() {
         </TouchableOpacity>
       )
     });
-  }, [navigation, theme]);
+  }, [navigation, theme, showHeaderTitle, user, userName]);
 
   // Handle options button press
   const handleOptionsPress = () => {
@@ -190,6 +197,16 @@ export default function UserProfileScreen() {
       navigation.goBack();
     } catch (error) {
       console.error('Error in handleGoBack:', error);
+    }
+  };
+
+  // Handle scroll events to show/hide header title
+  const handleScroll = (event) => {
+    const scrollY = event.nativeEvent.contentOffset.y;
+    const shouldShowTitle = scrollY > profileSectionHeight;
+    
+    if (shouldShowTitle !== showHeaderTitle) {
+      setShowHeaderTitle(shouldShowTitle);
     }
   };
 
@@ -1118,8 +1135,11 @@ export default function UserProfileScreen() {
       <StatusBar barStyle={isDarkMode ? "light" : "dark"} />
       
       <ScrollView 
+        ref={scrollViewRef}
         style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
