@@ -16,14 +16,16 @@ import {
   Share,
   ActionSheetIOS
 } from 'react-native';
-import { Ionicons, AntDesign, Feather } from '@expo/vector-icons';
+import { Ionicons, AntDesign, Feather, MaterialIcons } from '@expo/vector-icons';
 import { useCoffee } from '../context/CoffeeContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from '../components/Toast';
+import { useNotifications } from '../context/NotificationsContext';
 import eventEmitter from '../utils/EventEmitter';
 import mockRecipes from '../data/mockRecipes.json';
 import mockUsers from '../data/mockUsers.json';
 import mockCoffees from '../data/mockCoffees.json';
+import mockEvents from '../data/mockEvents.json';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import AppImage from '../components/common/AppImage';
 import RecipeStepCard from '../components/RecipeStepCard';
@@ -47,9 +49,11 @@ export default function RecipeDetailScreen() {
     toggleFavorite
   } = useCoffee();
   
+  const { addNotification } = useNotifications();
+  
   const navigation = useNavigation();
   const route = useRoute();
-  const { recipeId, coffeeId, coffeeName, recipe: routeRecipe } = route.params;
+  const { recipeId, coffeeId, coffeeName, recipe: routeRecipe, showRatingPrompt } = route.params;
   const { 
     coffeeWishlist, 
     addToWishlist, 
@@ -76,11 +80,18 @@ export default function RecipeDetailScreen() {
   const [saved, setSaved] = useState(false);
   const [logCount, setLogCount] = useState(0);
   const [saveCount, setSaveCount] = useState(0);
-  const [showLogModal, setShowLogModal] = useState(false);
   const [rating, setRating] = useState(0);
   const [notes, setNotes] = useState('');
   const [averageRating, setAverageRating] = useState(0);
   const [ratingCount, setRatingCount] = useState(0);
+  
+  // New states for tooltip and rating modal
+  const [showTooltip, setShowTooltip] = useState(false);
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [userRating, setUserRating] = useState(0);
+  const [userNotes, setUserNotes] = useState('');
+  const [mostPopularRating, setMostPopularRating] = useState(null);
+  const [showHowWasItRating, setShowHowWasItRating] = useState(false);
   
   // Mock the current user id for demo purposes
   const currentUserId = 'user1';
@@ -124,6 +135,92 @@ export default function RecipeDetailScreen() {
   // Check if recipe is based on another recipe
   const [basedOnRecipe, setBasedOnRecipe] = useState(null);
 
+  // Calculate most popular rating when recipe data changes
+  const [ratingPercentage, setRatingPercentage] = useState(0);
+  
+  useEffect(() => {
+    if (recipe && logCount > 0) {
+      // Mock calculation of most popular rating - in real app this would come from server
+      // Simulating that rating 3 (Good/thumbs up) is most popular
+      const ratingDistribution = {
+        1: Math.floor(logCount * 0.1), // 10% bad
+        2: Math.floor(logCount * 0.2), // 20% meh  
+        3: Math.floor(logCount * 0.7)  // 70% good
+      };
+      
+      const maxRating = Object.keys(ratingDistribution).reduce((a, b) => 
+        ratingDistribution[a] > ratingDistribution[b] ? a : b
+      );
+      
+      if (ratingDistribution[maxRating] > 0) {
+        setMostPopularRating(parseInt(maxRating));
+        // Calculate percentage for the most popular rating
+        const percentage = Math.round((ratingDistribution[maxRating] / logCount) * 100);
+        setRatingPercentage(percentage);
+      }
+    }
+  }, [recipe, logCount]);
+
+  // State to track if we just returned from logging
+  const [justReturnedFromLogging, setJustReturnedFromLogging] = useState(false);
+  const [previousCoffeeEventsLength, setPreviousCoffeeEventsLength] = useState(0);
+
+  // Initialize previous coffee events length
+  useEffect(() => {
+    setPreviousCoffeeEventsLength(coffeeEvents.length);
+  }, []);
+
+  // Listen for navigation focus to detect returning from AddCoffeeScreen
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      // Check if we have new coffee events (indicating a successful log)
+      setTimeout(() => {
+        if (coffeeEvents.length > previousCoffeeEventsLength) {
+          // New event was added, check if it's for this recipe/coffee
+          const latestEvent = coffeeEvents[coffeeEvents.length - 1];
+          if (latestEvent && 
+              ((latestEvent.recipeId === recipe?.id) || 
+               (latestEvent.coffeeId === coffee?.id && recipe))) {
+            
+            setJustReturnedFromLogging(true);
+            setLogged(true);
+            setLogCount(prev => prev + 1);
+            
+            // Reset the flag after a short delay
+            setTimeout(() => {
+              setJustReturnedFromLogging(false);
+            }, 500);
+          }
+          setPreviousCoffeeEventsLength(coffeeEvents.length);
+        }
+      }, 200);
+    });
+
+    return unsubscribe;
+  }, [navigation, coffeeEvents.length, previousCoffeeEventsLength, recipe?.id, coffee?.id]);
+
+  // Show rating modal only when just returned from logging and user hasn't rated
+  useEffect(() => {
+    if (justReturnedFromLogging && logged && recipe && !userRating) {
+      // Check if user has already rated this recipe
+      const userHasRated = recipe.userRatings && recipe.userRatings[currentUserId];
+      if (!userHasRated) {
+        setShowRatingModal(true);
+      }
+    }
+  }, [justReturnedFromLogging, logged, recipe, userRating]);
+
+  // Auto-show tooltip after 2 seconds if user hasn't logged and no logs exist
+  // useEffect(() => {
+  //   if (!logged && logCount === 0 && !showTooltip) {
+  //     const tooltipTimer = setTimeout(() => {
+  //       setShowTooltip(true);
+  //     }, 2000);
+      
+  //     return () => clearTimeout(tooltipTimer);
+  //   }
+  // }, [logged, logCount, showTooltip]);
+
   useEffect(() => {
     const fetchRecipe = async () => {
       try {
@@ -133,7 +230,16 @@ export default function RecipeDetailScreen() {
         // Handle case where recipe is passed directly through route params
         if (route.params?.recipe) {
           const routeRecipe = route.params.recipe;
-          setRecipe(routeRecipe);
+          
+          // Map creator fields to user fields for consistent UI rendering
+          const normalizedRecipe = {
+            ...routeRecipe,
+            userId: routeRecipe.creatorId || routeRecipe.userId,
+            userName: routeRecipe.creatorName || routeRecipe.userName,
+            userAvatar: routeRecipe.creatorAvatar || routeRecipe.userAvatar,
+          };
+          
+          setRecipe(normalizedRecipe);
           
           // Check if recipe is explicitly based on another recipe by checking route.params.basedOnRecipe
           if (route.params?.basedOnRecipe && route.params.basedOnRecipe.userName) {
@@ -445,6 +551,35 @@ export default function RecipeDetailScreen() {
     }
   }, [recipe, favorites]);
 
+  // Check if user has logged this recipe but hasn't rated it
+  useEffect(() => {
+    if (recipe && currentUserId) {
+      // Check if user has logged this specific recipe by looking in mockEvents
+      const userLoggedThisRecipe = mockEvents.coffeeEvents.some(event => 
+        event.userId === currentUserId && 
+        (event.recipeId === recipe.id || 
+         (event.coffeeName === recipe.coffeeName && event.brewingMethod === recipe.method))
+      );
+      
+      // Check if user has already rated this recipe
+      const userHasRated = recipe.userRatings && recipe.userRatings[currentUserId];
+      const userRatedInModal = userRating > 0;
+      
+      // Show "How was it?" UI if user logged but hasn't rated
+      setShowHowWasItRating(userLoggedThisRecipe && !userHasRated && !userRatedInModal);
+    }
+  }, [recipe, currentUserId, userRating]);
+
+  // Show rating modal when coming from a rating reminder notification
+  useEffect(() => {
+    if (showRatingPrompt && recipe && !loading) {
+      // Small delay to ensure the screen is fully loaded
+      setTimeout(() => {
+        setShowRatingModal(true);
+      }, 500);
+    }
+  }, [showRatingPrompt, recipe, loading]);
+
   // Ensure logged state reflects the event data
   useEffect(() => {
     if (recipe) {
@@ -463,11 +598,18 @@ export default function RecipeDetailScreen() {
       // Here we'll use a mock calculation
       const hasRatings = recipe?.logs && recipe.logs > 0;
       if (hasRatings) {
-        // Calculate average from mock data (4.2 is just an example)
-        // In a real app, this would be calculated from actual ratings
-        const mockAverageRating = recipe.averageRating || 4.2;
-        setAverageRating(mockAverageRating);
-        setRatingCount(recipe.logs || logCount);
+        // Use the new percentage-based rating system
+        if (recipe.ratingStats) {
+          // Convert percentage to 5-star scale for display
+          const convertedRating = (recipe.ratingStats.goodPercentage / 100 * 5);
+          setAverageRating(convertedRating);
+          setRatingCount(recipe.ratingStats.total || recipe.logs || logCount);
+        } else {
+          // Fallback for old rating system
+          const mockAverageRating = recipe.averageRating || 4.2;
+          setAverageRating(mockAverageRating);
+          setRatingCount(recipe.logs || logCount);
+        }
       }
     }
   }, [recipe, coffee, logCount]);
@@ -601,8 +743,36 @@ export default function RecipeDetailScreen() {
   };
 
   const handleUpvote = () => {
-    // Always show the log modal
-    setShowLogModal(true);
+    // Navigate to AddCoffeeScreen with pre-filled data from this recipe
+    if (recipe && coffee) {
+      navigation.navigate('AddCoffeeScreen', {
+        isModalVisible: true,
+        autoSelectCoffee: {
+          id: coffee.id,
+          name: coffee.name,
+          image: coffee.image,
+          roaster: coffee.roaster
+        },
+        preSelectedRecipe: {
+          id: recipe.id,
+          name: recipe.name,
+          method: recipe.method || recipe.brewingMethod,
+          amount: recipe.amount,
+          grindSize: recipe.grindSize,
+          waterVolume: recipe.waterVolume,
+          brewTime: recipe.brewTime,
+          steps: recipe.steps,
+          notes: recipe.notes,
+          userName: recipe.userName,
+          userAvatar: recipe.userAvatar,
+          userId: recipe.userId
+        },
+        coffeeId: coffee.id,
+        coffeeName: coffee.name,
+        roaster: coffee.roaster,
+        coffeeImage: coffee.image
+      });
+    }
   };
   
   const handleSave = () => {
@@ -621,13 +791,16 @@ export default function RecipeDetailScreen() {
       
       // Update the recipe in context if it exists
       if (updateRecipe && typeof updateRecipe === 'function') {
-        // Create a new recipe object with updated saved state
+        // Create a new recipe object with updated saved state, preserving existing data
         const updatedRecipe = { 
           ...recipe, 
           isSaved: newSavedState,
           savedUsers: newSavedState 
             ? [...(recipe.savedUsers || []), currentUserId]
-            : (recipe.savedUsers || []).filter(id => id !== currentUserId)
+            : (recipe.savedUsers || []).filter(id => id !== currentUserId),
+          // Preserve existing log data
+          logs: recipe.logs || logCount,
+          loggedUsers: recipe.loggedUsers || []
         };
         
         // Update recipe in context
@@ -660,80 +833,42 @@ export default function RecipeDetailScreen() {
     }
   }, [recipeId, coffeeEvents]);
 
-  const handleLogSubmit = () => {
-    // Create a log event
-    const eventData = {
-      id: `log-${Date.now()}`,
-      coffeeName: coffee.name,
-      coffeeId: coffee.id,
-      roaster: coffee.roaster,
-      imageUrl: coffee.image,
-      method: recipe.method || recipe.brewingMethod,
-      amount: recipe.amount,
-      grindSize: recipe.grindSize,
-      waterVolume: recipe.waterVolume,
-      brewTime: recipe.brewTime,
-      timestamp: new Date().toISOString(),
-      rating: rating > 0 ? rating : null,
-      notes: notes,
-      recipeId: recipe.id,
-      recipeName: recipe.name,
-      userId: currentUserId,
-      // Get user info from a more reliable source - mock data for now
-      userName: 'Ivo Vilches', // Hard-coded for demo purposes
-      userAvatar: 'assets/users/ivo-vilches.jpg',
-    };
 
-    // Add the event to context
-    addCoffeeEvent(eventData);
+
+  const handleRatingSubmit = () => {
+    if (userRating === 0) return;
     
-    // Update log count - already sets it correctly
-    setLogCount(prevCount => prevCount + 1);
-    setLogged(true);
-    
-    // Update the loggedUsers array - this was missing
-    const updatedLoggedUsers = recipe.loggedUsers ? 
-      [...recipe.loggedUsers, currentUserId] : 
-      [currentUserId];
-    
-    // Update the average rating if a rating was provided
-    if (rating > 0) {
-      // Calculate new average rating
-      const newRatingCount = ratingCount + 1;
-      const newTotalRating = (averageRating * ratingCount) + rating;
-      const newAverageRating = newTotalRating / newRatingCount;
-      
-      setAverageRating(newAverageRating);
-      setRatingCount(newRatingCount);
-      
-      // In a real app, you would update this on the server
-      if (updateRecipe) {
-        const updatedRecipe = {
-          ...recipe,
-          averageRating: newAverageRating,
-          logs: logCount + 1, // Use the current logCount + 1
-          loggedUsers: updatedLoggedUsers
-        };
-        updateRecipe(updatedRecipe);
-        setRecipe(updatedRecipe); // Also update local recipe state
+    // Update the recipe with the user's rating
+    const updatedRecipe = {
+      ...recipe,
+      userRatings: {
+        ...recipe.userRatings,
+        [currentUserId]: {
+          rating: userRating,
+          notes: userNotes,
+          timestamp: new Date().toISOString()
+        }
       }
-    } else {
-      // Update the recipe even if no rating was provided
-      if (updateRecipe) {
-        const updatedRecipe = {
-          ...recipe,
-          logs: logCount + 1,
-          loggedUsers: updatedLoggedUsers
-        };
-        updateRecipe(updatedRecipe);
-        setRecipe(updatedRecipe);
-      }
+    };
+    
+    if (updateRecipe) {
+      updateRecipe(updatedRecipe);
+      setRecipe(updatedRecipe);
     }
     
-    // Hide the modal
-    setShowLogModal(false);
+    // Recalculate most popular rating
+    const newRatingCount = ratingCount + 1;
+    const newTotalRating = (averageRating * ratingCount) + userRating;
+    const newAverageRating = newTotalRating / newRatingCount;
+    
+    setAverageRating(newAverageRating);
+    setRatingCount(newRatingCount);
+    
+    // Reset form
+    setUserNotes('');
+    
     // Show success toast
-    showToast('Log saved successfully');
+    showToast('Rating submitted successfully');
   };
 
   const navigateToOriginalRecipe = () => {
@@ -788,20 +923,60 @@ export default function RecipeDetailScreen() {
   };
 
   const showActionSheet = () => {
-    const options = ['Share', 'Report', 'Cancel'];
-    const destructiveButtonIndex = 1;
-    const cancelButtonIndex = 2;
+    const options = ['Share', 'Remix this recipe', 'Report', 'Cancel'];
+    const destructiveButtonIndex = 2;
+    const cancelButtonIndex = 3;
 
     ActionSheetIOS.showActionSheetWithOptions(
       {
         options,
         cancelButtonIndex,
         destructiveButtonIndex,
+        userInterfaceStyle: isDarkMode ? 'dark' : 'light',
       },
       (buttonIndex) => {
         if (buttonIndex === 0) {
           handleShare();
         } else if (buttonIndex === 1) {
+          // Handle remix - navigate to AddCoffeeScreen with remix mode
+          if (recipe && coffee) {
+            navigation.navigate('AddCoffeeScreen', {
+              isModalVisible: true,
+              isRemixing: true,
+              recipe: {
+                id: recipe.id,
+                name: recipe.name,
+                method: recipe.method || recipe.brewingMethod,
+                amount: recipe.amount,
+                grindSize: recipe.grindSize,
+                waterVolume: recipe.waterVolume,
+                brewTime: recipe.brewTime,
+                steps: recipe.steps,
+                notes: recipe.notes,
+                userName: recipe.userName,
+                userAvatar: recipe.userAvatar,
+                userId: recipe.userId,
+                coffeeName: coffee.name,
+                coffeeId: coffee.id
+              },
+              autoSelectCoffee: {
+                id: coffee.id,
+                name: coffee.name,
+                image: coffee.image,
+                roaster: coffee.roaster
+              },
+              coffeeId: coffee.id,
+              coffeeName: coffee.name,
+              roaster: coffee.roaster,
+              coffeeImage: coffee.image,
+              basedOnRecipe: {
+                id: recipe.id,
+                name: recipe.name,
+                userName: recipe.userName
+              }
+            });
+          }
+        } else if (buttonIndex === 2) {
           // Handle report
           Alert.alert('Report Recipe', 'Are you sure you want to report this recipe?', [
             { text: 'Cancel', style: 'cancel' },
@@ -809,7 +984,9 @@ export default function RecipeDetailScreen() {
               // Handle report action
               showToast('Recipe reported', '');
             }}
-          ]);
+          ], {
+            userInterfaceStyle: isDarkMode ? 'dark' : 'light'
+          });
         }
       }
     );
@@ -863,83 +1040,145 @@ export default function RecipeDetailScreen() {
         duration={4000}
       />
       
-      {/* Log Modal */}
+
+      
+      {/* Rating Modal - Fixed to bottom, non-dismissible */}
       <Modal
-        visible={showLogModal}
+        visible={showRatingModal}
         animationType="slide"
         transparent={true}
-        onRequestClose={() => setShowLogModal(false)}
+        onRequestClose={() => {}} // Non-dismissible
       >
-        <KeyboardAvoidingView 
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-          style={[styles.modalContainer, { backgroundColor: theme.background }]}
-        >
-          <View style={[styles.modalContent, { backgroundColor: theme.cardBackground }]}>
-            <View style={[styles.modalHeader, { backgroundColor: theme.cardBackground }]}>
-              <Text style={[styles.modalTitle, { color: theme.primaryText }]}>Log this brew</Text>
-              <TouchableOpacity 
-                onPress={() => setShowLogModal(false)}
-                style={[styles.closeButton, { backgroundColor: theme.cardBackground }]}
-              >
-                <Ionicons name="close" size={24} color={theme.primaryText} />
-              </TouchableOpacity>
+        <View style={styles.ratingModalOverlay}>
+          <View style={[styles.ratingModalContent, { backgroundColor: theme.altBackground, paddingBottom: insets.bottom }]}>
+            <View style={[styles.ratingModalHeader, { backgroundColor: theme.altBackground, borderBottomColor: theme.border }]}>
+              <Text style={[styles.ratingModalTitle, { color: theme.primaryText }]}>How was this brew?</Text>
+              <Text style={[styles.ratingModalSubtitle, { color: theme.secondaryText }]}>
+                Help others by rating your experience
+              </Text>
             </View>
             
-            <ScrollView style={[styles.modalBody, { backgroundColor: theme.background }]} keyboardShouldPersistTaps="handled">
-              <View style={[styles.previewCoffeeInfo, { backgroundColor: theme.cardBackground }]}>
-                <Text style={[styles.previewTitle, { color: theme.primaryText }]}>{recipe?.name}</Text>
-                <Text style={[styles.previewSubtitle, { color: theme.secondaryText }]}>{coffee?.name} by {coffee?.roaster}</Text>
+            <View style={[styles.ratingModalBody, { backgroundColor: theme.altBackground }]}>
+              <View style={[styles.brewRatingContainer, { backgroundColor: theme.altBackground }]}>
+                <TouchableOpacity
+                  style={[
+                    styles.brewRatingButton, 
+                    userRating === 3 && styles.brewRatingButtonSelected,
+                    { backgroundColor: theme.cardBackground, borderColor: userRating === 3 ? "#4CAF50" : "transparent" }
+                  ]}
+                  onPress={() => {
+                    setUserRating(3);
+                    setTimeout(() => {
+                      handleRatingSubmit();
+                      setShowRatingModal(false);
+                    }, 100);
+                  }}
+                >
+                  <MaterialIcons name="thumb-up" size={24} color={userRating === 3 ? "#4CAF50" : theme.secondaryText} />
+                  <Text style={[
+                    styles.brewRatingText,
+                    userRating === 3 && { color: "#4CAF50", fontWeight: '600' },
+                    { color: userRating === 3 ? "#4CAF50" : theme.secondaryText }
+                  ]}>Good</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={[
+                    styles.brewRatingButton,
+                    userRating === 2 && styles.brewRatingButtonSelected,
+                    { backgroundColor: theme.cardBackground, borderColor: userRating === 2 ? "#FF9800" : "transparent" }
+                  ]}
+                  onPress={() => {
+                    setUserRating(2);
+                    setTimeout(() => {
+                      handleRatingSubmit();
+                      setShowRatingModal(false);
+                    }, 100);
+                  }}
+                >
+                  <MaterialIcons name="sentiment-neutral" size={24} color={userRating === 2 ? "#FF9800" : theme.secondaryText} />
+                  <Text style={[
+                    styles.brewRatingText,
+                    userRating === 2 && { color: "#FF9800", fontWeight: '600' },
+                    { color: userRating === 2 ? "#FF9800" : theme.secondaryText }
+                  ]}>Meh</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={[
+                    styles.brewRatingButton,
+                    userRating === 1 && styles.brewRatingButtonSelected,
+                    { backgroundColor: theme.cardBackground, borderColor: userRating === 1 ? "#F44336" : "transparent" }
+                  ]}
+                  onPress={() => {
+                    setUserRating(1);
+                    setTimeout(() => {
+                      handleRatingSubmit();
+                      setShowRatingModal(false);
+                    }, 100);
+                  }}
+                >
+                  <MaterialIcons name="thumb-down" size={24} color={userRating === 1 ? "#F44336" : theme.secondaryText} />
+                  <Text style={[
+                    styles.brewRatingText,
+                    userRating === 1 && { color: "#F44336", fontWeight: '600' },
+                    { color: userRating === 1 ? "#F44336" : theme.secondaryText }
+                  ]}>Bad</Text>
+                </TouchableOpacity>
               </View>
               
-              <View style={[styles.ratingContainer, { backgroundColor: theme.cardBackground }]}>
-                <Text style={[styles.ratingLabel, { color: theme.primaryText }]}>Rate this brew (optional)</Text>
-                <View style={[styles.starsContainer, { backgroundColor: theme.background }]}>
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <TouchableOpacity
-                      key={star}
-                      onPress={() => setRating(star)}
-                      style={[styles.starButton, { backgroundColor: theme.background }]}
-                    >
-                      <Ionicons
-                        name={star <= rating ? "star" : "star-outline"}
-                        size={28}
-                        color={star <= rating ? "#FFD700" : theme.secondaryText}
-                      />
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-              
-              <View style={[styles.notesContainer, { backgroundColor: theme.cardBackground }]}>
-                <Text style={[styles.notesLabel, { color: theme.primaryText }]}>Notes (optional)</Text>
+              {/* <View style={[styles.ratingNotesContainer, { backgroundColor: theme.background }]}>
+                <Text style={[styles.ratingNotesLabel, { color: theme.primaryText }]}>Comments</Text>
                 <TextInput
-                  style={[styles.notesInput, { color: theme.primaryText, borderColor: theme.border, backgroundColor: theme.recipeContainer }]}
-                  value={notes}
-                  onChangeText={setNotes}
-                  placeholder="Add any notes about this brew..."
+                  style={[styles.ratingNotesInput, { 
+                    color: theme.primaryText, 
+                    borderColor: theme.border, 
+                    backgroundColor: theme.cardBackground 
+                  }]}
+                  value={userNotes}
+                  onChangeText={setUserNotes}
+                  placeholder="Share your thoughts"
                   placeholderTextColor={theme.secondaryText}
                   multiline
-                  numberOfLines={4}
+                  numberOfLines={3}
                   textAlignVertical="top"
                 />
-              </View>
-            </ScrollView>
-            
-            <View style={[styles.modalFooter, { paddingBottom: insets.bottom, backgroundColor: theme.cardBackground }]}>
+              </View> */}
+
+              
               <TouchableOpacity 
-                style={[styles.saveButton, { backgroundColor: "#007AFF" }]}
-                onPress={handleLogSubmit}
+                style={[styles.remindLaterButton, { backgroundColor: 'transparent', borderColor: 'transparent' }]}
+                onPress={() => {
+                  setShowRatingModal(false);
+                  // Create a notification to remind user to rate recipe
+                  setTimeout(() => {
+                    addNotification({
+                      type: 'rate_recipe_reminder',
+                      userId: 'app-system',
+                      userName: 'nicecapp',
+                      userAvatar: 'https://randomuser.me/api/portraits/lego/2.jpg',
+                      targetUserId: currentUserId,
+                      recipeId: recipe?.id,
+                      recipeName: recipe?.name,
+                      coffeeName: coffee?.name,
+                      message: `Don't forget to rate your ${recipe?.name} brew!`,
+                      date: new Date().toISOString()
+                    });
+                  }, 5000); // Show reminder after 5 seconds for demo
+                }}
               >
-                <Text style={[styles.saveButtonText, { color: "#FFFFFF" }]}>Log this brew</Text>
+                <Text style={[styles.remindLaterButtonText, { color: theme.secondaryText }]}>
+                  Remind me later
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
-        </KeyboardAvoidingView>
+        </View>
       </Modal>
       
       <ScrollView 
         style={[styles.scrollView, { backgroundColor: theme.background }]}
-        contentContainerStyle={[styles.contentContainer, { paddingBottom: insets.bottom }]}
+        contentContainerStyle={[styles.contentContainer, { paddingBottom: insets.bottom + 20 }]}
         showsVerticalScrollIndicator={false}
       >
         {/* For deleted recipes */}
@@ -998,37 +1237,29 @@ export default function RecipeDetailScreen() {
           
             {/* Recipe Title with Chips */}
             <View style={[styles.recipeHeader, { backgroundColor: theme.cardBackground }]}>
-              <View style={[styles.recipeMethodCoffeeContainer, { backgroundColor: theme.background }]}>
-                {/* Method/Gear Chip */}
+              {/* Method and Coffee line */}
+              <View style={[styles.recipeMethodContainer, { backgroundColor: theme.background }]}>
                 <TouchableOpacity 
                   style={[styles.chip, { backgroundColor: theme.background }]}
                   onPress={() => navigation.navigate('GearDetail', { 
                     gearName: recipe.method || recipe.brewingMethod || 'Pour Over'
                   })}
                 >
-                  <Ionicons name="cafe" size={20} color={theme.primaryText} style={[styles.chipIcon, { backgroundColor: theme.background }]} />
                   <Text style={[styles.chipText, { color: theme.primaryText }]}>
                     {recipe.method || recipe.brewingMethod || 'Pour Over'}
                   </Text>
                 </TouchableOpacity>
-
-                <Text style={[styles.recipeText, { color: theme.secondaryText }]}>recipe for</Text>
-                
-                {/* Coffee Chip */}
+                <Text style={[styles.recipeText, { color: theme.secondaryText }]}>recipe</Text>
+                <Text style={[styles.recipeText, { color: theme.secondaryText }]}>for</Text>
                 <TouchableOpacity 
                   style={[styles.chip, { backgroundColor: theme.background }]}
                   onPress={navigateToCoffeeDetail}
                 >
-                  <AppImage 
-                    source={coffee.image}
-                    style={[styles.chipAvatar, { borderColor: theme.border }]}
-                    placeholder="cafe"
-                  />
                   <Text style={[styles.chipText, { color: theme.primaryText }]}>{coffee.name}</Text>
                 </TouchableOpacity>
               </View>
               
-              {/* User Chip in separate row */}
+              {/* User line */}
               <View style={[styles.recipeUserContainer, { backgroundColor: theme.background }]}>
                 <Text style={[styles.recipeByText, { color: theme.secondaryText }]}>by</Text>
                 <TouchableOpacity 
@@ -1052,14 +1283,14 @@ export default function RecipeDetailScreen() {
             {/* Buttons for log and save - moved outside the container */}
             <View style={[styles.actionsOuterContainer, { backgroundColor: theme.background }]}>
               <View style={[styles.actionButtonsContainer, { backgroundColor: theme.background }]}>
-                <TouchableOpacity 
+                                                  <TouchableOpacity 
                   style={[styles.actionButton, { backgroundColor: theme.background }]} 
                   onPress={handleUpvote}
                 >
                   <Ionicons 
                     name="add-circle-outline" 
                     size={20} 
-                    color={logged ? "#FF3B30" : theme.primaryText} 
+                    color={logged ? theme.primaryText : theme.primaryText} 
                   />
                   <Text style={[styles.actionButtonText, { color: theme.primaryText }]}>
                     Log
@@ -1069,35 +1300,37 @@ export default function RecipeDetailScreen() {
                 <TouchableOpacity 
                   style={[
                     styles.actionButton,
-                    saved && styles.actionButtonActive,
-                    { backgroundColor: theme.background }
+                    { 
+                      backgroundColor: saved ? theme.primaryText : theme.background,
+                      borderColor: theme.border 
+                    }
                   ]} 
                   onPress={handleSave}
                 >
                   <Ionicons 
                     name={saved ? "bookmark" : "bookmark-outline"} 
                     size={20} 
-                    color={saved ? "#007AFF" : theme.primaryText} 
+                    color={saved ? "#FFFFFF" : theme.primaryText} 
                   />
                   <Text style={[
                     styles.actionButtonText,
-                    saved && styles.actionButtonTextActive,
-                    { color: theme.primaryText }
+                    { color: saved ? "#FFFFFF" : theme.primaryText }
                   ]}>
                     {saved ? "Saved" : "Save"}
                   </Text>
                 </TouchableOpacity>
-              </View>
+                          </View>
 
-              {/* Who tried it section - moved outside the container */}
-              <View style={[
-                styles.whoTriedContainer,
-                !averageRating && styles.whoTriedContainerCentered,
-                { backgroundColor: theme.background }
-              ]}>
-                <View style={[styles.whoTriedGroup, { backgroundColor: theme.background }]}>
-                  {(logCount > 0 || (recipe.loggedUsers && recipe.loggedUsers.length > 0)) ? (
-                    <>
+            {/* Who tried it section - moved outside the container */}
+            <View style={[
+              styles.whoTriedOuterContainer,
+              { backgroundColor: theme.background, marginTop: 16 }
+            ]}>
+              <View style={[styles.whoTriedContainer, { backgroundColor: theme.background }]}>
+                {(logCount > 0 || (recipe.loggedUsers && recipe.loggedUsers.length > 0)) ? (
+                  <>
+                    {/* Left side - Avatars and logs count */}
+                    <View style={[styles.whoTriedGroup, { backgroundColor: theme.background }]}>
                       <View style={[styles.avatarRow, { backgroundColor: theme.background }]}>
                         {/* Render up to 3 sample avatars - in real app, these would come from the API */}
                         <View style={[styles.triedAvatar, { zIndex: 5, backgroundColor: theme.background }]}>
@@ -1124,40 +1357,107 @@ export default function RecipeDetailScreen() {
                         )}
                       </View>
                       <Text style={[styles.whoTriedText, { color: theme.primaryText }]}>
-                        {(logCount === 1 || (recipe.loggedUsers && recipe.loggedUsers.length === 1)) ? 
-                          "Logged 1 time" : 
-                          `Logged ${safeRender(logCount || recipe.loggedUsers?.length)} times`}
+                        {logCount === 0 && (!recipe.loggedUsers || recipe.loggedUsers.length === 0) ? 
+                          "No logs" :
+                          (logCount === 1 || (recipe.loggedUsers && recipe.loggedUsers.length === 1)) ? 
+                          "1 log" : 
+                          `${safeRender(logCount || recipe.loggedUsers?.length)} logs`}
                       </Text>
-                    </>
-                  ) : (
-                    <TouchableOpacity 
-                      style={[styles.beFirstContainer, { backgroundColor: theme.background }]}
-                      onPress={handleUpvote}
-                    >
-                      <Text style={[styles.beFirstText, { color: theme.primaryText }]}>Be the first to try it</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-                {averageRating > 0 && logCount > 0 && (
-                  <View style={[styles.averageRatingContainer, { backgroundColor: theme.background }]}>
-                    <Ionicons name="star" size={16} color="#FFD700" />
-                    <Text style={[styles.averageRatingText, { color: theme.primaryText }]}>
-                      {safeRender(averageRating.toFixed(1), '0.0')}
-                    </Text>
-                  </View>
-                )}
+                    </View>
+                    
+                    {/* Right side - Rating */}
+                    <View style={[styles.ratingRightContainer, { backgroundColor: theme.background }]}>
+                      {/* Show user's rating after they've rated */}
+                      {userRating > 0 && (
+                        <View style={[styles.popularRatingContainer, { backgroundColor: theme.background }]}>
+                          <MaterialIcons 
+                            name={userRating === 3 ? "thumb-up" : userRating === 2 ? "sentiment-neutral" : "thumb-down"} 
+                            size={16} 
+                            color={userRating === 3 ? "#4CAF50" : userRating === 2 ? "#FF9800" : "#F44336"} 
+                          />
+                          <Text style={[styles.popularRatingText, { color: theme.secondaryText }]}>
+                            100%
+                          </Text>
+                        </View>
+                      )}
+                      {/* Show most popular rating from existing data if user hasn't rated */}
+                      {userRating === 0 && mostPopularRating && (
+                        <View style={[styles.popularRatingContainer, { backgroundColor: theme.background }]}>
+                          <MaterialIcons 
+                            name={mostPopularRating === 3 ? "thumb-up" : mostPopularRating === 2 ? "sentiment-neutral" : "thumb-down"} 
+                            size={16} 
+                            color={mostPopularRating === 3 ? "#4CAF50" : mostPopularRating === 2 ? "#FF9800" : "#F44336"} 
+                          />
+                          <Text style={[styles.popularRatingText, { color: theme.secondaryText }]}>
+                            {ratingPercentage}%
+                          </Text>
+                        </View>
+                      )}
+                      {/* Show "No ratings yet" when there are no ratings */}
+                      {userRating === 0 && !mostPopularRating && logCount === 0 && (
+                        <View style={[styles.popularRatingContainer, { backgroundColor: theme.background }]}>
+                          <Text style={[styles.popularRatingText, { color: theme.secondaryText }]}>
+                            No ratings yet
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  </>
+                ) : null}
               </View>
+              
+              {/* How was it? Rating UI - show when user has logged but not rated */}
+              {showHowWasItRating && (
+                <View style={[styles.howWasItContainer, { backgroundColor: theme.cardBackground }]}>
+                  <Text style={[styles.howWasItTitle, { color: theme.primaryText }]}>How was it?</Text>
+                  <View style={[styles.howWasItRatingRow, { backgroundColor: theme.cardBackground }]}>
+                    <TouchableOpacity
+                      style={[styles.howWasItRatingButton, { backgroundColor: theme.cardBackground }]}
+                      onPress={() => {
+                        setUserRating(3);
+                        handleRatingSubmit();
+                        setShowHowWasItRating(false);
+                      }}
+                    >
+                      <MaterialIcons name="thumb-up" size={24} color="#4CAF50" />
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity
+                      style={[styles.howWasItRatingButton, { backgroundColor: theme.cardBackground }]}
+                      onPress={() => {
+                        setUserRating(2);
+                        handleRatingSubmit();
+                        setShowHowWasItRating(false);
+                      }}
+                    >
+                      <MaterialIcons name="sentiment-neutral" size={24} color="#FF9800" />
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity
+                      style={[styles.howWasItRatingButton, { backgroundColor: theme.cardBackground }]}
+                      onPress={() => {
+                        setUserRating(1);
+                        handleRatingSubmit();
+                        setShowHowWasItRating(false);
+                      }}
+                    >
+                      <MaterialIcons name="thumb-down" size={24} color="#F44336" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+            </View>
             </View>
 
             {/* Recipe Details */}
-            <View style={[styles.section, { backgroundColor: theme.background }]}>
+            <View style={[styles.section, { backgroundColor: theme.background, borderTopColor: theme.divider }]}>
               <View style={[styles.sectionHeader, { backgroundColor: theme.background }]}>
                 <Text style={[styles.sectionTitle, styles.sectionTitleInHeader, { color: theme.primaryText }]}>Recipe Details</Text>
               </View>
               <View style={[styles.detailsGrid, { backgroundColor: theme.background }]}>
                 <View style={[styles.detailItem, { backgroundColor: theme.background }]}>
                   <Text style={[styles.detailLabel, { color: theme.primaryText }]}>Coffee</Text>
-                  <Text style={[styles.detailValue, { color: theme.primaryText }]}>{safeRender(recipe.amount, '18')}g</Text>
+                  <Text style={[styles.detailValue, { color: theme.primaryText }]}>{safeRender(recipe.amount || recipe.coffeeAmount, '18')}g</Text>
                 </View>
                 <View style={[styles.detailItem, { backgroundColor: theme.background }]}>
                   <Text style={[styles.detailLabel, { color: theme.primaryText }]}>Grind Size</Text>
@@ -1165,45 +1465,189 @@ export default function RecipeDetailScreen() {
                 </View>
                 <View style={[styles.detailItem, { backgroundColor: theme.background }]}>
                   <Text style={[styles.detailLabel, { color: theme.primaryText }]}>Water</Text>
-                  <Text style={[styles.detailValue, { color: theme.primaryText }]}>{safeRender(recipe.waterVolume, '300')}ml</Text>
+                  <Text style={[styles.detailValue, { color: theme.primaryText }]}>{safeRender(recipe.waterVolume || recipe.waterAmount, '300')}ml</Text>
+                </View>
+                <View style={[styles.detailItem, { backgroundColor: theme.background }]}>
+                  <Text style={[styles.detailLabel, { color: theme.primaryText }]}>Water Temp</Text>
+                  <Text style={[styles.detailValue, { color: theme.primaryText }]}>{safeRender(recipe.waterTemperature, '90')}°C</Text>
                 </View>
                 <View style={[styles.detailItem, { backgroundColor: theme.background }]}>
                   <Text style={[styles.detailLabel, { color: theme.primaryText }]}>Brew Time</Text>
                   <Text style={[styles.detailValue, { color: theme.primaryText }]}>{safeRender(recipe.brewTime, '3:00')}</Text>
                 </View>
+                {recipe.filterType && (
+                  <View style={[styles.detailItem, { backgroundColor: theme.background }]}>
+                    <Text style={[styles.detailLabel, { color: theme.primaryText }]}>Filter</Text>
+                    <Text style={[styles.detailValue, { color: theme.primaryText }]}>{safeRender(recipe.filterType, 'Paper')}</Text>
+                  </View>
+                )}
               </View>
             </View>
 
-            {/* Brewing Steps - only show if recipe has steps */}
-            {recipe && recipe.steps && Array.isArray(recipe.steps) && recipe.steps.length > 0 && (
-              <View style={[styles.section, { backgroundColor: theme.background }]}>
+            {/* Equipment Section - only show if recipe has equipment */}
+            {recipe && (
+              console.log('Recipe equipment check:', recipe.equipment, 'Array?', Array.isArray(recipe.equipment), 'Length:', recipe.equipment?.length),
+              recipe.equipment && Array.isArray(recipe.equipment) && recipe.equipment.length > 0 && (
+                <View style={[styles.section, { backgroundColor: theme.background, borderTopColor: theme.divider }]}>
+                  <View style={[styles.sectionHeader, { backgroundColor: theme.background }]}>
+                    <Text style={[styles.sectionTitle, styles.sectionTitleInHeader, { color: theme.primaryText }]}>Equipment</Text>
+                  </View>
+                  <View style={[styles.equipmentGrid, { backgroundColor: theme.background }]}>
+                    {recipe.equipment.map((item, index) => (
+                      <TouchableOpacity
+                        key={index}
+                        style={[styles.equipmentCard, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
+                        onPress={() => navigation.navigate('GearDetail', { 
+                          gearId: item.id,
+                          gearName: item.name 
+                        })}
+                      >
+                        <View style={[styles.equipmentIconContainer, { backgroundColor: theme.surface }]}>
+                          <Ionicons 
+                            name={
+                              item.type === 'Grinder' ? 'settings-outline' :
+                              item.type === 'Brewer' ? 'cafe-outline' :
+                              item.type === 'Scale' ? 'calculator-outline' :
+                              item.type === 'Kettle' ? 'flask-outline' :
+                              'cube-outline'
+                            } 
+                            size={24} 
+                            color={theme.primaryText} 
+                          />
+                        </View>
+                        <View style={[styles.equipmentInfo, { backgroundColor: theme.cardBackground }]}>
+                          <Text style={[styles.equipmentName, { color: theme.primaryText }]}>{item.name}</Text>
+                          <Text style={[styles.equipmentBrand, { color: theme.secondaryText }]}>{item.brand}</Text>
+                          {item.grinderSettings && (
+                            <Text style={[styles.equipmentSettings, { color: "#007AFF" }]}>{item.grinderSettings}</Text>
+                          )}
+                        </View>
+                        <Ionicons name="chevron-forward" size={16} color={theme.secondaryText} />
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              )
+            )}
+
+            {/* Rating Section */}
+            <View style={[styles.section, { backgroundColor: theme.background, borderTopColor: theme.divider }]}>
+              <View style={[styles.sectionHeader, { backgroundColor: theme.background }]}>
+                <Text style={[styles.sectionTitle, styles.sectionTitleInHeader, { color: theme.primaryText }]}>Rating</Text>
+              </View>
+              {logCount > 0 && (mostPopularRating || userRating > 0) ? (
+                <View style={[styles.ratingStats, { backgroundColor: theme.background }]}>
+                  <View style={[styles.ratingRow, { backgroundColor: theme.background }]}>
+                    <MaterialIcons name="thumb-up" size={20} color="#4CAF50" />
+                    <Text style={[styles.ratingLabel, { color: theme.primaryText }]}>Good</Text>
+                    <View style={[styles.ratingBar, { backgroundColor: theme.border }]}>
+                      <View style={[
+                        styles.ratingBarFill, 
+                        { 
+                          backgroundColor: "#4CAF50",
+                          width: `${mostPopularRating === 3 ? ratingPercentage : Math.floor(logCount * 0.7 / logCount * 100)}%`
+                        }
+                      ]} />
+                    </View>
+                    <Text style={[styles.ratingPercentage, { color: theme.secondaryText }]}>
+                      {mostPopularRating === 3 ? ratingPercentage : Math.floor(logCount * 0.7 / logCount * 100)}%
+                    </Text>
+                  </View>
+                  
+                  <View style={[styles.ratingRow, { backgroundColor: theme.background }]}>
+                    <MaterialIcons name="sentiment-neutral" size={20} color="#FF9800" />
+                    <Text style={[styles.ratingLabel, { color: theme.primaryText }]}>Meh</Text>
+                    <View style={[styles.ratingBar, { backgroundColor: theme.border }]}>
+                      <View style={[
+                        styles.ratingBarFill, 
+                        { 
+                          backgroundColor: "#FF9800",
+                          width: `${mostPopularRating === 2 ? ratingPercentage : Math.floor(logCount * 0.2 / logCount * 100)}%`
+                        }
+                      ]} />
+                    </View>
+                    <Text style={[styles.ratingPercentage, { color: theme.secondaryText }]}>
+                      {mostPopularRating === 2 ? ratingPercentage : Math.floor(logCount * 0.2 / logCount * 100)}%
+                    </Text>
+                  </View>
+                  
+                  <View style={[styles.ratingRow, { backgroundColor: theme.background }]}>
+                    <MaterialIcons name="thumb-down" size={20} color="#F44336" />
+                    <Text style={[styles.ratingLabel, { color: theme.primaryText }]}>Bad</Text>
+                    <View style={[styles.ratingBar, { backgroundColor: theme.border }]}>
+                      <View style={[
+                        styles.ratingBarFill, 
+                        { 
+                          backgroundColor: "#F44336",
+                          width: `${mostPopularRating === 1 ? ratingPercentage : Math.floor(logCount * 0.1 / logCount * 100)}%`
+                        }
+                      ]} />
+                    </View>
+                    <Text style={[styles.ratingPercentage, { color: theme.secondaryText }]}>
+                      {mostPopularRating === 1 ? ratingPercentage : Math.floor(logCount * 0.1 / logCount * 100)}%
+                    </Text>
+                  </View>
+                </View>
+              ) : (
+                <View style={[styles.noRatingsContainer, { backgroundColor: theme.background }]}>
+                  <MaterialIcons name="sentiment-neutral" size={32} color={theme.secondaryText} />
+                  <Text style={[styles.noRatingsText, { color: theme.secondaryText }]}>
+                    No ratings yet
+                  </Text>
+                  <Text style={[styles.noRatingsSubtext, { color: theme.secondaryText }]}>
+                    Be the first to log and rate this recipe
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            {/* Brewing Steps - only show if recipe has valid steps */}
+            {recipe && recipe.steps && Array.isArray(recipe.steps) && recipe.steps.length > 0 && 
+             recipe.steps.some(step => step && (step.description || (typeof step === 'string' && step.trim()))) && (
+              <View style={[styles.section, { backgroundColor: theme.background, borderTopColor: theme.divider }]}>
                 <View style={[styles.sectionHeader, { backgroundColor: theme.background }]}>
                   <Text style={[styles.sectionTitle, styles.sectionTitleInHeader, { color: theme.primaryText }]}>Brewing Steps</Text>
                 </View>
-                {recipe.steps.map((step, index) => (
-                  <View key={index} style={[styles.stepItem, { backgroundColor: theme.background }]}>
-                    <View style={[styles.stepNumber, { backgroundColor: theme.background }]}>
-                      <Text style={[styles.stepNumberText, { color: theme.primaryText }]}>{index + 1}</Text>
-                    </View>
-                    <View style={[styles.stepContentContainer, { backgroundColor: theme.background }]}>
-                      <Text style={[styles.stepText, { color: theme.primaryText }]}>{step.description}</Text>
-                      <View style={[styles.stepDetailContainer, { backgroundColor: theme.background }]}>
-                        {step.time && (
-                          <Text style={[styles.stepTime, { color: theme.secondaryText }]}>Time: {safeRender(step.time)}</Text>
-                        )}
-                        {step.water && parseInt(safeRender(step.water, '0')) > 0 && (
-                          <Text style={[styles.stepWater, { color: theme.secondaryText }]}>Water: {safeRender(step.water)}g</Text>
-                        )}
+                <View style={[styles.stepsContainer, { backgroundColor: theme.background }]}>
+                  {recipe.steps.filter(step => step && (step.description || (typeof step === 'string' && step.trim()))).map((step, index) => (
+                    <View key={index} style={[styles.stepItem, { backgroundColor: 'transparent' }]}>
+                      <View style={[styles.stepNumber, { backgroundColor: theme.primaryText }]}>
+                        <Text style={[styles.stepNumberText, { color: theme.background }]}>{index + 1}</Text>
                       </View>
+                                              <View style={[styles.stepContentContainer, { backgroundColor: 'transparent' }]}>
+                          <Text style={[styles.stepText, { color: theme.primaryText }]}>
+                            {typeof step === 'string' ? step : step.description}
+                          </Text>
+                          {typeof step === 'object' && (step.time || step.water) && (
+                            <View style={[styles.stepDetailContainer, { backgroundColor: 'transparent' }]}>
+                              {step.time && (
+                                <View style={[styles.stepDetailItem, { backgroundColor: 'transparent' }]}>
+                                  <Ionicons name="time-outline" size={12} color={theme.secondaryText} />
+                                  <Text style={[styles.stepDetailText, { color: theme.secondaryText }]}>
+                                    {safeRender(step.time)}
+                                  </Text>
+                                </View>
+                              )}
+                              {step.water && parseInt(safeRender(step.water, '0')) > 0 && (
+                                <View style={[styles.stepDetailItem, { backgroundColor: 'transparent' }]}>
+                                  <Ionicons name="water-outline" size={12} color={theme.secondaryText} />
+                                  <Text style={[styles.stepDetailText, { color: theme.secondaryText }]}>
+                                    {safeRender(step.water)}g
+                                  </Text>
+                                </View>
+                              )}
+                            </View>
+                          )}
+                        </View>
                     </View>
-                  </View>
-                ))}
+                  ))}
+                </View>
               </View>
             )}
 
             {/* Notes */}
             {recipe && recipe.notes && (
-              <View style={[styles.section, { backgroundColor: theme.background }]}>
+              <View style={[styles.section, { backgroundColor: theme.background, borderTopColor: theme.divider }]}>
                 <View style={[styles.sectionHeader, { backgroundColor: theme.background }]}>
                   <Text style={[styles.sectionTitle, styles.sectionTitleInHeader, { color: theme.primaryText }]}>Notes</Text>
                 </View>
@@ -1212,8 +1656,8 @@ export default function RecipeDetailScreen() {
             )}
 
             {/* New section: Remixes by Other Users */}
-            {recipe && recipe.hasRemixes && (
-              <View style={[styles.section, { backgroundColor: theme.background }]}>
+            {recipe && (recipe.hasRemixes || sampleRemixes.length > 0) && (
+              <View style={[styles.section, { backgroundColor: theme.background, borderTopColor: theme.divider }]}>
                 <View style={[styles.sectionHeader, { backgroundColor: theme.background }]}>
                   <Text style={[styles.sectionTitle, styles.sectionTitleInHeader, { color: theme.primaryText }]}>Remixes</Text>
                 </View>
@@ -1226,7 +1670,10 @@ export default function RecipeDetailScreen() {
                         style={[
                           styles.remixCard,
                           index === sampleRemixes.length - 1 && styles.lastRemixCard,
-                          { backgroundColor: theme.background }
+                          { 
+                            backgroundColor: theme.background,
+                            borderBottomColor: theme.divider 
+                          }
                         ]}
                         onPress={() => {
                           // Create a remix based on the original recipe
@@ -1321,64 +1768,6 @@ export default function RecipeDetailScreen() {
           </>
         )}
       </ScrollView>
-      
-      {/* Bottom toolbar */}
-      <View style={[styles.toolbar, { backgroundColor: theme.cardBackground, borderTopColor: theme.divider }]}>
-        <TouchableOpacity 
-          style={[styles.toolbarButton, { backgroundColor: theme.background }]}
-          onPress={handleUpvote}
-        >
-          <Ionicons 
-            name={logged ? "heart" : "heart-outline"} 
-            size={24} 
-            color={logged ? "#FF3B30" : theme.primaryText} 
-          />
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={[styles.toolbarButton, { backgroundColor: theme.background }]}
-          onPress={() => setShowLogModal(true)}
-        >
-          <Ionicons 
-            name="book-outline" 
-            size={24} 
-            color={theme.primaryText} 
-          />
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={[styles.toolbarButton, { backgroundColor: theme.background }]}
-          onPress={handleSave}
-        >
-          <Ionicons 
-            name={saved ? "bookmark" : "bookmark-outline"} 
-            size={24} 
-            color={saved ? "#007AFF" : theme.primaryText} 
-          />
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={[styles.toolbarButton, { backgroundColor: theme.background }]}
-          onPress={handleShare}
-        >
-          <Ionicons 
-            name="share-outline" 
-            size={24} 
-            color={theme.primaryText} 
-          />
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={[styles.toolbarButton, { backgroundColor: theme.background }]}
-          onPress={showActionSheet}
-        >
-          <Ionicons 
-            name="ellipsis-horizontal" 
-            size={24} 
-            color={theme.primaryText} 
-          />
-        </TouchableOpacity>
-      </View>
     </View>
   );
 }
@@ -1419,40 +1808,47 @@ const styles = StyleSheet.create({
   // Recipe header and related styles
   recipeHeaderContainer: {
     backgroundColor: '#FFFFFF',
-    padding: 16,
-    paddingVertical: 24,
-    margin: 16,
+    // padding: 16,
+    // paddingVertical: 24,
+    // margin: 16,
     // marginTop: 16,
-    marginBottom: 0,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-    borderRadius: 12,
+    // marginBottom: 0,
+    // borderWidth: 1,
+    // borderColor: '#E5E5EA',
+    // borderRadius: 12,
   },
   recipeHeaderPrefix: {
     fontSize: 16,
     lineHeight: 24,
     color: '#333333',
     textAlign: 'center',
-    marginBottom: 12,
+    // marginBottom: 12,
   },
-  recipeMethodCoffeeContainer: {
+  recipeMethodContainer: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 4,
-    paddingHorizontal: 8,
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+    // marginBottom: 8,
+    // paddingHorizontal: 8,
+  },
+  recipeCoffeeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    // marginBottom: 8,
+    // paddingHorizontal: 8,
   },
   recipeUserContainer: {
     flexDirection: 'row',
-    justifyContent: 'center',
     alignItems: 'center',
-    // marginBottom: 16,
+    justifyContent: 'center',
+    paddingHorizontal: 8,
   },
   recipeByText: {
-    fontSize: 14,
+    fontSize: 18,
     color: '#666666',
-    marginHorizontal: 4,
+    marginRight: 0,
     alignSelf: 'center',
   },
   chipsContainer: {
@@ -1470,18 +1866,19 @@ const styles = StyleSheet.create({
     paddingLeft: 8,
     borderRadius: 20,
     backgroundColor: '#F2F2F7',
-    margin: 4,
+    marginLeft: 8,
   },
   chipIcon: {
     marginRight: 6,
   },
   chipText: {
-    fontSize: 16,
+    fontSize: 28,
     fontWeight: '500',
     color: '#333333',
+    lineHeight: 36,
   },
   userChipText: {
-    fontSize: 14,
+    fontSize: 18,
     fontWeight: '500',
     color: '#333333',
   },
@@ -1530,7 +1927,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: 8,
-    marginBottom: 16,
+    // marginBottom: 16,
   },
   actionButton: {
     flexDirection: 'row',
@@ -1560,17 +1957,24 @@ const styles = StyleSheet.create({
   },
   
   // Who tried it section
+  whoTriedOuterContainer: {
+    paddingHorizontal: 16,
+  },
   whoTriedContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-  },
-  whoTriedContainerCentered: {
-    justifyContent: 'center',
+    width: '100%',
   },
   whoTriedGroup: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
+  },
+  ratingRightContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
   },
   avatarRow: {
     flexDirection: 'row',
@@ -1580,13 +1984,13 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#FFFFFF',
     overflow: 'hidden',
   },
   triedAvatarImage: {
     width: '100%',
     height: '100%',
+    borderWidth: 1,
+    borderRadius: 14,
   },
   whoTriedText: {
     fontSize: 14,
@@ -1614,7 +2018,7 @@ const styles = StyleSheet.create({
     paddingBottom: 0,
     marginTop: 8,
     borderTopWidth: 1,
-    borderTopColor: '#E5E5EA',
+    borderTopColor: 'transparent',
   },
   sectionTitle: {
     fontSize: 18,
@@ -1709,10 +2113,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   recipeText: {
-    fontSize: 16,
+    fontSize: 28,
     color: '#666666',
-    marginHorizontal: 4,
+    marginRight: 4,
     alignSelf: 'center',
+    lineHeight: 36,
   },
   // Remixes by others section
   remixesContainer: {
@@ -1721,7 +2126,7 @@ const styles = StyleSheet.create({
   remixCard: {
     marginBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
+    borderBottomColor: '#E5E5EA', // This will be overridden by theme in the component
     paddingBottom: 16,
   },
   lastRemixCard: {
@@ -1799,6 +2204,10 @@ const styles = StyleSheet.create({
   
   // Modal styles
   modalContainer: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
@@ -1982,10 +2391,260 @@ const styles = StyleSheet.create({
   beFirstText: {
     fontSize: 14,
     color: '#000000',
-    // marginRight: 4,
-    borderBottomWidth: 1,
-    borderBottomColor: '#000000',
     fontWeight: '600',
+  },
+  tooltipContainer: {
+    position: 'absolute',
+    top: 20,
+    left: '50%',
+    transform: [{ translateX: -width * 0.35 }],
+    width: width * 0.7,
+    zIndex: 1000,
+    borderRadius: 8,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  tooltipArrow: {
+    position: 'absolute',
+    top: -10,
+    left: '50%',
+    transform: [{ translateX: -10 }],
+    width: 0,
+    height: 0,
+    borderLeftWidth: 10,
+    borderLeftColor: 'transparent',
+    borderRightWidth: 10,
+    borderRightColor: 'transparent',
+    borderTopWidth: 10,
+  },
+  tooltipOverlay: {
+    position: 'absolute',
+    top: -100,
+    left: -width,
+    right: -width,
+    bottom: -100,
+    zIndex: 999,
+  },
+  tooltipContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    padding: 12,
+    borderRadius: 8,
+  },
+  tooltipText: {
+    flex: 1,
+    fontSize: 14,
+    lineHeight: 18,
+    marginRight: 8,
+  },
+  tooltipCloseButton: {
+    padding: 6,
+    borderRadius: 12,
+    minWidth: 28,
+    minHeight: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  popularRatingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  popularRatingText: {
+    fontSize: 14,
+    marginLeft: 4,
+    fontWeight: '500',
+  },
+  stepsContainer: {
+    gap: 12,
+  },
+  stepDetailItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 12,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  stepDetailText: {
+    fontSize: 12,
+    marginLeft: 4,
+  },
+  ratingModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    justifyContent: 'flex-end',
+  },
+  ratingModalContent: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    // minHeight: 280,
+  },
+  ratingModalHeader: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    // paddingBottom: 16,
+    borderBottomWidth: 1,
+    alignItems: 'center',
+  },
+  ratingModalTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  ratingModalSubtitle: {
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  ratingModalBody: {
+    padding: 20,
+  },
+  brewRatingContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 16,
+  },
+  brewRatingButton: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 8,
+    marginHorizontal: 4,
+    borderRadius: 12,
+    borderWidth: 2,
+  },
+  brewRatingButtonSelected: {
+    borderWidth: 2,
+  },
+  brewRatingText: {
+    fontSize: 14,
+    marginTop: 6,
+    fontWeight: '500',
+  },
+  ratingNotesContainer: {
+    marginBottom: 20,
+    padding: 16,
+    borderRadius: 12,
+  },
+  ratingNotesLabel: {
+    fontSize: 16,
+    fontWeight: '500',
+    marginBottom: 8,
+  },
+  ratingNotesInput: {
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    borderWidth: 1,
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
+  submitRatingButton: {
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  submitRatingButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  remindLaterButton: {
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    // marginTop: 12,
+    borderWidth: 1,
+  },
+  remindLaterButtonText: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  ratingStats: {
+    gap: 16,
+  },
+  ratingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  ratingLabel: {
+    fontSize: 16,
+    fontWeight: '500',
+    minWidth: 50,
+  },
+  ratingBar: {
+    flex: 1,
+    height: 8,
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  ratingBarFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  ratingPercentage: {
+    fontSize: 14,
+    minWidth: 40,
+    textAlign: 'right',
+  },
+  noRatingsContainer: {
+    alignItems: 'center',
+    paddingVertical: 32,
+    paddingHorizontal: 16,
+  },
+  noRatingsText: {
+    fontSize: 18,
+    fontWeight: '500',
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  noRatingsSubtext: {
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  equipmentGrid: {
+    gap: 12,
+  },
+  equipmentCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 12,
+  },
+  equipmentIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  equipmentInfo: {
+    flex: 1,
+  },
+  equipmentName: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  equipmentBrand: {
+    fontSize: 14,
+    marginBottom: 2,
+  },
+  equipmentSettings: {
+    fontSize: 12,
+    fontWeight: '500',
   },
   actionsOuterContainer: {
     backgroundColor: '#FFFFFF',
@@ -1994,33 +2653,37 @@ const styles = StyleSheet.create({
     // borderBottomWidth: 1,
     // borderBottomColor: '#E5E5EA',
   },
+  howWasItContainer: {
+    marginTop: 16,
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  howWasItTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+  howWasItRatingRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    width: '100%',
+    maxWidth: 240,
+  },
+  howWasItRatingButton: {
+    padding: 12,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flex: 1,
+    marginHorizontal: 8,
+  },
   scrollView: {
     flex: 1,
   },
+// first container
   contentContainer: {
-    paddingBottom: 80,
-  },
-  toolbar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E5EA',
-  },
-  toolbarButton: {
-    padding: 8,
-  },
-  toolbarButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#007AFF',
-  },
-  toolbarButtonActive: {
-    backgroundColor: '#000000',
-    borderColor: '#000000',
-  },
-  toolbarButtonTextActive: {
-    color: '#FFFFFF',
+    paddingTop: 16,
+    // paddingBottom: 16,
   },
 }); 
