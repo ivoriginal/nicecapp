@@ -156,7 +156,10 @@ const RecipesListScreen = () => {
     // Filter recipes based on rating
     const ratingValue = parseInt(ratingFilter, 10);
     const filtered = recipes.filter(recipe => {
-      const recipeRating = recipe.rating || recipe.averageRating || 0;
+      // Use the new percentage-based rating system
+    const recipeRating = recipe.ratingStats ? 
+      (recipe.ratingStats.goodPercentage / 100 * 5) : // Convert percentage to 5-star scale
+      (recipe.rating || recipe.averageRating || 0);
       return recipeRating >= ratingValue && recipeRating < ratingValue + 1;
     });
     
