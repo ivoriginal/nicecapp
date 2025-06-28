@@ -51,7 +51,7 @@
     },
     {
       "id": "recipe2",
-      "name": "15g AeroPress Recipe",
+      "name": "AeroPress Inverted Method",
       "coffeeId": "coffee-villa-rosario",
       "coffeeName": "Villa Rosario",
       "roaster": "Kima Coffee",
@@ -59,23 +59,47 @@
       "creatorName": "Emma Garcia",
       "creatorAvatar": "https://randomuser.me/api/portraits/women/33.jpg",
       "brewingMethod": "AeroPress",
+      "filterType": "Paper",
       "grindSize": "Medium-Fine",
-      "coffeeAmount": 15,
-      "waterAmount": 230,
-      "waterTemperature": 88,
-      "brewTime": "1:45",
-      "steps": [
-        {"time": "0:00", "water": "230", "description": "Add coffee to inverted AeroPress"},
-        {"time": "0:15", "water": "0", "description": "Stir for 15 seconds"},
-        {"time": "1:15", "water": "0", "description": "Attach filter cap and let brew"},
-        {"time": "1:45", "water": "0", "description": "Flip and press slowly for 30 seconds"}
+      "coffeeAmount": 18,
+      "waterAmount": 200,
+      "waterTemperature": 100,
+      "brewTime": "2:00",
+      "equipment": [
+        {
+          "id": "gear6",
+          "name": "AeroPress",
+          "type": "Brewer",
+          "brand": "Aerobie"
+        },
+        {
+          "id": "gear3",
+          "name": "Comandante C40 MK4",
+          "type": "Grinder",
+          "brand": "Comandante",
+          "grinderSettings": "14 clicks"
+        },
+        {
+          "id": "gear13",
+          "name": "AeroPress Paper Filters",
+          "type": "Accessories",
+          "brand": "Aerobie"
+        }
       ],
-      "notes": "Quick and delicious way to highlight this coffee's caramel notes",
+      "steps": [
+        {"time": "0:00", "water": "0", "description": "Set up AeroPress in inverted position"},
+        {"time": "0:05", "water": "0", "description": "Add 18g coffee ground to 14 clicks on Comandante"},
+        {"time": "0:10", "water": "200", "description": "Pour 200g water at 100°C"},
+        {"time": "0:15", "water": "0", "description": "Stir gently for 10 seconds"},
+        {"time": "1:30", "water": "0", "description": "Attach paper filter and cap"},
+        {"time": "2:00", "water": "0", "description": "Flip and press slowly for 30 seconds"}
+      ],
+      "notes": "Inverted method gives more control over steeping time. The 14 clicks on Comandante gives perfect extraction for this coffee's caramel and cherry notes.",
       "likes": 89,
       "saves": 62,
-      "logs": 12,
-      "averageRating": 5.0,
-      "loggedUsers": ["user2", "user1", "user6"],
+      "logs": 4,
+      "averageRating": 4.8,
+      "loggedUsers": ["user2", "user1", "user6", "user7"],
       "savedUsers": [
         {
           "id": "user2",
@@ -329,6 +353,132 @@
       "originalRecipeName": "Villa Rosario V60",
       "originalCreatorId": "user1",
       "originalCreatorName": "Ivo Vilches"
+    },
+    {
+      "id": "recipe-ijen-aeropress",
+      "name": "Ijen AeroPress Method",
+      "coffeeId": "coffee-ijen",
+      "coffeeName": "Ijen",
+      "roaster": "Toma Café",
+      "creatorId": "user1",
+      "creatorName": "Ivo Vilches",
+      "creatorAvatar": "assets/users/ivo-vilches.jpg",
+      "brewingMethod": "AeroPress",
+      "filterType": "Paper",
+      "grindSize": "Medium-Fine",
+      "coffeeAmount": 16,
+      "waterAmount": 240,
+      "waterTemperature": 96,
+      "brewTime": "2:30",
+      "equipment": [
+        {
+          "id": "gear6",
+          "name": "AeroPress",
+          "type": "Brewer",
+          "brand": "Aerobie"
+        },
+        {
+          "id": "gear2",
+          "name": "Baratza Encore",
+          "type": "Grinder",
+          "brand": "Baratza",
+          "grinderSettings": "15 clicks"
+        },
+        {
+          "id": "gear13",
+          "name": "AeroPress Paper Filters",
+          "type": "Accessories",
+          "brand": "Aerobie"
+        }
+      ],
+      "steps": [
+        {"time": "0:00", "water": "0", "description": "Set up AeroPress in standard position with rinsed filter"},
+        {"time": "0:10", "water": "0", "description": "Add 16g coffee ground medium-fine"},
+        {"time": "0:15", "water": "240", "description": "Pour all 240g water at 96°C and stir gently"},
+        {"time": "0:30", "water": "0", "description": "Insert plunger and create slight vacuum"},
+        {"time": "2:00", "water": "0", "description": "Press slowly over 30 seconds"},
+        {"time": "2:30", "water": "0", "description": "Enjoy immediately"}
+      ],
+      "notes": "This Indonesian coffee shines in the AeroPress. The full immersion brings out the herbal and earthy notes beautifully while maintaining clarity.",
+      "likes": 142,
+      "saves": 89,
+      "logs": 34,
+      "averageRating": 4.4,
+      "loggedUsers": ["user1", "user2", "user3", "user5", "user6", "user7", "user9", "user10"],
+      "savedUsers": [
+        {
+          "id": "user1",
+          "name": "Ivo Vilches", 
+          "avatar": "assets/users/ivo-vilches.jpg"
+        },
+        {
+          "id": "user2",
+          "name": "Vértigo y Calambre",
+          "avatar": "assets/businesses/vertigo-logo.jpg"
+        },
+        {
+          "id": "user3",
+          "name": "Carlos Hernández",
+          "avatar": "assets/users/carlos-hernandez.jpg"
+        },
+        {
+          "id": "user5",
+          "name": "Emma Garcia",
+          "avatar": "https://randomuser.me/api/portraits/women/33.jpg"
+        }
+      ],
+      "userRatings": {
+        "user1": {
+          "rating": 3,
+          "notes": "Perfect daily brew. The earthy notes come through beautifully.",
+          "timestamp": "2023-12-15T08:30:00Z"
+        },
+        "user2": {
+          "rating": 3,
+          "notes": "Great for showcasing this coffee's unique character.",
+          "timestamp": "2023-12-14T10:15:00Z"
+        },
+        "user3": {
+          "rating": 2,
+          "notes": "Good but prefer it slightly coarser grind.",
+          "timestamp": "2023-12-13T16:45:00Z"
+        },
+        "user5": {
+          "rating": 3,
+          "notes": "Love how clean this tastes. The herbal notes are amazing.",
+          "timestamp": "2023-12-12T09:20:00Z"
+        },
+        "user6": {
+          "rating": 3,
+          "notes": "Excellent recipe, very consistent results.",
+          "timestamp": "2023-12-11T14:30:00Z"
+        },
+        "user7": {
+          "rating": 3,
+          "notes": "This is my go-to method for Ijen now.",
+          "timestamp": "2023-12-10T11:00:00Z"
+        },
+        "user9": {
+          "rating": 2,
+          "notes": "Decent but I think it could use a bit more extraction time.",
+          "timestamp": "2023-12-09T15:15:00Z"
+        },
+        "user10": {
+          "rating": 3,
+          "notes": "Really highlights the Indonesian terroir. Well done Ivo!",
+          "timestamp": "2023-12-08T12:45:00Z"
+        }
+      },
+      "ratingDistribution": {
+        "1": 0,
+        "2": 2,
+        "3": 6
+      },
+      "imageUrl": "https://cdn.shopify.com/s/files/1/0561/2172/1001/files/IJEN_800x.jpg?v=1738771773",
+      "date": "2023-11-25T10:30:00Z",
+      "isTrending": true,
+      "type": "recipe",
+      "hasRemixes": false
     }
   ]
 } 
