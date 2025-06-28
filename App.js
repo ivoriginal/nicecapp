@@ -126,8 +126,8 @@ function AppContent() {
 
   // Function to handle action sheet for coffee options
   const handleCoffeeOptions = (navigation, coffee) => {
-    const options = ['Share', 'Cancel'];
-    const cancelButtonIndex = 1;
+    const options = ['Share', 'Add to Collection', 'Cancel'];
+    const cancelButtonIndex = 2;
 
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
@@ -140,6 +140,10 @@ function AppContent() {
           if (buttonIndex === 0) {
             // Share coffee
             shareCoffee(coffee);
+          } else if (buttonIndex === 1) {
+            // Add to Collection - we'll need to access the coffee context
+            // For now, show an alert indicating the action
+            Alert.alert('Add to Collection', 'Coffee added to your collection!');
           }
         }
       );
@@ -152,6 +156,10 @@ function AppContent() {
           {
             text: 'Share',
             onPress: () => shareCoffee(coffee)
+          },
+          {
+            text: 'Add to Collection',
+            onPress: () => Alert.alert('Add to Collection', 'Coffee added to your collection!')
           },
           {
             text: 'Cancel',
