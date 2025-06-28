@@ -1144,6 +1144,8 @@ export default function ProfileScreen() {
     // Log userData before navigation to ensure location is present
     console.log('Profile options - Current userData:', userData);
     console.log('Profile options - Location:', userData.location);
+    console.log('Profile options - isDarkMode:', isDarkMode);
+    console.log('Profile options - theme:', theme);
     
     // Create a complete userData object with all required fields
     const completeUserData = {
@@ -1178,10 +1180,15 @@ export default function ProfileScreen() {
                   style: 'destructive',
                   onPress: () => {
                     // In a real app, you would handle sign out logic here
-                    Alert.alert('Signed Out', 'You have been signed out successfully');
+                    Alert.alert('Signed Out', 'You have been signed out successfully', [], {
+                      userInterfaceStyle: isDarkMode ? 'dark' : 'light'
+                    });
                   }
                 }
-              ]
+              ],
+              {
+                userInterfaceStyle: isDarkMode ? 'dark' : 'light'
+              }
             );
           }
         }
@@ -1208,7 +1215,9 @@ export default function ProfileScreen() {
                     style: 'destructive',
                     onPress: () => {
                       // In a real app, you would handle sign out logic here
-                      Alert.alert('Signed Out', 'You have been signed out successfully');
+                      Alert.alert('Signed Out', 'You have been signed out successfully', [], {
+                        userInterfaceStyle: isDarkMode ? 'dark' : 'light'
+                      });
                     }
                   }
                 ],
@@ -1283,7 +1292,9 @@ export default function ProfileScreen() {
                 style={styles.createAccountItem}
                 onPress={() => {
                   setModalVisible(false);
-                  Alert.alert('Coming Soon', 'Create Account functionality will be available soon.');
+                  Alert.alert('Coming Soon', 'Create Account functionality will be available soon.', [], {
+                    userInterfaceStyle: isDarkMode ? 'dark' : 'light'
+                  });
                 }}
               >
                 <View style={[styles.createAccountCircle, { backgroundColor: theme.primaryText }]}>
