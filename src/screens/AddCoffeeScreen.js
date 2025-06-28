@@ -47,6 +47,7 @@ export default function AddCoffeeScreen({ navigation, route }) {
   const isRemixing = route.params?.isRemixing;
   const recipeToRemix = route.params?.recipe;
   const createdRecipe = route.params?.createdRecipe;
+  const preSelectedRecipe = route.params?.preSelectedRecipe;
   
   const [coffeeData, setCoffeeData] = useState({
     name: recipeToRemix?.coffeeName || '',
@@ -84,6 +85,14 @@ export default function AddCoffeeScreen({ navigation, route }) {
       setSelectedRecipe(null);
     }
   }, [createdRecipe]);
+  
+  // Handle pre-selected recipe from route params
+  useEffect(() => {
+    if (preSelectedRecipe) {
+      setSelectedRecipe(preSelectedRecipe);
+      setCustomRecipe(null);
+    }
+  }, [preSelectedRecipe]);
   
   const [coffeeSuggestions, setCoffeeSuggestions] = useState([]);
   const [recipeSuggestions, setRecipeSuggestions] = useState([]);
@@ -639,7 +648,13 @@ export default function AddCoffeeScreen({ navigation, route }) {
 
   const handleSave = async () => {
     try {
-      // Dismiss keyboard immediately before saving
+      // Blur any active input and dismiss keyboard immediately
+      if (nameInputRef.current) {
+        nameInputRef.current.blur();
+      }
+      if (notesInputRef.current) {
+        notesInputRef.current.blur();
+      }
       Keyboard.dismiss();
       
       // Create a mock event ID for local storage
@@ -731,10 +746,8 @@ export default function AddCoffeeScreen({ navigation, route }) {
       setCustomRecipe(null);
       setRating(0);
       
-      // Add a small delay before navigation to ensure keyboard is dismissed
-      setTimeout(() => {
-        navigation.goBack();
-      }, 100);
+      // Navigate back immediately without delay to prevent re-focus
+      navigation.goBack();
     } catch (error) {
       console.error('Error saving coffee:', error);
       Alert.alert('Error', 'Failed to save coffee event. Please try again.');
@@ -840,19 +853,16 @@ export default function AddCoffeeScreen({ navigation, route }) {
           <Text style={styles.recipesSubheader}>Suggested</Text>
           <FlatList
             data={recipeSuggestions}
-            horizontal
-            showsHorizontalScrollIndicator={false}
+            showsVerticalScrollIndicator={false}
             keyExtractor={(item, index) => `recipe-${item.id || index}`}
             renderItem={({ item }) => (
-              <View style={styles.horizontalRecipeCard}>
-                <RecipeCard
-                  recipe={item}
-                  onPress={() => handleRecipePress(item)}
-                  showCoffeeInfo={false}
-                />
-              </View>
+              <RecipeCard
+                recipe={item}
+                onPress={() => handleRecipePress(item)}
+                showCoffeeInfo={false}
+              />
             )}
-            contentContainerStyle={styles.horizontalRecipesList}
+            contentContainerStyle={styles.verticalRecipesList}
           />
         </View>
       ) : (
@@ -1748,7 +1758,7 @@ export default function AddCoffeeScreen({ navigation, route }) {
                         // Use scrollToEnd which works reliably for the bottom field
                         scrollViewRef.current.scrollToEnd({ animated: true });
                       }
-                    }, 100);
+                    }, 150);
                   }}
                 />
               </View>
@@ -1788,20 +1798,64 @@ export default function AddCoffeeScreen({ navigation, route }) {
         creatorAvatar: currentAccount?.userAvatar,
         timestamp: new Date().toISOString(),
         rating: 5,
+        // Add based on recipe info if this is a remix
+        ...(route.params?.basedOnRecipe ? {
+          originalRecipeId: route.params.basedOnRecipe.id,
+          originalRecipeName: route.params.basedOnRecipe.name,
+          originalCreatorId: route.params.basedOnRecipe.userId,
+          originalCreatorName: route.params.basedOnRecipe.userName,
+          originalUserAvatar: route.params.basedOnRecipe.userAvatar
+        } : {})
       };
       
       // Add the recipe to the context
       await addRecipe(recipeData);
       
+      // Create a recipe creation event for the home feed
+      const recipeCreationEvent = {
+        id: `recipe-creation-${Date.now()}`,
+        type: 'created_recipe',
+        userId: currentAccount?.id || 'user-default',
+        userName: currentAccount?.userName || 'You',
+        userAvatar: currentAccount?.userAvatar,
+        timestamp: new Date().toISOString(),
+        coffeeId: coffeeId,
+        coffeeName: coffeeName,
+        roaster: roaster,
+        imageUrl: coffeeImage,
+        recipeId: recipeData.id,
+        recipeName: recipeData.name,
+        method: recipeData.method,
+        amount: recipeData.amount,
+        grindSize: recipeData.grindSize,
+        waterVolume: recipeData.waterVolume,
+        brewTime: recipeData.brewTime,
+        notes: recipeData.notes,
+        // Add remix info if applicable
+        ...(route.params?.basedOnRecipe ? {
+          isRemix: true,
+          basedOnRecipeId: route.params.basedOnRecipe.id,
+          basedOnRecipeName: route.params.basedOnRecipe.name,
+          basedOnCreatorName: route.params.basedOnRecipe.userName
+        } : {})
+      };
+      
+      // Add the recipe creation event to the feed
+      await addCoffeeEvent(recipeCreationEvent);
+      
       // Show a success message
+      const successMessage = route.params?.basedOnRecipe ? 
+        'Recipe remixed successfully!' : 
+        'Recipe created successfully!';
+      
       Alert.alert(
-        'Recipe Created',
-        'Your recipe has been saved successfully!',
+        'Success',
+        successMessage,
         [
           {
             text: 'OK',
             onPress: () => {
-              // Navigate back to the coffee detail screen
+              // Navigate back to the recipe detail screen or previous screen
               navigation.goBack();
             }
           }
@@ -1825,16 +1879,16 @@ export default function AddCoffeeScreen({ navigation, route }) {
       notes: ''
     });
 
-    // Initialize recipe data when remix recipe changes
+    // Initialize recipe data when remix recipe changes or when creating new recipe
     useEffect(() => {
-      if (remixRecipe) {
+      if (isRemixing && recipeToRemix) {
         setRecipeData({
-          method: remixRecipe.method || remixRecipe.brewingMethod || '',
-          amount: remixRecipe.amount || remixRecipe.coffeeAmount || '',
-          grindSize: remixRecipe.grindSize || 'Medium',
-          waterVolume: remixRecipe.waterVolume || remixRecipe.waterAmount || '',
-          brewTime: remixRecipe.brewTime || '',
-          notes: '' // Keep notes empty by default
+          method: recipeToRemix.method || recipeToRemix.brewingMethod || '',
+          amount: recipeToRemix.amount || recipeToRemix.coffeeAmount || '',
+          grindSize: recipeToRemix.grindSize || 'Medium',
+          waterVolume: recipeToRemix.waterVolume || recipeToRemix.waterAmount || '',
+          brewTime: recipeToRemix.brewTime || '',
+          notes: '' // Keep notes empty by default for remixes
         });
       } else {
         setRecipeData({
@@ -1846,7 +1900,7 @@ export default function AddCoffeeScreen({ navigation, route }) {
           notes: ''
         });
       }
-    }, [remixRecipe]);
+    }, [isRemixing, recipeToRemix]);
 
     const handleSaveRecipe = async () => {
       if (!recipeData.method || !recipeData.amount || !recipeData.waterVolume) {
@@ -1872,18 +1926,59 @@ export default function AddCoffeeScreen({ navigation, route }) {
           creatorAvatar: currentAccount?.userAvatar,
           timestamp: new Date().toISOString(),
           rating: 5,
+          // Add remix info if this is based on another recipe
+          ...(isRemixing && recipeToRemix ? {
+            originalRecipeId: recipeToRemix.id,
+            originalRecipeName: recipeToRemix.name,
+            originalCreatorId: recipeToRemix.userId,
+            originalCreatorName: recipeToRemix.userName
+          } : {})
         };
 
-                 await addRecipe(newRecipe);
-         setCustomRecipe(newRecipe);
-         setSelectedRecipe(null);
-         setShowCreateRecipe(false);
-         setRemixRecipe(null);
-         
-         // Refresh recipes
-         searchRecipeDatabase(coffeeData.coffeeId);
-         
-         Alert.alert('Success', 'Recipe created successfully!');
+        await addRecipe(newRecipe);
+        
+        // Create a recipe creation event
+        const recipeCreationEvent = {
+          id: `recipe-creation-${Date.now()}`,
+          type: 'created_recipe',
+          userId: currentAccount?.id || 'user-default',
+          userName: currentAccount?.userName || 'You',
+          userAvatar: currentAccount?.userAvatar,
+          timestamp: new Date().toISOString(),
+          coffeeId: coffeeData.coffeeId,
+          coffeeName: coffeeData.name,
+          roaster: coffeeSuggestions[0]?.roaster,
+          imageUrl: coffeeSuggestions[0]?.imageUrl || coffeeSuggestions[0]?.image,
+          recipeId: newRecipe.id,
+          recipeName: newRecipe.name,
+          method: newRecipe.method,
+          amount: newRecipe.amount,
+          grindSize: newRecipe.grindSize,
+          waterVolume: newRecipe.waterVolume,
+          brewTime: newRecipe.brewTime,
+          notes: newRecipe.notes,
+          // Add remix info if applicable
+          ...(isRemixing && recipeToRemix ? {
+            isRemix: true,
+            basedOnRecipeId: recipeToRemix.id,
+            basedOnRecipeName: recipeToRemix.name,
+            basedOnCreatorName: recipeToRemix.userName
+          } : {})
+        };
+        
+        await addCoffeeEvent(recipeCreationEvent);
+        
+        setCustomRecipe(newRecipe);
+        setSelectedRecipe(null);
+        setShowCreateRecipe(false);
+        setRemixRecipe(null);
+        
+        // Refresh recipes
+        searchRecipeDatabase(coffeeData.coffeeId);
+        
+        // Show success message
+        const successMessage = isRemixing ? 'Recipe remixed successfully!' : 'Recipe created successfully!';
+        Alert.alert('Success', successMessage);
       } catch (error) {
         console.error('Error saving recipe:', error);
         Alert.alert('Error', 'Failed to save recipe. Please try again.');
@@ -1892,53 +1987,53 @@ export default function AddCoffeeScreen({ navigation, route }) {
 
     return (
       <Modal
-                 visible={showCreateRecipe}
-         animationType="slide"
-         transparent={true}
-         onRequestClose={() => {
-           setShowCreateRecipe(false);
-           setRemixRecipe(null);
-         }}
+        visible={showCreateRecipe}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => {
+          setShowCreateRecipe(false);
+          setRemixRecipe(null);
+        }}
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-                         <View style={styles.modalHeader}>
-               <Text style={styles.modalTitle}>
-                 {remixRecipe ? 'Remix Recipe' : 'Create Recipe'}
-               </Text>
-               <TouchableOpacity 
-                 onPress={() => {
-                   setShowCreateRecipe(false);
-                   setRemixRecipe(null);
-                 }}
-                 style={styles.closeButton}
-               >
-                 <Ionicons name="close" size={24} color={theme.primaryText} />
-               </TouchableOpacity>
-             </View>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                {isRemixing || remixRecipe ? 'Remix Recipe' : 'Create Recipe'}
+              </Text>
+              <TouchableOpacity 
+                onPress={() => {
+                  setShowCreateRecipe(false);
+                  setRemixRecipe(null);
+                }}
+                style={styles.closeButton}
+              >
+                <Ionicons name="close" size={24} color={theme.primaryText} />
+              </TouchableOpacity>
+            </View>
 
-                         <ScrollView style={styles.previewContent}>
-               {/* Coffee Card */}
-               <View style={styles.selectedCoffeeContainer}>
-                 <Image 
-                   source={{ uri: coffeeSuggestions[0]?.imageUrl || coffeeSuggestions[0]?.image }} 
-                   style={styles.selectedCoffeeImage} 
-                 />
-                 <View style={styles.selectedCoffeeInfo}>
-                   <Text style={styles.selectedCoffeeName}>{coffeeData.name}</Text>
-                   <Text style={styles.selectedCoffeeRoaster}>{coffeeSuggestions[0]?.roaster}</Text>
-                 </View>
-               </View>
-               
-               {remixRecipe && (
-                 <View style={styles.remixAttribution}>
-                   <Text style={styles.remixAttributionText}>
-                     Based on recipe by {remixRecipe.userName || remixRecipe.creatorName || 'Unknown'}
-                   </Text>
-                 </View>
-               )}
-               
-               <View style={styles.recipeFormContainer}>
+            <ScrollView style={styles.previewContent}>
+              {/* Coffee Card */}
+              <View style={styles.selectedCoffeeContainer}>
+                <Image 
+                  source={{ uri: coffeeSuggestions[0]?.imageUrl || coffeeSuggestions[0]?.image }} 
+                  style={styles.selectedCoffeeImage} 
+                />
+                <View style={styles.selectedCoffeeInfo}>
+                  <Text style={styles.selectedCoffeeName}>{coffeeData.name}</Text>
+                  <Text style={styles.selectedCoffeeRoaster}>{coffeeSuggestions[0]?.roaster}</Text>
+                </View>
+              </View>
+              
+              {(isRemixing || remixRecipe) && (
+                <View style={styles.remixAttribution}>
+                  <Text style={styles.remixAttributionText}>
+                    Based on recipe by {recipeToRemix?.userName || remixRecipe?.userName || 'Unknown'}
+                  </Text>
+                </View>
+              )}
+              
+              <View style={styles.recipeFormContainer}>
                 <View style={styles.inputContainer}>
                   <Text style={styles.label}>Brewing Method *</Text>
                   <TouchableOpacity 
@@ -2044,7 +2139,9 @@ export default function AddCoffeeScreen({ navigation, route }) {
                    onPress={handleSaveRecipe}
                    disabled={!recipeData.method || !recipeData.amount || !recipeData.waterVolume}
                  >
-                   <Text style={styles.createRecipeSaveButtonText}>Save Recipe</Text>
+                   <Text style={styles.createRecipeSaveButtonText}>
+                     {isRemixing || remixRecipe ? 'Save Remix' : 'Save Recipe'}
+                   </Text>
                  </TouchableOpacity>
                </View>
              </ScrollView>
@@ -2617,7 +2714,7 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
     padding: 4,
   },
   searchSuggestionsContainer: {
-    backgroundColor: theme.cardBackground || (isDarkMode ? '#2C2C2E' : '#FFFFFF'),
+    backgroundColor: theme.background || (isDarkMode ? '#2C2C2E' : '#FFFFFF'),
     borderWidth: 1,
     borderColor: theme.border || '#E5E5EA',
     borderRadius: 8,
@@ -3366,7 +3463,10 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
   },
   horizontalRecipesList: {
     paddingHorizontal: 0,
-    paddingLeft: 16,
+    // paddingLeft: 16,
+  },
+  verticalRecipesList: {
+    paddingVertical: 8,
   },
   selectedRecipeCardContainer: {
     position: 'relative',
