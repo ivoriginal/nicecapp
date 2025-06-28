@@ -40,6 +40,8 @@ const NotificationItem = ({ notification, onPress, isLast, theme }) => {
         return <Ionicons name="person" size={12} color="#FFFFFF" />;
       case 'remixed_recipe':
         return <Ionicons name="git-branch" size={12} color="#FFFFFF" />;
+      case 'rate_recipe_reminder':
+        return <Ionicons name="star-outline" size={12} color="#FFFFFF" />;
       default:
         return <Ionicons name="notifications" size={12} color="#FFFFFF" />;
     }
@@ -74,6 +76,8 @@ const NotificationItem = ({ notification, onPress, isLast, theme }) => {
         return `Gear: ${notification.gearName}`;
       case 'remixed_recipe':
         return `New recipe: ${notification.newRecipeName}`;
+      case 'rate_recipe_reminder':
+        return `Recipe: ${notification.recipeName}`;
       default:
         return null;
     }
@@ -225,6 +229,22 @@ const NotificationsScreen = ({ navigation }) => {
           userId: userData?.id || notification.userId,
           userName: userData?.name || notification.userName,
           userAvatar: userData?.avatar || notification.userAvatar,
+          skipAuth: true
+        });
+        break;
+        
+      case 'rate_recipe_reminder':
+        // Navigate to recipe detail screen with rating prompt
+        const recipe = recipeData || require('../data/mockRecipes.json').recipes.find(r => r.id === notification.recipeId);
+        navigation.navigate('RecipeDetail', { 
+          recipeId: notification.recipeId,
+          recipe: recipe || {
+            id: notification.recipeId,
+            name: notification.recipeName || 'Recipe',
+            deleted: !recipe
+          },
+          coffeeName: notification.coffeeName,
+          showRatingPrompt: true, // Signal to show rating modal
           skipAuth: true
         });
         break;
