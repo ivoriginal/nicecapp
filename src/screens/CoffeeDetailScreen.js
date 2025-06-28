@@ -28,6 +28,7 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
   interpolate,
+  interpolateColor,
   Extrapolate,
 } from 'react-native-reanimated';
 import { BlurView } from 'expo-blur';
@@ -63,8 +64,6 @@ export default function CoffeeDetailScreen() {
   
   const [coffee, setCoffee] = useState(null);
   const [relatedRecipes, setRelatedRecipes] = useState([]);
-  const [filteredRelatedRecipes, setFilteredRelatedRecipes] = useState([]);
-  const [ratingFilter, setRatingFilter] = useState('all');
   const [loading, setLoading] = useState(true);
   const [isInCollection, setIsInCollection] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
@@ -77,6 +76,9 @@ export default function CoffeeDetailScreen() {
   const [sellers, setSellers] = useState([]);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const [roasterInfo, setRoasterInfo] = useState(null);
+  const [scrollY, setScrollY] = useState(0);
+  const [showCoffeeNameInHeader, setShowCoffeeNameInHeader] = useState(false);
+  const headerOpacity = useSharedValue(0);
 
   useEffect(() => {
     // Always use mock data for development
@@ -118,7 +120,6 @@ export default function CoffeeDetailScreen() {
           
           if (routeCoffee.recipes) {
             setRelatedRecipes(routeCoffee.recipes);
-            setFilteredRelatedRecipes(routeCoffee.recipes);
           }
           
           // Set sellers for this coffee from mockCoffees
@@ -338,36 +339,17 @@ export default function CoffeeDetailScreen() {
       if (matchingRecipes.length > 0) {
         console.log(`Found ${matchingRecipes.length} recipes for coffee ${coffee.id} in mockRecipes`);
         setRelatedRecipes(matchingRecipes);
-        setFilteredRelatedRecipes(matchingRecipes);
       } else {
         // Otherwise fall back to context recipes
         const contextRecipes = getRecipesForCoffee(coffee.id);
         console.log(`Found ${contextRecipes.length} recipes for coffee ${coffee.id} in context`);
         setRelatedRecipes(contextRecipes);
-        setFilteredRelatedRecipes(contextRecipes);
       }
     }
   // Only run this effect when coffee object changes, not on every render
   }, [coffee?.id, getRecipesForCoffee]);
 
-  // Effect to filter recipes when ratingFilter changes
-  useEffect(() => {
-    if (relatedRecipes.length === 0) return;
-    
-    if (ratingFilter === 'all') {
-      setFilteredRelatedRecipes(relatedRecipes);
-      return;
-    }
-    
-    // Filter recipes based on rating
-    const ratingValue = parseInt(ratingFilter, 10);
-    const filtered = relatedRecipes.filter(recipe => {
-      const recipeRating = recipe.averageRating || recipe.rating || 0;
-      return recipeRating >= ratingValue && recipeRating < ratingValue + 1;
-    });
-    
-    setFilteredRelatedRecipes(filtered);
-  }, [ratingFilter, relatedRecipes]);
+
 
   // Update favorite state whenever coffee or favorites change
   useEffect(() => {
@@ -392,18 +374,79 @@ export default function CoffeeDetailScreen() {
     }
   }, [coffee, coffeeWishlist]);
 
+  // Animated header title styles
+  const animatedDefaultTitleStyle = useAnimatedStyle(() => {
+    return {
+      opacity: withTiming(showCoffeeNameInHeader ? 0 : 1, { duration: 150 }),
+      transform: [
+        {
+          translateY: withTiming(showCoffeeNameInHeader ? -10 : 0, { duration: 150 })
+        }
+      ]
+    };
+  });
+
+  const animatedCoffeeTitleStyle = useAnimatedStyle(() => {
+    return {
+      opacity: withTiming(showCoffeeNameInHeader ? 1 : 0, { duration: 150 }),
+      transform: [
+        {
+          translateY: withTiming(showCoffeeNameInHeader ? 0 : 10, { duration: 150 })
+        }
+      ]
+    };
+  });
+
   // Set up navigation options
   useLayoutEffect(() => {
     if (coffee) {
       navigation.setOptions({
         headerShown: true,
+        headerTitle: () => (
+          <View style={{ position: 'relative', alignItems: 'center', justifyContent: 'center', height: 44 }}>
+            <Animated.Text 
+              style={[
+                animatedDefaultTitleStyle,
+                {
+                  position: 'absolute',
+                  color: theme.primaryText,
+                  fontSize: 17,
+                  fontWeight: '600',
+                }
+              ]}
+            >
+              Coffee Details
+            </Animated.Text>
+            <Animated.Text 
+              style={[
+                animatedCoffeeTitleStyle,
+                {
+                  position: 'absolute',
+                  color: theme.primaryText,
+                  fontSize: 17,
+                  fontWeight: '600',
+                  textAlign: 'center',
+                  maxWidth: 200,
+                }
+              ]}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              {coffee.name}
+            </Animated.Text>
+          </View>
+        ),
         headerStyle: {
           backgroundColor: theme.background,
+          elevation: 0, // Remove shadow on Android
+          shadowOpacity: 0, // Remove shadow on iOS
+          borderBottomWidth: isDarkMode ? 1 : (scrollY > 0 ? 1 : 0),
+          borderBottomColor: theme.divider,
         },
         headerTintColor: theme.primaryText, // Set back button color
       });
     }
-  }, [navigation, coffee, theme]);
+  }, [navigation, coffee, theme, isDarkMode, scrollY, showCoffeeNameInHeader, animatedDefaultTitleStyle, animatedCoffeeTitleStyle]);
 
   // Find and set roaster info when coffee or sellers change
   useEffect(() => {
@@ -510,11 +553,11 @@ export default function CoffeeDetailScreen() {
     if (isInCollection) {
       removeFromCollection(coffee.id);
       setIsInCollection(false);
-      showToast('Removed from saved');
+      showToast('Removed from collection');
     } else {
       addToCollection(coffee);
       setIsInCollection(true);
-      showToast('Saved');
+      showToast('Added to collection');
     }
   };
 
@@ -567,6 +610,44 @@ export default function CoffeeDetailScreen() {
     navigation.navigate('Saved', {
       type: 'coffee'
     });
+  };
+
+  // Function to get country flag emoji
+  const getCountryFlag = (countryName) => {
+    const flagMap = {
+      'bolivia': '🇧🇴',
+      'colombia': '🇨🇴',
+      'guatemala': '🇬🇹',
+      'brazil': '🇧🇷',
+      'ethiopia': '🇪🇹',
+      'kenya': '🇰🇪',
+      'costa rica': '🇨🇷',
+      'peru': '🇵🇪',
+      'rwanda': '🇷🇼',
+      'indonesia': '🇮🇩',
+      'mexico': '🇲🇽',
+      'panama': '🇵🇦',
+      'honduras': '🇭🇳',
+      'nicaragua': '🇳🇮',
+      'el salvador': '🇸🇻',
+      'ecuador': '🇪🇨',
+      'jamaica': '🇯🇲',
+      'yemen': '🇾🇪',
+      'uganda': '🇺🇬',
+      'burundi': '🇧🇮',
+      'tanzania': '🇹🇿',
+      'malawi': '🇲🇼',
+      'zambia': '🇿🇲',
+      'papua new guinea': '🇵🇬',
+      'hawaii': '🇺🇸',
+      'india': '🇮🇳',
+      'vietnam': '🇻🇳',
+      'thailand': '🇹🇭',
+      'china': '🇨🇳'
+    };
+    
+    const normalized = countryName?.toLowerCase().trim();
+    return flagMap[normalized] || '';
   };
 
   const renderRecipeItem = ({ item }) => (
@@ -629,54 +710,52 @@ export default function CoffeeDetailScreen() {
     );
   };
 
-  // Add a renderRatingFilter function to render the rating filter chips
-  const renderRatingFilter = () => {
-    return (
-      <View style={styles.ratingFilterContainer}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.ratingFilterScrollContent}
-        >
-          <TouchableOpacity
-            style={[
-              styles.ratingFilterChip,
-              ratingFilter === 'all' && styles.activeRatingFilterChip
-            ]}
-            onPress={() => setRatingFilter('all')}
-          >
-            <Text style={[
-              styles.ratingFilterText,
-              ratingFilter === 'all' && styles.activeRatingFilterText
-            ]}>All</Text>
-          </TouchableOpacity>
-          
-          {[5, 4, 3, 2, 1].map(rating => (
-            <TouchableOpacity
-              key={`rating-${rating}`}
-              style={[
-                styles.ratingFilterChip,
-                ratingFilter === rating.toString() && styles.activeRatingFilterChip
-              ]}
-              onPress={() => setRatingFilter(rating.toString())}
-            >
-              <View style={styles.ratingFilterStars}>
-                <Text style={[
-                  styles.ratingFilterText,
-                  ratingFilter === rating.toString() && styles.activeRatingFilterText
-                ]}>{rating}</Text>
-                <Ionicons
-                  name="star"
-                  size={14}
-                  color={ratingFilter === rating.toString() ? '#FFFFFF' : '#FFD700'}
-                />
-              </View>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
-    );
+
+
+  // Navigate to CoffeeDiscoveryScreen with specific filter
+  const navigateWithFilter = (filterType, filterValue, filterLabel) => {
+    let categoryId = null;
+    let optionId = null;
+    
+    switch(filterType) {
+      case 'origin':
+        categoryId = 'origin';
+        optionId = filterValue.toLowerCase().replace(/\s+/g, '_');
+        break;
+      case 'region':
+        categoryId = 'region';
+        optionId = filterValue.toLowerCase().replace(/\s+/g, '_');
+        break;
+      case 'process':
+        categoryId = 'process';
+        optionId = filterValue.toLowerCase().replace(/\s+/g, '_');
+        break;
+      case 'roastLevel':
+        categoryId = 'roastLevel';
+        optionId = filterValue.toLowerCase();
+        break;
+      case 'profile':
+        categoryId = 'notes';
+        optionId = filterValue.toLowerCase().replace(/\s+/g, '_');
+        break;
+      case 'varietal':
+        categoryId = 'varietal';
+        optionId = filterValue.toLowerCase().replace(/\s+/g, '_');
+        break;
+      case 'producer':
+        categoryId = 'producer';
+        optionId = filterValue.toLowerCase().replace(/\s+/g, '_');
+        break;
+      default:
+        return;
+    }
+    
+    navigation.navigate('CoffeeDiscovery', { 
+      preselectedFilter: { categoryId, optionId }
+    });
   };
+
+
 
   if (loading) {
     return (
@@ -712,15 +791,28 @@ export default function CoffeeDetailScreen() {
         duration={3000}
       />
       
-      <ScrollView>
+      <ScrollView
+        onScroll={(event) => {
+          const currentScrollY = event.nativeEvent.contentOffset.y;
+          setScrollY(currentScrollY);
+          
+          // Show coffee name in header when scrolled past the coffee name section
+          // The coffee name section ends around 150-180px depending on content
+          const coffeeNameThreshold = 350;
+          setShowCoffeeNameInHeader(currentScrollY > coffeeNameThreshold);
+        }}
+        scrollEventThrottle={16}
+      >
         {/* Coffee Header */}
-        <View style={[styles.header, { backgroundColor: theme.cardBackground }]}>
+        <View style={[styles.header, { backgroundColor: theme.background }]}>
           {/* Coffee Image */}
-          <AppImage 
-            source={coffee.image} 
-            style={styles.coffeeImage}
-            resizeMode="cover"
-          />
+          <View style={[styles.imageContainer, { backgroundColor: isDarkMode ? theme.altBackground : theme.altBackground }]}>
+            <AppImage 
+              source={coffee.image} 
+              style={styles.coffeeImage}
+              resizeMode="cover"
+            />
+          </View>
           <View style={styles.headerContent}>
             <Text style={[styles.coffeeName, { color: theme.primaryText }]}>{coffee.name}</Text>
             
@@ -741,43 +833,28 @@ export default function CoffeeDetailScreen() {
                 />
               )}
               <Text style={[styles.roasterName, { color: theme.secondaryText }]}>{coffee.roaster}</Text>
-              {roasterInfo && roasterInfo.id && (
-                <Ionicons name="chevron-forward" size={16} color={theme.secondaryText} />
-              )}
             </TouchableOpacity>
-            
-            <View style={styles.statsContainer}>
-              <View style={styles.statItem}>
-                <Ionicons name="star" size={16} color={theme.primaryText} />
-                <Text style={[styles.statText, { color: theme.primaryText }]}>{coffee.stats?.rating || 0}</Text>
-                <Text style={[styles.statLabel, { color: theme.secondaryText }]}>({coffee.stats?.reviews || 0})</Text>
-              </View>
-              <View style={styles.statItem}>
-                <Ionicons name="cafe" size={16} color={theme.primaryText} />
-                <Text style={[styles.statText, { color: theme.primaryText }]}>{coffee.stats?.brews || 0}</Text>
-                <Text style={[styles.statLabel, { color: theme.secondaryText }]}>brews</Text>
-              </View>
-              <View style={styles.statItem}>
-                <Ionicons name="heart" size={16} color={theme.primaryText} />
-                <Text style={[styles.statText, { color: theme.primaryText }]}>{coffee.stats?.wishlist || 0}</Text>
-                <Text style={[styles.statLabel, { color: theme.secondaryText }]}>saved</Text>
-              </View>
-            </View>
             
             {/* Action Buttons */}
             <View style={styles.actionButtonsContainer}>
               <TouchableOpacity 
                 style={[
                   styles.actionButton, 
-                  { backgroundColor: theme.secondaryBack },
-                  isInCollection ? [styles.actionButtonActive, { backgroundColor: theme.accent }] : null
+                  { 
+                    backgroundColor: isDarkMode ? theme.cardBackground : theme.background, 
+                    borderColor: 'transparent' 
+                  },
+                  isInCollection ? { 
+                    backgroundColor: isDarkMode ? theme.background : theme.cardBackground, 
+                    borderColor: theme.border 
+                  } : { borderColor: theme.border }
                 ]}
                 onPress={handleAddToCollection}
               >
                 <Ionicons 
                   name={isInCollection ? "checkmark-circle" : "checkmark-circle-outline"} 
                   size={20} 
-                  color={isInCollection ? "#FFFFFF" : theme.primaryText} 
+                  color={isInCollection ? theme.primaryText : theme.primaryText} 
                 />
                 <Text style={[
                   styles.actionButtonText,
@@ -791,20 +868,25 @@ export default function CoffeeDetailScreen() {
               <TouchableOpacity 
                 style={[
                   styles.actionButton, 
-                  { backgroundColor: theme.secondaryBack },
-                  isSaved ? [styles.actionButtonActive, { backgroundColor: theme.accent }] : null
+                  { 
+                    backgroundColor: isDarkMode ? theme.cardBackground : theme.background, 
+                    borderColor: 'transparent' 
+                  },
+                  isSaved ? { 
+                    backgroundColor: isDarkMode ? theme.background : theme.cardBackground, 
+                    borderColor: theme.border 
+                  } : { borderColor: theme.border }
                 ]}
                 onPress={handleSave}
               >
                 <Ionicons 
                   name={isSaved ? "bookmark" : "bookmark-outline"} 
                   size={20} 
-                  color={isSaved ? "#FFFFFF" : theme.primaryText} 
+                  color={isSaved ? theme.primaryText : theme.primaryText} 
                 />
                 <Text style={[
                   styles.actionButtonText,
-                  { color: theme.primaryText },
-                  isSaved ? styles.actionButtonTextActive : null
+                  { color: isSaved ? theme.primaryText : theme.primaryText },
                 ]}>
                   {isSaved ? "Saved" : "Save"}
                 </Text>
@@ -814,24 +896,35 @@ export default function CoffeeDetailScreen() {
         </View>
 
         {/* Coffee Details */}
-        <View style={[styles.section, { backgroundColor: theme.cardBackground }]}>
+        <View style={[styles.section, { backgroundColor: theme.background, borderTopColor: theme.divider }]}>
           <Text style={[styles.sectionTitle, { color: theme.primaryText }]}>Details</Text>
           <View style={styles.detailsGrid}>
-            <View style={styles.detailItem}>
+            <TouchableOpacity 
+              style={styles.detailItem}
+              onPress={() => navigateWithFilter('origin', coffee.origin, coffee.origin)}
+            >
               <Text style={[styles.detailLabel, { color: theme.secondaryText }]}>Origin</Text>
-              <Text style={[styles.detailValue, { color: theme.primaryText }]}>{coffee.origin}</Text>
-            </View>
+              <Text style={[styles.detailValue, { color: theme.primaryText }]}>
+                {getCountryFlag(coffee.origin)} {coffee.origin}
+              </Text>
+            </TouchableOpacity>
             {coffee.region && (
-              <View style={styles.detailItem}>
+              <TouchableOpacity 
+                style={styles.detailItem}
+                onPress={() => navigateWithFilter('region', coffee.region, coffee.region)}
+              >
                 <Text style={[styles.detailLabel, { color: theme.secondaryText }]}>Region</Text>
                 <Text style={[styles.detailValue, { color: theme.primaryText }]}>{coffee.region}</Text>
-              </View>
+              </TouchableOpacity>
             )}
             {coffee.producer && (
-              <View style={styles.detailItem}>
+              <TouchableOpacity 
+                style={styles.detailItem}
+                onPress={() => navigateWithFilter('producer', coffee.producer, coffee.producer)}
+              >
                 <Text style={[styles.detailLabel, { color: theme.secondaryText }]}>Producer</Text>
                 <Text style={[styles.detailValue, { color: theme.primaryText }]}>{coffee.producer}</Text>
-              </View>
+              </TouchableOpacity>
             )}
             {coffee.altitude && (
               <View style={styles.detailItem}>
@@ -840,25 +933,37 @@ export default function CoffeeDetailScreen() {
               </View>
             )}
             {coffee.varietal && (
-              <View style={styles.detailItem}>
+              <TouchableOpacity 
+                style={styles.detailItem}
+                onPress={() => navigateWithFilter('varietal', coffee.varietal, coffee.varietal)}
+              >
                 <Text style={[styles.detailLabel, { color: theme.secondaryText }]}>Varietal</Text>
                 <Text style={[styles.detailValue, { color: theme.primaryText }]}>{coffee.varietal}</Text>
-              </View>
+              </TouchableOpacity>
             )}
-            <View style={styles.detailItem}>
+            <TouchableOpacity 
+              style={styles.detailItem}
+              onPress={() => navigateWithFilter('process', coffee.process, coffee.process)}
+            >
               <Text style={[styles.detailLabel, { color: theme.secondaryText }]}>Process</Text>
               <Text style={[styles.detailValue, { color: theme.primaryText }]}>{coffee.process}</Text>
-            </View>
+            </TouchableOpacity>
             {coffee.profile && (
-              <View style={styles.detailItem}>
+              <TouchableOpacity 
+                style={styles.detailItem}
+                onPress={() => navigateWithFilter('profile', coffee.profile, coffee.profile)}
+              >
                 <Text style={[styles.detailLabel, { color: theme.secondaryText }]}>Profile</Text>
-                <Text style={[styles.detailValue, { color: theme.primaryText }]}>{coffee.profile}</Text>
-              </View>
+                <Text style={[styles.detailValue, styles.detailValueWithPadding, { color: theme.primaryText }]}>{coffee.profile}</Text>
+              </TouchableOpacity>
             )}
-            <View style={styles.detailItem}>
+            <TouchableOpacity 
+              style={styles.detailItem}
+              onPress={() => navigateWithFilter('roastLevel', coffee.roastLevel || 'Medium', coffee.roastLevel || 'Medium')}
+            >
               <Text style={[styles.detailLabel, { color: theme.secondaryText }]}>Roast Level</Text>
               <Text style={[styles.detailValue, { color: theme.primaryText }]}>{coffee.roastLevel || 'Medium'}</Text>
-            </View>
+            </TouchableOpacity>
             <View style={styles.detailItem}>
               <Text style={[styles.detailLabel, { color: theme.secondaryText }]}>Price</Text>
               <Text style={[styles.detailValue, { color: theme.primaryText }]}>{typeof coffee.price === 'number' ? `€${coffee.price.toFixed(2)}` : coffee.price}</Text>
@@ -867,15 +972,15 @@ export default function CoffeeDetailScreen() {
         </View>
 
         {/* Description */}
-        <View style={[styles.section, { backgroundColor: theme.cardBackground }]}>
+        <View style={[styles.section, { backgroundColor: theme.background, borderTopColor: theme.divider }]}>
           <Text style={[styles.sectionTitle, { color: theme.primaryText }]}>Description</Text>
-          <Text style={[styles.descriptionText, { color: theme.primaryText }]} numberOfLines={descriptionExpanded ? undefined : 4}>{coffee.description}</Text>
+          <Text style={[styles.descriptionText, { color: theme.secondaryText }]} numberOfLines={descriptionExpanded ? undefined : 4}>{coffee.description}</Text>
           {coffee.description && coffee.description.length > 150 && (
             <TouchableOpacity 
               style={styles.viewMoreButton} 
               onPress={() => setDescriptionExpanded(!descriptionExpanded)}
             >
-              <Text style={[styles.viewMoreText, { color: theme.accent }]}>
+              <Text style={[styles.viewMoreText, { color: theme.accent, borderBottomColor: theme.accent }]}>
                 {descriptionExpanded ? 'View less' : 'View more'}
               </Text>
             </TouchableOpacity>
@@ -884,7 +989,7 @@ export default function CoffeeDetailScreen() {
 
         {/* Sold By Section */}
         {sellers.length > 0 && (
-          <View style={[styles.sellersContainer, { backgroundColor: theme.cardBackground }]}>
+          <View style={[styles.sellersContainer, { backgroundColor: theme.background, borderTopColor: theme.divider }]}>
             <Text style={[styles.sectionTitle, { color: theme.primaryText }]}>Sold By</Text>
             <FlatList
               data={sellers}
@@ -947,7 +1052,7 @@ export default function CoffeeDetailScreen() {
         )}
 
         {/* Related Recipes */}
-        <View style={[styles.section, { backgroundColor: theme.cardBackground }]}>
+        <View style={[styles.section, { backgroundColor: theme.background, borderTopColor: theme.divider }]}>
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: theme.primaryText }]}>Brewing Recipes</Text>
             <TouchableOpacity 
@@ -958,60 +1063,9 @@ export default function CoffeeDetailScreen() {
             </TouchableOpacity>
           </View>
           
-          {/* Rating filter */}
-          {relatedRecipes.length > 0 && (
-            <View style={styles.ratingFilterContainer}>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.ratingFilterScrollContent}
-              >
-                <TouchableOpacity
-                  style={[
-                    styles.ratingFilterChip,
-                    { backgroundColor: theme.secondaryBack, borderColor: theme.border },
-                    ratingFilter === 'all' && [styles.activeRatingFilterChip, { backgroundColor: theme.accent, borderColor: theme.accent }]
-                  ]}
-                  onPress={() => setRatingFilter('all')}
-                >
-                  <Text style={[
-                    styles.ratingFilterText,
-                    { color: theme.primaryText },
-                    ratingFilter === 'all' && styles.activeRatingFilterText
-                  ]}>All</Text>
-                </TouchableOpacity>
-                
-                {[5, 4, 3, 2, 1].map(rating => (
-                  <TouchableOpacity
-                    key={`rating-${rating}`}
-                    style={[
-                      styles.ratingFilterChip,
-                      { backgroundColor: theme.secondaryBack, borderColor: theme.border },
-                      ratingFilter === rating.toString() && [styles.activeRatingFilterChip, { backgroundColor: theme.accent, borderColor: theme.accent }]
-                    ]}
-                    onPress={() => setRatingFilter(rating.toString())}
-                  >
-                    <View style={styles.ratingFilterStars}>
-                      <Text style={[
-                        styles.ratingFilterText,
-                        { color: theme.primaryText },
-                        ratingFilter === rating.toString() && styles.activeRatingFilterText
-                      ]}>{rating}</Text>
-                      <Ionicons
-                        name="star"
-                        size={14}
-                        color={ratingFilter === rating.toString() ? '#FFFFFF' : '#FFD700'}
-                      />
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-          )}
-          
-          {filteredRelatedRecipes.length > 0 ? (
+          {relatedRecipes.length > 0 ? (
             <FlatList
-              data={filteredRelatedRecipes}
+              data={relatedRecipes}
               renderItem={renderRecipeItem}
               keyExtractor={item => item.id}
               scrollEnabled={false}
@@ -1019,29 +1073,14 @@ export default function CoffeeDetailScreen() {
             />
           ) : (
             <View style={styles.emptyRecipesContainer}>
-              {relatedRecipes.length > 0 ? (
-                <>
-                  <Ionicons name="filter" size={24} color={theme.secondaryText} />
-                  <Text style={[styles.emptyRecipesText, { color: theme.secondaryText }]}>No recipes match this rating filter</Text>
-                  <TouchableOpacity 
-                    style={[styles.resetFilterButton, { backgroundColor: theme.secondaryBack }]}
-                    onPress={() => setRatingFilter('all')}
-                  >
-                    <Text style={[styles.resetFilterText, { color: theme.primaryText }]}>Show All Recipes</Text>
-                  </TouchableOpacity>
-                </>
-              ) : (
-                <>
-                  <Ionicons name="cafe" size={24} color={theme.secondaryText} />
-                  <Text style={[styles.emptyRecipesText, { color: theme.secondaryText }]}>No recipes yet for this coffee</Text>
-                  <TouchableOpacity 
-                    style={[styles.createFirstRecipeButton, { backgroundColor: theme.accent }]}
-                    onPress={navigateToCreateRecipe}
-                  >
-                    <Text style={[styles.createFirstRecipeText, { color: "#FFFFFF" }]}>Create Your First Recipe</Text>
-                  </TouchableOpacity>
-                </>
-              )}
+              <Ionicons name="cafe" size={24} color={theme.secondaryText} />
+              <Text style={[styles.emptyRecipesText, { color: theme.secondaryText }]}>No recipes yet for this coffee</Text>
+              <TouchableOpacity 
+                style={[styles.createFirstRecipeButton, { backgroundColor: theme.accent }]}
+                onPress={navigateToCreateRecipe}
+              >
+                <Text style={[styles.createFirstRecipeText, { color: "#FFFFFF" }]}>Create Your First Recipe</Text>
+              </TouchableOpacity>
             </View>
           )}
         </View>
@@ -1085,16 +1124,19 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: '#FFFFFF',
-    padding: 16,
+  },
+  imageContainer: {
+    backgroundColor: '#FFFFFF',
+    marginBottom: 4,
   },
   coffeeImage: {
     width: '100%',
-    height: 200,
-    borderRadius: 12,
-    // marginBottom: 16,
+    aspectRatio: 5/4,
+    backgroundColor: 'transparent',
   },
   headerContent: {
     marginVertical: 16,
+    paddingHorizontal: 16,
   },
   coffeeName: {
     fontSize: 24,
@@ -1105,6 +1147,7 @@ const styles = StyleSheet.create({
   roasterContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginTop: 4,
     marginBottom: 12,
   },
   roasterName: {
@@ -1124,61 +1167,40 @@ const styles = StyleSheet.create({
   roasterBusinessAvatar: {
     borderRadius: 4,
   },
-  statsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 8,
-  },
-  statItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  statText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#000000',
-    marginLeft: 4,
-    marginRight: 4,
-  },
-  statLabel: {
-    fontSize: 14,
-    color: '#666666',
-  },
+
   actionButtonsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 16,
+    alignItems: 'center',
+    marginTop: 12,
+    marginBottom: 8,
+    gap: 8,
   },
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F2F2F7',
+    // backgroundColor: '#F2F2F7',
     borderRadius: 8,
     paddingVertical: 10,
     paddingHorizontal: 16,
     flex: 1,
-    marginHorizontal: 4,
     borderWidth: 1,
     borderColor: '#E5E5EA',
   },
   actionButtonActive: {
-    backgroundColor: '#000000',
-    borderColor: '#000000',
+    // backgroundColor: '#000000',
+    // borderColor: '#000000',
   },
   actionButtonText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#000000',
     marginLeft: 8,
-  },
-  actionButtonTextActive: {
-    color: '#FFFFFF',
   },
   section: {
     backgroundColor: '#FFFFFF',
     padding: 16,
-    marginTop: 8,
+    borderTopWidth: 1,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -1190,7 +1212,7 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '600',
     color: '#000000',
     marginBottom: 8,
@@ -1223,6 +1245,7 @@ const styles = StyleSheet.create({
   detailsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    marginTop: 12,
   },
   detailItem: {
     width: '50%',
@@ -1238,10 +1261,14 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#000000',
   },
+  detailValueWithPadding: {
+    paddingRight: 16,
+  },
   descriptionText: {
     fontSize: 16,
     color: '#333333',
-    lineHeight: 24,
+    lineHeight: 22.4,
+    // lineHeight: 19.2,
   },
   recipeCard: {
     backgroundColor: '#F8F8F8',
@@ -1380,12 +1407,12 @@ const styles = StyleSheet.create({
     color: '#000000',
   },
   recipeList: {
-    marginTop: 8,
+    // marginTop: 8,
   },
   sellersContainer: {
     padding: 16,
     backgroundColor: '#FFFFFF',
-    marginTop: 8,
+    borderTopWidth: 1,
   },
   sellerItem: {
     flexDirection: 'row',
@@ -1443,57 +1470,12 @@ const styles = StyleSheet.create({
     marginTop: 12,
     marginBottom: 4,
     alignSelf: 'flex-start',
+    textDecorationLine: 'underline',
   },
   viewMoreText: {
-    color: '#000000',
     fontWeight: '500',
     borderBottomWidth: 1,
-    borderBottomColor: '#000000',
   },
-  ratingFilterContainer: {
-    // marginVertical: 12,
-    marginBottom: 12,
-  },
-  ratingFilterScrollContent: {
-    // paddingHorizontal: 8,
-  },
-  ratingFilterChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    backgroundColor: '#F2F2F7',
-    marginHorizontal: 4,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-  },
-  activeRatingFilterChip: {
-    backgroundColor: '#000000',
-    borderColor: '#000000',
-  },
-  ratingFilterText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#000000',
-  },
-  activeRatingFilterText: {
-    color: '#FFFFFF',
-  },
-  ratingFilterStars: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-  },
-  resetFilterButton: {
-    marginTop: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: '#F2F2F7',
-  },
-  resetFilterText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#000000',
-  },
+
+
 }); 
