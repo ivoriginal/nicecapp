@@ -326,7 +326,7 @@ function AppContent() {
                 name="RecipeDetail" 
                 component={RecipeDetailScreen} 
                 options={({ navigation, route }) => ({ 
-                  title: route.params?.recipeName || 'Recipe Details',
+                  title: 'Recipe Details',
                   headerBackTitle: 'Back',
                   headerRight: () => (
                     <TouchableOpacity 
@@ -350,8 +350,8 @@ function AppContent() {
               <Stack.Screen 
                 name="UserProfileScreen" 
                 component={UserProfileScreen} 
-                options={({ route }) => ({ 
-                  title: route.params?.userName || 'Profile',
+                options={() => ({ 
+                  title: '', // Title will be set dynamically by the screen component
                   headerBackTitle: 'Back',
                   headerTransparent: false,
                 })} 
