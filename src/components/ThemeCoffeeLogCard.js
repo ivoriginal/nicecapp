@@ -456,6 +456,7 @@ const ThemeCoffeeLogCard = ({
             onUserPress={() => onUserPress && onUserPress(event.userId)}
             showCoffeeInfo={true}
             compact={false}
+            isRecipeCreationEvent={true}
           />
         </View>
       );
