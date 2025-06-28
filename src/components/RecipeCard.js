@@ -11,7 +11,8 @@ const RecipeCard = ({
   onUserPress,
   showCoffeeInfo = false, 
   style,
-  compact = false
+  compact = false,
+  isRecipeCreationEvent = false
 }) => {
   const { theme, isDarkMode } = useTheme();
   
@@ -49,7 +50,10 @@ const RecipeCard = ({
   };
 
   const method = recipe.method || recipe.brewingMethod || 'V60';
-  const rating = recipe.rating || recipe.averageRating || 0;
+  // Use the new percentage-based rating system
+  const rating = recipe.ratingStats ? 
+    (recipe.ratingStats.goodPercentage / 100 * 5) : // Convert percentage to 5-star scale
+    (recipe.rating || recipe.averageRating || 0);
   const coffeeName = coffee ? coffee.name : 'Coffee';
 
   return (
@@ -58,7 +62,7 @@ const RecipeCard = ({
         styles.container, 
         compact ? styles.compactContainer : {}, 
         { 
-          backgroundColor: theme.cardBackground,
+          backgroundColor: isRecipeCreationEvent && !isDarkMode ? 'transparent' : theme.cardBackground,
           borderColor: theme.divider 
         },
         style
@@ -118,9 +122,18 @@ const RecipeCard = ({
             <Text style={[styles.statValue, { color: theme.primaryText }]}>{recipe.grindSize || 'Medium'}</Text>
           </View>
           
-          <View style={[styles.statItem, styles.lastStatItem]}>
+          <View style={styles.statItem}>
             <Text style={[styles.statLabel, { color: theme.secondaryText }]}>Dose</Text>
-            <Text style={[styles.statValue, { color: theme.primaryText }]}>{recipe.dose || '18g'}</Text>
+            <Text style={[styles.statValue, { color: theme.primaryText }]}>
+              {recipe.coffeeAmount ? `${recipe.coffeeAmount}g` : (recipe.dose || '18g')}
+            </Text>
+          </View>
+          
+          <View style={[styles.statItem, styles.lastStatItem]}>
+            <Text style={[styles.statLabel, { color: theme.secondaryText }]}>Water</Text>
+            <Text style={[styles.statValue, { color: theme.primaryText }]}>
+              {recipe.waterAmount ? `${recipe.waterAmount}g` : '300g'}
+            </Text>
           </View>
         </View>
       </View>
