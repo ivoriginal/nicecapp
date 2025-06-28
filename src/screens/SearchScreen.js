@@ -1033,7 +1033,7 @@ export default function SearchScreen() {
     return (
       <View style={styles.carouselSection}>
         <View style={styles.sectionHeader}>
-          <Text style={[styles.carouselSectionTitle, { color: theme.primaryText }]}>Popular Coffees</Text>
+          <Text style={[styles.carouselSectionTitle, { color: theme.primaryText }]}>Discover Coffee</Text>
           <TouchableOpacity onPress={() => navigation.navigate('CoffeeDiscovery')}>
             <Text style={[styles.viewAllText, { color: theme.primaryText, borderBottomColor: theme.primaryText }]}>View more</Text>
           </TouchableOpacity>
