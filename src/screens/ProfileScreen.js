@@ -224,22 +224,20 @@ export default function ProfileScreen() {
   useEffect(() => {
     console.log('ProfileScreen - Initial mount, setting default states');
     
-    // Disable refresh control on initial load
-    setEnableRefreshControl(false);
-    
     // Set initial load flag
     setIsInitialLoad(true);
     
-    // Initialize with the current account
-    initializeWithAccount(currentAccount);
+    // Just set default data immediately without triggering refresh
+    const defaultAccountData = defaultUsers[currentAccount] || defaultUsers['user1'];
+    setCurrentUserData(defaultAccountData);
     
-    // Enable scrolling after initial render with a delay
+    // Enable refresh control immediately but don't auto-refresh
     setTimeout(() => {
-      console.log('ProfileScreen - Enabling refresh control after initial delay');
+      console.log('ProfileScreen - Enabling refresh control without auto-refresh');
       setEnableRefreshControl(true);
       setIsInitialLoad(false);
       setLastUpdate(Date.now());
-    }, 1000);
+    }, 100); // Reduced from 1000ms to 100ms for faster interaction
   }, []);
   
   // Helper function to initialize with a specific account
@@ -253,10 +251,7 @@ export default function ProfileScreen() {
         return;
       }
       
-      // Reset scroll position on account change
-      if (scrollViewRef.current) {
-        scrollViewRef.current.scrollTo({ x: 0, y: 0, animated: false });
-      }
+      // Don't reset scroll position automatically - let user maintain their position
       
       // Make sure we have default data immediately
       const defaultAccountData = defaultUsers[accountId] || defaultUsers['user1'];
@@ -349,7 +344,7 @@ export default function ProfileScreen() {
     return [];
   };
 
-  // Load data on mount and when current account changes
+  // Load data on mount and when current account changes - but be less aggressive to prevent unwanted scrolling
   useEffect(() => {
     console.log('Current user updated:', user);
     console.log('Display name:', displayName);
@@ -359,12 +354,13 @@ export default function ProfileScreen() {
     console.log('Coffee Collection count:', coffeeCollection?.length);
     console.log('Coffee Wishlist count:', coffeeWishlist?.length);
 
-    // If user is undefined or null after loading, try to load data again
-    if (!user && !loading && !contextError) {
-      console.log('User data missing, reloading...');
+    // Only reload if user is truly missing AND we're not already loading AND this isn't just a normal state update
+    // This prevents unnecessary refreshes that cause the "moving down" behavior
+    if (!user && !loading && !contextError && !userData) {
+      console.log('User data truly missing, reloading...');
       initializeWithAccount(currentAccount);
     }
-  }, [user, currentAccount, loading, contextError]);
+  }, [currentAccount]); // Removed user, loading, contextError dependencies to prevent frequent triggers
 
   // Toast state
   const [toastVisible, setToastVisible] = useState(false);
@@ -451,11 +447,8 @@ export default function ProfileScreen() {
               gear: updatedUserData.gear
             });
             
-            // Force refresh data to update the UI
-            console.log('Forcing refresh to update the UI with new user data');
-            setTimeout(() => {
-              loadData(currentAccount);
-            }, 100);
+            // Don't force refresh data to avoid unwanted scrolling - the UI update above is sufficient
+            console.log('User data updated in UI - not forcing refresh to prevent scroll movement');
             
             // Clear the updatedUserData param to avoid re-processing
             navigation.setParams({ updatedUserData: null });
@@ -466,15 +459,21 @@ export default function ProfileScreen() {
         }
       } else {
         // Only refresh data if:
-        // 1. It's the first load of the app (isInitialLoad = true)
-        // 2. We haven't refreshed in a long time (> 30 seconds)
+        // 1. It's the first load of the app (isInitialLoad = true) - but we'll let the initial useEffect handle this
+        // 2. We haven't refreshed in a very long time (> 5 minutes = 300000ms)
         // 3. User has explicitly pulled down to refresh (this is handled separately by the ScrollView's refreshControl)
-        if (currentAccount && !refreshing && !loading && 
-            (isInitialLoad || timeSinceLastUpdate > 30000)) {
-          console.log(`Refreshing profile data. Initial load: ${isInitialLoad}, Time since last update: ${timeSinceLastUpdate}ms`);
-          handleRefresh();
+        // Removed automatic refresh on focus to prevent the annoying "moving down" behavior
+        if (currentAccount && !refreshing && !loading && isInitialLoad && timeSinceLastUpdate > 300000) {
+          console.log(`Refreshing profile data only on very long intervals. Initial load: ${isInitialLoad}, Time since last update: ${timeSinceLastUpdate}ms`);
+          // Don't auto-refresh on normal focus events - let user pull to refresh if they want fresh data
           setIsInitialLoad(false);
           setLastUpdate(now);
+        } else {
+          // Just mark as no longer initial load without refreshing
+          if (isInitialLoad) {
+            setIsInitialLoad(false);
+            setLastUpdate(now);
+          }
         }
       }
 
@@ -852,7 +851,7 @@ export default function ProfileScreen() {
         contentContainerStyle={{ paddingTop: 0 }}
         scrollToOverflowEnabled={false}
         automaticallyAdjustContentInsets={false}
-        scrollsToTop={true}
+        scrollsToTop={false}
         keyboardShouldPersistTaps="handled"
         scrollEnabled={true}
         ref={scrollViewRef}
@@ -881,7 +880,7 @@ export default function ProfileScreen() {
         <View style={[styles.followStatsContainer, { backgroundColor: theme.background }]}>
           <TouchableOpacity 
             style={styles.followStat}
-            onPress={() => setActiveTab('coffee')}
+            onPress={() => setActiveTab(isBusinessAccount ? 'shop' : 'collection')}
           >
             <Text style={[styles.followStatNumber, { color: theme.primaryText }]}>
               {coffeeEvents?.length || 0}
@@ -1468,15 +1467,9 @@ export default function ProfileScreen() {
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
-      // Only refresh data when coming from a screen that might have changed data
-      // This avoids refreshing when coming back from gear-related screens
-      const previousScreen = navigation.getState()?.routes?.[navigation.getState().index - 1]?.name;
-      const skipRefreshScreens = ['GearWishlist', 'GearDetail'];
-      
-      if (!skipRefreshScreens.includes(previousScreen)) {
-        // This ensures data is fresh when returning to this screen from non-gear screens
-        handleRefresh();
-      }
+      // Don't auto-refresh on focus - this was causing the annoying "moving down" behavior
+      // User can manually pull-to-refresh if they want fresh data
+      console.log('ProfileScreen focused - not auto-refreshing to prevent unwanted scroll movement');
     });
     
     // Cleanup
@@ -1485,7 +1478,7 @@ export default function ProfileScreen() {
         unsubscribe();
       }
     };
-  }, [currentAccount, handleRefresh, navigation]);
+  }, [currentAccount, navigation]);
 
   // Listen for profile updates
   useEffect(() => {
@@ -1507,10 +1500,7 @@ export default function ProfileScreen() {
           showToast(data.message);
         }
         
-        // Force refresh data to update the UI
-        setTimeout(() => {
-          loadData(currentAccount);
-        }, 100);
+        // Don't force refresh to avoid unwanted scrolling - the state update above is sufficient
       }
     };
     

@@ -248,10 +248,11 @@ export default function UserProfileScreen() {
   useEffect(() => {
     loadProfileData();
     
-    // Add navigation focus listener to ensure data is reloaded when screen comes into focus
+    // Add navigation focus listener - but don't auto-refresh on every focus to prevent annoying "moving down" behavior
     const unsubscribe = navigation.addListener('focus', () => {
-      // This ensures data is fresh when returning to this screen
-      loadProfileData();
+      // Only refresh if coming from screens that might have changed data (like editing)
+      // Most of the time, users just want to view the profile without it reloading
+      console.log('UserProfileScreen focused - not auto-refreshing to prevent unwanted movement');
     });
     
     // Cleanup
