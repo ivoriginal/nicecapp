@@ -68,6 +68,7 @@ const ThemeCoffeeLogCard = ({
           options,
           destructiveButtonIndex,
           cancelButtonIndex,
+          userInterfaceStyle: isDarkMode ? 'dark' : 'light',
         },
         (buttonIndex) => {
           if (isCurrentUserPost && buttonIndex === 0) {
@@ -94,7 +95,10 @@ const ThemeCoffeeLogCard = ({
                     showToast && showToast('Post deleted');
                   }
                 }
-              ]
+              ],
+              {
+                userInterfaceStyle: isDarkMode ? 'dark' : 'light'
+              }
             );
           }
         }
@@ -123,7 +127,10 @@ const ThemeCoffeeLogCard = ({
                       showToast && showToast('Post deleted');
                     }
                   }
-                ]
+                ],
+                {
+                  userInterfaceStyle: isDarkMode ? 'dark' : 'light'
+                }
               );
             }
           },
@@ -132,7 +139,10 @@ const ThemeCoffeeLogCard = ({
           { text: "Report", onPress: () => onOptionsPress && onOptionsPress(event, 'report') },
           { text: "Share this post", onPress: handleShare },
           { text: "Cancel", style: "cancel" },
-        ]
+        ],
+        {
+          userInterfaceStyle: isDarkMode ? 'dark' : 'light'
+        }
       );
     }
   };
@@ -163,48 +173,68 @@ const ThemeCoffeeLogCard = ({
     onLikePress && onLikePress(event.id, newIsLiked);
   };
 
+  // Format event timestamp for display
+  const formatEventTimestamp = (timestamp) => {
+    if (!timestamp) return '';
+    
+    const eventDate = new Date(timestamp);
+    const now = new Date();
+    const diffInHours = Math.abs(now - eventDate) / (1000 * 60 * 60);
+    
+    if (diffInHours < 1) {
+      const diffInMinutes = Math.floor(diffInHours * 60);
+      return diffInMinutes === 0 ? 'now' : `${diffInMinutes}m`;
+    } else if (diffInHours < 24) {
+      return `${Math.floor(diffInHours)}h`;
+    } else {
+      const diffInDays = Math.floor(diffInHours / 24);
+      return `${diffInDays}d`;
+    }
+  };
+
   // Get event type icon
   const getEventTypeIcon = () => {
-    const type = event.type || 'coffee_log';
-    
-    switch (type) {
-      case 'coffee_announcement': return 'megaphone';
-      case 'added_to_collection': return 'bookmark';
-      case 'added_to_wishlist': return 'heart';
-      case 'saved_recipe': return 'newspaper';
-      case 'followed_user': return 'person-add';
-      case 'created_recipe': return 'create';
-      case 'added_to_gear_wishlist': return 'cart';
-      case 'gear_added': return 'hardware-chip';
-      case 'similar_coffee_recommendation': return 'sparkles';
-      case 'user_recommendation': return 'people';
-      case 'remixed_recipe': return 'git-branch';
-      default: return 'cafe';
+    if (event.type === 'recipe_creation' || event.type === 'created_recipe') {
+      return 'document-text-outline';
     }
+    
+    if (event.gearId) {
+      return 'build-outline';
+    }
+    
+    if (event.hasRecipe || event.method || event.brewingMethod) {
+      return 'document-text-outline';
+    }
+    
+    return 'cafe-outline';
   };
 
   // Get event type label based on the event type
   const getEventTypeLabel = () => {
-    const type = event.type || 'coffee_log';
-    
-    // If it's a coffee log and has a location (not home), show "ordered"
-    if ((!type || type === 'coffee_log') && event.locationId && event.locationId !== 'home') {
-      return 'ordered';
+    if (event.type === 'recipe_creation' || event.type === 'created_recipe') {
+      if (event.isRemix) {
+        return `remixed a recipe`;
+      }
+      return `created a recipe`;
     }
     
-    switch (type) {
-      case 'coffee_log': return 'brewed';
-      case 'coffee_announcement': return 'added to shop';
-      case 'added_to_collection': return 'added to collection';
-      case 'added_to_wishlist': return 'added to wishlist';
-      case 'saved_recipe': return 'saved a recipe';
-      case 'followed_user': return 'followed';
-      case 'created_recipe': return 'created a recipe';
-      case 'added_to_gear_wishlist': return 'wishlisted';
-      case 'gear_added': return 'added gear';
-      case 'remixed_recipe': return 'remixed a recipe';
-      default: return 'brewed';
+    if (event.gearId) {
+      return 'added to inventory';
     }
+    
+    if (event.hasRecipe || event.method || event.brewingMethod) {
+      if (event.locationId && event.locationId !== 'home') {
+        return 'ordered';
+      }
+      return 'brewed';
+    }
+    
+    // Handle business coffee announcements
+    if (event.type === 'coffee_announcement' && isBusinessAccount) {
+      return 'added to store';
+    }
+    
+    return 'tried';
   };
 
   // Render a coffee card
@@ -391,115 +421,130 @@ const ThemeCoffeeLogCard = ({
 
   // Render different event types
   const renderEventContent = () => {
-    const type = event.type || 'coffee_log';
-    
-    // Default coffee log
-    if (!type || type === 'coffee_log' || 
-        ((!event.type || event.type === 'coffee_announcement') && event.coffeeId && event.coffeeName)) {
-      return renderCoffeeCard();
-    }
-    
-    // Added to collection event
-    if (type === 'added_to_collection') {
-      return renderCoffeeCard();
-    }
-    
-    // Recipe-related events that should show coffee cards
-    if (type === 'saved_recipe' || type === 'created_recipe' || type === 'remixed_recipe') {
-      return renderCoffeeCard();
-    }
-    
-    // Recommendation events that should show coffee cards
-    if (type === 'similar_coffee_recommendation') {
-      // For similar coffee recommendations, we need to render multiple coffee options
-      if (event.similarCoffees && event.similarCoffees.length > 0) {
-        return (
-          <View style={styles.contentContainer}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.similarCoffeesContainer}>
-              {event.similarCoffees.map((coffee, index) => (
-                <TouchableOpacity 
-                  key={coffee.id || index}
-                  style={[styles.similarCoffeeCard, index === event.similarCoffees.length - 1 && styles.lastSimilarCoffeeCard]}
-                  onPress={() => onCoffeePress && onCoffeePress({
-                    ...event,
-                    coffeeId: coffee.id,
-                    coffeeName: coffee.name,
-                    roaster: coffee.roaster,
-                    imageUrl: coffee.imageUrl,
-                    type: 'coffee_recommendation'
-                  })}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.similarCoffeeImageContainer}>
-                    <AppImage source={coffee.imageUrl} style={styles.similarCoffeeImage} placeholder="cafe" />
-                  </View>
-                  <Text style={styles.similarCoffeeName} numberOfLines={1} ellipsizeMode="tail">{coffee.name}</Text>
-                  <Text style={styles.similarCoffeeRoaster} numberOfLines={1} ellipsizeMode="tail">{coffee.roaster || 'Unknown Roaster'}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        );
-      }
-      return renderCoffeeCard();
-    }
-    
-    // User recommendation events
-    if (type === 'user_recommendation') {
-      // Check if recommended user is a business account
-      const isRecommendedUserBusiness = isBusinessName(event.recommendedUserName);
-      
+    // Handle recipe creation events - just show the recipe card without duplicate header
+    if (event.type === 'recipe_creation' || event.type === 'created_recipe') {
+      const recipe = {
+        id: event.recipeId,
+        name: event.recipeName || `${event.coffeeName} ${event.method}`,
+        method: event.method,
+        amount: event.amount,
+        grindSize: event.grindSize,
+        waterVolume: event.waterVolume,
+        brewTime: event.brewTime,
+        notes: event.notes,
+        userName: event.userName,
+        userAvatar: event.userAvatar,
+        userId: event.userId,
+        coffeeId: event.coffeeId,
+        coffeeName: event.coffeeName,
+        roaster: event.roaster,
+        imageUrl: event.imageUrl,
+        timestamp: event.timestamp,
+        // Add remix info if applicable
+        ...(event.isRemix ? {
+          basedOnRecipeId: event.basedOnRecipeId,
+          basedOnRecipeName: event.basedOnRecipeName,
+          basedOnCreatorName: event.basedOnCreatorName
+        } : {})
+      };
+
       return (
         <View style={styles.contentContainer}>
-          <View style={styles.userRecommendationCard}>
-            <TouchableOpacity 
-              style={styles.userRecommendationInfo}
-              onPress={() => onUserPress && onUserPress({
-                userId: event.recommendedUserId,
-                userName: event.recommendedUserName,
-                userAvatar: event.recommendedUserAvatar
-              })}
-              activeOpacity={0.7}
-            >
+          <RecipeCard
+            recipe={recipe}
+            onPress={() => onRecipePress && onRecipePress(recipe)}
+            onUserPress={() => onUserPress && onUserPress(event.userId)}
+            showCoffeeInfo={true}
+            compact={false}
+          />
+        </View>
+      );
+    }
+
+    // Handle gear events
+    if (event.gearId) {
+      return renderGearCard();
+    }
+
+    // Handle similar coffee recommendation events - show horizontal cards
+    if (event.type === 'similar_coffee_recommendation') {
+      return (
+        <View style={styles.similarCoffeesContainer}>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 12 }}
+          >
+            {event.similarCoffees && event.similarCoffees.map((coffee, index) => (
+              <TouchableOpacity
+                key={coffee.id || index}
+                style={[
+                  styles.similarCoffeeCard,
+                  index === event.similarCoffees.length - 1 && styles.lastSimilarCoffeeCard
+                ]}
+                onPress={() => onCoffeePress && onCoffeePress(coffee)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.similarCoffeeImageContainer}>
+                  <AppImage 
+                    source={coffee.image || coffee.imageUrl} 
+                    style={styles.similarCoffeeImage}
+                    placeholder="cafe" 
+                  />
+                </View>
+                <Text style={styles.similarCoffeeName} numberOfLines={1} ellipsizeMode="tail">
+                  {coffee.name}
+                </Text>
+                <Text style={styles.similarCoffeeRoaster} numberOfLines={1} ellipsizeMode="tail">
+                  {coffee.roaster}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      );
+    }
+
+    // Handle user recommendation events - show the recommended user
+    if (event.type === 'user_recommendation') {
+      return (
+        <View style={styles.contentContainer}>
+          <TouchableOpacity 
+            style={styles.userRecommendationCard}
+            onPress={() => onUserPress && onUserPress({
+              userId: event.recommendedUserId || event.userId,
+              userName: event.recommendedUserName || event.userName,
+              userAvatar: event.recommendedUserAvatar || event.userAvatar,
+              isBusiness: event.recommendedUserIsBusiness || false
+            })}
+            activeOpacity={0.7}
+          >
+            <View style={styles.userRecommendationInfo}>
               <AppImage 
-                source={event.recommendedUserAvatar} 
+                source={event.recommendedUserAvatar || event.userAvatar} 
                 style={[
                   styles.recommendedUserAvatar,
-                  isRecommendedUserBusiness ? styles.recommendedBusinessAvatar : null
+                  (event.recommendedUserIsBusiness || isBusinessName(event.recommendedUserName || event.userName)) && styles.recommendedBusinessAvatar
                 ]}
                 placeholder="person" 
               />
               <View style={styles.recommendedUserInfo}>
-                <Text style={styles.recommendedUserName}>{event.recommendedUserName}</Text>
-                <Text style={styles.recommendedUserHandle}>{event.recommendedUserHandle}</Text>
+                <Text style={styles.recommendedUserName}>{event.recommendedUserName || event.userName}</Text>
               </View>
-            </TouchableOpacity>
-            <FollowButton
-              userId={event.recommendedUserId}
-              userName={event.recommendedUserName}
-              size="small"
-              onFollowChange={(userId, isFollowing) => {
-                console.log(`Follow status changed for ${userId}: ${isFollowing}`);
-              }}
+            </View>
+            <FollowButton 
+              userId={event.recommendedUserId || event.userId}
+              isFollowing={false}
+              onToggleFollow={() => {}}
+              compact={true}
             />
-          </View>
+          </TouchableOpacity>
         </View>
       );
     }
-    
-    // Gear events
-    if (type === 'gear_added' || type === 'added_to_gear_wishlist') {
-      return renderGearCard();
-    }
-    
-    // Default fallback
-    return (
-      <View style={styles.contentContainer}>
-        <View style={styles.genericEventContainer}>
-          <Text style={styles.genericEventText}>Unsupported event type: {type}</Text>
-        </View>
-      </View>
-    );
+
+    // Handle regular coffee events
+    return renderCoffeeCard();
   };
   
   const navigation = useNavigation();
@@ -694,7 +739,8 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
   },
   userAction: {
     fontSize: 14,
-    fontWeight: '400',
+    fontWeight: '300',
+    // fontWeight: '400',
     flexShrink: 1,
     // color: theme.secondaryText,
   },
@@ -728,6 +774,7 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
     } : {
       borderWidth: 1,
       borderColor: theme.border,
+      // backgroundColor: theme.altBackground,
     }),
     borderRadius: 16,
     overflow: 'hidden',
@@ -835,8 +882,7 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
   },
   notesText: {
     fontSize: 14,
-    // color: theme.secondaryText,
-    color: theme.primaryText,
+    color: theme.secondaryText,
   },
   metadataContainer: {
     marginTop: 12,
@@ -964,11 +1010,13 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
   },
   similarCoffeesContainer: {
     // paddingHorizontal: 12,
+    paddingBottom: 20,
   },
   similarCoffeeCard: {
     ...(isDarkMode ? {
       backgroundColor: theme.cardBackground,
-      borderWidth: 0,
+      borderWidth: 1,
+      borderColor: theme.border,
     } : {
       borderWidth: 1,
       borderColor: theme.border,
@@ -976,12 +1024,14 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
     borderRadius: 12,
     marginRight: 12,
     width: 124,
+    paddingBottom: 12,
     // padding: 8,
     // height: 165, // Fixed height for consistent card sizes
   },
   lastSimilarCoffeeCard: {
     // marginRight: 12,
-    paddingBottom: 12,
+    // paddingBottom: 12,
+    marginRight: 0,
   },
   similarCoffeeImageContainer: {
     width: isDarkMode ? 124 : 122, // Account for borders in light mode
@@ -990,8 +1040,9 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
     borderTopRightRadius: 12,
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
+    // borderRadius: 4,
     overflow: 'hidden',
-    marginBottom: 8,
+    marginBottom: 12,
     backgroundColor: theme.placeholder,
     alignSelf: 'center',
   },
@@ -999,9 +1050,11 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
     width: '100%',
     height: '100%',
     resizeMode: 'cover',
+    // backgroundColor: theme.placeholder,
+    backgroundColor: isDarkMode ? '#FFFFFF' : theme.placeholder,
   },
   similarCoffeeName: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '600',
     color: theme.primaryText,
     marginBottom: 4,
@@ -1148,6 +1201,70 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
     fontWeight: '500',
     color: theme.primaryText,
   },
+     eventContainer: {
+     backgroundColor: '#FFFFFF',
+     borderRadius: 12,
+     marginVertical: 8,
+     shadowColor: '#000',
+     shadowOffset: { width: 0, height: 2 },
+     shadowOpacity: 0.1,
+     shadowRadius: 4,
+     elevation: 3,
+   },
+   eventHeader: {
+     flexDirection: 'row',
+     justifyContent: 'space-between',
+     alignItems: 'center',
+     padding: 12,
+   },
+   userInfo: {
+     flexDirection: 'row',
+     alignItems: 'center',
+     flex: 1,
+   },
+   userDetails: {
+     flex: 1,
+     marginLeft: 12,
+   },
+   userNameContainer: {
+     flexDirection: 'row',
+     alignItems: 'center',
+   },
+  //  userName: {
+  //   //  fontSize: 16,
+  //    fontWeight: '600',
+  //    marginRight: 4,
+  //  },
+   verifiedIcon: {
+     marginLeft: 4,
+   },
+   eventTypeContainer: {
+     flexDirection: 'row',
+     alignItems: 'center',
+     marginTop: 2,
+   },
+   eventTypeIcon: {
+     marginRight: 4,
+   },
+   eventType: {
+     fontSize: 14,
+     flex: 1,
+   },
+   eventTimestamp: {
+     fontSize: 12,
+     marginLeft: 8,
+   },
+   remixAttribution: {
+     fontStyle: 'italic',
+   },
+   recipeCardContainer: {
+     paddingHorizontal: 12,
+     paddingBottom: 12,
+   },
+   optionsButton: {
+     padding: 8,
+     borderRadius: 16,
+   },
 });
 
 export default ThemeCoffeeLogCard; 
