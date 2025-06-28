@@ -2,14 +2,14 @@
   "recipes": [
     {
       "id": "recipe1",
-      "name": "Perfect V60 Method",
+      "name": "V60 Villa Rosario",
       "coffeeId": "coffee-villa-rosario",
       "coffeeName": "Villa Rosario",
       "roaster": "Kima Coffee",
       "creatorId": "user7",
       "creatorName": "Sophia Miller",
       "creatorAvatar": "https://randomuser.me/api/portraits/women/68.jpg",
-      "brewingMethod": "Pour Over",
+      "brewingMethod": "V60",
       "grindSize": "Medium",
       "coffeeAmount": 22,
       "waterAmount": 350,
@@ -24,7 +24,15 @@
       "likes": 124,
       "saves": 87,
       "logs": 27,
-      "averageRating": 4.3,
+      "ratingStats": {
+        "good": 78,
+        "meh": 18,
+        "bad": 4,
+        "total": 100,
+        "goodPercentage": 78,
+        "mehPercentage": 18,
+        "badPercentage": 4
+      },
       "loggedUsers": ["user1", "user5", "user9", "user10", "user7"],
       "savedUsers": [
         {
@@ -43,6 +51,33 @@
           "avatar": "https://randomuser.me/api/portraits/women/12.jpg"
         }
       ],
+      "equipment": [
+        {
+          "id": "gear4",
+          "name": "Hario V60",
+          "type": "Pour Over",
+          "brand": "Hario"
+        },
+        {
+          "id": "gear3",
+          "name": "Comandante C40 MK4",
+          "type": "Grinder",
+          "brand": "Comandante",
+          "grinderSettings": "18 clicks"
+        },
+        {
+          "id": "gear1",
+          "name": "Fellow Stagg EKG",
+          "type": "Kettle",
+          "brand": "Fellow"
+        },
+        {
+          "id": "gear12",
+          "name": "Hario V60 Paper Filters",
+          "type": "Accessories",
+          "brand": "Hario"
+        }
+      ],
       "imageUrl": "https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728",
       "date": "2023-11-20T14:30:00Z",
       "isTrending": true,
@@ -51,7 +86,7 @@
     },
     {
       "id": "recipe2",
-      "name": "AeroPress Inverted Method",
+      "name": "AeroPress Villa Rosario",
       "coffeeId": "coffee-villa-rosario",
       "coffeeName": "Villa Rosario",
       "roaster": "Kima Coffee",
@@ -98,8 +133,16 @@
       "likes": 89,
       "saves": 62,
       "logs": 4,
-      "averageRating": 4.8,
-      "loggedUsers": ["user2", "user1", "user6", "user7"],
+      "ratingStats": {
+        "good": 85,
+        "meh": 12,
+        "bad": 3,
+        "total": 100,
+        "goodPercentage": 85,
+        "mehPercentage": 12,
+        "badPercentage": 3
+      },
+      "loggedUsers": ["user2", "user1", "user7", "user10"],
       "savedUsers": [
         {
           "id": "user2",
@@ -112,9 +155,9 @@
           "avatar": "assets/users/ivo-vilches.jpg"
         },
         {
-          "id": "user6",
-          "name": "David Kim",
-          "avatar": "https://randomuser.me/api/portraits/men/45.jpg"
+          "id": "user7",
+          "name": "Sophia Miller",
+          "avatar": "https://randomuser.me/api/portraits/women/68.jpg"
         }
       ],
       "imageUrl": "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd",
@@ -125,9 +168,9 @@
     },
     {
       "id": "recipe3",
-      "name": "Cold Brew Concentrate",
-      "coffeeId": "coffee-kuria",
-      "coffeeName": "Kuria",
+      "name": "Cold Brew Kirunga",
+      "coffeeId": "coffee-kirunga",
+      "coffeeName": "Kirunga",
       "roaster": "Kima Coffee",
       "creatorId": "user10",
       "creatorName": "Lucas Brown",
@@ -144,11 +187,19 @@
         {"time": "0:10", "water": "0", "description": "Stir gently to ensure all grounds are wet"},
         {"time": "16:00", "water": "0", "description": "Filter through paper filter"}
       ],
-      "notes": "This coffee's vibrant red fruit notes make it perfect for cold brew",
+      "notes": "This Rwandan coffee's vibrant red fruit notes make it perfect for cold brew",
       "likes": 156,
       "saves": 110,
       "logs": 35,
-      "averageRating": 4.6,
+      "ratingStats": {
+        "good": 72,
+        "meh": 22,
+        "bad": 6,
+        "total": 100,
+        "goodPercentage": 72,
+        "mehPercentage": 22,
+        "badPercentage": 6
+      },
       "loggedUsers": ["user7", "user9", "user3", "user1", "user5", "user10"],
       "savedUsers": [
         {
@@ -167,7 +218,16 @@
           "avatar": "assets/users/carlos-hernandez.jpg"
         }
       ],
-      "imageUrl": "https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728",
+      "equipment": [
+        {
+          "id": "gear2",
+          "name": "Baratza Encore",
+          "type": "Grinder",
+          "brand": "Baratza",
+          "grinderSettings": "30"
+        }
+      ],
+      "imageUrl": "https://kimacoffee.com/cdn/shop/files/A40D5DFF-1058-43A3-9C31-F87C8482EDD8_900x.png?v=1741929637",
       "date": "2023-11-28T12:00:00Z",
       "isTrending": true,
       "type": "recipe",
@@ -175,7 +235,7 @@
     },
     {
       "id": "recipe-vertigo-toma-1",
-      "name": "Titus A V60 Recipe",
+      "name": "V60 Titus A",
       "coffeeId": "coffee-titus-a",
       "coffeeName": "Titus A",
       "roaster": "Toma Café",
@@ -194,11 +254,20 @@
         {"time": "1:30", "water": "75", "description": "Pour in spirals to 175g total"},
         {"time": "2:00", "water": "75", "description": "Final pour to 250g total"}
       ],
-      "notes": "This Ruandan coffee is exceptional through V60 - pronounced frutos rojos and té negro notes.",
+      "notes": "This Rwandan coffee is exceptional through V60 - pronounced frutos rojos and té negro notes.",
       "likes": 78,
       "saves": 45,
-      "logs": 0,
-      "loggedUsers": [],
+      "logs": 12,
+      "ratingStats": {
+        "good": 80,
+        "meh": 15,
+        "bad": 5,
+        "total": 100,
+        "goodPercentage": 80,
+        "mehPercentage": 15,
+        "badPercentage": 5
+      },
+      "loggedUsers": ["user2", "user1", "user5"],
       "savedUsers": [
         {
           "id": "user1",
@@ -211,6 +280,27 @@
           "avatar": "https://randomuser.me/api/portraits/women/33.jpg"
         }
       ],
+      "equipment": [
+        {
+          "id": "gear4",
+          "name": "Hario V60",
+          "type": "Pour Over",
+          "brand": "Hario"
+        },
+        {
+          "id": "gear3",
+          "name": "Comandante C40 MK4",
+          "type": "Grinder",
+          "brand": "Comandante",
+          "grinderSettings": "16 clicks"
+        },
+        {
+          "id": "gear12",
+          "name": "Hario V60 Paper Filters",
+          "type": "Accessories",
+          "brand": "Hario"
+        }
+      ],
       "imageUrl": "https://cdn.shopify.com/s/files/1/0561/2172/1001/files/RUAN_TIT_fbc05869-95f3-47c4-9f73-09f1d290f3c6_800x.jpg?v=1741186794",
       "date": "2023-11-20T09:30:00Z",
       "isTrending": false,
@@ -219,7 +309,7 @@
     },
     {
       "id": "recipe-refisa-g1-espresso",
-      "name": "Refisa G1 Espresso",
+      "name": "Espresso Refisa G1",
       "coffeeId": "coffee-refisa-g1",
       "coffeeName": "Refisa G1",
       "roaster": "Toma Café",
@@ -241,7 +331,15 @@
       "likes": 45,
       "saves": 32,
       "logs": 7,
-      "averageRating": 4.5,
+      "ratingStats": {
+        "good": 89,
+        "meh": 8,
+        "bad": 3,
+        "total": 100,
+        "goodPercentage": 89,
+        "mehPercentage": 8,
+        "badPercentage": 3
+      },
       "loggedUsers": ["user2", "user1", "user7"],
       "savedUsers": [
         {
@@ -255,6 +353,21 @@
           "avatar": "https://randomuser.me/api/portraits/women/68.jpg"
         }
       ],
+      "equipment": [
+        {
+          "id": "gear10",
+          "name": "9Barista Espresso Machine Mk.1",
+          "type": "Espresso Machine",
+          "brand": "9Barista"
+        },
+        {
+          "id": "gear3",
+          "name": "Comandante C40 MK4",
+          "type": "Grinder",
+          "brand": "Comandante",
+          "grinderSettings": "6 clicks"
+        }
+      ],
       "imageUrl": "https://cdn.shopify.com/s/files/1/0561/2172/1001/files/ET_REF_G1_800x.jpg?v=1738771773",
       "date": "2023-12-12T11:00:00Z",
       "isTrending": false,
@@ -263,7 +376,7 @@
     },
     {
       "id": "recipe-coffee-0-1",
-      "name": "Villa Rosario V60",
+      "name": "V60 Villa Rosario",
       "coffeeId": "coffee-villa-rosario",
       "coffeeName": "Villa Rosario",
       "roaster": "Kima Coffee",
@@ -285,7 +398,15 @@
       "likes": 65,
       "saves": 42,
       "logs": 8,
-      "averageRating": 4.7,
+      "ratingStats": {
+        "good": 92,
+        "meh": 6,
+        "bad": 2,
+        "total": 100,
+        "goodPercentage": 92,
+        "mehPercentage": 6,
+        "badPercentage": 2
+      },
       "loggedUsers": ["user1", "user5", "user9", "user10"],
       "savedUsers": [
         {
@@ -299,6 +420,33 @@
           "avatar": "https://randomuser.me/api/portraits/women/33.jpg"
         }
       ],
+      "equipment": [
+        {
+          "id": "gear4",
+          "name": "Hario V60",
+          "type": "Pour Over",
+          "brand": "Hario"
+        },
+        {
+          "id": "gear8",
+          "name": "Hario Ceramic Slim",
+          "type": "Grinder",
+          "brand": "Hario",
+          "grinderSettings": "7 clicks"
+        },
+        {
+          "id": "gear1",
+          "name": "Fellow Stagg EKG",
+          "type": "Kettle",
+          "brand": "Fellow"
+        },
+        {
+          "id": "gear12",
+          "name": "Hario V60 Paper Filters",
+          "type": "Accessories",
+          "brand": "Hario"
+        }
+      ],
       "imageUrl": "https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728",
       "date": "2023-12-01T09:15:00Z",
       "isTrending": false,
@@ -307,7 +455,7 @@
     },
     {
       "id": "recipe-new-1",
-      "name": "Lucas's Villa Rosario Method",
+      "name": "V60 Villa Rosario",
       "coffeeId": "coffee-villa-rosario",
       "coffeeName": "Villa Rosario",
       "roaster": "Kima Coffee",
@@ -330,7 +478,15 @@
       "likes": 48,
       "saves": 24,
       "logs": 5,
-      "averageRating": 4.8,
+      "ratingStats": {
+        "good": 87,
+        "meh": 10,
+        "bad": 3,
+        "total": 100,
+        "goodPercentage": 87,
+        "mehPercentage": 10,
+        "badPercentage": 3
+      },
       "loggedUsers": ["user10", "user9", "user7"],
       "savedUsers": [
         {
@@ -344,19 +500,46 @@
           "avatar": "https://randomuser.me/api/portraits/women/68.jpg"
         }
       ],
+      "equipment": [
+        {
+          "id": "gear4",
+          "name": "Hario V60",
+          "type": "Pour Over",
+          "brand": "Hario"
+        },
+        {
+          "id": "gear11",
+          "name": "Fellow Opus",
+          "type": "Grinder",
+          "brand": "Fellow",
+          "grinderSettings": "22"
+        },
+        {
+          "id": "gear5",
+          "name": "Acaia Pearl",
+          "type": "Scale",
+          "brand": "Acaia"
+        },
+        {
+          "id": "gear12",
+          "name": "Hario V60 Paper Filters",
+          "type": "Accessories",
+          "brand": "Hario"
+        }
+      ],
       "imageUrl": "https://kimacoffee.com/cdn/shop/files/CE2711AA-BBF7-4D8D-942C-F9568B66871F_1296x.png?v=1741927728",
       "date": "2023-12-14T13:15:00Z",
       "isTrending": false,
       "type": "recipe",
       "hasRemixes": false,
       "originalRecipeId": "recipe-coffee-0-1",
-      "originalRecipeName": "Villa Rosario V60",
+      "originalRecipeName": "V60 Villa Rosario",
       "originalCreatorId": "user1",
       "originalCreatorName": "Ivo Vilches"
     },
     {
       "id": "recipe-ijen-aeropress",
-      "name": "Ijen AeroPress Method",
+      "name": "AeroPress Ijen",
       "coffeeId": "coffee-ijen",
       "coffeeName": "Ijen",
       "roaster": "Toma Café",
@@ -382,7 +565,7 @@
           "name": "Baratza Encore",
           "type": "Grinder",
           "brand": "Baratza",
-          "grinderSettings": "15 clicks"
+          "grinderSettings": "15"
         },
         {
           "id": "gear13",
@@ -403,8 +586,16 @@
       "likes": 142,
       "saves": 89,
       "logs": 34,
-      "averageRating": 4.4,
-      "loggedUsers": ["user1", "user2", "user3", "user5", "user6", "user7", "user9", "user10"],
+      "ratingStats": {
+        "good": 74,
+        "meh": 20,
+        "bad": 6,
+        "total": 100,
+        "goodPercentage": 74,
+        "mehPercentage": 20,
+        "badPercentage": 6
+      },
+      "loggedUsers": ["user1", "user2", "user3", "user5", "user7", "user9", "user10"],
       "savedUsers": [
         {
           "id": "user1",
@@ -429,54 +620,129 @@
       ],
       "userRatings": {
         "user1": {
-          "rating": 3,
+          "rating": "good",
           "notes": "Perfect daily brew. The earthy notes come through beautifully.",
           "timestamp": "2023-12-15T08:30:00Z"
         },
         "user2": {
-          "rating": 3,
+          "rating": "good",
           "notes": "Great for showcasing this coffee's unique character.",
           "timestamp": "2023-12-14T10:15:00Z"
         },
         "user3": {
-          "rating": 2,
+          "rating": "meh",
           "notes": "Good but prefer it slightly coarser grind.",
           "timestamp": "2023-12-13T16:45:00Z"
         },
         "user5": {
-          "rating": 3,
+          "rating": "good",
           "notes": "Love how clean this tastes. The herbal notes are amazing.",
           "timestamp": "2023-12-12T09:20:00Z"
         },
-        "user6": {
-          "rating": 3,
-          "notes": "Excellent recipe, very consistent results.",
-          "timestamp": "2023-12-11T14:30:00Z"
-        },
         "user7": {
-          "rating": 3,
+          "rating": "good",
           "notes": "This is my go-to method for Ijen now.",
           "timestamp": "2023-12-10T11:00:00Z"
         },
         "user9": {
-          "rating": 2,
+          "rating": "meh",
           "notes": "Decent but I think it could use a bit more extraction time.",
           "timestamp": "2023-12-09T15:15:00Z"
         },
         "user10": {
-          "rating": 3,
+          "rating": "good",
           "notes": "Really highlights the Indonesian terroir. Well done Ivo!",
           "timestamp": "2023-12-08T12:45:00Z"
         }
       },
       "ratingDistribution": {
-        "1": 0,
-        "2": 2,
-        "3": 6
+        "good": 5,
+        "meh": 2,
+        "bad": 0
       },
       "imageUrl": "https://cdn.shopify.com/s/files/1/0561/2172/1001/files/IJEN_800x.jpg?v=1738771773",
       "date": "2023-11-25T10:30:00Z",
       "isTrending": true,
+      "type": "recipe",
+      "hasRemixes": false
+    },
+    {
+      "id": "recipe-chemex-red-fruits",
+      "name": "Chemex Red Fruits",
+      "coffeeId": "coffee-red-fruits",
+      "coffeeName": "Red Fruits",
+      "roaster": "Kima Coffee",
+      "creatorId": "user9",
+      "creatorName": "Olivia Taylor",
+      "creatorAvatar": "https://randomuser.me/api/portraits/women/12.jpg",
+      "brewingMethod": "Chemex",
+      "grindSize": "Medium-Coarse",
+      "coffeeAmount": 42,
+      "waterAmount": 700,
+      "waterTemperature": 96,
+      "brewTime": "4:30",
+      "steps": [
+        {"time": "0:45", "water": "100", "description": "Pour 100g water for blooming and let sit"},
+        {"time": "1:30", "water": "200", "description": "Pour in slow spirals to 300g total"},
+        {"time": "2:30", "water": "200", "description": "Continue pouring to 500g total"},
+        {"time": "3:30", "water": "200", "description": "Final pour to 700g total"},
+        {"time": "4:30", "water": "0", "description": "Let it finish dripping"}
+      ],
+      "notes": "The Chemex really highlights the berry notes in this Colombian coffee. Perfect for a lazy Sunday morning.",
+      "likes": 73,
+      "saves": 51,
+      "logs": 18,
+      "ratingStats": {
+        "good": 82,
+        "meh": 14,
+        "bad": 4,
+        "total": 100,
+        "goodPercentage": 82,
+        "mehPercentage": 14,
+        "badPercentage": 4
+      },
+      "loggedUsers": ["user9", "user1", "user5", "user7"],
+      "savedUsers": [
+        {
+          "id": "user1",
+          "name": "Ivo Vilches",
+          "avatar": "assets/users/ivo-vilches.jpg"
+        },
+        {
+          "id": "user5",
+          "name": "Emma Garcia",
+          "avatar": "https://randomuser.me/api/portraits/women/33.jpg"
+        },
+        {
+          "id": "user10",
+          "name": "Lucas Brown",
+          "avatar": "https://randomuser.me/api/portraits/men/55.jpg"
+        }
+      ],
+      "equipment": [
+        {
+          "id": "gear7",
+          "name": "Chemex",
+          "type": "Pour Over",
+          "brand": "Chemex"
+        },
+        {
+          "id": "gear2",
+          "name": "Baratza Encore",
+          "type": "Grinder",
+          "brand": "Baratza",
+          "grinderSettings": "25"
+        },
+        {
+          "id": "gear1",
+          "name": "Fellow Stagg EKG",
+          "type": "Kettle",
+          "brand": "Fellow"
+        }
+      ],
+      "imageUrl": "https://kimacoffee.com/cdn/shop/files/IMG-5851_900x.png?v=1742796767",
+      "date": "2023-12-03T16:20:00Z",
+      "isTrending": false,
       "type": "recipe",
       "hasRemixes": false
     }
