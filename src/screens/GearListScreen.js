@@ -13,13 +13,16 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTheme } from '../context/ThemeContext';
 import mockGear from '../data/mockGear.json';
 import gearDetails from '../data/gearDetails';
 import GearCard from '../components/GearCard';
 import AppImage from '../components/common/AppImage';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const GearListScreen = ({ navigation, route }) => {
+  const { theme, isDarkMode } = useTheme();
+  const styles = createStyles(theme);
   const { category = 'all' } = route.params || {};
   const [gearList, setGearList] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -58,7 +61,7 @@ const GearListScreen = ({ navigation, route }) => {
             onPress={clearAllFilters}
             style={styles.headerClearButton}
           >
-            <Text style={styles.headerClearText}>Clear All</Text>
+            <Text style={styles.headerClearText}>Clear filters</Text>
           </TouchableOpacity>
         ) : null
     });
@@ -194,7 +197,7 @@ const GearListScreen = ({ navigation, route }) => {
           onPress={() => setSortModalVisible(true)}
         >
           <Text style={styles.sortButtonText}>{getCurrentSortLabel()}</Text>
-          <Ionicons name="chevron-down" size={16} color="#000000" />
+          <Ionicons name="chevron-down" size={16} color={theme.primaryText} />
         </TouchableOpacity>
         
         <TouchableOpacity
@@ -266,36 +269,6 @@ const GearListScreen = ({ navigation, route }) => {
     </View>
   );
   
-  const renderActiveFilterChips = () => {
-    // Flatten all active filters into a single array of { category, value } objects
-    const activeFilters = Object.entries(filters).flatMap(([category, values]) => 
-      values.map(value => ({ category, value }))
-    );
-    
-    if (activeFilters.length === 0) return null;
-    
-    return (
-      <View style={styles.activeFiltersContainer}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.activeFiltersContent}
-        >
-          {activeFilters.map((filter, index) => (
-            <TouchableOpacity
-              key={`${filter.category}-${filter.value}-${index}`}
-              style={styles.activeFilterChip}
-              onPress={() => toggleFilter(filter.category, filter.value)}
-            >
-              <Text style={styles.activeFilterChipText}>{filter.value}</Text>
-              <Ionicons name="close-circle" size={16} color="#666666" />
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
-    );
-  };
-  
   const renderFilterModal = () => (
     <Modal
       visible={filterModalVisible}
@@ -316,7 +289,7 @@ const GearListScreen = ({ navigation, route }) => {
             <TouchableOpacity
               onPress={() => setFilterModalVisible(false)}
             >
-              <Ionicons name="close" size={24} color="#000000" />
+              <Ionicons name="close" size={24} color={theme.primaryText} />
             </TouchableOpacity>
           </View>
           
@@ -330,33 +303,12 @@ const GearListScreen = ({ navigation, route }) => {
               >
                 <Text style={styles.filterOptionText}>{item}</Text>
                 {filters[selectedCategory]?.includes(item) && (
-                  <Ionicons name="checkmark" size={20} color="#000000" />
+                  <Ionicons name="checkmark" size={20} color={theme.primaryText} />
                 )}
               </TouchableOpacity>
             )}
             contentContainerStyle={styles.filterOptionsList}
           />
-          
-          <View style={styles.modalFooter}>
-            <TouchableOpacity
-              style={styles.modalButton}
-              onPress={() => {
-                setFilters(prev => ({
-                  ...prev,
-                  [selectedCategory]: []
-                }));
-              }}
-            >
-              <Text style={styles.resetButtonText}>Reset</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={[styles.modalButton, styles.applyButton]}
-              onPress={() => setFilterModalVisible(false)}
-            >
-              <Text style={styles.applyButtonText}>Apply</Text>
-            </TouchableOpacity>
-          </View>
         </View>
       </View>
     </Modal>
@@ -376,7 +328,7 @@ const GearListScreen = ({ navigation, route }) => {
             <TouchableOpacity
               onPress={() => setSortModalVisible(false)}
             >
-              <Ionicons name="close" size={24} color="#000000" />
+              <Ionicons name="close" size={24} color={theme.primaryText} />
             </TouchableOpacity>
           </View>
           
@@ -389,7 +341,7 @@ const GearListScreen = ({ navigation, route }) => {
           >
             <Text style={styles.sortOptionText}>Most Popular</Text>
             {sortBy === 'popularity' && (
-              <Ionicons name="checkmark" size={20} color="#000000" />
+              <Ionicons name="checkmark" size={20} color={theme.primaryText} />
             )}
           </TouchableOpacity>
           
@@ -402,7 +354,7 @@ const GearListScreen = ({ navigation, route }) => {
           >
             <Text style={styles.sortOptionText}>Price: Low to High</Text>
             {sortBy === 'price-low' && (
-              <Ionicons name="checkmark" size={20} color="#000000" />
+              <Ionicons name="checkmark" size={20} color={theme.primaryText} />
             )}
           </TouchableOpacity>
           
@@ -415,7 +367,7 @@ const GearListScreen = ({ navigation, route }) => {
           >
             <Text style={styles.sortOptionText}>Price: High to Low</Text>
             {sortBy === 'price-high' && (
-              <Ionicons name="checkmark" size={20} color="#000000" />
+              <Ionicons name="checkmark" size={20} color={theme.primaryText} />
             )}
           </TouchableOpacity>
           
@@ -428,7 +380,7 @@ const GearListScreen = ({ navigation, route }) => {
           >
             <Text style={styles.sortOptionText}>Highest Rated</Text>
             {sortBy === 'rating' && (
-              <Ionicons name="checkmark" size={20} color="#000000" />
+              <Ionicons name="checkmark" size={20} color={theme.primaryText} />
             )}
           </TouchableOpacity>
         </View>
@@ -460,7 +412,6 @@ const GearListScreen = ({ navigation, route }) => {
   return (
     <SafeAreaView style={styles.container}>
       {renderFilterBar()}
-      {renderActiveFilterChips()}
       
       <FlatList
         data={gearList}
@@ -486,10 +437,10 @@ const GearListScreen = ({ navigation, route }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.background,
   },
   filterBarContainer: {
     // borderBottomWidth: 1,
@@ -503,7 +454,7 @@ const styles = StyleSheet.create({
   sortButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F2F2F7',
+    backgroundColor: theme.altBackground,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 20,
@@ -511,27 +462,27 @@ const styles = StyleSheet.create({
   },
   sortButtonText: {
     fontSize: 14,
-    color: '#000000',
+    color: theme.primaryText,
     marginRight: 4,
   },
   filterButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F2F2F7',
+    backgroundColor: theme.altBackground,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 20,
     marginRight: 8,
   },
   activeFilterButton: {
-    backgroundColor: '#000000',
+    backgroundColor: theme.primaryText,
   },
   filterButtonText: {
     fontSize: 14,
-    color: '#000000',
+    color: theme.primaryText,
   },
   activeFilterText: {
-    color: '#FFFFFF',
+    color: theme.background,
   },
   filterCountBadge: {
     backgroundColor: '#007AFF',
@@ -546,39 +497,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 10,
     fontWeight: 'bold',
-  },
-  activeFiltersContainer: {
-    paddingBottom: 16,
-    // borderBottomWidth: 1,
-    // borderBottomColor: '#E5E5EA',
-  },
-  activeFiltersContent: {
-    paddingHorizontal: 16,
-    flexDirection: 'row',
-  },
-  activeFilterChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F2F2F7',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    marginRight: 8,
-  },
-  activeFilterChipText: {
-    fontSize: 12,
-    color: '#000000',
-    marginRight: 4,
-  },
-  clearAllButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    justifyContent: 'center',
-    marginRight: 8,
-  },
-  clearAllText: {
-    fontSize: 12,
-    color: '#007AFF',
   },
   gearList: {
     paddingHorizontal: 16,
@@ -679,7 +597,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.cardBackground,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     paddingBottom: 40,
@@ -690,12 +608,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
+    borderBottomColor: theme.divider,
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#000000',
+    color: theme.primaryText,
   },
   filterOptionsList: {
     paddingHorizontal: 16,
@@ -710,7 +628,7 @@ const styles = StyleSheet.create({
   },
   filterOptionText: {
     fontSize: 16,
-    color: '#000000',
+    color: theme.primaryText,
   },
   sortOption: {
     flexDirection: 'row',
@@ -719,40 +637,11 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 16,
     // borderBottomWidth: 1,
-    // borderBottomColor: '#E5E5EA',
+    // borderBottomColor: theme.divider,
   },
   sortOptionText: {
     fontSize: 16,
-    color: '#000000',
-  },
-  modalFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    padding: 16,
-    paddingTop: 8,
-  },
-  modalButton: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderRadius: 8,
-    marginHorizontal: 4,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-  },
-  applyButton: {
-    backgroundColor: '#000000',
-    borderColor: '#000000',
-  },
-  resetButtonText: {
-    fontSize: 16,
-    color: '#000000',
-  },
-  applyButtonText: {
-    fontSize: 16,
-    color: '#FFFFFF',
-    fontWeight: '600',
+    color: theme.primaryText,
   },
   emptyContainer: {
     padding: 24,
@@ -761,7 +650,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: '#666666',
+    color: theme.secondaryText,
     textAlign: 'center',
   },
   flatList: {
