@@ -21,7 +21,6 @@ export default function UserProfileBridge() {
     location
   } = route.params || {};
   
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const hasNavigatedRef = useRef(false);
 
@@ -36,9 +35,7 @@ export default function UserProfileBridge() {
       return;
     }
 
-    // Set loading and start navigation process
-    setLoading(true);
-    
+    // Process navigation immediately without loading state
     const navigateToProfile = () => {
       if (hasNavigatedRef.current) {
         return;
@@ -68,7 +65,6 @@ export default function UserProfileBridge() {
       } catch (error) {
         console.error("Error in UserProfileBridge:", error);
         setError(error.message);
-        setLoading(false);
       }
     };
     
@@ -251,19 +247,15 @@ export default function UserProfileBridge() {
       hasNavigatedRef.current = true;
       console.log('UserProfileBridge: Navigating with params:', params);
       
-      // Navigate immediately without delay
-      navigation.push('UserProfileScreen', params);
-      setLoading(false);
+      // Replace the current screen instead of pushing to avoid navigation stack issues
+      navigation.replace('UserProfileScreen', params);
     };
 
-    // Start navigation with minimal delay to prevent flash
-    const timeoutId = setTimeout(navigateToProfile, 50);
-    
-    return () => {
-      clearTimeout(timeoutId);
-    };
+    // Execute navigation immediately without timeout
+    navigateToProfile();
   }, [navigation, userId, userName]);
 
+  // Only show error state, never show loading
   if (error) {
     return (
       <View style={styles.container}>
@@ -272,18 +264,8 @@ export default function UserProfileBridge() {
     );
   }
 
-  if (!loading) {
-    // Return empty view instead of null to maintain navigation structure
-    return <View />;
-  }
-
-  // Show loading only when actively processing
-  return (
-    <View style={styles.container}>
-      <ActivityIndicator size="large" color="#000000" />
-      <Text style={styles.loadingText}>Loading profile...</Text>
-    </View>
-  );
+  // Always return invisible view during processing
+  return <View style={{ flex: 1, backgroundColor: 'transparent' }} />;
 }
 
 const styles = StyleSheet.create({
