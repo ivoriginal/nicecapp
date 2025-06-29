@@ -531,8 +531,6 @@ const CoffeeDiscoveryScreen = ({ navigation, route }) => {
     );
   };
 
-
-
   const renderFilterModal = () => {
     if (!selectedCategory) return null;
     
@@ -709,6 +707,20 @@ const CoffeeDiscoveryScreen = ({ navigation, route }) => {
       
       {renderFilterModal()}
       {renderSortModal()}
+      
+      {/* FAB (Floating Action Button) */}
+      <TouchableOpacity 
+        style={[
+          styles.fab, 
+          { 
+            bottom: insets.bottom + 20,
+            backgroundColor: isDarkMode ? '#FFFFFF' : '#000000'
+          }
+        ]}
+        onPress={() => navigation.navigate('AddCoffee')}
+      >
+        <Text style={[styles.fabText, { color: isDarkMode ? '#000000' : '#FFFFFF' }]}>Add coffee</Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -817,7 +829,7 @@ const styles = StyleSheet.create({
   },
 
   coffeeList: {
-    paddingBottom: 32,
+    paddingBottom: 120, // Add space for FAB
   },
   coffeeCardContainer: {
     borderBottomWidth: 1,
@@ -876,6 +888,25 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     color: '#666666',
+  },
+  fab: {
+    position: 'absolute',
+    alignSelf: 'center',
+    borderRadius: 28,
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+    elevation: 8,
+  },
+  fabText: {
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 

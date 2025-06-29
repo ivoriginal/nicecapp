@@ -23,7 +23,7 @@ import AppImage from '../components/common/AppImage';
 const GearListScreen = ({ navigation, route }) => {
   const { theme, isDarkMode } = useTheme();
   const styles = createStyles(theme);
-  const { category = 'all' } = route.params || {};
+  const { category = 'all', preselectedBrand } = route.params || {};
   const [gearList, setGearList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState('popularity');
@@ -35,14 +35,14 @@ const GearListScreen = ({ navigation, route }) => {
   const [filters, setFilters] = useState({
     category: category !== 'all' ? [category] : [],
     priceRange: [],
-    brand: []
+    brand: preselectedBrand ? [preselectedBrand] : []
   });
   
   // Available filter options
   const filterOptions = {
     category: ['Grinder', 'Kettle', 'Pour Over', 'Scale', 'Brewer'],
     priceRange: ['Under $50', '$50-$100', '$100-$200', 'Over $200'],
-    brand: ['Fellow', 'Hario', 'Baratza', 'Comandante', 'AeroPress', 'Acaia']
+    brand: ['Fellow', 'Hario', 'Baratza', 'Comandante', 'Aerobie', 'Acaia', 'Chemex']
   };
   
   const insets = useSafeAreaInsets();
@@ -55,6 +55,7 @@ const GearListScreen = ({ navigation, route }) => {
   // Set up navigation header with Clear All button
   useEffect(() => {
     navigation.setOptions({
+      title: 'Gear',
       headerRight: () => 
         hasActiveFilters() ? (
           <TouchableOpacity 
@@ -196,6 +197,7 @@ const GearListScreen = ({ navigation, route }) => {
           style={styles.sortButton}
           onPress={() => setSortModalVisible(true)}
         >
+          <Ionicons name="swap-vertical" size={16} color={theme.primaryText} />
           <Text style={styles.sortButtonText}>{getCurrentSortLabel()}</Text>
           <Ionicons name="chevron-down" size={16} color={theme.primaryText} />
         </TouchableOpacity>
@@ -463,6 +465,7 @@ const createStyles = (theme) => StyleSheet.create({
   sortButtonText: {
     fontSize: 14,
     color: theme.primaryText,
+    marginLeft: 4,
     marginRight: 4,
   },
   filterButton: {

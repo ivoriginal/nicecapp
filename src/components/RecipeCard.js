@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import AppImage from './common/AppImage';
 import mockCoffeesData from '../data/mockCoffees.json';
 import { useTheme } from '../context/ThemeContext';
@@ -56,6 +56,30 @@ const RecipeCard = ({
     (recipe.rating || recipe.averageRating || 0);
   const coffeeName = coffee ? coffee.name : 'Coffee';
 
+  // Convert percentage to Steam-like rating description
+  const getRatingDescription = (percentage) => {
+    if (percentage >= 90) return 'Excellent';
+    if (percentage >= 80) return 'Very Positive';
+    if (percentage >= 70) return 'Mostly Positive';
+    if (percentage >= 60) return 'Positive';
+    if (percentage >= 50) return 'Average';
+    if (percentage >= 40) return 'Mixed';
+    if (percentage >= 30) return 'Mostly Negative';
+    if (percentage >= 20) return 'Negative';
+    if (percentage >= 10) return 'Very Negative';
+    return 'Overwhelmingly Negative';
+  };
+
+  // Get icon based on rating description
+  const getRatingIcon = (percentage) => {
+    if (percentage >= 60) return 'thumb-up'; // Positive ratings
+    if (percentage >= 40) return 'emoticon-neutral'; // Average/Mixed ratings  
+    return 'thumb-down'; // Negative ratings
+  };
+
+  // Get the rating percentage for display
+  const ratingPercentage = recipe.ratingStats ? recipe.ratingStats.goodPercentage : 0;
+
   return (
     <TouchableOpacity 
       style={[
@@ -85,17 +109,23 @@ const RecipeCard = ({
           )}
           
           {/* Rating (moved before title) */}
-          {rating > 0 && (
+          {ratingPercentage > 0 && (
             <View style={styles.ratingContainer}>
-              <Ionicons name="star" size={16} color="#FFD700" />
-              <Text style={[styles.ratingText, { color: theme.primaryText }]}>{rating.toFixed(1)}</Text>
+              <MaterialCommunityIcons 
+                name={getRatingIcon(ratingPercentage)} 
+                size={16} 
+                color={theme.primaryText} 
+              />
+              <Text style={[styles.ratingText, { color: theme.primaryText }]}>
+                {getRatingDescription(ratingPercentage)}
+              </Text>
             </View>
           )}
           
-          {/* Recipe Title showing Coffee + Method */}
+          {/* Recipe Title showing Method + Coffee */}
           <View style={styles.recipeTitleContainer}>
-            <Text style={[styles.recipeTitle, { color: theme.primaryText }]}>
-              {coffeeName} recipe for {method}
+            <Text style={[styles.recipeTitle, { color: theme.primaryText, fontWeight: 'normal' }]}>
+              <Text style={{ fontWeight: 'bold' }}>{method}</Text> recipe for <Text style={{ fontWeight: 'bold' }}>{coffeeName}</Text>
             </Text>
           </View>
           

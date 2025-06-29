@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect } from 'react';
 import {
   View,
   Text,
@@ -16,10 +16,17 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, CommonActions } from '@react-navigation/native';
 import { useCoffee } from '../context/CoffeeContext';
 import mockGearData from '../data/mockGear.json';
+import mockCafes from '../data/mockCafes.json';
 import { useTheme } from '../context/ThemeContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AppImage from '../components/common/AppImage';
 import mockUsers from '../data/mockUsers.json';
+import Toast from '../components/Toast';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+} from 'react-native-reanimated';
 
 // Transform mockGear.json data to the format expected by the component
 const gearData = mockGearData.gear.reduce((acc, item) => {
@@ -29,22 +36,49 @@ const gearData = mockGearData.gear.reduce((acc, item) => {
   // Add real purchase links based on the item
   if (item.name === 'Fellow Stagg EKG') {
     whereToBuy = [
-      { name: 'Fellow Products', url: 'https://fellowproducts.com/products/stagg-ekg-electric-pour-over-kettle', price: '$199.95', logo: 'https://fellowproducts.com/cdn/shop/files/Fellow_Logo_Black_160x.png' },
-      { name: 'Amazon', url: 'https://www.amazon.com/Fellow-Electric-Pour-over-Kettle/dp/B077JBQZPX', price: '$199.95', logo: 'https://logo.clearbit.com/amazon.com' },
-      { name: 'Tea Forté', url: 'https://teaforte.com/products/tea-accessories-stagg-electric-kettle-ekg-matte-black-21096', price: '$165.00', logo: 'https://logo.clearbit.com/teaforte.com' },
+      { name: 'Fellow Products', url: 'https://fellowproducts.com/products/stagg-ekg-electric-pour-over-kettle', price: '€179.95', logo: 'https://fellowproducts.com/cdn/shop/files/Fellow_Logo_Black_160x.png' },
+      { name: 'Amazon', url: 'https://www.amazon.es/Fellow-Electric-Pour-over-Kettle/dp/B077JBQZPX', price: '€179.95', logo: 'https://logo.clearbit.com/amazon.es' },
+      { name: 'Tea Forté', url: 'https://teaforte.com/products/tea-accessories-stagg-electric-kettle-ekg-matte-black-21096', price: '€149.00', logo: 'https://logo.clearbit.com/teaforte.com' },
     ];
   } else if (item.name === 'Baratza Encore') {
     whereToBuy = [
-      { name: 'Amazon', url: 'https://www.amazon.com/Baratza-Encore-Conical-Coffee-Grinder/dp/B007F183LK', price: '$149.95', logo: 'https://logo.clearbit.com/amazon.com' },
-      { name: 'Prima Coffee', url: 'https://prima-coffee.com/equipment/baratza/485', price: '$149.95', logo: 'https://logo.clearbit.com/prima-coffee.com' },
-      { name: 'Baratza Direct', url: 'https://baratza.com/grinder/encore/', price: '$149.95', logo: 'https://logo.clearbit.com/baratza.com' },
+      { name: 'Amazon', url: 'https://www.amazon.es/Baratza-Encore-Conical-Coffee-Grinder/dp/B007F183LK', price: '€139.95', logo: 'https://logo.clearbit.com/amazon.es' },
+      { name: 'Prima Coffee', url: 'https://prima-coffee.com/equipment/baratza/485', price: '€139.95', logo: 'https://logo.clearbit.com/prima-coffee.com' },
+      { name: 'Baratza Direct', url: 'https://baratza.com/grinder/encore/', price: '€139.95', logo: 'https://logo.clearbit.com/baratza.com' },
     ];
   } else {
     // Fallback for other items
     whereToBuy = [
-      { name: 'Vértigo y Calambre', url: 'https://vertigoycalambre.com', price: `$${item.price}`, logo: 'https://logo.clearbit.com/vertigoycalambre.com' },
-      { name: item.brand, url: `https://${item.brand.toLowerCase().replace(/\s+/g, '')}.com`, price: `$${item.price}`, logo: `https://logo.clearbit.com/${item.brand.toLowerCase().replace(/\s+/g, '')}.com` },
-      { name: 'Amazon', url: 'https://amazon.com', price: `$${item.price}`, logo: 'https://logo.clearbit.com/amazon.com' },
+      { name: 'Vértigo y Calambre', url: 'https://vertigoycalambre.com', price: `€${item.price}`, logo: 'https://logo.clearbit.com/vertigoycalambre.com' },
+      { name: item.brand, url: `https://${item.brand.toLowerCase().replace(/\s+/g, '')}.com`, price: `€${item.price}`, logo: `https://logo.clearbit.com/${item.brand.toLowerCase().replace(/\s+/g, '')}.com` },
+      { name: 'Amazon', url: 'https://amazon.es', price: `€${item.price}`, logo: 'https://logo.clearbit.com/amazon.es' },
+    ];
+  }
+
+  // Map gear to cafés that use it (based on gear type and realistic associations)
+  let usedByCafes = [];
+  if (item.name === 'Fellow Stagg EKG' || item.type === 'Kettle') {
+    usedByCafes = [
+      { id: 'kima-coffee', name: 'Kima Coffee', avatar: 'assets/businesses/kima-logo.jpg', location: 'Málaga, Spain' },
+      { id: 'toma-cafe-1', name: 'Toma Café 1', avatar: 'assets/businesses/toma-logo.jpg', location: 'Madrid, Spain' },
+      { id: 'cafelab-murcia', name: 'CaféLab Murcia', avatar: 'assets/businesses/cafelab-logo.png', location: 'Murcia, Spain' },
+    ];
+  } else if (item.name === 'Baratza Encore' || item.type === 'Grinder') {
+    usedByCafes = [
+      { id: 'toma-cafe-2', name: 'Toma Café 2', avatar: 'assets/businesses/toma-logo.jpg', location: 'Madrid, Spain' },
+      { id: 'cafelab-cartagena', name: 'CaféLab Cartagena', avatar: 'assets/businesses/cafelab-logo.png', location: 'Cartagena, Spain' },
+    ];
+  } else if (item.type === 'Pour Over' || item.name.includes('V60') || item.name.includes('Chemex')) {
+    usedByCafes = [
+      { id: 'kima-coffee', name: 'Kima Coffee', avatar: 'assets/businesses/kima-logo.jpg', location: 'Málaga, Spain' },
+      { id: 'toma-cafe-1', name: 'Toma Café 1', avatar: 'assets/businesses/toma-logo.jpg', location: 'Madrid, Spain' },
+      { id: 'toma-cafe-2', name: 'Toma Café 2', avatar: 'assets/businesses/toma-logo.jpg', location: 'Madrid, Spain' },
+      { id: 'cafelab-murcia', name: 'CaféLab Murcia', avatar: 'assets/businesses/cafelab-logo.png', location: 'Murcia, Spain' },
+    ];
+  } else if (item.type === 'Scale') {
+    usedByCafes = [
+      { id: 'kima-coffee', name: 'Kima Coffee', avatar: 'assets/businesses/kima-logo.jpg', location: 'Málaga, Spain' },
+      { id: 'toma-cafe-1', name: 'Toma Café 1', avatar: 'assets/businesses/toma-logo.jpg', location: 'Madrid, Spain' },
     ];
   }
   
@@ -61,41 +95,24 @@ const gearData = mockGearData.gear.reduce((acc, item) => {
     usedBy: mockUsers.users
       .filter(user => user.gear && user.gear.includes(item.name))
       .map(user => {
-        let avatar = user.userAvatar;
-        // Handle local asset paths
-        if (user.userAvatar === 'assets/users/ivo-vilches.jpg') {
-          avatar = require('../../assets/users/ivo-vilches.jpg');
-        } else if (user.userAvatar === 'assets/users/carlos-hernandez.jpg') {
-          avatar = require('../../assets/users/carlos-hernandez.jpg');
-        } else if (user.userAvatar === 'assets/users/elias-veris.jpg') {
-          avatar = require('../../assets/users/elias-veris.jpg');
-        }
-        
+        // Use the userAvatar directly as a string path, AppImage will handle it
         return {
           id: user.id,
           name: user.userName,
-          avatar: avatar
+          avatar: user.userAvatar // Keep as string, AppImage will handle local assets
         };
       }),
     wantedBy: mockUsers.users
       .filter(user => user.gearWishlist && user.gearWishlist.includes(item.name))
       .map(user => {
-        let avatar = user.userAvatar;
-        // Handle local asset paths
-        if (user.userAvatar === 'assets/users/ivo-vilches.jpg') {
-          avatar = require('../../assets/users/ivo-vilches.jpg');
-        } else if (user.userAvatar === 'assets/users/carlos-hernandez.jpg') {
-          avatar = require('../../assets/users/carlos-hernandez.jpg');
-        } else if (user.userAvatar === 'assets/users/elias-veris.jpg') {
-          avatar = require('../../assets/users/elias-veris.jpg');
-        }
-        
+        // Use the userAvatar directly as a string path, AppImage will handle it
         return {
           id: user.id,
           name: user.userName,
-          avatar: avatar
+          avatar: user.userAvatar // Keep as string, AppImage will handle local assets
         };
-      })
+      }),
+    usedByCafes: usedByCafes
   };
   return acc;
 }, {});
@@ -110,7 +127,21 @@ export default function GearDetailScreen() {
   const insets = useSafeAreaInsets();
   const { theme, isDarkMode } = useTheme();
   const [inWishlist, setInWishlist] = useState(false);
+  const [inCollection, setInCollection] = useState(false);
+  const [scrollY, setScrollY] = useState(0);
+  const [showGearNameInHeader, setShowGearNameInHeader] = useState(false);
   const { coffeeWishlist, addToWishlist, removeFromWishlist } = useCoffee();
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  
+  // Animated values for header title
+  const headerOpacity = useSharedValue(0);
+  
+  // Helper function to show toast
+  const showToast = (message) => {
+    setToastMessage(message);
+    setToastVisible(true);
+  };
   
   // Get gear data - try to match by ID first, then by name
   let gear;
@@ -133,26 +164,92 @@ export default function GearDetailScreen() {
       image: 'https://images.unsplash.com/photo-1447933601403-0c6688de566e',
       description: 'No information available for this item.',
       price: 0,
+      brand: 'Unknown',
       whereToBuy: [],
       usedBy: [],
-      wantedBy: []
+      wantedBy: [],
+      usedByCafes: []
     };
   }
+
+  // Animated header title styles
+  const animatedDefaultTitleStyle = useAnimatedStyle(() => {
+    return {
+      opacity: withTiming(showGearNameInHeader ? 0 : 1, { duration: 150 }),
+      transform: [
+        {
+          translateY: withTiming(showGearNameInHeader ? -10 : 0, { duration: 150 })
+        }
+      ]
+    };
+  });
+
+  const animatedGearTitleStyle = useAnimatedStyle(() => {
+    return {
+      opacity: withTiming(showGearNameInHeader ? 1 : 0, { duration: 150 }),
+      transform: [
+        {
+          translateY: withTiming(showGearNameInHeader ? 0 : 10, { duration: 150 })
+        }
+      ]
+    };
+  });
   
   // Set screen title and header options
-  useEffect(() => {
+  useLayoutEffect(() => {
     navigation.setOptions({
-      title: gear.name,
+      headerTitle: () => (
+        <View style={{ position: 'relative', alignItems: 'center', justifyContent: 'center', height: 44 }}>
+          <Animated.Text 
+            style={[
+              animatedDefaultTitleStyle,
+              {
+                position: 'absolute',
+                color: theme.primaryText,
+                fontSize: 17,
+                fontWeight: '600',
+              }
+            ]}
+          >
+            Gear Details
+          </Animated.Text>
+          <Animated.Text 
+            style={[
+              animatedGearTitleStyle,
+              {
+                position: 'absolute',
+                color: theme.primaryText,
+                fontSize: 17,
+                fontWeight: '600',
+                textAlign: 'center',
+                maxWidth: 200,
+              }
+            ]}
+            numberOfLines={1}
+            ellipsizeMode="tail"
+          >
+            {gear.name}
+          </Animated.Text>
+        </View>
+      ),
       headerRight: () => (
         <TouchableOpacity
-          style={{ marginRight: 8 }}
+          style={{ marginRight: 16 }}
           onPress={showActionSheet}
         >
           <Ionicons name="ellipsis-horizontal" size={24} color={theme.primaryText} />
         </TouchableOpacity>
       ),
+      headerStyle: {
+        backgroundColor: theme.background,
+        elevation: 0, // Remove shadow on Android
+        shadowOpacity: 0, // Remove shadow on iOS
+        borderBottomWidth: isDarkMode ? 1 : (scrollY > 0 ? 1 : 0),
+        borderBottomColor: theme.divider,
+      },
+      headerTintColor: theme.primaryText,
     });
-  }, [navigation, gear.name, theme.primaryText]);
+  }, [navigation, gear.name, theme.primaryText, theme.background, theme.divider, isDarkMode, scrollY, showGearNameInHeader, animatedDefaultTitleStyle, animatedGearTitleStyle]);
   
   // Check if item is in wishlist
   useEffect(() => {
@@ -166,10 +263,8 @@ export default function GearDetailScreen() {
   const toggleWishlist = () => {
     if (inWishlist) {
       removeFromWishlist(gear.id);
-      setInWishlist(false);
-      Alert.alert('Removed', `${gear.name} removed from your wishlist`, [], {
-        userInterfaceStyle: isDarkMode ? 'dark' : 'light'
-      });
+      setInWishlist(false); // Update local state immediately
+      showToast(`${gear.name} removed from your wishlist`);
     } else {
       const wishlistItem = {
         id: gear.id,
@@ -179,11 +274,22 @@ export default function GearDetailScreen() {
         type: 'gear'
       };
       addToWishlist(wishlistItem);
-      setInWishlist(true);
-      Alert.alert('Added', `${gear.name} added to your wishlist`, [], {
-        userInterfaceStyle: isDarkMode ? 'dark' : 'light'
-      });
+      setInWishlist(true); // Update local state immediately
+      showToast(`${gear.name} added to your wishlist`);
     }
+  };
+
+  // Toggle collection (have it)
+  const toggleCollection = () => {
+    setInCollection(!inCollection);
+    showToast(`${gear.name} ${inCollection ? 'removed from' : 'added to'} your collection`);
+  };
+
+  // Navigate to GearListScreen with brand filter
+  const navigateToGearList = () => {
+    navigation.navigate('GearList', {
+      preselectedBrand: gear.brand
+    });
   };
   
   // Handle user profile press
@@ -202,45 +308,39 @@ export default function GearDetailScreen() {
       if (supported) {
         await Linking.openURL(shop.url);
       } else {
-        Alert.alert('Error', `Cannot open ${shop.name} website`);
+        showToast(`Cannot open ${shop.name} website`);
       }
     } catch (error) {
-      Alert.alert('Error', `Failed to open ${shop.name} website`);
+      showToast(`Failed to open ${shop.name} website`);
     }
   };
 
   // Handle action sheet options
   const showActionSheet = () => {
-    const options = ['Share', 'Add to Collection', 'Cancel'];
-    const cancelButtonIndex = 2;
+    const options = ['Share', 'Cancel'];
+    const cancelButtonIndex = 1;
 
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
         {
           options,
           cancelButtonIndex,
-          title: 'Options',
-          message: `Choose an action for ${gear.name}`,
           userInterfaceStyle: isDarkMode ? 'dark' : 'light',
         },
         (buttonIndex) => {
           if (buttonIndex === 0) {
             // Share
-            Alert.alert('Share', 'Sharing functionality coming soon!');
-          } else if (buttonIndex === 1) {
-            // Add to Collection
-            Alert.alert('Collection', 'Add to collection coming soon!');
+            showToast('Sharing functionality coming soon!');
           }
         }
       );
     } else {
       // Android fallback - use Alert with buttons
       Alert.alert(
-        'Options',
-        `Choose an action for ${gear.name}`,
+        '',
+        '',
         [
-          { text: 'Share', onPress: () => Alert.alert('Share', 'Sharing functionality coming soon!') },
-          { text: 'Add to Collection', onPress: () => Alert.alert('Collection', 'Add to collection coming soon!') },
+          { text: 'Share', onPress: () => showToast('Sharing functionality coming soon!') },
           { text: 'Cancel', style: 'cancel' }
         ],
         {
@@ -276,9 +376,18 @@ export default function GearDetailScreen() {
       <ScrollView
         style={[styles.scrollView, { backgroundColor: theme.background }]}
         contentContainerStyle={styles.scrollContent}
+        onScroll={(event) => {
+          const currentScrollY = event.nativeEvent.contentOffset.y;
+          setScrollY(currentScrollY);
+          
+          // Show gear name in header when scrolled past the gear name section
+          const gearNameThreshold = 200;
+          setShowGearNameInHeader(currentScrollY > gearNameThreshold);
+        }}
+        scrollEventThrottle={16}
       >
         {/* Gear Header - Redesigned */}
-        <View style={[styles.headerCard, { backgroundColor: theme.cardBackground }]}>
+        <View style={[styles.headerCard, { backgroundColor: theme.background }]}>
           <View style={styles.headerContent}>
             {/* Gear Image */}
             <View style={[styles.imageContainer, { backgroundColor: theme.surface }]}>
@@ -293,7 +402,9 @@ export default function GearDetailScreen() {
             <View style={styles.gearInfo}>
               <View style={styles.titleSection}>
                 <Text style={[styles.gearName, { color: theme.primaryText }]}>{gear.name}</Text>
-                <Text style={[styles.brandName, { color: '#007AFF' }]}>{gear.brand}</Text>
+                <TouchableOpacity onPress={navigateToGearList}>
+                  <Text style={[styles.brandName, { color: theme.primaryText }]}>{gear.brand}</Text>
+                </TouchableOpacity>
               </View>
               
               {/* Rating and Reviews */}
@@ -310,48 +421,70 @@ export default function GearDetailScreen() {
               </View>
 
               {/* Price */}
-              <View style={styles.priceSection}>
+              {/* <View style={styles.priceSection}>
                 <Text style={[styles.priceFromLabel, { color: theme.secondaryText }]}>
                   From
                 </Text>
                 <Text style={[styles.price, { color: theme.primaryText }]}>
-                  ${gear.price ? gear.price.toFixed(2) : '0.00'}
+                  €{gear.price ? gear.price.toFixed(2) : '0.00'}
                 </Text>
-              </View>
-
-              {/* Action buttons */}
-              <View style={styles.actionButtons}>
-                <TouchableOpacity
-                  style={[styles.wishlistButton, { 
-                    backgroundColor: inWishlist ? '#007AFF' : theme.surface, 
-                    borderColor: '#007AFF',
-                    borderWidth: inWishlist ? 0 : 1
-                  }]}
-                  onPress={toggleWishlist}
-                >
-                  <Ionicons
-                    name={inWishlist ? "heart" : "heart-outline"}
-                    size={20}
-                    color={inWishlist ? '#FFFFFF' : '#007AFF'}
-                  />
-                                  <Text style={[styles.wishlistText, { color: inWishlist ? '#FFFFFF' : '#007AFF' }]}>
-                  {inWishlist ? 'In Wishlist' : 'Wishlist'}
-                </Text>
-                </TouchableOpacity>
-              </View>
+              </View> */}
             </View>
+          </View>
+
+          {/* Action buttons - Full width row */}
+          <View style={styles.actionButtons}>
+            <TouchableOpacity
+              style={[styles.actionButton, { 
+                backgroundColor: inCollection ? 'transparent' : (isDarkMode ? theme.cardBackground : theme.background), 
+                borderColor: theme.border,
+                borderWidth: 1
+              }]}
+              onPress={toggleCollection}
+            >
+              <Ionicons
+                name={inCollection ? "checkmark-circle" : "checkmark-circle-outline"}
+                size={20}
+                color={theme.primaryText}
+              />
+              <Text style={[styles.actionButtonText, { 
+                color: theme.primaryText 
+              }]}>
+                {inCollection ? 'Have It' : 'I have this'}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.actionButton, { 
+                backgroundColor: inWishlist ? 'transparent' : (isDarkMode ? theme.cardBackground : theme.background), 
+                borderColor: theme.border,
+                borderWidth: 1
+              }]}
+              onPress={toggleWishlist}
+            >
+              <Ionicons
+                name={inWishlist ? "bookmark" : "bookmark-outline"}
+                size={20}
+                color={theme.primaryText}
+              />
+              <Text style={[styles.actionButtonText, { 
+                color: theme.primaryText 
+              }]}>
+                {inWishlist ? 'Wishlisted' : 'Wishlist'}
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
 
         {/* Gear Description */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.primaryText }]}>About this gear</Text>
+          <Text style={[styles.sectionTitle, { color: theme.primaryText, borderBottomColor: theme.divider }]}>About this gear</Text>
           <Text style={[styles.description, { color: theme.secondaryText }]}>{gear.description}</Text>
         </View>
 
         {/* People who have it */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.primaryText }]}>People who have it</Text>
+          <Text style={[styles.sectionTitle, { color: theme.primaryText, borderBottomColor: theme.divider }]}>People who have it</Text>
           
           {gear.usedBy && gear.usedBy.length > 0 ? (
             <View style={styles.avatarsContainer}>
@@ -363,8 +496,8 @@ export default function GearDetailScreen() {
                     onPress={() => handleUserPress(user.id, user.name)}
                   >
                     <AppImage
-                      source={typeof user.avatar === 'string' ? { uri: user.avatar } : user.avatar}
-                      style={[styles.avatarImage, { borderColor: theme.border }]}
+                      source={user.avatar}
+                      style={styles.avatarImage}
                       resizeMode="cover"
                     />
                     <Text style={[styles.avatarName, { color: theme.secondaryText }]} numberOfLines={1}>
@@ -389,7 +522,7 @@ export default function GearDetailScreen() {
               {/* People you follow who want this */}
               {gear.wantedBy && gear.wantedBy.length > 0 && (
                 <View style={styles.wantedSection}>
-                  <Text style={[styles.sectionSubtitle, { color: theme.secondaryText }]}>
+                  <Text style={[styles.sectionTitle, { color: theme.primaryText, borderBottomColor: theme.divider }]}>
                     People you follow who want this
                   </Text>
                   <View style={styles.avatarsRow}>
@@ -401,8 +534,8 @@ export default function GearDetailScreen() {
                       >
                         <View style={styles.wantedAvatarContainer}>
                           <AppImage
-                            source={typeof user.avatar === 'string' ? { uri: user.avatar } : user.avatar}
-                            style={[styles.avatarImage, { borderColor: '#FF6B6B' }]}
+                            source={user.avatar}
+                            style={styles.avatarImage}
                             resizeMode="cover"
                           />
                           <View style={styles.wantIconContainer}>
@@ -420,8 +553,8 @@ export default function GearDetailScreen() {
                     ))}
                     {gear.wantedBy.length > 6 && (
                       <View style={[styles.avatarItem, styles.moreAvatars]}>
-                        <View style={[styles.moreAvatarsCircle, { backgroundColor: theme.surface, borderColor: '#FF6B6B' }]}>
-                          <Text style={[styles.moreAvatarsText, { color: '#FF6B6B' }]}>
+                        <View style={[styles.moreAvatarsCircle, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                          <Text style={[styles.moreAvatarsText, { color: theme.secondaryText }]}>
                             +{gear.wantedBy.length - 6}
                           </Text>
                         </View>
@@ -441,9 +574,47 @@ export default function GearDetailScreen() {
           )}
         </View>
 
+        {/* Cafés that use it */}
+        {gear.usedByCafes && gear.usedByCafes.length > 0 && (
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: theme.primaryText, borderBottomColor: theme.divider }]}>Cafés that use it</Text>
+            <View style={styles.cafesList}>
+              {gear.usedByCafes.map((cafe, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={[
+                    styles.cafeItem,
+                    { borderBottomColor: theme.divider },
+                    index === gear.usedByCafes.length - 1 ? styles.cafeItemNoBorder : null
+                  ]}
+                  onPress={() => {
+                    navigation.navigate('UserProfileBridge', { 
+                      userId: cafe.id, 
+                      userName: cafe.name,
+                      skipAuth: true,
+                      isBusinessAccount: true
+                    });
+                  }}
+                >
+                  <AppImage
+                    source={cafe.avatar}
+                    style={styles.cafeAvatar}
+                    resizeMode="cover"
+                  />
+                  <View style={styles.cafeInfo}>
+                    <Text style={[styles.cafeName, { color: theme.primaryText }]}>{cafe.name}</Text>
+                    <Text style={[styles.cafeLocation, { color: theme.secondaryText }]}>{cafe.location}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color={theme.secondaryText} />
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        )}
+
         {/* Where to buy */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.primaryText }]}>Where to buy</Text>
+          <Text style={[styles.sectionTitle, { color: theme.primaryText, borderBottomColor: theme.divider }]}>Where to buy</Text>
           
           {gear.whereToBuy && gear.whereToBuy.length > 0 ? (
             <View style={styles.shopsList}>
@@ -453,24 +624,32 @@ export default function GearDetailScreen() {
                   style={[styles.shopItem, { 
                     backgroundColor: theme.surface,
                     borderRadius: 12,
-                    marginBottom: 12,
+                    marginBottom: 16,
                     shadowColor: theme.shadow,
                     shadowOffset: { width: 0, height: 1 },
                     shadowOpacity: 0.1,
                     shadowRadius: 3,
-                    elevation: 2
+                    elevation: 2,
+                    // padding: 16,
                   }]}
                   onPress={() => handleShopPress(shop)}
                 >
                   <View style={styles.shopContent}>
-                    <View style={styles.shopMainInfo}>
-                      <Text style={[styles.shopName, { color: theme.primaryText }]}>{shop.name}</Text>
-                      <Text style={[styles.shopPrice, { color: '#007AFF' }]}>
-                        {shop.price}
-                      </Text>
+                    <View style={styles.shopLeft}>
+                      <AppImage
+                        source={{ uri: shop.logo }}
+                        style={styles.shopLogo}
+                        resizeMode="contain"
+                      />
+                      <View style={styles.shopMainInfo}>
+                        <Text style={[styles.shopName, { color: theme.primaryText }]}>{shop.name}</Text>
+                        <Text style={[styles.shopPrice, { color: theme.primaryText }]}>
+                          {shop.price}
+                        </Text>
+                      </View>
                     </View>
                     <View style={styles.shopAction}>
-                      <Ionicons name="open-outline" size={20} color="#007AFF" />
+                      <Ionicons name="open-outline" size={20} color={theme.primaryText} />
                     </View>
                   </View>
                 </TouchableOpacity>
@@ -483,6 +662,11 @@ export default function GearDetailScreen() {
           )}
         </View>
       </ScrollView>
+              <Toast 
+          visible={toastVisible}
+          message={toastMessage}
+          onDismiss={() => setToastVisible(false)}
+        />
     </View>
   );
 }
@@ -498,18 +682,19 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   headerCard: {
-    margin: 16,
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    paddingBottom: 16,
+    // margin: 16,
+    // borderRadius: 16,
+    // shadowColor: '#000',
+    // shadowOffset: { width: 0, height: 2 },
+    // shadowOpacity: 0.1,
+    // shadowRadius: 8,
+    // elevation: 4,
   },
   headerContent: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    padding: 20,
+    // padding: 20,
   },
   imageContainer: {
     width: 100,
@@ -572,23 +757,27 @@ const styles = StyleSheet.create({
   actionButtons: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 8,
+    marginVertical: 16,
+    // marginTop: 12,
+    gap: 8,
   },
-  wishlistButton: {
+  actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: 10,
     paddingHorizontal: 16,
-    borderRadius: 12,
-    gap: 6,
+    borderRadius: 8,
+    flex: 1,
   },
-  wishlistText: {
+  actionButtonText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '500',
+    marginLeft: 8,
   },
   // Avatar styles
   avatarsContainer: {
-    marginTop: 16,
+    // marginTop: 16,
   },
   avatarsRow: {
     flexDirection: 'row',
@@ -602,7 +791,6 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    borderWidth: 2,
     marginBottom: 6,
   },
   avatarName: {
@@ -617,7 +805,6 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    borderWidth: 2,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 6,
@@ -635,25 +822,22 @@ const styles = StyleSheet.create({
   // Wanted section styles
   wantedSection: {
     marginTop: 20,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E5EA',
   },
   wantedAvatarContainer: {
     position: 'relative',
   },
   wantIconContainer: {
     position: 'absolute',
-    bottom: -2,
-    right: -2,
+    bottom: 2,
+    right: 0,
     backgroundColor: 'white',
     borderRadius: 8,
     padding: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 2,
+    // shadowColor: '#000',
+    // shadowOffset: { width: 0, height: 1 },
+    // shadowOpacity: 0.2,
+    // shadowRadius: 2,
+    // elevation: 2,
   },
   section: {
     marginBottom: 24,
@@ -664,7 +848,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
     paddingBottom: 8,
   },
   usersList: {
@@ -675,7 +858,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
     width: '100%',
   },
   userAvatar: {
@@ -684,8 +866,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginRight: 12,
     borderWidth: 1,
-    borderColor: '#F0F0F0',
-    backgroundColor: '#E5E5EA',
   },
   userInfo: {
     flex: 1,
@@ -710,15 +890,26 @@ const styles = StyleSheet.create({
   },
   shopsList: {
     width: '100%',
+    marginTop: 4,
   },
   shopItem: {
     width: '100%',
-    padding: 16,
   },
   shopContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  shopLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  shopLogo: {
+    width: 32,
+    height: 32,
+    marginRight: 12,
+    borderRadius: 4,
   },
   shopMainInfo: {
     flex: 1,
@@ -734,5 +925,39 @@ const styles = StyleSheet.create({
   },
   shopAction: {
     padding: 8,
+  },
+  description: {
+    fontSize: 16,
+    lineHeight: 22,
+  },
+  // Café styles
+  cafesList: {
+    width: '100%',
+  },
+  cafeItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+  },
+  cafeItemNoBorder: {
+    borderBottomWidth: 0,
+  },
+  cafeAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    marginRight: 12,
+  },
+  cafeInfo: {
+    flex: 1,
+  },
+  cafeName: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  cafeLocation: {
+    fontSize: 14,
   },
 }); 

@@ -3,7 +3,7 @@ import { View, Text, TextInput, StyleSheet, ScrollView, ActivityIndicator, Touch
 import { CoffeeContext } from '../context/CoffeeContext';
 import { useCoffee } from '../context/CoffeeContext';
 import { useTheme } from '../context/ThemeContext';
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { Ionicons, MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import mockCoffees from '../data/mockCoffees.json';
 import mockRecipes from '../data/mockRecipes.json';
@@ -1716,7 +1716,7 @@ export default function AddCoffeeScreen({ navigation, route }) {
                     style={[styles.brewRatingButton, rating === 3 && styles.brewRatingButtonSelected]}
                     onPress={() => setRating(3)}
                   >
-                    <MaterialIcons name="thumb-up" size={24} color={rating === 3 ? "#4CAF50" : theme.secondaryText} />
+                    <MaterialCommunityIcons name={rating === 3 ? "thumb-up" : "thumb-up-outline"} size={24} color={rating === 3 ? "#4CAF50" : theme.secondaryText} />
                     <Text style={[styles.brewRatingText, rating === 3 && styles.brewRatingTextSelected]}>Good</Text>
                   </TouchableOpacity>
                   
@@ -1724,7 +1724,7 @@ export default function AddCoffeeScreen({ navigation, route }) {
                     style={[styles.brewRatingButton, rating === 2 && styles.brewRatingButtonSelected]}
                     onPress={() => setRating(2)}
                   >
-                    <MaterialIcons name="sentiment-neutral" size={24} color={rating === 2 ? "#FF9800" : theme.secondaryText} />
+                    <MaterialCommunityIcons name={rating === 2 ? "emoticon-neutral" : "emoticon-neutral-outline"} size={24} color={rating === 2 ? "#FF9800" : theme.secondaryText} />
                     <Text style={[styles.brewRatingText, rating === 2 && styles.brewRatingTextSelected]}>Meh</Text>
                   </TouchableOpacity>
                   
@@ -1732,7 +1732,7 @@ export default function AddCoffeeScreen({ navigation, route }) {
                     style={[styles.brewRatingButton, rating === 1 && styles.brewRatingButtonSelected]}
                     onPress={() => setRating(1)}
                   >
-                    <MaterialIcons name="thumb-down" size={24} color={rating === 1 ? "#F44336" : theme.secondaryText} />
+                    <MaterialCommunityIcons name={rating === 1 ? "thumb-down" : "thumb-down-outline"} size={24} color={rating === 1 ? "#F44336" : theme.secondaryText} />
                     <Text style={[styles.brewRatingText, rating === 1 && styles.brewRatingTextSelected]}>Bad</Text>
                   </TouchableOpacity>
                 </View>

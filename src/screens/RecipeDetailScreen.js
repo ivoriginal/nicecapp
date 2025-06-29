@@ -16,7 +16,7 @@ import {
   Share,
   ActionSheetIOS
 } from 'react-native';
-import { Ionicons, AntDesign, Feather, MaterialIcons } from '@expo/vector-icons';
+import { Ionicons, AntDesign, Feather, MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useCoffee } from '../context/CoffeeContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from '../components/Toast';
@@ -745,7 +745,7 @@ export default function RecipeDetailScreen() {
   const handleUpvote = () => {
     // Navigate to AddCoffeeScreen with pre-filled data from this recipe
     if (recipe && coffee) {
-      navigation.navigate('AddCoffeeScreen', {
+      navigation.navigate('AddCoffee', {
         isModalVisible: true,
         autoSelectCoffee: {
           id: coffee.id,
@@ -940,7 +940,7 @@ export default function RecipeDetailScreen() {
         } else if (buttonIndex === 1) {
           // Handle remix - navigate to AddCoffeeScreen with remix mode
           if (recipe && coffee) {
-            navigation.navigate('AddCoffeeScreen', {
+            navigation.navigate('AddCoffee', {
               isModalVisible: true,
               isRemixing: true,
               recipe: {
@@ -1000,6 +1000,27 @@ export default function RecipeDetailScreen() {
     return String(value);
   };
 
+  // Convert percentage to Steam-like rating description
+  const getRatingDescription = (percentage) => {
+    if (percentage >= 90) return 'Excellent';
+    if (percentage >= 80) return 'Very Positive';
+    if (percentage >= 70) return 'Mostly Positive';
+    if (percentage >= 60) return 'Positive';
+    if (percentage >= 50) return 'Average';
+    if (percentage >= 40) return 'Mixed';
+    if (percentage >= 30) return 'Mostly Negative';
+    if (percentage >= 20) return 'Negative';
+    if (percentage >= 10) return 'Very Negative';
+    return 'Overwhelmingly Negative';
+  };
+
+  // Get icon based on rating description
+  const getRatingIcon = (percentage) => {
+    if (percentage >= 60) return 'thumb-up'; // Positive ratings
+    if (percentage >= 40) return 'emoticon-neutral'; // Average/Mixed ratings  
+    return 'thumb-down'; // Negative ratings
+  };
+
   if (loading) {
     return (
       <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -1050,21 +1071,21 @@ export default function RecipeDetailScreen() {
         onRequestClose={() => {}} // Non-dismissible
       >
         <View style={styles.ratingModalOverlay}>
-          <View style={[styles.ratingModalContent, { backgroundColor: theme.altBackground, paddingBottom: insets.bottom }]}>
-            <View style={[styles.ratingModalHeader, { backgroundColor: theme.altBackground, borderBottomColor: theme.border }]}>
+          <View style={[styles.ratingModalContent, { backgroundColor: isDarkMode ? theme.altBackground : '#f4f4f4', paddingBottom: insets.bottom }]}>
+            <View style={[styles.ratingModalHeader, { backgroundColor: isDarkMode ? theme.altBackground : '#f4f4f4', borderBottomColor: theme.border }]}>
               <Text style={[styles.ratingModalTitle, { color: theme.primaryText }]}>How was this brew?</Text>
               <Text style={[styles.ratingModalSubtitle, { color: theme.secondaryText }]}>
                 Help others by rating your experience
               </Text>
             </View>
             
-            <View style={[styles.ratingModalBody, { backgroundColor: theme.altBackground }]}>
-              <View style={[styles.brewRatingContainer, { backgroundColor: theme.altBackground }]}>
+            <View style={[styles.ratingModalBody, { backgroundColor: isDarkMode ? theme.altBackground : '#f4f4f4' }]}>
+              <View style={[styles.brewRatingContainer, { backgroundColor: isDarkMode ? theme.altBackground : '#f4f4f4' }]}>
                 <TouchableOpacity
                   style={[
                     styles.brewRatingButton, 
                     userRating === 3 && styles.brewRatingButtonSelected,
-                    { backgroundColor: theme.cardBackground, borderColor: userRating === 3 ? "#4CAF50" : "transparent" }
+                    { backgroundColor: isDarkMode ? theme.cardBackground : theme.background, borderColor: userRating === 3 ? "#4CAF50" : "transparent" }
                   ]}
                   onPress={() => {
                     setUserRating(3);
@@ -1074,7 +1095,7 @@ export default function RecipeDetailScreen() {
                     }, 100);
                   }}
                 >
-                  <MaterialIcons name="thumb-up" size={24} color={userRating === 3 ? "#4CAF50" : theme.secondaryText} />
+                  <MaterialCommunityIcons name={userRating === 3 ? "thumb-up" : "thumb-up-outline"} size={24} color={userRating === 3 ? "#4CAF50" : theme.secondaryText} />
                   <Text style={[
                     styles.brewRatingText,
                     userRating === 3 && { color: "#4CAF50", fontWeight: '600' },
@@ -1086,7 +1107,7 @@ export default function RecipeDetailScreen() {
                   style={[
                     styles.brewRatingButton,
                     userRating === 2 && styles.brewRatingButtonSelected,
-                    { backgroundColor: theme.cardBackground, borderColor: userRating === 2 ? "#FF9800" : "transparent" }
+                    { backgroundColor: isDarkMode ? theme.cardBackground : theme.background, borderColor: userRating === 2 ? "#FF9800" : "transparent" }
                   ]}
                   onPress={() => {
                     setUserRating(2);
@@ -1096,7 +1117,7 @@ export default function RecipeDetailScreen() {
                     }, 100);
                   }}
                 >
-                  <MaterialIcons name="sentiment-neutral" size={24} color={userRating === 2 ? "#FF9800" : theme.secondaryText} />
+                  <MaterialCommunityIcons name={userRating === 2 ? "emoticon-neutral" : "emoticon-neutral-outline"} size={24} color={userRating === 2 ? "#FF9800" : theme.secondaryText} />
                   <Text style={[
                     styles.brewRatingText,
                     userRating === 2 && { color: "#FF9800", fontWeight: '600' },
@@ -1108,7 +1129,7 @@ export default function RecipeDetailScreen() {
                   style={[
                     styles.brewRatingButton,
                     userRating === 1 && styles.brewRatingButtonSelected,
-                    { backgroundColor: theme.cardBackground, borderColor: userRating === 1 ? "#F44336" : "transparent" }
+                    { backgroundColor: isDarkMode ? theme.cardBackground : theme.background, borderColor: userRating === 1 ? "#F44336" : "transparent" }
                   ]}
                   onPress={() => {
                     setUserRating(1);
@@ -1118,7 +1139,7 @@ export default function RecipeDetailScreen() {
                     }, 100);
                   }}
                 >
-                  <MaterialIcons name="thumb-down" size={24} color={userRating === 1 ? "#F44336" : theme.secondaryText} />
+                  <MaterialCommunityIcons name={userRating === 1 ? "thumb-down" : "thumb-down-outline"} size={24} color={userRating === 1 ? "#F44336" : theme.secondaryText} />
                   <Text style={[
                     styles.brewRatingText,
                     userRating === 1 && { color: "#F44336", fontWeight: '600' },
@@ -1370,26 +1391,26 @@ export default function RecipeDetailScreen() {
                       {/* Show user's rating after they've rated */}
                       {userRating > 0 && (
                         <View style={[styles.popularRatingContainer, { backgroundColor: theme.background }]}>
-                          <MaterialIcons 
-                            name={userRating === 3 ? "thumb-up" : userRating === 2 ? "sentiment-neutral" : "thumb-down"} 
+                          <MaterialCommunityIcons 
+                            name={getRatingIcon(100)} 
                             size={16} 
-                            color={userRating === 3 ? "#4CAF50" : userRating === 2 ? "#FF9800" : "#F44336"} 
+                            color={theme.primaryText} 
                           />
                           <Text style={[styles.popularRatingText, { color: theme.secondaryText }]}>
-                            100%
+                            {getRatingDescription(100)}
                           </Text>
                         </View>
                       )}
                       {/* Show most popular rating from existing data if user hasn't rated */}
                       {userRating === 0 && mostPopularRating && (
                         <View style={[styles.popularRatingContainer, { backgroundColor: theme.background }]}>
-                          <MaterialIcons 
-                            name={mostPopularRating === 3 ? "thumb-up" : mostPopularRating === 2 ? "sentiment-neutral" : "thumb-down"} 
+                          <MaterialCommunityIcons 
+                            name={getRatingIcon(ratingPercentage)} 
                             size={16} 
-                            color={mostPopularRating === 3 ? "#4CAF50" : mostPopularRating === 2 ? "#FF9800" : "#F44336"} 
+                            color={theme.primaryText} 
                           />
                           <Text style={[styles.popularRatingText, { color: theme.secondaryText }]}>
-                            {ratingPercentage}%
+                            {getRatingDescription(ratingPercentage)}
                           </Text>
                         </View>
                       )}
@@ -1408,8 +1429,7 @@ export default function RecipeDetailScreen() {
               
               {/* How was it? Rating UI - show when user has logged but not rated */}
               {showHowWasItRating && (
-                <View style={[styles.howWasItContainer, { backgroundColor: theme.cardBackground }]}>
-                  <Text style={[styles.howWasItTitle, { color: theme.primaryText }]}>How was it?</Text>
+                <View style={[styles.howWasItContainer, { backgroundColor: theme.cardBackground, borderRadius: 50 }]}>
                   <View style={[styles.howWasItRatingRow, { backgroundColor: theme.cardBackground }]}>
                     <TouchableOpacity
                       style={[styles.howWasItRatingButton, { backgroundColor: theme.cardBackground }]}
@@ -1419,8 +1439,10 @@ export default function RecipeDetailScreen() {
                         setShowHowWasItRating(false);
                       }}
                     >
-                      <MaterialIcons name="thumb-up" size={24} color="#4CAF50" />
+                      <MaterialCommunityIcons name="thumb-up-outline" size={24} color={theme.primaryText} />
                     </TouchableOpacity>
+                    
+                    <View style={[styles.howWasItDivider, { backgroundColor: theme.border }]} />
                     
                     <TouchableOpacity
                       style={[styles.howWasItRatingButton, { backgroundColor: theme.cardBackground }]}
@@ -1430,8 +1452,10 @@ export default function RecipeDetailScreen() {
                         setShowHowWasItRating(false);
                       }}
                     >
-                      <MaterialIcons name="sentiment-neutral" size={24} color="#FF9800" />
+                      <MaterialCommunityIcons name="emoticon-neutral-outline" size={24} color={theme.primaryText} />
                     </TouchableOpacity>
+                    
+                    <View style={[styles.howWasItDivider, { backgroundColor: theme.border }]} />
                     
                     <TouchableOpacity
                       style={[styles.howWasItRatingButton, { backgroundColor: theme.cardBackground }]}
@@ -1441,7 +1465,7 @@ export default function RecipeDetailScreen() {
                         setShowHowWasItRating(false);
                       }}
                     >
-                      <MaterialIcons name="thumb-down" size={24} color="#F44336" />
+                      <MaterialCommunityIcons name="thumb-down-outline" size={24} color={theme.primaryText} />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -1530,76 +1554,7 @@ export default function RecipeDetailScreen() {
               )
             )}
 
-            {/* Rating Section */}
-            <View style={[styles.section, { backgroundColor: theme.background, borderTopColor: theme.divider }]}>
-              <View style={[styles.sectionHeader, { backgroundColor: theme.background }]}>
-                <Text style={[styles.sectionTitle, styles.sectionTitleInHeader, { color: theme.primaryText }]}>Rating</Text>
-              </View>
-              {logCount > 0 && (mostPopularRating || userRating > 0) ? (
-                <View style={[styles.ratingStats, { backgroundColor: theme.background }]}>
-                  <View style={[styles.ratingRow, { backgroundColor: theme.background }]}>
-                    <MaterialIcons name="thumb-up" size={20} color="#4CAF50" />
-                    <Text style={[styles.ratingLabel, { color: theme.primaryText }]}>Good</Text>
-                    <View style={[styles.ratingBar, { backgroundColor: theme.border }]}>
-                      <View style={[
-                        styles.ratingBarFill, 
-                        { 
-                          backgroundColor: "#4CAF50",
-                          width: `${mostPopularRating === 3 ? ratingPercentage : Math.floor(logCount * 0.7 / logCount * 100)}%`
-                        }
-                      ]} />
-                    </View>
-                    <Text style={[styles.ratingPercentage, { color: theme.secondaryText }]}>
-                      {mostPopularRating === 3 ? ratingPercentage : Math.floor(logCount * 0.7 / logCount * 100)}%
-                    </Text>
-                  </View>
-                  
-                  <View style={[styles.ratingRow, { backgroundColor: theme.background }]}>
-                    <MaterialIcons name="sentiment-neutral" size={20} color="#FF9800" />
-                    <Text style={[styles.ratingLabel, { color: theme.primaryText }]}>Meh</Text>
-                    <View style={[styles.ratingBar, { backgroundColor: theme.border }]}>
-                      <View style={[
-                        styles.ratingBarFill, 
-                        { 
-                          backgroundColor: "#FF9800",
-                          width: `${mostPopularRating === 2 ? ratingPercentage : Math.floor(logCount * 0.2 / logCount * 100)}%`
-                        }
-                      ]} />
-                    </View>
-                    <Text style={[styles.ratingPercentage, { color: theme.secondaryText }]}>
-                      {mostPopularRating === 2 ? ratingPercentage : Math.floor(logCount * 0.2 / logCount * 100)}%
-                    </Text>
-                  </View>
-                  
-                  <View style={[styles.ratingRow, { backgroundColor: theme.background }]}>
-                    <MaterialIcons name="thumb-down" size={20} color="#F44336" />
-                    <Text style={[styles.ratingLabel, { color: theme.primaryText }]}>Bad</Text>
-                    <View style={[styles.ratingBar, { backgroundColor: theme.border }]}>
-                      <View style={[
-                        styles.ratingBarFill, 
-                        { 
-                          backgroundColor: "#F44336",
-                          width: `${mostPopularRating === 1 ? ratingPercentage : Math.floor(logCount * 0.1 / logCount * 100)}%`
-                        }
-                      ]} />
-                    </View>
-                    <Text style={[styles.ratingPercentage, { color: theme.secondaryText }]}>
-                      {mostPopularRating === 1 ? ratingPercentage : Math.floor(logCount * 0.1 / logCount * 100)}%
-                    </Text>
-                  </View>
-                </View>
-              ) : (
-                <View style={[styles.noRatingsContainer, { backgroundColor: theme.background }]}>
-                  <MaterialIcons name="sentiment-neutral" size={32} color={theme.secondaryText} />
-                  <Text style={[styles.noRatingsText, { color: theme.secondaryText }]}>
-                    No ratings yet
-                  </Text>
-                  <Text style={[styles.noRatingsSubtext, { color: theme.secondaryText }]}>
-                    Be the first to log and rate this recipe
-                  </Text>
-                </View>
-              )}
-            </View>
+
 
             {/* Brewing Steps - only show if recipe has valid steps */}
             {recipe && recipe.steps && Array.isArray(recipe.steps) && recipe.steps.length > 0 && 
@@ -1866,7 +1821,7 @@ const styles = StyleSheet.create({
     paddingLeft: 8,
     borderRadius: 20,
     backgroundColor: '#F2F2F7',
-    marginLeft: 8,
+    marginLeft: 2,
   },
   chipIcon: {
     marginRight: 6,
@@ -1896,10 +1851,10 @@ const styles = StyleSheet.create({
   
   // Based on recipe section
   basedOnContainer: {
-    paddingTop: 16,
-    backgroundColor: '#FFFFFF',
-    marginTop: 4,
-    marginBottom: -8,
+    // paddingTop: 16,
+    // backgroundColor: '#FFFFFF',
+    // marginTop: 4,
+    // marginBottom: -8,
   },
   basedOnRow: {
     flexDirection: 'row',
@@ -2492,9 +2447,10 @@ const styles = StyleSheet.create({
   ratingModalHeader: {
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    padding: 20,
+    padding: 24,
+    paddingBottom: 4,
     // paddingBottom: 16,
-    borderBottomWidth: 1,
+    // borderBottomWidth: 1,
     alignItems: 'center',
   },
   ratingModalTitle: {
@@ -2655,28 +2611,27 @@ const styles = StyleSheet.create({
   },
   howWasItContainer: {
     marginTop: 16,
-    padding: 16,
-    borderRadius: 12,
+    padding: 0,
+    borderRadius: 50,
     alignItems: 'center',
-  },
-  howWasItTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 12,
+    overflow: 'hidden',
   },
   howWasItRatingRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     width: '100%',
-    maxWidth: 240,
+    height: 60,
+    alignItems: 'stretch',
   },
   howWasItRatingButton: {
-    padding: 12,
-    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
     flex: 1,
-    marginHorizontal: 8,
+    height: '100%',
+  },
+  howWasItDivider: {
+    width: 1,
+    height: '100%',
   },
   scrollView: {
     flex: 1,

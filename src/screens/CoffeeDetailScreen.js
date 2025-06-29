@@ -20,7 +20,7 @@ import Toast from '../components/Toast';
 import eventEmitter from '../utils/EventEmitter';
 import mockCoffees from '../data/mockCoffees.json';
 import mockCafes from '../data/mockCafes.json';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, useIsFocused } from '@react-navigation/native';
 import RecipeCard from '../components/RecipeCard';
 import AppImage from '../components/common/AppImage';
 import Animated, {
@@ -61,6 +61,7 @@ export default function CoffeeDetailScreen() {
   const route = useRoute();
   const { coffeeId, skipAuth } = route.params || { coffeeId: null, skipAuth: false };
   const insets = useSafeAreaInsets();
+  const isFocused = useIsFocused();
   
   const [coffee, setCoffee] = useState(null);
   const [relatedRecipes, setRelatedRecipes] = useState([]);
@@ -447,6 +448,60 @@ export default function CoffeeDetailScreen() {
       });
     }
   }, [navigation, coffee, theme, isDarkMode, scrollY, showCoffeeNameInHeader, animatedDefaultTitleStyle, animatedCoffeeTitleStyle]);
+
+  // Reset header when screen comes into focus (fixes header disappearing issue when navigating back)
+  useEffect(() => {
+    if (isFocused && coffee) {
+      // Force header to be shown and reset any conflicting options
+      navigation.setOptions({
+        headerShown: true,
+        headerTransparent: false,
+        headerTitle: () => (
+          <View style={{ position: 'relative', alignItems: 'center', justifyContent: 'center', height: 44 }}>
+            <Animated.Text 
+              style={[
+                animatedDefaultTitleStyle,
+                {
+                  position: 'absolute',
+                  color: theme.primaryText,
+                  fontSize: 17,
+                  fontWeight: '600',
+                }
+              ]}
+            >
+              Coffee Details
+            </Animated.Text>
+            <Animated.Text 
+              style={[
+                animatedCoffeeTitleStyle,
+                {
+                  position: 'absolute',
+                  color: theme.primaryText,
+                  fontSize: 17,
+                  fontWeight: '600',
+                  textAlign: 'center',
+                  maxWidth: 200,
+                }
+              ]}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              {coffee.name}
+            </Animated.Text>
+          </View>
+        ),
+        headerStyle: {
+          backgroundColor: theme.background,
+          elevation: 0, // Remove shadow on Android
+          shadowOpacity: 0, // Remove shadow on iOS
+          borderBottomWidth: isDarkMode ? 1 : (scrollY > 0 ? 1 : 0),
+          borderBottomColor: theme.divider,
+        },
+        headerTintColor: theme.primaryText,
+        headerRight: undefined, // Clear any right buttons from previous screens
+      });
+    }
+  }, [isFocused, coffee, theme, isDarkMode, scrollY, showCoffeeNameInHeader, animatedDefaultTitleStyle, animatedCoffeeTitleStyle]);
 
   // Find and set roaster info when coffee or sellers change
   useEffect(() => {
@@ -841,13 +896,13 @@ export default function CoffeeDetailScreen() {
                 style={[
                   styles.actionButton, 
                   { 
-                    backgroundColor: isDarkMode ? theme.cardBackground : theme.background, 
-                    borderColor: 'transparent' 
+                    backgroundColor: isDarkMode ? theme.background : theme.background, 
+                    borderColor: theme.border
                   },
                   isInCollection ? { 
-                    backgroundColor: isDarkMode ? theme.background : theme.cardBackground, 
-                    borderColor: theme.border 
-                  } : { borderColor: theme.border }
+                      backgroundColor: isDarkMode ? theme.background : theme.background, 
+                      borderColor: isDarkMode ? theme.border : theme.border
+                    } : { borderColor: isDarkMode ? theme.border : theme.border }
                 ]}
                 onPress={handleAddToCollection}
               >
@@ -869,13 +924,13 @@ export default function CoffeeDetailScreen() {
                 style={[
                   styles.actionButton, 
                   { 
-                    backgroundColor: isDarkMode ? theme.cardBackground : theme.background, 
-                    borderColor: 'transparent' 
+                    backgroundColor: isDarkMode ? theme.background : theme.background, 
+                    borderColor: theme.border
                   },
                   isSaved ? { 
-                    backgroundColor: isDarkMode ? theme.background : theme.cardBackground, 
-                    borderColor: theme.border 
-                  } : { borderColor: theme.border }
+                      backgroundColor: isDarkMode ? theme.background : theme.background, 
+                      borderColor: isDarkMode ? theme.border : theme.border
+                    } : { borderColor: isDarkMode ? theme.border : theme.border }
                 ]}
                 onPress={handleSave}
               >
@@ -1158,8 +1213,8 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     marginRight: 8,
-    borderWidth: 1,
-    borderColor: '#F0F0F0',
+    // borderWidth: 1,
+    // borderColor: '#F0F0F0',
   },
   roasterUserAvatar: {
     borderRadius: 12,
@@ -1186,7 +1241,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     flex: 1,
     borderWidth: 1,
-    borderColor: '#E5E5EA',
+    // borderColor: '#E5E5EA',
   },
   actionButtonActive: {
     // backgroundColor: '#000000',
@@ -1428,8 +1483,9 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     marginRight: 12,
-    borderWidth: 1,
-    borderColor: '#F0F0F0',
+    borderRadius: 4,
+    // borderWidth: 1,
+    // borderColor: '#F0F0F0',
   },
   sellerInfo: {
     flex: 1,
@@ -1449,6 +1505,7 @@ const styles = StyleSheet.create({
     color: '#666666',
   },
   roasterBadge: {
+    // make theme sensitive
     backgroundColor: '#E0E0E0',
     paddingHorizontal: 8,
     paddingVertical: 2,

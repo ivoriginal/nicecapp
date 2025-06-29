@@ -72,6 +72,7 @@ export const lightTheme = {
   background: '#FFFFFF',
   altBackground: '#F2F2F7',
   cardBackground: '#F6F6F6',
+  // use this for chips? #f2f2f2
   recipeContainer: '#F5F5F5',
   secondaryBackground: '#F9F9F9',
   primaryText: '#000000',

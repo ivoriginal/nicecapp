@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from 'react';
 import { 
   View, 
   Text, 
@@ -12,11 +12,14 @@ import {
   StatusBar,
   RefreshControl,
   Platform,
-  ActionSheetIOS
+  ActionSheetIOS,
+  TextInput,
+  Modal,
+  Dimensions
 } from 'react-native';
 import { Ionicons, MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRoute, useNavigation, useIsFocused } from '@react-navigation/native';
+import { useRoute, useNavigation, useIsFocused, useFocusEffect } from '@react-navigation/native';
 // Import the raw JSON data to ensure it's available
 import mockUsersData from '../data/mockUsers.json';
 import mockRecipesData from '../data/mockRecipes.json';
@@ -121,6 +124,16 @@ export default function UserProfileScreen() {
   const scrollViewRef = useRef(null);
   const [showHeaderTitle, setShowHeaderTitle] = useState(false);
   const profileSectionHeight = 100; // Height threshold to show header title
+  
+  // Add review modal states
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewText, setReviewText] = useState('');
+  const [reviewRating, setReviewRating] = useState(0);
+  const [parentRoasterData, setParentRoasterData] = useState(null);
+  const [userReviews, setUserReviews] = useState([]);
+  
+  // Add profile picture viewer states
+  const [showProfilePicture, setShowProfilePicture] = useState(false);
 
   // Get cover image URL from user data or route params  
   const coverImageUrl = user?.coverImage || route.params?.coverImage;
@@ -143,6 +156,7 @@ export default function UserProfileScreen() {
       },
       headerTitle: showHeaderTitle ? displayName : '', // Show title based on scroll position
       headerTintColor: theme.primaryText, // Set back button color
+      headerBackTitleVisible: false, // Hide back button title on iOS
       headerRight: () => (
         <TouchableOpacity 
           onPress={handleOptionsPress} 
@@ -153,6 +167,29 @@ export default function UserProfileScreen() {
       )
     });
   }, [navigation, theme, showHeaderTitle, user, userName]);
+
+  // Reset header when screen comes into focus (fixes header disappearing issue when navigating back)
+  useFocusEffect(
+    useCallback(() => {
+      const displayName = user?.userName || userName || 'Profile';
+      // Force header to be shown and reset any conflicting options
+      navigation.setOptions({
+        headerShown: true,
+        headerTransparent: false,
+        headerStyle: {
+          backgroundColor: theme.background,
+          elevation: 0,
+          shadowOpacity: 0,
+          shadowRadius: 0,
+          borderBottomWidth: showHeaderTitle ? 1 : 0,
+          borderBottomColor: theme.divider
+        },
+        headerTitle: showHeaderTitle ? displayName : '',
+        headerTintColor: theme.primaryText,
+        headerBackTitleVisible: false,
+      });
+    }, [navigation, theme, showHeaderTitle, user, userName])
+  );
 
   // Handle options button press
   const handleOptionsPress = () => {
@@ -190,15 +227,7 @@ export default function UserProfileScreen() {
     }
   };
 
-  // Handle back button press
-  const handleGoBack = () => {
-    console.log('handleGoBack function called - testing');
-    try {
-      navigation.goBack();
-    } catch (error) {
-      console.error('Error in handleGoBack:', error);
-    }
-  };
+
 
   // Handle scroll events to show/hide header title
   const handleScroll = (event) => {
@@ -216,12 +245,14 @@ export default function UserProfileScreen() {
   const getTabs = () => {
     if (user?.isRoaster) {
       return [
+        { id: 'information', label: 'About' },
         { id: 'locations', label: 'Locations' },
         { id: 'shop', label: 'Shop' }
       ];
     } else if (user?.isBusinessAccount) {
-      // For cafés and other business accounts, show activity, shop and recipes tabs
+      // For cafés and other business accounts, show about first, then activity, shop and recipes tabs
       return [
+        { id: 'information', label: 'About' },
         { id: 'coffees', label: 'Activity' },
         { id: 'shop', label: 'Shop' },
         { id: 'recipes', label: 'Recipes' }
@@ -237,9 +268,11 @@ export default function UserProfileScreen() {
 
   // Set default active tab based on user type
   useEffect(() => {
-    if (user?.isRoaster && activeTab === 'coffees') {
-      setActiveTab('locations');
-    } else if (!user?.isRoaster && (activeTab === 'locations')) {
+    if (user?.isRoaster && (activeTab === 'coffees' || activeTab === 'locations')) {
+      setActiveTab('information');
+    } else if (user?.isBusinessAccount && !user?.isRoaster && (activeTab === 'coffees' || activeTab === 'locations')) {
+      setActiveTab('information');
+    } else if (!user?.isRoaster && !user?.isBusinessAccount && (activeTab === 'locations')) {
       setActiveTab('coffees');
     }
   }, [user]);
@@ -311,6 +344,9 @@ export default function UserProfileScreen() {
                                mockCafesData.roasters?.find(b => b.id === userId);
             
             if (businessData) {
+              // Find all cafe locations for this roaster
+              const roasterCafes = mockCafesData.cafes?.filter(cafe => cafe.roasterId === userId) || [];
+              
               userData = {
                 ...businessData,
                 userName: businessData.name,
@@ -318,16 +354,20 @@ export default function UserProfileScreen() {
                 isBusinessAccount: true,
                 isRoaster: businessData.isRoaster || businessData.type?.includes('roaster'),
                 location: businessData.location || route.params?.location,
-                // If the business has locations, add them as cafes
-                cafes: businessData.addresses?.map(addr => ({
-                  id: addr.id,
-                  name: addr.name,
-                  address: addr.address,
-                  location: addr.location || addr.address,
-                  avatar: businessData.avatar || businessData.logo,
-                  rating: 4.8,
-                  reviewCount: 100 + Math.floor(Math.random() * 50)
-                })) || []
+                // Load cafe locations from mockCafes.json
+                cafes: roasterCafes.map(cafe => ({
+                  id: cafe.id,
+                  name: cafe.name,
+                  address: cafe.address,
+                  location: cafe.location,
+                  avatar: cafe.avatar || businessData.avatar || businessData.logo,
+                  rating: cafe.rating || 4.8,
+                  reviewCount: cafe.reviewCount || (100 + Math.floor(Math.random() * 50)),
+                  phone: cafe.phone,
+                  neighborhood: cafe.neighborhood,
+                  openingHours: cafe.openingHours,
+                  coordinates: cafe.coordinates
+                }))
               };
               
               // Load coffees from mockCoffees.json for specific roasters
@@ -1122,6 +1162,37 @@ export default function UserProfileScreen() {
     }
   }, [user, userId, currentUser]);
 
+  // Load parent roaster data
+  useEffect(() => {
+    if (user?.parentBusinessId && !user?.isRoaster) {
+      const roasterData = mockCafesData.roasters?.find(r => r.id === user.parentBusinessId);
+      if (roasterData) {
+        setParentRoasterData(roasterData);
+      }
+    }
+  }, [user]);
+
+  // Handle review submission
+  const handleSubmitReview = () => {
+    if (reviewRating === 0) return;
+    
+    const newReview = {
+      id: Date.now().toString(),
+      userId: currentUser?.id || 'user1',
+      userName: currentUser?.userName || 'You',
+      userAvatar: currentUser?.userAvatar,
+      rating: reviewRating,
+      text: reviewText,
+      date: new Date().toISOString(),
+      timestamp: Date.now()
+    };
+    
+    setUserReviews(prev => [newReview, ...prev]);
+    setShowReviewModal(false);
+    setReviewText('');
+    setReviewRating(0);
+  };
+
   if (loading) {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
@@ -1154,14 +1225,16 @@ export default function UserProfileScreen() {
         {user && (
           <>
             <View style={[styles.profileSection, { backgroundColor: theme.background }]}>
-              <AppImage 
-                source={user.userAvatar || 'https://via.placeholder.com/80'} 
-                style={[
-                  styles.profileImage,
-                  user.isBusinessAccount ? styles.businessAvatar : styles.userAvatar
-                ]}
-                placeholder="person"
-              />
+              <TouchableOpacity onPress={() => setShowProfilePicture(true)}>
+                <AppImage 
+                  source={user.userAvatar || 'https://via.placeholder.com/80'} 
+                  style={[
+                    styles.profileImage,
+                    user.isBusinessAccount ? styles.businessAvatar : styles.userAvatar
+                  ]}
+                  placeholder="person"
+                />
+              </TouchableOpacity>
               <View style={styles.profileInfo}>
                 <Text style={[styles.profileName, { color: theme.primaryText }]}>
                   {user.userName || userName || 'Unknown User'}
@@ -1395,6 +1468,231 @@ export default function UserProfileScreen() {
 
             {/* Tab Content */}
             <View style={{ flex: 1, backgroundColor: theme.background }}>
+              {activeTab === 'information' && user?.isBusinessAccount && (
+                <View style={styles.informationContainer}>
+                  {/* Basic Information */}
+                  <View style={styles.infoSection}>
+                    <Text style={[styles.infoSectionTitle, { color: theme.primaryText }]}>About</Text>
+                    
+                    {/* Address (for cafes) */}
+                    {user.address && (
+                      <View style={styles.infoItem}>
+                        <Ionicons name="location-outline" size={20} color={theme.secondaryText} />
+                        <Text style={[styles.infoText, { color: theme.primaryText }]}>{user.address}</Text>
+                      </View>
+                    )}
+                    
+                    {/* Location (for roasters - general location) */}
+                    {!user.address && user.location && (
+                      <View style={styles.infoItem}>
+                        <Ionicons name="location-outline" size={20} color={theme.secondaryText} />
+                        <Text style={[styles.infoText, { color: theme.primaryText }]}>{user.location}</Text>
+                      </View>
+                    )}
+                    
+                    {/* Phone */}
+                    {user.phone && (
+                      <View style={styles.infoItem}>
+                        <Ionicons name="call-outline" size={20} color={theme.secondaryText} />
+                        <Text style={[styles.infoText, { color: theme.primaryText }]}>{user.phone}</Text>
+                      </View>
+                    )}
+                    
+                    {/* Website (mainly for roasters) */}
+                    {user.website && (
+                      <View style={styles.infoItem}>
+                        <Ionicons name="globe-outline" size={20} color={theme.secondaryText} />
+                        <Text style={[styles.infoText, { color: theme.primaryText }]}>{user.website}</Text>
+                      </View>
+                    )}
+                    
+                    {/* Instagram (mainly for roasters) */}
+                    {user.instagram && (
+                      <View style={styles.infoItem}>
+                        <Ionicons name="logo-instagram" size={20} color={theme.secondaryText} />
+                        <Text style={[styles.infoText, { color: theme.primaryText }]}>{user.instagram}</Text>
+                      </View>
+                    )}
+                    
+                    {/* Neighborhood (for cafes) */}
+                    {user.neighborhood && (
+                      <View style={styles.infoItem}>
+                        <Ionicons name="map-outline" size={20} color={theme.secondaryText} />
+                        <Text style={[styles.infoText, { color: theme.primaryText }]}>{user.neighborhood}</Text>
+                      </View>
+                    )}
+                    
+                    {/* Price Range */}
+                    {user.priceRange && (
+                      <View style={styles.infoItem}>
+                        <Ionicons name="card-outline" size={20} color={theme.secondaryText} />
+                        <Text style={[styles.infoText, { color: theme.primaryText }]}>Price Range: {user.priceRange}</Text>
+                      </View>
+                    )}
+                    
+                    {/* Categories */}
+                    {user.categories && user.categories.length > 0 && (
+                      <View style={styles.infoItem}>
+                        <Ionicons name="pricetag-outline" size={20} color={theme.secondaryText} />
+                        <Text style={[styles.infoText, { color: theme.primaryText }]}>{user.categories.join(', ')}</Text>
+                      </View>
+                    )}
+                  </View>
+
+                  {/* Section divider */}
+                  <View style={[styles.sectionDivider, { backgroundColor: theme.divider }]} />
+
+                  {/* Description (mainly for roasters) */}
+                  {user.description && (
+                    <>
+                      <View style={styles.infoSection}>
+                        <Text style={[styles.infoSectionTitle, { color: theme.primaryText }]}>Description</Text>
+                        <Text style={[styles.descriptionText, { color: theme.primaryText }]}>
+                          {user.description}
+                        </Text>
+                      </View>
+                      <View style={[styles.sectionDivider, { backgroundColor: theme.divider }]} />
+                    </>
+                  )}
+
+                  {/* Parent Roaster (only for cafes, not roasters) */}
+                  {user.parentBusinessName && !user.isRoaster && (
+                    <>
+                      <View style={styles.infoSection}>
+                        <Text style={[styles.infoSectionTitle, { color: theme.primaryText }]}>Roaster</Text>
+                        <TouchableOpacity
+                          style={styles.parentRoasterContainer}
+                          onPress={() => navigation.navigate('UserProfileBridge', {
+                            userId: user.parentBusinessId,
+                            userName: user.parentBusinessName,
+                            skipAuth: true,
+                            isRoaster: true,
+                            isBusinessAccount: true
+                          })}
+                        >
+                          <View style={styles.infoItem}>
+                            {parentRoasterData?.avatar ? (
+                              <AppImage 
+                                source={parentRoasterData.avatar}
+                                style={styles.roasterAvatar}
+                                placeholder="business"
+                              />
+                            ) : (
+                              <Ionicons name="business-outline" size={20} color={theme.secondaryText} />
+                            )}
+                            <Text style={[styles.infoText, { color: theme.primaryText }]}>{user.parentBusinessName}</Text>
+                            <Ionicons name="chevron-forward" size={16} color={theme.secondaryText} style={{ marginLeft: 'auto' }} />
+                          </View>
+                        </TouchableOpacity>
+                      </View>
+                      <View style={[styles.sectionDivider, { backgroundColor: theme.divider }]} />
+                    </>
+                  )}
+
+                  {/* Opening Hours (only for cafes, not roasters) */}
+                  {user.openingHours && !user.isRoaster && (
+                    <>
+                      <View style={styles.infoSection}>
+                        <Text style={[styles.infoSectionTitle, { color: theme.primaryText }]}>Opening Hours</Text>
+                        {Object.entries(user.openingHours).map(([day, hours]) => (
+                          <View key={day} style={styles.hoursItem}>
+                            <Text style={[styles.dayText, { color: theme.primaryText }]}>
+                              {day.charAt(0).toUpperCase() + day.slice(1)}
+                            </Text>
+                            <Text style={[styles.hoursText, { color: theme.secondaryText }]}>{hours}</Text>
+                          </View>
+                        ))}
+                      </View>
+                      <View style={[styles.sectionDivider, { backgroundColor: theme.divider }]} />
+                    </>
+                  )}
+
+                  {/* Reviews Section */}
+                  <View style={styles.infoSection}>
+                    <View style={styles.reviewsHeaderContainer}>
+                      <Text style={[styles.infoSectionTitle, { color: theme.primaryText }]}>Reviews</Text>
+                      {!isCurrentUser && (
+                        <TouchableOpacity 
+                          style={[styles.writeReviewButton, { borderColor: theme.primaryText }]}
+                          onPress={() => setShowReviewModal(true)}
+                        >
+                          <Text style={[styles.writeReviewText, { color: theme.primaryText }]}>Write Review</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                    
+                    {/* Rating Summary */}
+                    <View style={styles.ratingContainer}>
+                      <View style={styles.ratingLeft}>
+                        <Text style={[styles.ratingNumber, { color: theme.primaryText }]}>
+                          {user.rating || 4.8}
+                        </Text>
+                        <View style={styles.starsContainer}>
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Ionicons
+                              key={star}
+                              name={star <= Math.floor(user.rating || 4.8) ? "star" : "star-outline"}
+                              size={16}
+                              color="#FFD700"
+                            />
+                          ))}
+                        </View>
+                        <Text style={[styles.reviewCount, { color: theme.secondaryText }]}>
+                          {user.reviewCount || 0} reviews
+                        </Text>
+                      </View>
+                    </View>
+                    
+                    {/* Reviews List */}
+                    {userReviews.length > 0 ? (
+                      <View style={styles.reviewsList}>
+                        {userReviews.map((review) => (
+                          <View key={review.id} style={[styles.reviewItem, { borderBottomColor: theme.divider }]}>
+                            <View style={styles.reviewHeader}>
+                              <AppImage
+                                source={review.userAvatar}
+                                style={styles.reviewUserAvatar}
+                                placeholder="person"
+                              />
+                              <View style={styles.reviewUserInfo}>
+                                <Text style={[styles.reviewUserName, { color: theme.primaryText }]}>
+                                  {review.userName}
+                                </Text>
+                                <View style={styles.reviewRatingStars}>
+                                  {[1, 2, 3, 4, 5].map((star) => (
+                                    <Ionicons
+                                      key={star}
+                                      name={star <= review.rating ? "star" : "star-outline"}
+                                      size={12}
+                                      color="#FFD700"
+                                      style={{ marginRight: 2 }}
+                                    />
+                                  ))}
+                                </View>
+                              </View>
+                              <Text style={[styles.reviewDate, { color: theme.secondaryText }]}>
+                                {new Date(review.date).toLocaleDateString()}
+                              </Text>
+                            </View>
+                            {review.text && (
+                              <Text style={[styles.reviewText, { color: theme.primaryText }]}>
+                                {review.text}
+                              </Text>
+                            )}
+                          </View>
+                        ))}
+                      </View>
+                    ) : (
+                      <View style={styles.reviewsPlaceholder}>
+                        <Text style={[styles.emptyReviewsText, { color: theme.secondaryText }]}>
+                          No reviews yet
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
+              )}
+
               {activeTab === 'coffees' && (
                 <View style={styles.coffeesContainer}>
                   {userLogs.length > 0 ? (
@@ -1504,22 +1802,25 @@ export default function UserProfileScreen() {
 
               {activeTab === 'locations' && user?.isRoaster && (
                 <View style={styles.cafesSection}>
-                  <View style={styles.sectionHeader}>
-                    <Text style={[styles.sectionTitle, { color: theme.primaryText }]}>Locations</Text>
-                    <Text style={[styles.locationCount, { color: theme.secondaryText }]}>
-                      {user.cafes?.length || 0} locations
-                    </Text>
-                  </View>
                   {user.cafes && user.cafes.length > 0 ? (
                     user.cafes.map((cafe) => (
                       <TouchableOpacity
                         key={cafe.id}
-                        style={[styles.cafeItem, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
-                        onPress={() => navigation.navigate('UserProfileScreen', {
+                        style={[
+                          styles.cafeItem, 
+                          { 
+                            backgroundColor: isDarkMode ? theme.cardBackground : 'transparent',
+                            borderColor: isDarkMode ? 'transparent' : theme.border,
+                            borderWidth: isDarkMode ? 0 : 1
+                          }
+                        ]}
+                        onPress={() => navigation.navigate('UserProfileBridge', {
                           userId: cafe.id,
                           userName: cafe.name,
                           userAvatar: cafe.avatar,
                           isBusinessAccount: true,
+                          isLocation: true,
+                          parentBusinessId: user.id,
                           skipAuth: true
                         })}
                       >
@@ -1554,6 +1855,112 @@ export default function UserProfileScreen() {
           </>
         )}
       </ScrollView>
+
+      {/* Review Modal */}
+      <Modal
+        visible={showReviewModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowReviewModal(false)}
+      >
+        <View style={[styles.reviewModalContainer, { backgroundColor: theme.background }]}>
+          <View style={[styles.reviewModalHeader, { borderBottomColor: theme.divider }]}>
+            <TouchableOpacity onPress={() => setShowReviewModal(false)}>
+              <Text style={[styles.reviewModalCancel, { color: theme.primaryText }]}>Cancel</Text>
+            </TouchableOpacity>
+            <Text style={[styles.reviewModalTitle, { color: theme.primaryText }]}>Write Review</Text>
+            <TouchableOpacity 
+              onPress={handleSubmitReview}
+              disabled={reviewRating === 0}
+            >
+              <Text style={[
+                styles.reviewModalSubmit, 
+                { 
+                  color: reviewRating === 0 ? theme.secondaryText : theme.primaryText,
+                  opacity: reviewRating === 0 ? 0.5 : 1
+                }
+              ]}>Post</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.reviewModalContent}>
+            {/* Star Rating */}
+            <View style={styles.reviewRatingContainer}>
+              <Text style={[styles.reviewRatingLabel, { color: theme.primaryText }]}>Rating</Text>
+              <View style={styles.reviewStars}>
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <TouchableOpacity
+                    key={star}
+                    onPress={() => setReviewRating(star)}
+                    style={styles.reviewStar}
+                  >
+                    <Ionicons
+                      name={star <= reviewRating ? "star" : "star-outline"}
+                      size={32}
+                      color="#FFD700"
+                    />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            {/* Review Text */}
+            <View style={styles.reviewTextContainer}>
+              <Text style={[styles.reviewTextLabel, { color: theme.primaryText }]}>Review</Text>
+              <TextInput
+                style={[
+                  styles.reviewTextInput, 
+                  { 
+                    backgroundColor: theme.cardBackground,
+                    color: theme.primaryText,
+                    borderColor: theme.border
+                  }
+                ]}
+                placeholder="Share your experience..."
+                placeholderTextColor={theme.secondaryText}
+                multiline
+                numberOfLines={4}
+                value={reviewText}
+                onChangeText={setReviewText}
+                textAlignVertical="top"
+              />
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Profile Picture Viewer */}
+      <Modal
+        visible={showProfilePicture}
+        animationType="fade"
+        presentationStyle="overFullScreen"
+        onRequestClose={() => setShowProfilePicture(false)}
+      >
+        <View style={styles.profilePictureModalContainer}>
+          <TouchableOpacity 
+            style={styles.profilePictureModalOverlay}
+            activeOpacity={1}
+            onPress={() => setShowProfilePicture(false)}
+          >
+            <View style={styles.profilePictureModalContent}>
+              <AppImage
+                source={user?.userAvatar || 'https://via.placeholder.com/300'}
+                style={styles.profilePictureModalImage}
+                placeholder="person"
+                resizeMode="contain"
+              />
+            </View>
+            
+            {/* Close button */}
+            <TouchableOpacity 
+              style={styles.profilePictureCloseButton}
+              onPress={() => setShowProfilePicture(false)}
+            >
+              <Ionicons name="close" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -1851,6 +2258,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 12,
+    paddingLeft: 16,
     borderWidth: 1,
     borderColor: '#E5E5EA',
     borderRadius: 8,
@@ -2323,5 +2731,239 @@ const styles = StyleSheet.create({
   },
   headerHeight: {
     height: 100,
+  },
+  informationContainer: {
+    padding: 16,
+  },
+  infoSection: {
+    paddingVertical: 16,
+    paddingHorizontal: 0,
+  },
+  sectionDivider: {
+    height: StyleSheet.hairlineWidth,
+    marginVertical: 8,
+  },
+  infoSectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#000000',
+    marginBottom: 12,
+  },
+  infoItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  infoText: {
+    fontSize: 16,
+    color: '#000000',
+    marginLeft: 12,
+    flex: 1,
+  },
+  parentRoasterContainer: {
+    // No additional styling needed, uses infoItem
+  },
+  hoursItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  dayText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#000000',
+    flex: 1,
+  },
+  hoursText: {
+    fontSize: 16,
+    color: '#666666',
+  },
+  ratingContainer: {
+    marginBottom: 16,
+  },
+  ratingLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  ratingNumber: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#000000',
+    marginRight: 8,
+  },
+  starsContainer: {
+    flexDirection: 'row',
+    marginRight: 8,
+  },
+  reviewCount: {
+    fontSize: 14,
+    color: '#666666',
+  },
+  reviewsPlaceholder: {
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F8F8F8',
+    borderRadius: 8,
+  },
+  emptyReviewsText: {
+    fontSize: 14,
+    color: '#666666',
+    fontStyle: 'italic',
+  },
+  descriptionText: {
+    fontSize: 16,
+    color: '#000000',
+    lineHeight: 22,
+  },
+  roasterAvatar: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    marginRight: 12,
+  },
+  reviewsHeaderContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  writeReviewButton: {
+    borderWidth: 1,
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  writeReviewText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  reviewModalContainer: {
+    flex: 1,
+  },
+  reviewModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  reviewModalCancel: {
+    fontSize: 16,
+    fontWeight: '400',
+  },
+  reviewModalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  reviewModalSubmit: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  reviewModalContent: {
+    flex: 1,
+    padding: 16,
+  },
+  reviewRatingContainer: {
+    marginBottom: 24,
+  },
+  reviewRatingLabel: {
+    fontSize: 16,
+    fontWeight: '500',
+    marginBottom: 12,
+  },
+  reviewStars: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  reviewStar: {
+    marginRight: 8,
+  },
+  reviewTextContainer: {
+    flex: 1,
+  },
+  reviewTextLabel: {
+    fontSize: 16,
+    fontWeight: '500',
+    marginBottom: 12,
+  },
+  reviewTextInput: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    minHeight: 100,
+  },
+  reviewsList: {
+    marginTop: 16,
+  },
+  reviewItem: {
+    paddingVertical: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  reviewHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  reviewUserAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    marginRight: 12,
+  },
+  reviewUserInfo: {
+    flex: 1,
+  },
+  reviewUserName: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  reviewRatingStars: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  reviewDate: {
+    fontSize: 12,
+    fontWeight: '400',
+  },
+  reviewText: {
+    fontSize: 14,
+    lineHeight: 20,
+    marginLeft: 44,
+  },
+  profilePictureModalContainer: {
+    flex: 1,
+  },
+  profilePictureModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  profilePictureModalContent: {
+    width: '90%',
+    height: '70%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  profilePictureModalImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 12,
+  },
+  profilePictureCloseButton: {
+    position: 'absolute',
+    top: 60,
+    right: 20,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 }); 

@@ -895,7 +895,7 @@ export default function SearchScreen() {
               style={[
                 styles.filterChip,
                 { backgroundColor: isDarkMode ? theme.altCardBackground : theme.cardBackground, borderColor: isDarkMode ? theme.altCardBackground : theme.cardBackground },
-                activeFilter === filter.id && { backgroundColor: isDarkMode ? theme.cardBackground : theme.border, borderColor: isDarkMode ? theme.cardBackground : theme.border }
+                activeFilter === filter.id && { backgroundColor: isDarkMode ? theme.cardBackground : '#dee3e4', borderColor: isDarkMode ? theme.cardBackground : '#dee3e4' }
               ]}
               onPress={() => setActiveFilter(filter.id)}
             >
