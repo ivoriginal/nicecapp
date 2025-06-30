@@ -34,7 +34,7 @@ export default function FollowersScreen() {
     navigation.setOptions({
       title: type === 'followers' ? 'Followers' : 'Following',
       headerStyle: {
-        backgroundColor: theme.cardBackground,
+        backgroundColor: theme.background,
       },
       headerTintColor: theme.primaryText,
       headerTitleStyle: {
@@ -113,7 +113,7 @@ export default function FollowersScreen() {
   };
 
   const renderUser = ({ item }) => (
-    <View style={[styles.userItem, { backgroundColor: theme.cardBackground, borderBottomColor: theme.divider }]}>
+    <View style={[styles.userItem, { backgroundColor: theme.background, borderBottomColor: theme.divider }]}>
       <TouchableOpacity
         style={styles.userInfo}
         onPress={() => handleUserPress(item)}
@@ -134,11 +134,11 @@ export default function FollowersScreen() {
           <Text style={[styles.userHandle, { color: theme.secondaryText }]}>
             {item.handle || `@${item.userName?.toLowerCase().replace(/\s+/g, '')}`}
           </Text>
-          {item.location && (
+          {/* {item.location && (
             <Text style={[styles.userLocation, { color: theme.secondaryText }]}>
               {item.location}
             </Text>
-          )}
+          )} */}
         </View>
       </TouchableOpacity>
       
@@ -256,6 +256,7 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     padding: 0,
+    paddingTop: 8,
   },
   emptyListContainer: {
     flex: 1,
@@ -265,7 +266,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingVertical: 8,
+    // borderBottomWidth: StyleSheet.hairlineWidth,
   },
   userInfo: {
     flexDirection: 'row',
@@ -276,8 +278,8 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     marginRight: 12,
-    borderWidth: 1,
-    borderColor: '#E5E5E5',
+    // borderWidth: 1,
+    // borderColor: '#E5E5E5',
   },
   userAvatar: {
     borderRadius: 25,
