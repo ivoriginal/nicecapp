@@ -5,6 +5,7 @@ import { useColorScheme, Button, Modal, View, Text, StyleSheet, Alert, Keyboard,
 import { useState, useContext, useEffect, useRef } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from 'expo-status-bar';
+import { useFonts, Molle_400Regular_Italic } from '@expo-google-fonts/molle';
 import HomeScreen from '../screens/HomeScreen';
 import SearchScreen from '../screens/SearchScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
@@ -18,6 +19,7 @@ import { useTheme } from '../context/ThemeContext';
 const BottomTab = createBottomTabNavigator();
 
 export default function BottomTabNavigator({ navigation: mainNavigation }) {
+  // All hooks must be called at the top level before any conditional logic
   const colorScheme = useColorScheme();
   const { theme, isDarkMode } = useTheme();
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -28,9 +30,16 @@ export default function BottomTabNavigator({ navigation: mainNavigation }) {
   const [canSave, setCanSave] = useState(false);
   const { unreadCount, markAllAsRead } = useNotifications();
   const { accounts, currentAccount, switchAccount } = useCoffee();
-
-  // Remove the bottom sheet ref and snap points
   const [showAccountModal, setShowAccountModal] = useState(false);
+
+  const [fontsLoaded] = useFonts({
+    Molle_400Regular_Italic,
+  });
+
+  // Don't render anything if fonts aren't loaded yet - moved after all hooks
+  if (!fontsLoaded) {
+    return null;
+  }
 
   // Handle account switching
   const handleAccountSwitch = (account) => {
@@ -229,7 +238,7 @@ export default function BottomTabNavigator({ navigation: mainNavigation }) {
             },
             headerTitle: () => (
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%'}}>
-                <Text style={{ fontSize: 24, fontWeight: '600', color: theme.primaryText }}>NiceCup</Text>
+                <Text style={{ fontSize: 32, fontFamily: 'Molle_400Regular_Italic', color: theme.primaryText }}>nicecup</Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                   <TouchableOpacity 
                     onPress={() => navigation.navigate('PeopleList')}
