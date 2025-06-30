@@ -15,7 +15,9 @@ import {
   ActionSheetIOS,
   TextInput,
   Modal,
-  Dimensions
+  Dimensions,
+  Animated,
+  PanResponder
 } from 'react-native';
 import { Ionicons, MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -134,6 +136,45 @@ export default function UserProfileScreen() {
   
   // Add profile picture viewer states
   const [showProfilePicture, setShowProfilePicture] = useState(false);
+  const profilePictureTranslateY = useRef(new Animated.Value(0)).current;
+
+  // Pan responder for drag-to-dismiss profile picture
+  const profilePicturePanResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (evt, gestureState) => {
+        // Only respond to vertical movements
+        return Math.abs(gestureState.dy) > Math.abs(gestureState.dx);
+      },
+      onPanResponderMove: (evt, gestureState) => {
+        // Only allow downward movement
+        if (gestureState.dy > 0) {
+          profilePictureTranslateY.setValue(gestureState.dy);
+        }
+      },
+      onPanResponderRelease: (evt, gestureState) => {
+        if (gestureState.dy > 150) {
+          // Dismiss if dragged down more than 150px
+          Animated.timing(profilePictureTranslateY, {
+            toValue: 500,
+            duration: 200,
+            useNativeDriver: true,
+          }).start(() => {
+            setShowProfilePicture(false);
+            profilePictureTranslateY.setValue(0);
+          });
+        } else {
+          // Spring back to original position
+          Animated.spring(profilePictureTranslateY, {
+            toValue: 0,
+            useNativeDriver: true,
+            tension: 100,
+            friction: 8,
+          }).start();
+        }
+      },
+    })
+  ).current;
 
   // Get cover image URL from user data or route params  
   const coverImageUrl = user?.coverImage || route.params?.coverImage;
@@ -795,6 +836,13 @@ export default function UserProfileScreen() {
       </TouchableOpacity>
     );
   };
+
+  // Reset profile picture animation when modal opens
+  useEffect(() => {
+    if (showProfilePicture) {
+      profilePictureTranslateY.setValue(0);
+    }
+  }, [showProfilePicture]);
 
   // Load user's collection (coffees they've tried)
   useEffect(() => {
@@ -1932,11 +1980,24 @@ export default function UserProfileScreen() {
       {/* Profile Picture Viewer */}
       <Modal
         visible={showProfilePicture}
-        animationType="fade"
+        animationType="slide"
         presentationStyle="overFullScreen"
         onRequestClose={() => setShowProfilePicture(false)}
       >
-        <View style={styles.profilePictureModalContainer}>
+        <Animated.View 
+          style={[
+            styles.profilePictureModalContainer,
+            {
+              transform: [{ translateY: profilePictureTranslateY }],
+              opacity: profilePictureTranslateY.interpolate({
+                inputRange: [0, 150],
+                outputRange: [1, 0.8],
+                extrapolate: 'clamp',
+              }),
+            }
+          ]}
+          {...profilePicturePanResponder.panHandlers}
+        >
           <TouchableOpacity 
             style={styles.profilePictureModalOverlay}
             activeOpacity={1}
@@ -1947,7 +2008,7 @@ export default function UserProfileScreen() {
                 source={user?.userAvatar || 'https://via.placeholder.com/300'}
                 style={styles.profilePictureModalImage}
                 placeholder="person"
-                resizeMode="contain"
+                resizeMode="cover"
               />
             </View>
             
@@ -1959,7 +2020,7 @@ export default function UserProfileScreen() {
               <Ionicons name="close" size={24} color="#FFFFFF" />
             </TouchableOpacity>
           </TouchableOpacity>
-        </View>
+        </Animated.View>
       </Modal>
     </View>
   );
@@ -2945,15 +3006,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   profilePictureModalContent: {
-    width: '90%',
-    height: '70%',
     justifyContent: 'center',
     alignItems: 'center',
   },
   profilePictureModalImage: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 12,
+    width: 300,
+    height: 300,
+    borderRadius: 150,
   },
   profilePictureCloseButton: {
     position: 'absolute',
