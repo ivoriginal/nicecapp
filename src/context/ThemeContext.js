@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
 import { useColorScheme, Appearance } from 'react-native';
 import { lightTheme, darkTheme } from '../constants/theme';
 
@@ -55,8 +55,8 @@ export const ThemeProvider = ({ children }) => {
   // Get the current theme object
   const theme = isDarkMode ? darkTheme : lightTheme;
   
-  // Function to manually toggle theme (for backward compatibility)
-  const toggleTheme = () => {
+  // Function to manually toggle theme (for backward compatibility) - memoized to prevent re-renders
+  const toggleTheme = useCallback(() => {
     if (themeMode === 'auto') {
       // If in auto mode, switch to the opposite of the current theme
       setThemeMode(isDarkMode ? 'light' : 'dark');
@@ -64,10 +64,19 @@ export const ThemeProvider = ({ children }) => {
       // If already in a manual mode, just toggle between light and dark
       setThemeMode(prevMode => prevMode === 'dark' ? 'light' : 'dark');
     }
-  };
+  }, [themeMode, isDarkMode]);
+
+  // Memoize the context value to prevent unnecessary re-renders
+  const contextValue = useMemo(() => ({
+    theme,
+    isDarkMode,
+    toggleTheme,
+    themeMode,
+    setThemeMode
+  }), [theme, isDarkMode, toggleTheme, themeMode, setThemeMode]);
   
   return (
-    <ThemeContext.Provider value={{ theme, isDarkMode, toggleTheme, themeMode, setThemeMode }}>
+    <ThemeContext.Provider value={contextValue}>
       {children}
     </ThemeContext.Provider>
   );
