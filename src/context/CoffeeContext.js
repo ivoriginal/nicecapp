@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback, useMemo } from 'react';
 import { 
   saveCoffeeEvent, 
   getCoffeeEvents, 
@@ -25,7 +25,7 @@ const CoffeeContext = createContext({
   favorites: [],
   recipes: [],
   isLoading: true,
-  isAuthenticated: true, // Default to true for prototype
+  isAuthenticated: false, // Default to false until authenticated
   currentAccount: null,
   accounts: [],
   following: [], // Add following
@@ -46,7 +46,9 @@ const CoffeeContext = createContext({
   loadData: () => {},
   getRecipesForCoffee: () => [],
   addRecipe: () => {},
-  switchAccount: () => {}
+  switchAccount: () => {},
+  signIn: () => {},
+  signOut: () => {}
 });
 
 export const CoffeeProvider = ({ children }) => {
@@ -61,10 +63,11 @@ export const CoffeeProvider = ({ children }) => {
   const [favorites, setFavorites] = useState([]);
   const [recipes, setRecipes] = useState([]);
   const [hiddenEvents, setHiddenEvents] = useState(new Set());
-  const [currentAccount, setCurrentAccount] = useState('user1'); // Default to Ivo Vilches
+  const [currentAccount, setCurrentAccount] = useState(null); // Will be set after authentication
   const [allEvents, setAllEvents] = useState([]); // All events from all users
   const [following, setFollowing] = useState([]); // Users that the current user follows
   const [followers, setFollowers] = useState([]); // Users that follow the current user
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [accounts] = useState([
     { id: 'user1', userName: 'Ivo Vilches', userAvatar: require('../../assets/users/ivo-vilches.jpg'), email: 'ivo.vilches@example.com' },
     { id: 'user2', userName: 'Vértigo y Calambre', userAvatar: require('../../assets/businesses/vertigo-logo.jpg'), email: 'contacto@vertigoycalambre.com' },
@@ -74,13 +77,38 @@ export const CoffeeProvider = ({ children }) => {
   // Initialize on mount
   useEffect(() => {
     console.log('CoffeeContext initializing...');
-    loadData('user1'); // Force Ivo Vilches on initial load
+    console.log('Initial authentication state:', isAuthenticated);
+    console.log('Initial current account:', currentAccount);
+    
+    // Auto-sign in for development purposes
+    if (!isAuthenticated && !currentAccount) {
+      console.log('Auto-signing in as user1 for development...');
+      const autoSignIn = async () => {
+        try {
+          await signIn('user1');
+        } catch (error) {
+          console.error('Auto sign-in failed:', error);
+          setLoading(false);
+        }
+      };
+      setTimeout(autoSignIn, 1000);
+    } else {
+      setLoading(false);
+    }
   }, []);
 
-  // Load data for a specific account
-  const loadData = async (specificAccount = null) => {
+  // Load data for a specific account - memoized to prevent re-renders
+  const loadData = useCallback(async (specificAccount = null) => {
     try {
-      console.log('Loading data for account:', specificAccount || currentAccount);
+      const accountToLoad = specificAccount || currentAccount;
+      
+      // Check if we have a valid account to load data for
+      if (!accountToLoad) {
+        console.log('No account specified for loadData, skipping...');
+        return;
+      }
+      
+      console.log('Loading data for account:', accountToLoad);
       
       // Prevent duplicate loading (to avoid infinite loops)
       if (loading && initialized) {
@@ -90,7 +118,6 @@ export const CoffeeProvider = ({ children }) => {
       
       setLoading(true);
       setError(null);
-      const accountToLoad = specificAccount || currentAccount;
       
       // Initialize gear data variables
       let gearData = [];
@@ -114,9 +141,6 @@ export const CoffeeProvider = ({ children }) => {
         setError('User data not found');
         return;
       }
-      
-      // Load saved recipes from mockUsers and mockRecipes
-      loadSavedRecipes();
       
       // Define our local account data structure
       const accountData = {
@@ -225,6 +249,9 @@ export const CoffeeProvider = ({ children }) => {
         accountData[accountToLoad].coffeeCollection = combinedCollection;
       }
       
+      // Load saved recipes from mockUsers and mockRecipes (after setting initial data)
+      loadSavedRecipes();
+      
       // Set following and followers - for the social feed, everyone follows everyone
       const otherUsers = accounts.filter(acc => acc.id !== accountToLoad);
       setFollowing(otherUsers);
@@ -239,20 +266,21 @@ export const CoffeeProvider = ({ children }) => {
       setInitialized(true);
       console.log('CoffeeContext - Loading complete, loading set to false');
     }
-  };
+  }, [currentAccount, accounts, loading, initialized]);
 
   // Load saved recipes from mockUsers and mockRecipes
   const loadSavedRecipes = () => {
     try {
-      console.log("Loading saved recipes...");
+      console.log("=== Loading saved recipes ===");
+      console.log("Current account:", currentAccount);
       // Get the current user's saved recipes
-      const currentUser = mockUsers.users.find(user => user.id === 'user1');
+      const currentUser = mockUsers.users.find(user => user.id === currentAccount);
       if (!currentUser || !currentUser.savedRecipes) {
-        console.log("No saved recipes found for user1");
+        console.log(`No saved recipes found for ${currentAccount}`);
         return;
       }
       
-      console.log(`Found ${currentUser.savedRecipes.length} saved recipe IDs for user1`);
+      console.log(`Found ${currentUser.savedRecipes.length} saved recipe IDs for ${currentAccount}:`, currentUser.savedRecipes);
       
       // Get the recipes that match the IDs in currentUser.savedRecipes
       const userSavedRecipes = mockRecipes.recipes.filter(recipe => 
@@ -267,15 +295,21 @@ export const CoffeeProvider = ({ children }) => {
         recipe.isSaved = currentUser.savedRecipes.includes(recipe.id);
       });
       
+      console.log("Setting recipes with isSaved flags:", updatedRecipes.filter(r => r.isSaved).map(r => ({id: r.id, name: r.name, isSaved: r.isSaved})));
       setRecipes(updatedRecipes);
       
       // Also update coffeeWishlist from user's saved coffees
       if (currentUser.savedCoffees && Array.isArray(currentUser.savedCoffees)) {
-        const savedCoffees = mockCoffees.coffees.filter(coffee => 
-          currentUser.savedCoffees.includes(coffee.id)
-        );
+        // Check if savedCoffees contains objects or just IDs
+        const savedCoffees = currentUser.savedCoffees[0]?.id ? 
+          // If it contains objects, use them directly
+          currentUser.savedCoffees :
+          // If it contains IDs, filter from mockCoffees
+          mockCoffees.coffees.filter(coffee => 
+            currentUser.savedCoffees.includes(coffee.id)
+          );
         
-        console.log(`Found ${savedCoffees.length} saved coffees for user1`);
+        console.log(`Found ${savedCoffees.length} saved coffees for ${currentAccount}`);
         setCoffeeWishlist(savedCoffees);
       }
     } catch (error) {
@@ -340,8 +374,8 @@ export const CoffeeProvider = ({ children }) => {
     }
   };
   
-  // Function to switch between accounts
-  const switchAccount = async (account) => {
+  // Function to switch between accounts - memoized to prevent re-renders
+  const switchAccount = useCallback(async (account) => {
     try {
       // Default to user1 if invalid account is provided
       const targetAccount = account || 'user1';
@@ -401,7 +435,7 @@ export const CoffeeProvider = ({ children }) => {
         loadData('user1');
       }, 100);
     }
-  };
+  }, [accounts, currentAccount, user, loadData]);
 
   const addCoffeeEvent = async (eventData) => {
     try {
@@ -667,44 +701,131 @@ export const CoffeeProvider = ({ children }) => {
     });
   };
 
+  // Authentication functions
+  const signIn = async (accountId = 'user1') => {
+    try {
+      console.log('=== SIGNING IN ===');
+      console.log('Signing in as:', accountId);
+      setLoading(true);
+      
+      // Set authentication state and current account
+      setIsAuthenticated(true);
+      setCurrentAccount(accountId);
+      console.log('Authentication state set to true, current account set to:', accountId);
+      
+      // Explicitly pass the accountId to loadData to avoid race condition
+      await loadData(accountId);
+      
+      console.log('Sign in successful - data loaded');
+    } catch (error) {
+      console.error('Sign in error:', error);
+      setError('Failed to sign in');
+      throw error;
+    } finally {
+      setLoading(false);
+      console.log('Sign in process completed');
+    }
+  };
+
+  const signOut = async () => {
+    try {
+      console.log('Signing out');
+      
+      // Clear all state
+      setIsAuthenticated(false);
+      setCurrentAccount(null);
+      setUser(null);
+      setCoffeeEvents([]);
+      setCoffeeCollection([]);
+      setCoffeeWishlist([]);
+      setFavorites([]);
+      setRecipes([]);
+      setAllEvents([]);
+      setFollowing([]);
+      setFollowers([]);
+      setHiddenEvents(new Set());
+      setError(null);
+      
+      console.log('Sign out successful');
+    } catch (error) {
+      console.error('Sign out error:', error);
+      setError('Failed to sign out');
+      throw error;
+    }
+  };
+
+  // Memoize the context value to prevent unnecessary re-renders
+  const contextValue = useMemo(() => ({
+    coffeeEvents,
+    coffeeCollection,
+    coffeeWishlist,
+    favorites,
+    recipes,
+    isLoading: loading,
+    error,
+    isAuthenticated,
+    user,
+    currentAccount,
+    accounts,
+    following,
+    followers,
+    allEvents,
+    addCoffeeEvent,
+    removeCoffeeEvent,
+    hideEvent: () => {},
+    unhideEvent: () => {},
+    isEventHidden: () => false,
+    addToCollection,
+    removeFromCollection,
+    addToWishlist,
+    removeFromWishlist,
+    toggleFavorite,
+    setCoffeeCollection: setCoffeeCollection,
+    setCoffeeWishlist: setCoffeeWishlist,
+    loadData,
+    getRecipesForCoffee,
+    addRecipe,
+    switchAccount,
+    loadSavedRecipes,
+    setRecipes,
+    updateRecipe,
+    signIn,
+    signOut
+  }), [
+    coffeeEvents,
+    coffeeCollection,
+    coffeeWishlist,
+    favorites,
+    recipes,
+    loading,
+    error,
+    isAuthenticated,
+    user,
+    currentAccount,
+    accounts,
+    following,
+    followers,
+    allEvents,
+    addCoffeeEvent,
+    removeCoffeeEvent,
+    addToCollection,
+    removeFromCollection,
+    addToWishlist,
+    removeFromWishlist,
+    toggleFavorite,
+    loadData,
+    getRecipesForCoffee,
+    addRecipe,
+    switchAccount,
+    loadSavedRecipes,
+    setRecipes,
+    updateRecipe,
+    signIn,
+    signOut
+  ]);
+
   return (
-    <CoffeeContext.Provider
-      value={{
-        coffeeEvents,
-        coffeeCollection,
-        coffeeWishlist,
-        favorites,
-        recipes,
-        isLoading: loading,
-        error,
-        isAuthenticated: true, // Always true for prototype
-        user,
-        currentAccount,
-        accounts,
-        following,
-        followers,
-        allEvents,
-        addCoffeeEvent,
-        removeCoffeeEvent,
-        hideEvent: () => {},
-        unhideEvent: () => {},
-        isEventHidden: () => false,
-        addToCollection,
-        removeFromCollection,
-        addToWishlist,
-        removeFromWishlist,
-        toggleFavorite,
-        setCoffeeCollection: setCoffeeCollection,
-        setCoffeeWishlist: setCoffeeWishlist,
-        loadData,
-        getRecipesForCoffee,
-        addRecipe,
-        switchAccount,
-        loadSavedRecipes,
-        setRecipes,
-        updateRecipe
-      }}
-    >
+    <CoffeeContext.Provider value={contextValue}>
       {children}
     </CoffeeContext.Provider>
   );
