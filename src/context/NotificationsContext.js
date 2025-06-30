@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback, useMemo } from 'react';
 import mockEvents from '../data/mockEvents.json';
 
 // Create the context
@@ -53,47 +53,85 @@ export function NotificationsProvider({ children }) {
     setUnreadCount(count);
   }, [notifications]);
 
-  // Add a new notification
-  const addNotification = (notification) => {
-    const newNotification = {
-      id: Date.now().toString(),
-      timestamp: new Date().toISOString(),
-      read: false,
-      ...notification
-    };
-    setNotifications(prevNotifications => [newNotification, ...prevNotifications]);
-  };
+  // Add a new notification - memoized to prevent re-renders
+  const addNotification = useCallback((notification) => {
+    // Check for duplicate rate_recipe_reminder notifications for the same recipe
+    if (notification.type === 'rate_recipe_reminder' && notification.recipeId) {
+      setNotifications(prevNotifications => {
+        // Check if there's already a rate_recipe_reminder for this recipe
+        const existingReminder = prevNotifications.find(
+          existing => existing.type === 'rate_recipe_reminder' && 
+                     existing.recipeId === notification.recipeId &&
+                     existing.targetUserId === notification.targetUserId
+        );
+        
+        if (existingReminder) {
+          console.log(`Duplicate rate reminder prevented for recipe ${notification.recipeId}`);
+          return prevNotifications; // Don't add duplicate, return existing notifications
+        }
+        
+        // No duplicate found, add the new notification
+        const newNotification = {
+          id: Date.now().toString(),
+          timestamp: new Date().toISOString(),
+          read: false,
+          ...notification
+        };
+        return [newNotification, ...prevNotifications];
+      });
+    } else {
+      // For all other notification types, add normally
+      const newNotification = {
+        id: Date.now().toString(),
+        timestamp: new Date().toISOString(),
+        read: false,
+        ...notification
+      };
+      setNotifications(prevNotifications => [newNotification, ...prevNotifications]);
+    }
+  }, []);
 
-  // Mark a notification as read
-  const markAsRead = (id) => {
+  // Mark a notification as read - memoized to prevent re-renders
+  const markAsRead = useCallback((id) => {
     setNotifications(prevNotifications => 
       prevNotifications.map(notification => 
         notification.id === id ? { ...notification, read: true } : notification
       )
     );
-  };
+  }, []);
 
-  // Mark all notifications as read
-  const markAllAsRead = () => {
+  // Mark all notifications as read - memoized to prevent re-renders
+  const markAllAsRead = useCallback(() => {
     setNotifications(prevNotifications => 
       prevNotifications.map(notification => ({ ...notification, read: true }))
     );
-  };
+  }, []);
 
-  // Delete a notification
-  const deleteNotification = (id) => {
+  // Delete a notification - memoized to prevent re-renders
+  const deleteNotification = useCallback((id) => {
     setNotifications(prevNotifications => 
       prevNotifications.filter(notification => notification.id !== id)
     );
-  };
+  }, []);
 
-  // Clear all notifications
-  const clearNotifications = () => {
+  // Clear all notifications - memoized to prevent re-renders
+  const clearNotifications = useCallback(() => {
     setNotifications([]);
-  };
+  }, []);
 
-  // New function to get complete recipe and user data for a notification
-  const getNotificationData = (notification) => {
+  // Remove rate recipe reminders for a specific recipe - memoized to prevent re-renders
+  const removeRateReminder = useCallback((recipeId, targetUserId) => {
+    setNotifications(prevNotifications => 
+      prevNotifications.filter(notification => 
+        !(notification.type === 'rate_recipe_reminder' && 
+          notification.recipeId === recipeId &&
+          notification.targetUserId === targetUserId)
+      )
+    );
+  }, []);
+
+  // New function to get complete recipe and user data for a notification - memoized to prevent re-renders
+  const getNotificationData = useCallback((notification) => {
     // Load mock data only once
     const mockRecipes = require('../data/mockRecipes.json').recipes;
     const mockUsers = require('../data/mockUsers.json').users;
@@ -170,9 +208,10 @@ export function NotificationsProvider({ children }) {
     }
     
     return { recipeData, userData };
-  };
+  }, []);
 
-  const value = {
+  // Memoize the context value to prevent unnecessary re-renders
+  const value = useMemo(() => ({
     notifications,
     unreadCount,
     addNotification,
@@ -180,8 +219,19 @@ export function NotificationsProvider({ children }) {
     markAllAsRead,
     deleteNotification,
     clearNotifications,
+    removeRateReminder,
     getNotificationData
-  };
+  }), [
+    notifications,
+    unreadCount,
+    addNotification,
+    markAsRead,
+    markAllAsRead,
+    deleteNotification,
+    clearNotifications,
+    removeRateReminder,
+    getNotificationData
+  ]);
 
   return (
     <NotificationsContext.Provider value={value}>
