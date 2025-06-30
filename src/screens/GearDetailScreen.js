@@ -492,7 +492,7 @@ export default function GearDetailScreen() {
                 {gear.usedBy.slice(0, 6).map((user, index) => (
                   <TouchableOpacity
                     key={index}
-                    style={[styles.avatarItem, { marginRight: index < 5 ? 12 : 0 }]}
+                    style={[styles.avatarItem, { marginRight: index < 5 ? 8 : 0 }]}
                     onPress={() => handleUserPress(user.id, user.name)}
                   >
                     <AppImage
@@ -529,7 +529,7 @@ export default function GearDetailScreen() {
                     {gear.wantedBy.slice(0, 6).map((user, index) => (
                       <TouchableOpacity
                         key={index}
-                        style={[styles.avatarItem, { marginRight: index < 5 ? 12 : 0 }]}
+                        style={[styles.avatarItem, { marginRight: index < 5 ? 8 : 0 }]}
                         onPress={() => handleUserPress(user.id, user.name)}
                       >
                         <View style={styles.wantedAvatarContainer}>
@@ -584,7 +584,7 @@ export default function GearDetailScreen() {
                   key={index}
                   style={[
                     styles.cafeItem,
-                    { borderBottomColor: theme.divider },
+                    { borderBottomColor: 'transparent' },
                     index === gear.usedByCafes.length - 1 ? styles.cafeItemNoBorder : null
                   ]}
                   onPress={() => {
@@ -625,11 +625,11 @@ export default function GearDetailScreen() {
                     backgroundColor: theme.surface,
                     borderRadius: 12,
                     marginBottom: 16,
-                    shadowColor: theme.shadow,
-                    shadowOffset: { width: 0, height: 1 },
-                    shadowOpacity: 0.1,
-                    shadowRadius: 3,
-                    elevation: 2,
+                    // shadowColor: theme.shadow,
+                    // shadowOffset: { width: 0, height: 1 },
+                    // shadowOpacity: 0.1,
+                    // shadowRadius: 3,
+                    // elevation: 2,
                     // padding: 16,
                   }]}
                   onPress={() => handleShopPress(shop)}
@@ -906,21 +906,21 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   shopLogo: {
-    width: 32,
-    height: 32,
+    width: 48,
+    height: 48,
     marginRight: 12,
-    borderRadius: 4,
+    borderRadius: 8,
   },
   shopMainInfo: {
     flex: 1,
   },
   shopName: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '400',
     marginBottom: 4,
   },
   shopPrice: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
   },
   shopAction: {
@@ -937,7 +937,7 @@ const styles = StyleSheet.create({
   cafeItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 8,
     borderBottomWidth: 1,
   },
   cafeItemNoBorder: {
