@@ -106,7 +106,8 @@ export default function ProfileScreen() {
     loadData,
     removeFromCollection,
     removeFromWishlist,
-    removeCoffeeEvent
+    removeCoffeeEvent,
+    signOut
   } = useCoffee();
   
   // Add theme context at the component level
@@ -625,6 +626,15 @@ export default function ProfileScreen() {
 
   // Handle coffee press
   const handleCoffeePress = (item) => {
+    // Check if this is a gear item that needs to navigate to GearDetail
+    if (item.navigateTo === 'GearDetail') {
+      navigation.navigate('GearDetail', { 
+        gearName: item.gearName,
+        gearId: item.gearId
+      });
+      return;
+    }
+
     // If item is a reference to a coffee in mockCoffees.json (has coffeeId but no id)
     const coffeeId = item.coffeeId || item.id;
     
@@ -1177,11 +1187,20 @@ export default function ProfileScreen() {
                 { 
                   text: 'Sign Out', 
                   style: 'destructive',
-                  onPress: () => {
-                    // In a real app, you would handle sign out logic here
-                    Alert.alert('Signed Out', 'You have been signed out successfully', [], {
-                      userInterfaceStyle: isDarkMode ? 'dark' : 'light'
-                    });
+                  onPress: async () => {
+                    try {
+                      await signOut();
+                      // Navigate to SignIn screen and reset navigation stack
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: 'SignIn' }],
+                      });
+                    } catch (error) {
+                      console.error('Sign out error:', error);
+                      Alert.alert('Error', 'Failed to sign out. Please try again.', [], {
+                        userInterfaceStyle: isDarkMode ? 'dark' : 'light'
+                      });
+                    }
                   }
                 }
               ],
@@ -1212,11 +1231,20 @@ export default function ProfileScreen() {
                   { 
                     text: 'Sign Out', 
                     style: 'destructive',
-                    onPress: () => {
-                      // In a real app, you would handle sign out logic here
-                      Alert.alert('Signed Out', 'You have been signed out successfully', [], {
-                        userInterfaceStyle: isDarkMode ? 'dark' : 'light'
-                      });
+                    onPress: async () => {
+                      try {
+                        await signOut();
+                        // Navigate to SignIn screen and reset navigation stack
+                        navigation.reset({
+                          index: 0,
+                          routes: [{ name: 'SignIn' }],
+                        });
+                      } catch (error) {
+                        console.error('Sign out error:', error);
+                        Alert.alert('Error', 'Failed to sign out. Please try again.', [], {
+                          userInterfaceStyle: isDarkMode ? 'dark' : 'light'
+                        });
+                      }
                     }
                   }
                 ],
