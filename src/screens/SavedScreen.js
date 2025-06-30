@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useCoffee } from '../context/CoffeeContext';
+import { useTheme } from '../context/ThemeContext';
 import RecipeCard from '../components/RecipeCard';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import mockRecipes from '../data/mockRecipes.json';
@@ -20,7 +21,8 @@ import AppImage from '../components/common/AppImage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function SavedScreen() {
-  const { coffeeCollection, coffeeWishlist, recipes, favorites, removeFromWishlist, loadSavedRecipes } = useCoffee();
+  const { coffeeCollection, coffeeWishlist, recipes, favorites, removeFromWishlist, loadSavedRecipes, currentAccount, isAuthenticated, user, toggleFavorite } = useCoffee();
+  const { theme } = useTheme();
   const navigation = useNavigation();
   const route = useRoute();
   const insets = useSafeAreaInsets();
@@ -29,6 +31,7 @@ export default function SavedScreen() {
   const [activeTab, setActiveTab] = useState(route.params?.type || 'coffee');
   const [refreshing, setRefreshing] = useState(false);
   const [savedItems, setSavedItems] = useState([]);
+  const [isEditing, setIsEditing] = useState(false);
 
   // Format wishlist items for rendering
   const savedCoffees = Array.isArray(coffeeWishlist) ? coffeeWishlist : [];
@@ -37,18 +40,41 @@ export default function SavedScreen() {
     recipe.isSaved || favorites.includes(recipe.id)
   );
   
+  console.log('=== SavedScreen Debug ===');
+  console.log('Current account:', currentAccount);
+  console.log('Is authenticated:', isAuthenticated);
+  console.log('User:', user);
   console.log('Saved Coffees:', savedCoffees);
   console.log('Saved Recipes:', savedRecipes);
   console.log('Favorites array:', favorites);
+  console.log('Recipes from context:', recipes);
+  console.log('Recipes with isSaved flag:', recipes.filter(r => r.isSaved));
+  console.log('Active tab:', activeTab);
+  console.log('Saved items state:', savedItems);
 
   // Remove navigation header border bottom
   useEffect(() => {
     navigation.setOptions({
       headerStyle: {
+        backgroundColor: theme.background,
         elevation: 0,
         shadowOpacity: 0,
         borderBottomWidth: 0,
       },
+      headerRight: () => (
+        <TouchableOpacity
+          onPress={() => setIsEditing(!isEditing)}
+          style={{ marginRight: 16 }}
+        >
+          <Text style={{ 
+            color: theme.primaryText, 
+            fontSize: 16, 
+            fontWeight: '500' 
+          }}>
+            {isEditing ? 'Done' : 'Edit'}
+          </Text>
+        </TouchableOpacity>
+      ),
     });
 
     // Initial load of saved items based on the default activeTab
@@ -56,7 +82,7 @@ export default function SavedScreen() {
       console.log('Initial load with activeTab:', activeTab);
       updateSavedItemsForTab(activeTab);
     }
-  }, []);
+  }, [theme.background, isEditing]);
 
   // Use route params to determine what to display
   useEffect(() => {
@@ -146,6 +172,10 @@ export default function SavedScreen() {
     removeFromWishlist(coffeeId);
   };
 
+  const handleRemoveRecipe = (recipeId) => {
+    toggleFavorite(recipeId);
+  };
+
   // Simple coffee item renderer
   const renderSavedCoffeeItem = ({ item }) => {
     // Get the full coffee data from mockCoffees if needed
@@ -168,24 +198,36 @@ export default function SavedScreen() {
           <Text style={styles.coffeeName}>{coffeeData?.name || item.name}</Text>
           <Text style={styles.coffeeRoaster}>{coffeeData?.roaster || item.roaster || "Unknown roaster"}</Text>
         </View>
-        <TouchableOpacity 
-          style={styles.removeButton}
-          onPress={() => handleRemoveCoffee(item.id)}
-        >
-          <Ionicons name="close-circle" size={20} color="#666666" />
-        </TouchableOpacity>
+        {isEditing && (
+          <TouchableOpacity 
+            style={styles.removeButton}
+            onPress={() => handleRemoveCoffee(item.id)}
+          >
+            <Ionicons name="remove-circle" size={24} color="#FF3B30" />
+          </TouchableOpacity>
+        )}
       </TouchableOpacity>
     );
   };
 
   const renderRecipeItem = ({ item }) => (
-    <RecipeCard 
-      recipe={item}
-      onPress={() => handleRecipePress(item.id)}
-      onUserPress={() => handleUserPress(item)}
-      showCoffeeInfo={true}
-      style={styles.recipeCard}
-    />
+    <View style={styles.recipeCardContainer}>
+      <RecipeCard 
+        recipe={item}
+        onPress={() => handleRecipePress(item.id)}
+        onUserPress={() => handleUserPress(item)}
+        showCoffeeInfo={true}
+        style={styles.recipeCard}
+      />
+      {isEditing && (
+        <TouchableOpacity 
+          style={styles.recipeRemoveButton}
+          onPress={() => handleRemoveRecipe(item.id)}
+        >
+          <Ionicons name="remove-circle" size={24} color="#FF3B30" />
+        </TouchableOpacity>
+      )}
+    </View>
   );
 
   const renderEmptyState = (message) => (
@@ -223,6 +265,7 @@ export default function SavedScreen() {
       {activeTab === 'coffee' ? (
         savedCoffees.length > 0 ? (
           <FlatList
+            key="coffee-list"
             data={savedCoffees}
             renderItem={renderSavedCoffeeItem}
             keyExtractor={(item) => item.id}
@@ -252,12 +295,11 @@ export default function SavedScreen() {
       ) : (
         savedRecipes.length > 0 ? (
           <FlatList
+            key="recipes-list"
             data={savedRecipes}
             renderItem={renderRecipeItem}
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.listContent}
-            numColumns={2}
-            columnWrapperStyle={styles.recipeRow}
             refreshControl={
               <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
             }
@@ -349,7 +391,6 @@ const styles = StyleSheet.create({
   coffeeItemContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
     paddingVertical: 8,
   },
   coffeeImageContainer: {
@@ -390,10 +431,31 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 10,
   },
-  recipeCard: {
+  recipeCardContainer: {
+    position: 'relative',
     width: '100%',
     marginBottom: 16,
+  },
+  recipeCard: {
+    width: '100%',
+    marginBottom: 0,
     marginRight: 0,
+  },
+  recipeRemoveButton: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 12,
+    padding: 4,
+    // shadowColor: '#000',
+    // shadowOffset: {
+    //   width: 0,
+    //   height: 2,
+    // },
+    // shadowOpacity: 0.25,
+    // shadowRadius: 3.84,
+    // elevation: 5,
   },
   listContent: {
     padding: 16,
@@ -409,7 +471,5 @@ const styles = StyleSheet.create({
     color: '#666666',
     textAlign: 'center',
   },
-  recipeRow: {
-    justifyContent: 'space-between',
-  },
+
 }); 
