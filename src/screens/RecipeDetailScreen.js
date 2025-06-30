@@ -49,7 +49,7 @@ export default function RecipeDetailScreen() {
     toggleFavorite
   } = useCoffee();
   
-  const { addNotification } = useNotifications();
+  const { addNotification, removeRateReminder } = useNotifications();
   
   const navigation = useNavigation();
   const route = useRoute();
@@ -1016,9 +1016,9 @@ export default function RecipeDetailScreen() {
 
   // Get icon based on rating description
   const getRatingIcon = (percentage) => {
-    if (percentage >= 60) return 'thumb-up'; // Positive ratings
-    if (percentage >= 40) return 'emoticon-neutral'; // Average/Mixed ratings  
-    return 'thumb-down'; // Negative ratings
+    if (percentage >= 60) return 'thumb-up-outline'; // Positive ratings
+    if (percentage >= 40) return 'emoticon-neutral-outline'; // Average/Mixed ratings  
+    return 'thumb-down-outline'; // Negative ratings
   };
 
   if (loading) {
@@ -1092,6 +1092,8 @@ export default function RecipeDetailScreen() {
                     setTimeout(() => {
                       handleRatingSubmit();
                       setShowRatingModal(false);
+                      // Remove any existing rate reminders for this recipe
+                      removeRateReminder(recipe?.id, 'user1');
                     }, 100);
                   }}
                 >
@@ -1114,6 +1116,8 @@ export default function RecipeDetailScreen() {
                     setTimeout(() => {
                       handleRatingSubmit();
                       setShowRatingModal(false);
+                      // Remove any existing rate reminders for this recipe
+                      removeRateReminder(recipe?.id, 'user1');
                     }, 100);
                   }}
                 >
@@ -1136,6 +1140,8 @@ export default function RecipeDetailScreen() {
                     setTimeout(() => {
                       handleRatingSubmit();
                       setShowRatingModal(false);
+                      // Remove any existing rate reminders for this recipe
+                      removeRateReminder(recipe?.id, 'user1');
                     }, 100);
                   }}
                 >
@@ -1437,6 +1443,8 @@ export default function RecipeDetailScreen() {
                         setUserRating(3);
                         handleRatingSubmit();
                         setShowHowWasItRating(false);
+                        // Remove any existing rate reminders for this recipe
+                        removeRateReminder(recipe?.id, 'user1');
                       }}
                     >
                       <MaterialCommunityIcons name="thumb-up-outline" size={24} color={theme.primaryText} />
@@ -1450,6 +1458,8 @@ export default function RecipeDetailScreen() {
                         setUserRating(2);
                         handleRatingSubmit();
                         setShowHowWasItRating(false);
+                        // Remove any existing rate reminders for this recipe
+                        removeRateReminder(recipe?.id, 'user1');
                       }}
                     >
                       <MaterialCommunityIcons name="emoticon-neutral-outline" size={24} color={theme.primaryText} />
@@ -1463,6 +1473,8 @@ export default function RecipeDetailScreen() {
                         setUserRating(1);
                         handleRatingSubmit();
                         setShowHowWasItRating(false);
+                        // Remove any existing rate reminders for this recipe
+                        removeRateReminder(recipe?.id, 'user1');
                       }}
                     >
                       <MaterialCommunityIcons name="thumb-down-outline" size={24} color={theme.primaryText} />
