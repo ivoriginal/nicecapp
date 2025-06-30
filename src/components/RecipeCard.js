@@ -86,7 +86,7 @@ const RecipeCard = ({
         styles.container, 
         compact ? styles.compactContainer : {}, 
         { 
-          backgroundColor: isRecipeCreationEvent && !isDarkMode ? 'transparent' : theme.cardBackground,
+          backgroundColor: isDarkMode ? theme.cardBackground : 'transparent',
           borderColor: theme.divider 
         },
         style
