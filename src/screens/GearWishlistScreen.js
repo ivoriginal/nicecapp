@@ -245,8 +245,8 @@ const GearWishlistScreen = () => {
         />
       )}
       
-      {/* FAB (Floating Action Button) - Hide in edit mode */}
-      {!isEditing && (
+      {/* FAB (Floating Action Button) - Hide in edit mode or when viewing other user's wishlist */}
+      {!isEditing && isCurrentUser && (
         <TouchableOpacity style={styles.fab}>
           <Text style={styles.fabText}>Add gear</Text>
         </TouchableOpacity>
