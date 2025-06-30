@@ -22,7 +22,8 @@ import CreateRecipeScreen from './src/screens/CreateRecipeScreen';
 import EditProfileScreen from './src/screens/EditProfileScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import FollowersScreen from './src/screens/FollowersScreen';
-import { CoffeeProvider } from './src/context/CoffeeContext';
+import SignInScreen from './src/screens/SignInScreen';
+import { CoffeeProvider, useCoffee } from './src/context/CoffeeContext';
 import { NotificationsProvider } from './src/context/NotificationsContext';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import * as NavigationBar from 'expo-navigation-bar';
@@ -272,184 +273,239 @@ function AppContent() {
           }}
         >
           <CoffeeProvider>
-            <Stack.Navigator
-              screenOptions={{
-                headerStyle,
-                headerTintColor,
-                cardStyle,
-                cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
-              }}
-            >
-              <Stack.Screen 
-                name="MainTabs" 
-                options={{ headerShown: false }} 
-              >
-                {(props) => <BottomTabNavigator {...props} />}
-              </Stack.Screen>
-              <Stack.Screen 
-                name="Notifications" 
-                component={NotificationsScreen} 
-                options={{ 
-                  title: 'Notifications',
-                  headerBackTitle: 'Back'
-                }} 
-              />
-              <Stack.Screen 
-                name="PeopleList" 
-                component={PeopleListScreen} 
-                options={{ 
-                  title: 'People',
-                  headerBackTitle: 'Back'
-                }} 
-              />
-              <Stack.Screen 
-                name="CoffeeDetail" 
-                component={CoffeeDetailScreen} 
-                options={({ navigation, route }) => ({ 
-                  title: 'Coffee Details',
-                  headerBackTitle: 'Back',
-                  headerRight: () => (
-                    <TouchableOpacity 
-                      onPress={() => handleCoffeeOptions(navigation, route.params?.coffee)}
-                      style={{ marginRight: 16 }}
-                    >
-                      <Ionicons 
-                        name="ellipsis-horizontal" 
-                        size={24} 
-                        color={theme.primaryText}
-                      />
-                    </TouchableOpacity>
-                  )
-                })} 
-              />
-              <Stack.Screen 
-                name="RecipeDetail" 
-                component={RecipeDetailScreen} 
-                options={({ navigation, route }) => ({ 
-                  title: 'Recipe Details',
-                  headerBackTitle: 'Back',
-                  headerRight: () => (
-                    <TouchableOpacity 
-                      onPress={() => handleRecipeOptions(navigation, route.params?.recipe)}
-                      style={{ marginRight: 16 }}
-                    >
-                      <Ionicons 
-                        name="ellipsis-horizontal" 
-                        size={24} 
-                        color={theme.primaryText}
-                      />
-                    </TouchableOpacity>
-                  )
-                })} 
-              />
-              <Stack.Screen 
-                name="UserProfileBridge" 
-                component={UserProfileBridge} 
-                options={{ headerShown: false }} 
-              />
-              <Stack.Screen 
-                name="UserProfileScreen" 
-                component={UserProfileScreen} 
-                options={() => ({ 
-                  title: '', // Title will be set dynamically by the screen component
-                  headerBackTitle: 'Back',
-                  headerTransparent: false,
-                })} 
-              />
-              <Stack.Screen 
-                name="EditProfile" 
-                component={EditProfileScreen} 
-                options={({ route }) => ({ 
-                  title: route.params?.userName || 'Edit Profile',
-                  headerBackTitle: 'Back',
-                  headerTransparent: false,
-                })} 
-              />
-              <Stack.Screen 
-                name="GearDetail" 
-                component={GearDetailScreen} 
-                options={({ route }) => ({ 
-                  title: route.params?.gearName || 'Gear Details',
-                  headerBackTitle: 'Back',
-                })} 
-              />
-              <Stack.Screen 
-                name="GearWishlist" 
-                component={GearWishlistScreen} 
-                options={({ route }) => ({ 
-                  headerShown: true, 
-                  title: route.params?.isCurrentUser ? 'My Gear Wishlist' : `${route.params?.userName}'s Gear Wishlist`,
-                  headerBackTitle: 'Back'
-                })} 
-              />
-              <Stack.Screen 
-                name="GearList" 
-                component={GearListScreen} 
-                options={{ headerShown: true, title: 'Coffee Gear', headerBackTitle: 'Back' }} 
-              />
-              <Stack.Screen 
-                name="CoffeeDiscovery" 
-                component={CoffeeDiscoveryScreen} 
-                options={{ headerShown: false }} 
-              />
-              <Stack.Screen 
-                name="RecipesList" 
-                component={RecipesListScreen} 
-                options={({ route }) => ({ 
-                  headerShown: true, 
-                  title: route.params?.title || 'Recipes for you',
-                  headerBackTitle: 'Back' 
-                })} 
-              />
-              <Stack.Screen 
-                name="CafesList" 
-                component={CafesListScreen} 
-                options={{ headerShown: true, title: 'Cafés Near You', headerBackTitle: 'Back' }} 
-              />
-              <Stack.Screen 
-                name="Saved" 
-                component={SavedScreen} 
-                options={{ 
-                  title: 'Saved',
-                  headerBackTitle: 'Back'
-                }} 
-              />
-              <Stack.Screen 
-                name="AddCoffee" 
-                component={AddCoffeeScreen} 
-                options={{ 
-                  headerBackTitle: 'Back'
-                }} 
-              />
-              <Stack.Screen 
-                name="CreateRecipe" 
-                component={CreateRecipeScreen} 
-                options={{ 
-                  title: 'Create Recipe',
-                  headerBackTitle: 'Back'
-                }} 
-              />
-              <Stack.Screen 
-                name="Settings" 
-                component={SettingsScreen} 
-                options={{ 
-                  title: 'Settings',
-                  headerBackTitle: 'Back'
-                }} 
-              />
-              <Stack.Screen 
-                name="FollowersScreen" 
-                component={FollowersScreen} 
-                options={({ route }) => ({ 
-                  title: route.params?.type === 'followers' ? 'Followers' : 'Following',
-                  headerBackTitle: 'Back'
-                })} 
-              />
-            </Stack.Navigator>
+            <AuthenticatedNavigator 
+              theme={theme} 
+              handleRecipeOptions={handleRecipeOptions} 
+              handleCoffeeOptions={handleCoffeeOptions}
+              headerStyle={headerStyle}
+              headerTintColor={headerTintColor}
+              cardStyle={cardStyle}
+            />
           </CoffeeProvider>
         </NavigationContainer>
       </NotificationsProvider>
     </>
+  );
+}
+
+// AuthenticatedNavigator component that checks auth status
+function AuthenticatedNavigator({ theme, handleRecipeOptions, handleCoffeeOptions, headerStyle, headerTintColor, cardStyle }) {
+  const { isAuthenticated } = useCoffee();
+
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerStyle,
+        headerTintColor,
+        cardStyle,
+        cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
+      }}
+      initialRouteName={isAuthenticated ? "Main" : "SignIn"}
+    >
+      <Stack.Screen 
+        name="SignIn" 
+        component={SignInScreen} 
+        options={{ 
+          headerShown: false,
+          cardStyleInterpolator: CardStyleInterpolators.forVerticalIOS,
+        }} 
+      />
+      <Stack.Screen 
+        name="Main" 
+        options={{ 
+          headerShown: false,
+          cardStyleInterpolator: CardStyleInterpolators.forNoAnimation,
+        }} 
+      >
+        {(props) => <MainNavigator {...props} theme={theme} handleRecipeOptions={handleRecipeOptions} handleCoffeeOptions={handleCoffeeOptions} />}
+      </Stack.Screen>
+    </Stack.Navigator>
+  );
+}
+
+// MainNavigator component to handle all screens when authenticated
+function MainNavigator({ theme, handleRecipeOptions, handleCoffeeOptions }) {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerStyle: {
+          backgroundColor: theme.background,
+          elevation: 0,
+          shadowOpacity: 0,
+          borderBottomWidth: 1,
+          borderBottomColor: theme.divider,
+        },
+        headerTintColor: theme.primaryText,
+        cardStyle: { backgroundColor: theme.background },
+        cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
+      }}
+    >
+      <Stack.Screen 
+        name="MainTabs" 
+        options={{ headerShown: false }} 
+      >
+        {(props) => <BottomTabNavigator {...props} />}
+      </Stack.Screen>
+      <Stack.Screen 
+        name="Notifications" 
+        component={NotificationsScreen} 
+        options={{ 
+          title: 'Notifications',
+          headerBackTitle: 'Back'
+        }} 
+      />
+      <Stack.Screen 
+        name="PeopleList" 
+        component={PeopleListScreen} 
+        options={{ 
+          title: 'People',
+          headerBackTitle: 'Back'
+        }} 
+      />
+      <Stack.Screen 
+        name="CoffeeDetail" 
+        component={CoffeeDetailScreen} 
+        options={({ navigation, route }) => ({ 
+          title: 'Coffee Details',
+          headerBackTitle: 'Back',
+          headerRight: () => (
+            <TouchableOpacity 
+              onPress={() => handleCoffeeOptions(navigation, route.params?.coffee)}
+              style={{ marginRight: 16 }}
+            >
+              <Ionicons 
+                name="ellipsis-horizontal" 
+                size={24} 
+                color={theme.primaryText}
+              />
+            </TouchableOpacity>
+          )
+        })} 
+      />
+      <Stack.Screen 
+        name="RecipeDetail" 
+        component={RecipeDetailScreen} 
+        options={({ navigation, route }) => ({ 
+          title: 'Recipe Details',
+          headerBackTitle: 'Back',
+          headerRight: () => (
+            <TouchableOpacity 
+              onPress={() => handleRecipeOptions(navigation, route.params?.recipe)}
+              style={{ marginRight: 16 }}
+            >
+              <Ionicons 
+                name="ellipsis-horizontal" 
+                size={24} 
+                color={theme.primaryText}
+              />
+            </TouchableOpacity>
+          )
+        })} 
+      />
+      <Stack.Screen 
+        name="UserProfileBridge" 
+        component={UserProfileBridge} 
+        options={{ headerShown: false }} 
+      />
+      <Stack.Screen 
+        name="UserProfileScreen" 
+        component={UserProfileScreen} 
+        options={() => ({ 
+          title: '',
+          headerBackTitle: 'Back',
+          headerTransparent: false,
+        })} 
+      />
+      <Stack.Screen 
+        name="EditProfile" 
+        component={EditProfileScreen} 
+        options={({ route }) => ({ 
+          title: route.params?.userName || 'Edit Profile',
+          headerBackTitle: 'Back',
+          headerTransparent: false,
+        })} 
+      />
+      <Stack.Screen 
+        name="GearDetail" 
+        component={GearDetailScreen} 
+        options={({ route }) => ({ 
+          title: route.params?.gearName || 'Gear Details',
+          headerBackTitle: 'Back',
+        })} 
+      />
+      <Stack.Screen 
+        name="GearWishlist" 
+        component={GearWishlistScreen} 
+        options={({ route }) => ({ 
+          headerShown: true, 
+          title: route.params?.isCurrentUser ? 'My Gear Wishlist' : `${route.params?.userName}'s Gear Wishlist`,
+          headerBackTitle: 'Back'
+        })} 
+      />
+      <Stack.Screen 
+        name="GearList" 
+        component={GearListScreen} 
+        options={{ headerShown: true, title: 'Coffee Gear', headerBackTitle: 'Back' }} 
+      />
+      <Stack.Screen 
+        name="CoffeeDiscovery" 
+        component={CoffeeDiscoveryScreen} 
+        options={{ headerShown: false }} 
+      />
+      <Stack.Screen 
+        name="RecipesList" 
+        component={RecipesListScreen} 
+        options={({ route }) => ({ 
+          headerShown: true, 
+          title: route.params?.title || 'Recipes for you',
+          headerBackTitle: 'Back' 
+        })} 
+      />
+      <Stack.Screen 
+        name="CafesList" 
+        component={CafesListScreen} 
+        options={{ headerShown: true, title: 'Cafés Near You', headerBackTitle: 'Back' }} 
+      />
+      <Stack.Screen 
+        name="Saved" 
+        component={SavedScreen} 
+        options={{ 
+          title: 'Saved',
+          headerBackTitle: 'Back'
+        }} 
+      />
+      <Stack.Screen 
+        name="AddCoffee" 
+        component={AddCoffeeScreen} 
+        options={{ 
+          headerBackTitle: 'Back'
+        }} 
+      />
+      <Stack.Screen 
+        name="CreateRecipe" 
+        component={CreateRecipeScreen} 
+        options={{ 
+          title: 'Create Recipe',
+          headerBackTitle: 'Back'
+        }} 
+      />
+      <Stack.Screen 
+        name="Settings" 
+        component={SettingsScreen} 
+        options={{ 
+          title: 'Settings',
+          headerBackTitle: 'Back'
+        }} 
+      />
+      <Stack.Screen 
+        name="FollowersScreen" 
+        component={FollowersScreen} 
+        options={({ route }) => ({ 
+          title: route.params?.type === 'followers' ? 'Followers' : 'Following',
+          headerBackTitle: 'Back'
+        })} 
+      />
+    </Stack.Navigator>
   );
 }
 
