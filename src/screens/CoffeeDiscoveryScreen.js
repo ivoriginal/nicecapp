@@ -1,15 +1,19 @@
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, ScrollView, Modal, TouchableWithoutFeedback } from 'react-native';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, ScrollView, Modal, TouchableWithoutFeedback, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
+import * as ImagePicker from 'expo-image-picker';
 import mockCoffees from '../data/mockCoffees.json';
 import mockCafes from '../data/mockCafes.json';
 import AppImage from '../components/common/AppImage';
 import { useTheme } from '../context/ThemeContext';
+import { useCoffee } from '../context/CoffeeContext';
 
 const CoffeeDiscoveryScreen = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
   const { theme, isDarkMode } = useTheme();
+  const { getAllAvailableCoffees } = useCoffee();
   const { preselectedFilter = null, sortBy = 'default' } = (route && route.params) || {};
   const [coffees, setCoffees] = useState([]);
   const [activeFilters, setActiveFilters] = useState({});
@@ -17,6 +21,7 @@ const CoffeeDiscoveryScreen = ({ navigation, route }) => {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [sortModalVisible, setSortModalVisible] = useState(false);
+  const [showAddCoffeeModal, setShowAddCoffeeModal] = useState(false);
 
   const [filterCategories, setFilterCategories] = useState([]);
   
@@ -29,16 +34,16 @@ const CoffeeDiscoveryScreen = ({ navigation, route }) => {
       headerShown: true,
       title: 'All Coffee',
       headerBackTitle: 'Back',
-      headerRight: () => hasActiveFilters ? (
+      headerRight: () => (
         <TouchableOpacity 
           style={{ marginRight: 16 }}
-          onPress={clearAllFilters}
+          onPress={() => setShowAddCoffeeModal(true)}
         >
-          <Text style={{ color: '#007AFF', fontSize: 16 }}>Clear All</Text>
+          <Ionicons name="add" size={24} color={theme.primaryText} />
         </TouchableOpacity>
-      ) : null
+      )
     });
-  }, [navigation, sortOrder, hasActiveFilters]);
+  }, [navigation, theme.primaryText]);
 
   // Initialize filter categories
   useEffect(() => {
@@ -243,9 +248,17 @@ const CoffeeDiscoveryScreen = ({ navigation, route }) => {
     }
   }, [preselectedFilter]);
 
+  // Refresh coffee list when screen comes into focus (e.g., returning from add coffee screens)
+  useFocusEffect(
+    React.useCallback(() => {
+      // Force re-render of coffee list to show newly added coffees
+      setCoffees(getAllAvailableCoffees());
+    }, [getAllAvailableCoffees])
+  );
+
   useEffect(() => {
-    // Get all coffees from mockCoffees
-    let filteredCoffees = [...mockCoffees.coffees];
+    // Get all coffees from both mock data and user-added coffees
+    let filteredCoffees = getAllAvailableCoffees();
     
     // Apply additional filters
     Object.entries(activeFilters).forEach(([category, selectedOptions]) => {
@@ -433,7 +446,7 @@ const CoffeeDiscoveryScreen = ({ navigation, route }) => {
     }
     
     setCoffees(filteredCoffees);
-  }, [activeFilters, sortOrder, filterCategories]);
+  }, [activeFilters, sortOrder, filterCategories, getAllAvailableCoffees]);
 
   const openFilterModal = (category) => {
     setSelectedCategory(category);
@@ -468,6 +481,109 @@ const CoffeeDiscoveryScreen = ({ navigation, route }) => {
     setSortOrder('default');
   };
 
+  // Handle add coffee modal options
+  const handleAddCoffeeOption = async (option) => {
+    setShowAddCoffeeModal(false);
+    
+    switch (option) {
+      case 'url':
+        handleURLInput();
+        break;
+      case 'camera':
+        await handleTakePhoto();
+        break;
+      case 'gallery':
+        await handleSelectFromGallery();
+        break;
+      case 'manual':
+        navigation.navigate('AddCoffeeManually');
+        break;
+    }
+  };
+
+  // Handle URL input with alert
+  const handleURLInput = () => {
+    Alert.prompt(
+      'Enter Coffee URL',
+      'Paste the URL of a coffee product page to extract details automatically',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel'
+        },
+        {
+          text: 'Parse URL',
+          onPress: (url) => {
+            if (url && url.trim()) {
+              navigation.navigate('AddCoffeeFromURL', { url: url.trim() });
+            } else {
+              Alert.alert('Error', 'Please enter a valid URL');
+            }
+          }
+        }
+      ],
+      'plain-text',
+      '',
+      'url'
+    );
+  };
+
+  // Handle camera capture
+  const handleTakePhoto = async () => {
+    try {
+      const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+      
+      if (permissionResult.granted === false) {
+        Alert.alert('Permission Required', 'You need to grant permission to access your camera');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled) {
+        navigation.navigate('AddCoffeeFromCamera', { 
+          capturedImage: result.assets[0].uri 
+        });
+      }
+    } catch (error) {
+      console.error('Error taking photo:', error);
+      Alert.alert('Error', 'Failed to take photo. Please try again.');
+    }
+  };
+
+  // Handle gallery selection
+  const handleSelectFromGallery = async () => {
+    try {
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (permissionResult.granted === false) {
+        Alert.alert('Permission Required', 'You need to grant permission to access your photos');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled) {
+        navigation.navigate('AddCoffeeFromGallery', { 
+          selectedImage: result.assets[0].uri 
+        });
+      }
+    } catch (error) {
+      console.error('Error selecting image:', error);
+      Alert.alert('Error', 'Failed to select image. Please try again.');
+    }
+  };
+
   const renderFilterBar = () => {
     return (
       <View>
@@ -479,7 +595,17 @@ const CoffeeDiscoveryScreen = ({ navigation, route }) => {
           <TouchableOpacity
             style={[
               styles.filterBarItem,
-              sortOrder !== 'default' && styles.activeFilterBarItem
+              { 
+                backgroundColor: isDarkMode ? theme.cardBackground : '#F2F2F7',
+                borderColor: isDarkMode ? theme.border : '#E5E5EA'
+              },
+              sortOrder !== 'default' && [
+                styles.activeFilterBarItem,
+                { 
+                  backgroundColor: isDarkMode ? theme.primaryText : '#000000',
+                  borderColor: isDarkMode ? theme.primaryText : '#000000'
+                }
+              ]
             ]}
             onPress={() => setSortModalVisible(true)}
           >
@@ -488,14 +614,18 @@ const CoffeeDiscoveryScreen = ({ navigation, route }) => {
                 <Ionicons 
                   name="swap-vertical" 
                   size={14} 
-                  color={sortOrder !== 'default' ? '#FFFFFF' : '#000000'} 
+                  color={sortOrder !== 'default' ? (isDarkMode ? theme.background : '#FFFFFF') : theme.primaryText} 
                   style={styles.sortIcon}
                 />
               </Text>
               <Text 
                 style={[
                   styles.filterBarItemText,
-                  sortOrder !== 'default' && styles.activeFilterBarItemText
+                  { color: theme.primaryText },
+                  sortOrder !== 'default' && [
+                    styles.activeFilterBarItemText,
+                    { color: isDarkMode ? theme.background : '#FFFFFF' }
+                  ]
                 ]}
               >
                 {getCurrentSortLabel()}
@@ -510,14 +640,28 @@ const CoffeeDiscoveryScreen = ({ navigation, route }) => {
                 key={category.id}
                 style={[
                   styles.filterBarItem,
-                  activeCount > 0 && styles.activeFilterBarItem
+                  { 
+                    backgroundColor: isDarkMode ? theme.cardBackground : '#F2F2F7',
+                    borderColor: isDarkMode ? theme.border : '#E5E5EA'
+                  },
+                  activeCount > 0 && [
+                    styles.activeFilterBarItem,
+                    { 
+                      backgroundColor: isDarkMode ? theme.primaryText : '#000000',
+                      borderColor: isDarkMode ? theme.primaryText : '#000000'
+                    }
+                  ]
                 ]}
                 onPress={() => openFilterModal(category)}
               >
                 <Text 
                   style={[
                     styles.filterBarItemText,
-                    activeCount > 0 && styles.activeFilterBarItemText
+                    { color: theme.primaryText },
+                    activeCount > 0 && [
+                      styles.activeFilterBarItemText,
+                      { color: isDarkMode ? theme.background : '#FFFFFF' }
+                    ]
                   ]}
                 >
                   {category.label}
@@ -681,7 +825,7 @@ const CoffeeDiscoveryScreen = ({ navigation, route }) => {
             <Text style={[styles.coffeeRoaster, { color: theme.secondaryText }]}>{item.roaster}</Text>
             <View style={styles.coffeeDetailsRow}>
               <Text style={[styles.coffeeOrigin, { color: theme.secondaryText }]}>{item.origin}</Text>
-              <Text style={[styles.coffeePrice, { color: theme.primaryText }]}>${item.price.toFixed(2)}</Text>
+              <Text style={[styles.coffeePrice, { color: theme.primaryText }]}>€{item.price.toFixed(2)}</Text>
             </View>
             {item.process && <Text style={[styles.coffeeProcess, { color: theme.secondaryText }]}>{item.process}</Text>}
           </View>
@@ -708,19 +852,99 @@ const CoffeeDiscoveryScreen = ({ navigation, route }) => {
       {renderFilterModal()}
       {renderSortModal()}
       
-      {/* FAB (Floating Action Button) */}
-      <TouchableOpacity 
-        style={[
-          styles.fab, 
-          { 
-            bottom: insets.bottom + 20,
-            backgroundColor: isDarkMode ? '#FFFFFF' : '#000000'
-          }
-        ]}
-        onPress={() => navigation.navigate('AddCoffee')}
+      {/* Clear Filters FAB - only show when filters are active */}
+      {hasActiveFilters && (
+        <TouchableOpacity 
+          style={[
+            styles.clearFiltersFab, 
+            { 
+              bottom: insets.bottom + 16,
+              backgroundColor: isDarkMode ? '#FFFFFF' : '#000000'
+            }
+          ]}
+          onPress={clearAllFilters}
+        >
+          <Text style={[styles.clearFiltersFabText, { color: isDarkMode ? '#000000' : '#FFFFFF' }]}>Clear filters</Text>
+        </TouchableOpacity>
+      )}
+
+      {/* Add Coffee Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={showAddCoffeeModal}
+        onRequestClose={() => setShowAddCoffeeModal(false)}
       >
-        <Text style={[styles.fabText, { color: isDarkMode ? '#000000' : '#FFFFFF' }]}>Add coffee</Text>
-      </TouchableOpacity>
+        <View style={styles.addCoffeeModalContainer}>
+                     <View style={[
+             styles.addCoffeeModalContent,
+             { 
+               paddingBottom: insets.bottom + 12, 
+               backgroundColor: isDarkMode ? theme.altBackground : '#f4f4f4' 
+             }
+           ]}>
+             <View style={[styles.addCoffeeModalHeader, { borderBottomColor: theme.divider }]}>
+               <Text style={[styles.addCoffeeModalTitle, { color: theme.primaryText }]}>Add Coffee</Text>
+               <TouchableOpacity 
+                 style={styles.closeButton}
+                 onPress={() => setShowAddCoffeeModal(false)}
+               >
+                 <Ionicons name="close" size={24} color={theme.primaryText} />
+               </TouchableOpacity>
+             </View>
+             
+             <View style={styles.addCoffeeOptionsContainer}>
+                             <TouchableOpacity
+                 style={[styles.addCoffeeOption, { backgroundColor: isDarkMode ? theme.cardBackground : theme.background, borderColor: theme.border }]}
+                 onPress={() => handleAddCoffeeOption('url')}
+               >
+                 <Ionicons name="link-outline" size={24} color={theme.primaryText} />
+                 <View style={styles.addCoffeeOptionTextContainer}>
+                   <Text style={[styles.addCoffeeOptionTitle, { color: theme.primaryText }]}>Paste URL</Text>
+                   <Text style={[styles.addCoffeeOptionSubtitle, { color: theme.secondaryText }]}>Add coffee from a website URL</Text>
+                 </View>
+                 <Ionicons name="chevron-forward" size={20} color={theme.secondaryText} />
+               </TouchableOpacity>
+               
+               <TouchableOpacity
+                 style={[styles.addCoffeeOption, { backgroundColor: isDarkMode ? theme.cardBackground : theme.background, borderColor: theme.border }]}
+                 onPress={() => handleAddCoffeeOption('camera')}
+               >
+                 <Ionicons name="camera-outline" size={24} color={theme.primaryText} />
+                 <View style={styles.addCoffeeOptionTextContainer}>
+                   <Text style={[styles.addCoffeeOptionTitle, { color: theme.primaryText }]}>Take Picture</Text>
+                   <Text style={[styles.addCoffeeOptionSubtitle, { color: theme.secondaryText }]}>Scan coffee bag with camera</Text>
+                 </View>
+                 <Ionicons name="chevron-forward" size={20} color={theme.secondaryText} />
+               </TouchableOpacity>
+               
+               <TouchableOpacity
+                 style={[styles.addCoffeeOption, { backgroundColor: isDarkMode ? theme.cardBackground : theme.background, borderColor: theme.border }]}
+                 onPress={() => handleAddCoffeeOption('gallery')}
+               >
+                 <Ionicons name="image-outline" size={24} color={theme.primaryText} />
+                 <View style={styles.addCoffeeOptionTextContainer}>
+                   <Text style={[styles.addCoffeeOptionTitle, { color: theme.primaryText }]}>Select Picture</Text>
+                   <Text style={[styles.addCoffeeOptionSubtitle, { color: theme.secondaryText }]}>Choose from photo library</Text>
+                 </View>
+                 <Ionicons name="chevron-forward" size={20} color={theme.secondaryText} />
+               </TouchableOpacity>
+               
+               <TouchableOpacity
+                 style={[styles.addCoffeeOption, { backgroundColor: isDarkMode ? theme.cardBackground : theme.background, borderColor: theme.border }]}
+                 onPress={() => handleAddCoffeeOption('manual')}
+               >
+                 <Ionicons name="create-outline" size={24} color={theme.primaryText} />
+                 <View style={styles.addCoffeeOptionTextContainer}>
+                   <Text style={[styles.addCoffeeOptionTitle, { color: theme.primaryText }]}>Enter Manually</Text>
+                   <Text style={[styles.addCoffeeOptionSubtitle, { color: theme.secondaryText }]}>Fill out coffee details by hand</Text>
+                 </View>
+                 <Ionicons name="chevron-forward" size={20} color={theme.secondaryText} />
+               </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -739,20 +963,16 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     marginHorizontal: 4,
     borderRadius: 16,
-    backgroundColor: '#F2F2F7',
     borderWidth: 1,
-    borderColor: '#E5E5EA',
   },
   activeFilterBarItem: {
-    backgroundColor: '#000000',
-    borderColor: '#000000',
+    // Styles applied inline with theme colors
   },
   filterBarItemText: {
     fontSize: 14,
-    color: '#000000',
   },
   activeFilterBarItemText: {
-    color: '#FFFFFF',
+    // Styles applied inline with theme colors
   },
   sortChipContent: {
     flexDirection: 'row',
@@ -889,7 +1109,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666666',
   },
-  fab: {
+  clearFiltersFab: {
     position: 'absolute',
     alignSelf: 'center',
     borderRadius: 28,
@@ -904,9 +1124,62 @@ const styles = StyleSheet.create({
     shadowRadius: 4.65,
     elevation: 8,
   },
-  fabText: {
+  clearFiltersFabText: {
     fontSize: 16,
     fontWeight: '600',
+  },
+  closeButton: {
+    padding: 5,
+  },
+  addCoffeeModalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  addCoffeeModalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+  addCoffeeModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5E5',
+  },
+  addCoffeeModalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#000000',
+  },
+  addCoffeeOptionsContainer: {
+    padding: 16,
+  },
+  addCoffeeOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+    marginBottom: 12,
+  },
+  addCoffeeOptionTextContainer: {
+    flex: 1,
+    marginLeft: 16,
+  },
+  addCoffeeOptionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000000',
+    marginBottom: 2,
+  },
+  addCoffeeOptionSubtitle: {
+    fontSize: 14,
+    color: '#666666',
   },
 });
 
