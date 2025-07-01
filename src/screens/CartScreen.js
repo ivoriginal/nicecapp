@@ -119,7 +119,7 @@ const CartScreen = ({ navigation }) => {
       
       <View style={styles.productInfo}>
         <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
-        <Text style={styles.productPrice}>${item.price.toFixed(2)}</Text>
+        <Text style={styles.productPrice}>€{item.price.toFixed(2)}</Text>
         
         <View style={styles.quantityContainer}>
           <TouchableOpacity 
@@ -193,7 +193,7 @@ const CartScreen = ({ navigation }) => {
           <View style={styles.footer}>
             <View style={styles.totalContainer}>
               <Text style={styles.totalLabel}>Total:</Text>
-              <Text style={styles.totalAmount}>${cartTotal.toFixed(2)}</Text>
+              <Text style={styles.totalAmount}>€{cartTotal.toFixed(2)}</Text>
             </View>
             
             <TouchableOpacity 
