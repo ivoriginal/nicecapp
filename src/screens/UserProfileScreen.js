@@ -17,7 +17,8 @@ import {
   Modal,
   Dimensions,
   Animated,
-  PanResponder
+  PanResponder,
+  Linking
 } from 'react-native';
 import { Ionicons, MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -817,7 +818,13 @@ export default function UserProfileScreen() {
     
     return (
       <TouchableOpacity 
-        style={styles.coffeeCard}
+        style={[
+          styles.coffeeCard,
+          { 
+            backgroundColor: theme.cardBackground,
+            borderColor: theme.border
+          }
+        ]}
         onPress={() => navigation.navigate('CoffeeDetail', { 
           coffeeId: coffeeData.id,
           skipAuth: true 
@@ -829,9 +836,9 @@ export default function UserProfileScreen() {
           resizeMode="cover"
         />
         <View style={styles.coffeeInfo}>
-          <Text style={styles.coffeeName} numberOfLines={1}>{coffeeData.name}</Text>
-          <Text style={styles.coffeeOrigin} numberOfLines={1}>{coffeeData.origin}</Text>
-          <Text style={styles.coffeePrice}>{typeof item.price === 'number' ? `€${item.price.toFixed(2)}` : item.price}</Text>
+          <Text style={[styles.coffeeName, { color: theme.primaryText }]} numberOfLines={1}>{coffeeData.name}</Text>
+          <Text style={[styles.coffeeOrigin, { color: theme.secondaryText }]} numberOfLines={1}>{coffeeData.origin}</Text>
+          <Text style={[styles.coffeePrice, { color: theme.primaryText }]}>{typeof item.price === 'number' ? `€${item.price.toFixed(2)}` : item.price}</Text>
         </View>
       </TouchableOpacity>
     );
@@ -895,7 +902,7 @@ export default function UserProfileScreen() {
     switch (activeTab) {
       case 0: // Coffee Logs
         return (
-          <View style={styles.tabContent}>
+          <View style={[styles.tabContent, { backgroundColor: theme.background }]}>
             {userLogs.length > 0 ? (
               userLogs.map(log => (
                 <ThemeCoffeeLogCard 
@@ -905,15 +912,15 @@ export default function UserProfileScreen() {
                 />
               ))
             ) : (
-              <Text style={styles.emptyText}>No coffee logs yet</Text>
+              <Text style={[styles.emptyText, { color: theme.secondaryText }]}>No coffee logs yet</Text>
             )}
           </View>
         );
         
       case 1: // Reviews
         return (
-          <View style={styles.tabContent}>
-            <Text style={styles.emptyText}>No reviews yet</Text>
+          <View style={[styles.tabContent, { backgroundColor: theme.background }]}>
+            <Text style={[styles.emptyText, { color: theme.secondaryText }]}>No reviews yet</Text>
           </View>
         );
         
@@ -936,14 +943,14 @@ export default function UserProfileScreen() {
                 contentContainerStyle={styles.recipeListContainer}
               />
             ) : (
-              <View style={styles.standardEmptyContainer}>
-                <Text style={styles.emptyText}>No recipes yet</Text>
+              <View style={[styles.standardEmptyContainer, { backgroundColor: theme.background }]}>
+                <Text style={[styles.emptyText, { color: theme.secondaryText }]}>No recipes yet</Text>
                 {user?.id === 'user1' && (
                   <TouchableOpacity 
-                    style={styles.createButton}
+                    style={[styles.createButton, { backgroundColor: theme.primaryText }]}
                     onPress={() => navigation.navigate('CreateRecipe')}
                   >
-                    <Text style={styles.createButtonText}>Create Recipe</Text>
+                    <Text style={[styles.createButtonText, { color: isDarkMode ? theme.background : '#FFFFFF' }]}>Create Recipe</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -1136,7 +1143,13 @@ export default function UserProfileScreen() {
 
   const renderGearItem = ({ item }) => (
     <TouchableOpacity 
-      style={styles.gearCard}
+      style={[
+        styles.gearCard,
+        { 
+          backgroundColor: theme.cardBackground,
+          borderColor: theme.border
+        }
+      ]}
       onPress={() => navigation.navigate('GearDetail', { 
         gearName: item.name,
         gear: item
@@ -1151,9 +1164,9 @@ export default function UserProfileScreen() {
         />
       </View>
       <View style={styles.gearInfo}>
-        <Text style={styles.gearBrand}>{item.brand}</Text>
-        <Text style={styles.gearName}>{item.name}</Text>
-        <Text style={styles.gearPrice}>{typeof item.price === 'number' ? `€${item.price.toFixed(2)}` : item.price}</Text>
+        <Text style={[styles.gearBrand, { color: theme.primaryText }]}>{item.brand}</Text>
+        <Text style={[styles.gearName, { color: theme.secondaryText }]}>{item.name}</Text>
+        <Text style={[styles.gearPrice, { color: theme.primaryText }]}>{typeof item.price === 'number' ? `€${item.price.toFixed(2)}` : item.price}</Text>
       </View>
     </TouchableOpacity>
   );
@@ -1241,6 +1254,26 @@ export default function UserProfileScreen() {
     setReviewRating(0);
   };
 
+  // Handle opening maps for address
+  const handleAddressPress = (address) => {
+    if (!address) return;
+    
+    const url = Platform.select({
+      ios: `maps:0,0?q=${encodeURIComponent(address)}`,
+      android: `geo:0,0?q=${encodeURIComponent(address)}`,
+    });
+    
+    Linking.canOpenURL(url).then(supported => {
+      if (supported) {
+        Linking.openURL(url);
+      } else {
+        // Fallback to Google Maps web
+        const webUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+        Linking.openURL(webUrl);
+      }
+    });
+  };
+
   if (loading) {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
@@ -1288,8 +1321,8 @@ export default function UserProfileScreen() {
                   {user.userName || userName || 'Unknown User'}
                 </Text>
                 {user.isRoaster && (
-                  <View style={styles.roasterBadge}>
-                    <Text style={styles.roasterBadgeText}>Roaster</Text>
+                  <View style={[styles.roasterBadge, { backgroundColor: theme.cardBackground }]}>
+                    <Text style={[styles.roasterBadgeText, { color: theme.primaryText }]}>Roaster</Text>
                   </View>
                 )}
                 <Text style={[styles.profileUsername, { color: theme.secondaryText }]}>
@@ -1524,10 +1557,13 @@ export default function UserProfileScreen() {
                     
                     {/* Address (for cafes) */}
                     {user.address && (
-                      <View style={styles.infoItem}>
+                      <TouchableOpacity 
+                        style={styles.infoItem}
+                        onPress={() => handleAddressPress(user.address)}
+                      >
                         <Ionicons name="location-outline" size={20} color={theme.secondaryText} />
                         <Text style={[styles.infoText, { color: theme.primaryText }]}>{user.address}</Text>
-                      </View>
+                      </TouchableOpacity>
                     )}
                     
                     {/* Location (for roasters - general location) */}
@@ -1731,7 +1767,7 @@ export default function UserProfileScreen() {
                         ))}
                       </View>
                     ) : (
-                      <View style={styles.reviewsPlaceholder}>
+                      <View style={[styles.reviewsPlaceholder, { backgroundColor: theme.cardBackground }]}>
                         <Text style={[styles.emptyReviewsText, { color: theme.secondaryText }]}>
                           No reviews yet
                         </Text>
@@ -1791,7 +1827,12 @@ export default function UserProfileScreen() {
                       keyExtractor={(item) => item.id}
                       renderItem={({ item }) => (
                         <TouchableOpacity 
-                          style={[styles.collectionCard, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
+                          style={[
+                            styles.collectionCard, 
+                            isDarkMode 
+                              ? { backgroundColor: theme.cardBackground, borderWidth: 0 }
+                              : { backgroundColor: 'transparent', borderColor: theme.border, borderWidth: 1 }
+                          ]}
                           onPress={() => navigation.navigate('CoffeeDetail', { coffeeId: item.id, skipAuth: true })}
                         >
                           <AppImage
@@ -2053,7 +2094,6 @@ const styles = StyleSheet.create({
     marginRight: 16,
     // borderWidth: 1,
     // borderColor: '#F0F0F0',
-    backgroundColor: '#F0F0F0',
   },
   profileInfo: {
     flex: 1,
@@ -2065,7 +2105,6 @@ const styles = StyleSheet.create({
     // marginBottom: 4,
   },
   roasterBadge: {
-    backgroundColor: '#000000',
     paddingVertical: 2,
     paddingHorizontal: 8,
     borderRadius: 12,
@@ -2076,7 +2115,6 @@ const styles = StyleSheet.create({
   roasterBadgeText: {
     fontSize: 12,
     fontWeight: 'bold',
-    color: '#FFFFFF',
   },
   profileUsername: {
     fontSize: 14,
@@ -2214,19 +2252,16 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: '#666666',
     textAlign: 'center',
     paddingVertical: 8,
   },
   refreshButton: {
     marginTop: 12,
-    backgroundColor: '#000000',
     paddingVertical: 8,
     paddingHorizontal: 20,
     borderRadius: 20,
   },
   refreshButtonText: {
-    color: '#FFFFFF',
     fontWeight: '500',
   },
   gearContainer: {
@@ -2336,8 +2371,8 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 8,
-    marginRight: 12,
-    backgroundColor: '#F0F0F0',
+    marginHorizontal: 8,
+    // backgroundColor: '#F0F0F0',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -2387,9 +2422,7 @@ const styles = StyleSheet.create({
     width: '48%',
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#E5E5EA',
     borderRadius: 8,
-    backgroundColor: '#FFFFFF',
     overflow: 'hidden',
   },
   coffeeImage: {
@@ -2404,18 +2437,15 @@ const styles = StyleSheet.create({
   coffeeName: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#000000',
     marginBottom: 4,
   },
   coffeeOrigin: {
     fontSize: 12,
-    color: '#666666',
     marginBottom: 4,
   },
   coffeePrice: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#000000',
     marginTop: 4,
   },
   businessAvatar: {
@@ -2435,10 +2465,7 @@ const styles = StyleSheet.create({
   collectionCard: {
     width: '48%',
     marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
     borderRadius: 8,
-    backgroundColor: '#FFFFFF',
     overflow: 'hidden',
   },
   collectionCardImage: {
@@ -2550,9 +2577,7 @@ const styles = StyleSheet.create({
     width: '48%',
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#E5E5EA',
     borderRadius: 8,
-    backgroundColor: '#FFFFFF',
     overflow: 'hidden',
   },
   gearImageContainer: {
@@ -2573,18 +2598,15 @@ const styles = StyleSheet.create({
   gearBrand: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#000000',
     marginBottom: 4,
   },
   gearName: {
     fontSize: 14,
-    color: '#666666',
     marginBottom: 4,
   },
   gearPrice: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#000000',
     marginTop: 4,
   },
   recipesContainer: {
@@ -2595,13 +2617,11 @@ const styles = StyleSheet.create({
   },
   createButton: {
     marginTop: 12,
-    backgroundColor: '#000000',
     paddingVertical: 8,
     paddingHorizontal: 20,
     borderRadius: 20,
   },
   createButtonText: {
-    color: '#FFFFFF',
     fontWeight: '500',
   },
   segmentedControlContainer: {
@@ -2865,7 +2885,6 @@ const styles = StyleSheet.create({
     padding: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F8F8F8',
     borderRadius: 8,
   },
   emptyReviewsText: {
@@ -2881,8 +2900,8 @@ const styles = StyleSheet.create({
   roasterAvatar: {
     width: 20,
     height: 20,
-    borderRadius: 10,
-    marginRight: 12,
+    borderRadius: 4,
+    marginRight: 8,
   },
   reviewsHeaderContainer: {
     flexDirection: 'row',
@@ -2891,7 +2910,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   writeReviewButton: {
-    borderWidth: 1,
+    // borderWidth: 1,
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 8,
@@ -2899,6 +2918,8 @@ const styles = StyleSheet.create({
   writeReviewText: {
     fontSize: 14,
     fontWeight: '500',
+    borderBottomWidth: 1,
+    borderBottomColor: '#FFFFFF',
   },
   reviewModalContainer: {
     flex: 1,
