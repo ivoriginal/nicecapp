@@ -244,7 +244,7 @@ export default function GearDetailScreen() {
         backgroundColor: theme.background,
         elevation: 0, // Remove shadow on Android
         shadowOpacity: 0, // Remove shadow on iOS
-        borderBottomWidth: isDarkMode ? 1 : (scrollY > 0 ? 1 : 0),
+        borderBottomWidth: 1,
         borderBottomColor: theme.divider,
       },
       headerTintColor: theme.primaryText,
