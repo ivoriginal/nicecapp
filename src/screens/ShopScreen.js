@@ -37,7 +37,7 @@ const ShopScreen = ({ navigation }) => {
       />
       <View style={styles.productInfo}>
         <Text style={styles.productName}>{item.name}</Text>
-        <Text style={styles.productPrice}>${item.price.toFixed(2)}</Text>
+        <Text style={styles.productPrice}>€{item.price.toFixed(2)}</Text>
         <Text style={styles.productDescription} numberOfLines={2}>
           {item.description}
         </Text>
