@@ -675,8 +675,9 @@ export default function CoffeeDetailScreen() {
     }
 
     try {
-      // Create a unique ID for the recipe
-      const recipeId = `recipe-${Date.now()}`;
+      // Create a unique ID for the recipe using timestamp and random string
+      const randomString = Math.random().toString(36).substring(2, 8);
+      const recipeId = `recipe-${Date.now()}-${randomString}`;
       
       // Create the recipe object
       const newRecipe = {
@@ -702,7 +703,7 @@ export default function CoffeeDetailScreen() {
       
       // Create a recipe creation event for the home feed
       const recipeCreationEvent = {
-        id: `recipe-creation-${Date.now()}`,
+        id: `recipe-creation-${Date.now()}-${randomString}`,
         type: 'created_recipe',
         userId: currentAccount?.id || 'user-default',
         userName: currentAccount?.userName || 'You',
@@ -1248,10 +1249,7 @@ export default function CoffeeDetailScreen() {
         presentationStyle="pageSheet"
         onRequestClose={() => setShowCreateRecipeModal(false)}
       >
-        <KeyboardAvoidingView 
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          style={[styles.recipeModalContainer, { backgroundColor: theme.background }]}
-        >
+        <View style={[styles.recipeModalContainer, { backgroundColor: theme.background }]}>
           <View style={[styles.recipeModalHeader, { borderBottomColor: theme.divider }]}>
             <TouchableOpacity onPress={() => setShowCreateRecipeModal(false)}>
               <Text style={[styles.recipeModalCancel, { color: theme.primaryText }]}>Cancel</Text>
@@ -1273,7 +1271,18 @@ export default function CoffeeDetailScreen() {
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.recipeModalContent}>
+          <KeyboardAvoidingView 
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            style={{ flex: 1 }}
+            keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+          >
+            <ScrollView 
+              style={styles.recipeModalContent}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="interactive"
+              showsVerticalScrollIndicator={true}
+              contentContainerStyle={{ paddingBottom: 40 }}
+            >
             {/* Coffee Info */}
             <View style={[styles.coffeeInfoContainer, { backgroundColor: theme.altBackground }]}>
               <AppImage 
@@ -1393,7 +1402,8 @@ export default function CoffeeDetailScreen() {
               </View>
             </View>
           </ScrollView>
-        </KeyboardAvoidingView>
+          </KeyboardAvoidingView>
+        </View>
       </Modal>
     </View>
   );
@@ -1532,12 +1542,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingBottom: 2,
     borderBottomWidth: 1,
-    borderBottomColor: '#000000',
   },
   createRecipeText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#000000',
   },
   createFirstRecipeButton: {
     backgroundColor: '#000000',
@@ -1814,7 +1822,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   recipeModalContent: {
-    flex: 1,
+    flexGrow: 1,
     padding: 16,
   },
   coffeeInfoContainer: {
