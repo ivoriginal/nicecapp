@@ -41,8 +41,12 @@ export default function AddCoffeeFromCamera({ navigation, route }) {
     profile: '',
     price: '',
     description: '',
-    image: ''
+    image: '',
+    roastDate: '',
+    bagSize: ''
   });
+  
+  const [addToUserCollection, setAddToUserCollection] = useState(false);
   
   // Configure navigation header
   useLayoutEffect(() => {
@@ -169,26 +173,41 @@ export default function AddCoffeeFromCamera({ navigation, route }) {
     }
     
     try {
-      // Add to collection
-      if (addToCollection) {
-        const newCoffee = {
-          id: `coffee-${Date.now()}`,
-          ...coffeeData,
-          addedAt: new Date().toISOString()
-        };
-        
-        await addToCollection(newCoffee);
+      const newCoffee = {
+        id: `coffee-${Date.now()}`,
+        ...coffeeData,
+        addedAt: new Date().toISOString()
+      };
+
+      // Add to collection if checkbox is checked
+      if (addToUserCollection) {
+        if (addToCollection) {
+          await addToCollection(newCoffee);
+        }
+        Alert.alert(
+          'Success', 
+          'Coffee added to your collection and the database!', 
+          [{ text: 'OK', onPress: () => navigation.goBack() }],
+          { userInterfaceStyle: isDarkMode ? 'dark' : 'light' }
+        );
+      } else {
+        // Just add to the database
+        if (addToCollection) {
+          await addToCollection({
+            ...newCoffee,
+            addToCollectionOnly: false
+          });
+        }
+        Alert.alert(
+          'Success', 
+          'Coffee added to the database!', 
+          [{ text: 'OK', onPress: () => navigation.goBack() }],
+          { userInterfaceStyle: isDarkMode ? 'dark' : 'light' }
+        );
       }
       
-      Alert.alert(
-        'Success', 
-        'Coffee added to your collection!', 
-        [{ text: 'OK', onPress: () => navigation.goBack() }],
-        { userInterfaceStyle: isDarkMode ? 'dark' : 'light' }
-      );
-      
     } catch (error) {
-      Alert.alert('Error', 'Failed to add coffee to collection', [], {
+      Alert.alert('Error', 'Failed to add coffee', [], {
         userInterfaceStyle: isDarkMode ? 'dark' : 'light'
       });
     }
@@ -292,6 +311,35 @@ export default function AddCoffeeFromCamera({ navigation, route }) {
             {renderFormField('Flavor Profile', 'profile', 'Tasting notes')}
             {renderFormField('Price', 'price', 'Price per bag')}
             {renderFormField('Description', 'description', 'Additional details about this coffee', true)}
+            
+            {/* Add to Collection Section */}
+            <View style={styles.addToCollectionSection}>
+              <TouchableOpacity
+                style={styles.checkboxContainer}
+                onPress={() => setAddToUserCollection(!addToUserCollection)}
+              >
+                <View style={[
+                  styles.checkbox,
+                  { borderColor: theme.primaryText },
+                  addToUserCollection && { backgroundColor: theme.primaryText }
+                ]}>
+                  {addToUserCollection && (
+                    <Ionicons name="checkmark" size={16} color={theme.background} />
+                  )}
+                </View>
+                <Text style={[styles.checkboxLabel, { color: theme.primaryText }]}>
+                  Add to my collection
+                </Text>
+              </TouchableOpacity>
+              
+              {/* Additional fields when adding to collection */}
+              {addToUserCollection && (
+                <View style={styles.collectionFields}>
+                  {renderFormField('Roast Date', 'roastDate', 'e.g., 2024-01-15 (optional)')}
+                  {renderFormField('Bag Size', 'bagSize', 'e.g., 250g (optional)')}
+                </View>
+              )}
+            </View>
           </View>
         )}
       </ScrollView>
@@ -419,5 +467,31 @@ const styles = StyleSheet.create({
   saveButtonText: {
     fontSize: 16,
     fontWeight: '600',
+  },
+  addToCollectionSection: {
+    marginTop: 24,
+    paddingTop: 24,
+    borderTopWidth: 1,
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderWidth: 2,
+    borderRadius: 6,
+    marginRight: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxLabel: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  collectionFields: {
+    marginTop: 8,
   },
 }); 
