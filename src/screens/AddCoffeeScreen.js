@@ -1,15 +1,38 @@
-import React, { useState, useContext, useRef, useEffect } from 'react';
-import { View, Text, TextInput, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, Switch, ActionSheetIOS, Platform, Modal, Alert, KeyboardAvoidingView, FlatList, Image, Keyboard } from 'react-native';
-import { CoffeeContext } from '../context/CoffeeContext';
-import { useCoffee } from '../context/CoffeeContext';
+import React, { useState, useLayoutEffect, useRef, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  ActivityIndicator,
+  RefreshControl,
+  StatusBar,
+  Alert,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  Animated,
+  Image,
+  Modal,
+  SafeAreaView,
+  FlatList
+} from 'react-native';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
-import { Ionicons, MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useCoffee } from '../context/CoffeeContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import mockCoffees from '../data/mockCoffees.json';
-import mockRecipes from '../data/mockRecipes.json';
-import mockCafes from '../data/mockCafes.json';
+import * as ImagePicker from 'expo-image-picker';
+import CoffeeCard from '../components/CoffeeCard';
 import RecipeCard from '../components/RecipeCard';
+import RecipeCard2 from '../components/RecipeCard2';
+import UserAvatar from '../components/UserAvatar';
+import CoffeeInfo from '../components/CoffeeInfo';
+import mockCafes from '../data/mockCafes.json';
+import mockCoffees from '../data/mockCoffees.json';
 import mockUsers from '../data/mockUsers.json';
+import { mockFollowersData } from '../data/mockFollowers';
 
 // Helper function to format brew time as MM:SS
 const formatBrewTime = (value) => {
@@ -105,6 +128,7 @@ export default function AddCoffeeScreen({ navigation, route }) {
   const [showCreateRecipe, setShowCreateRecipe] = useState(false);
   const [remixRecipe, setRemixRecipe] = useState(null);
   const [rating, setRating] = useState(0);
+  const [showAddCoffeeModal, setShowAddCoffeeModal] = useState(false);
 
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
@@ -346,19 +370,22 @@ export default function AddCoffeeScreen({ navigation, route }) {
     
     let focusTimer;
     
-    // Only auto-focus if the modal is visible
-    if (route.params?.isModalVisible) {
-      focusTimer = setTimeout(() => {
-        if (nameInputRef.current && route.params?.isModalVisible) {
-          console.log('Setting input focus');
-          nameInputRef.current.focus();
-        }
-        
-        // Set initial suggestions to popular coffees
-        if (coffeeSuggestions.length === 0) {
-          setCoffeeSuggestions((mockCoffees?.coffees || []).slice(0, 5));
-        }
-      }, 500);
+    // Set initial suggestions to popular coffees immediately
+    if (coffeeSuggestions.length === 0) {
+      setCoffeeSuggestions((mockCoffees?.coffees || []).slice(0, 5));
+    }
+    
+    // Only auto-focus if the modal is visible AND we don't have a coffee selected already
+    if (route.params?.isModalVisible && !coffeeData.coffeeId) {
+      focusTimer = requestAnimationFrame(() => {
+        // Use a small timeout to ensure the modal is fully rendered
+        setTimeout(() => {
+          if (nameInputRef.current && route.params?.isModalVisible && !coffeeData.coffeeId) {
+            console.log('Setting input focus');
+            nameInputRef.current.focus();
+          }
+        }, 50);
+      });
     }
     
     // Add keyboard listeners
@@ -385,10 +412,10 @@ export default function AddCoffeeScreen({ navigation, route }) {
       keyboardDidShowListener.remove();
       keyboardDidHideListener.remove();
       if (focusTimer) {
-        clearTimeout(focusTimer);
+        cancelAnimationFrame(focusTimer);
       }
     };
-  }, [route.params?.isModalVisible]);
+  }, [route.params?.isModalVisible, coffeeData.coffeeId]);
 
   useEffect(() => {
     // Check if we should save (triggered by the Save button in the modal)
@@ -657,6 +684,9 @@ export default function AddCoffeeScreen({ navigation, route }) {
       }
       Keyboard.dismiss();
       
+      // Add a small delay to ensure keyboard is fully dismissed
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       // Create a mock event ID for local storage
       const mockEventId = `local-${Date.now()}`;
       
@@ -746,8 +776,10 @@ export default function AddCoffeeScreen({ navigation, route }) {
       setCustomRecipe(null);
       setRating(0);
       
-      // Navigate back immediately without delay to prevent re-focus
-      navigation.goBack();
+      // Add another small delay before navigation to prevent focus issues
+      setTimeout(() => {
+        navigation.goBack();
+      }, 50);
     } catch (error) {
       console.error('Error saving coffee:', error);
       Alert.alert('Error', 'Failed to save coffee event. Please try again.');
@@ -773,6 +805,109 @@ export default function AddCoffeeScreen({ navigation, route }) {
     setSelectedRecipe(null);
   };
 
+  // Handle add coffee modal options
+  const handleAddCoffeeOption = async (option) => {
+    setShowAddCoffeeModal(false);
+    
+    switch (option) {
+      case 'url':
+        handleURLInput();
+        break;
+      case 'camera':
+        await handleTakePhoto();
+        break;
+      case 'gallery':
+        await handleSelectFromGallery();
+        break;
+      case 'manual':
+        navigation.navigate('AddCoffeeManually');
+        break;
+    }
+  };
+
+  // Handle URL input with alert
+  const handleURLInput = () => {
+    Alert.prompt(
+      'Enter Coffee URL',
+      'Paste the URL of a coffee product page to extract details automatically',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel'
+        },
+        {
+          text: 'Parse URL',
+          onPress: (url) => {
+            if (url && url.trim()) {
+              navigation.navigate('AddCoffeeFromURL', { url: url.trim() });
+            } else {
+              Alert.alert('Error', 'Please enter a valid URL');
+            }
+          }
+        }
+      ],
+      'plain-text',
+      '',
+      'url'
+    );
+  };
+
+  // Handle camera capture
+  const handleTakePhoto = async () => {
+    try {
+      const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+      
+      if (permissionResult.granted === false) {
+        Alert.alert('Permission Required', 'You need to grant permission to access your camera');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled) {
+        navigation.navigate('AddCoffeeFromCamera', { 
+          capturedImage: result.assets[0].uri 
+        });
+      }
+    } catch (error) {
+      console.error('Error taking photo:', error);
+      Alert.alert('Error', 'Failed to take photo. Please try again.');
+    }
+  };
+
+  // Handle gallery selection
+  const handleSelectFromGallery = async () => {
+    try {
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (permissionResult.granted === false) {
+        Alert.alert('Permission Required', 'You need to grant permission to access your photos');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled) {
+        navigation.navigate('AddCoffeeFromGallery', { 
+          selectedImage: result.assets[0].uri 
+        });
+      }
+    } catch (error) {
+      console.error('Error selecting image:', error);
+      Alert.alert('Error', 'Failed to select image. Please try again.');
+    }
+  };
+
 
 
     const renderRecipeHeader = () => (
@@ -785,7 +920,7 @@ export default function AddCoffeeScreen({ navigation, route }) {
           handleCreateRecipe();
         }}
       >
-        <Ionicons name="add" size={20} color="#007AFF" />
+        {/* <Ionicons name="add" size={20} color="#007AFF" /> */}
         <Text style={styles.createRecipeButtonText}>Create</Text>
       </TouchableOpacity>
     </View>
@@ -851,19 +986,16 @@ export default function AddCoffeeScreen({ navigation, route }) {
       ) : recipeSuggestions.length > 0 ? (
         <View>
           <Text style={styles.recipesSubheader}>Suggested</Text>
-          <FlatList
-            data={recipeSuggestions}
-            showsVerticalScrollIndicator={false}
-            keyExtractor={(item, index) => `recipe-${item.id || index}`}
-            renderItem={({ item }) => (
+          <View style={styles.verticalRecipesList}>
+            {recipeSuggestions.map((item, index) => (
               <RecipeCard
+                key={`recipe-${item.id || index}`}
                 recipe={item}
                 onPress={() => handleRecipePress(item)}
                 showCoffeeInfo={false}
               />
-            )}
-            contentContainerStyle={styles.verticalRecipesList}
-          />
+            ))}
+          </View>
         </View>
       ) : (
         <View style={styles.emptyRecipesContainer}>
@@ -1023,9 +1155,6 @@ export default function AddCoffeeScreen({ navigation, route }) {
                 keyboardAppearance={isDarkMode ? 'dark' : 'light'}
               />
             </View>
-            
-            {/* Add extra padding at the bottom to ensure scrollability */}
-            <View style={{ height: 100 }} />
           </ScrollView>
 
           <View style={[styles.modalFooter, { paddingBottom: insets.bottom }]}>
@@ -1154,7 +1283,7 @@ export default function AddCoffeeScreen({ navigation, route }) {
             <Ionicons name="search" size={20} color="#666" style={styles.locationSearchIcon} />
             <TextInput
               style={styles.locationSearchInput}
-              placeholder="Search locations..."
+              placeholder="Search cafés"
               value={locationSearchText}
               onChangeText={handleLocationSearch}
               keyboardAppearance={isDarkMode ? 'dark' : 'light'}
@@ -1309,7 +1438,7 @@ export default function AddCoffeeScreen({ navigation, route }) {
                     
                     {/* Show checkmark if selected - moved inside friendItem for better layout */}
                     {isSelected && (
-                      <Ionicons name="checkmark-circle" size={24} color="#2196F3" style={styles.checkmarkIcon} />
+                      <Ionicons name="checkmark-circle" size={24} color={isDarkMode ? '#FFFFFF' : '#000000'} style={styles.checkmarkIcon} />
                     )}
                   </View>
                 </TouchableOpacity>
@@ -1475,7 +1604,7 @@ export default function AddCoffeeScreen({ navigation, route }) {
         <ScrollView 
           ref={scrollViewRef}
           style={styles.scrollView}
-          contentContainerStyle={{ paddingBottom: 100 }}
+          contentContainerStyle={{ paddingBottom: 20 }}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="interactive"
           onScroll={handleScroll}
@@ -1530,26 +1659,22 @@ export default function AddCoffeeScreen({ navigation, route }) {
     }
 
     return (
-      <KeyboardAvoidingView 
+      <ScrollView 
+        ref={scrollViewRef}
         style={[
+          styles.scrollView,
           styles.container,
           showTopBorder && {
             borderTopWidth: 1,
             borderTopColor: theme.divider,
           }
         ]}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
+        contentContainerStyle={{ paddingBottom: 20 }}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
       >
-        <ScrollView 
-          ref={scrollViewRef}
-          style={styles.scrollView}
-          contentContainerStyle={{ paddingBottom: keyboardVisible ? keyboardHeight + 50 : 50 }}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="interactive"
-          onScroll={handleScroll}
-          scrollEventThrottle={16}
-        >
           <View style={styles.inputContainer}>
             {coffeeData.coffeeId ? (
               <View style={styles.selectedCoffeeContainer}>
@@ -1575,7 +1700,8 @@ export default function AddCoffeeScreen({ navigation, route }) {
                     activeOpacity={0.8}
                     style={{flex: 1}}
                     onPress={() => {
-                      if (nameInputRef.current) {
+                      // Only focus if we don't already have a coffee selected
+                      if (nameInputRef.current && !coffeeData.coffeeId) {
                         nameInputRef.current.focus();
                       }
                     }}
@@ -1587,7 +1713,6 @@ export default function AddCoffeeScreen({ navigation, route }) {
                       onChangeText={handleNameChange}
                       placeholder="Enter coffee name"
                       placeholderTextColor={theme.secondaryText || '#666666'}
-                      autoFocus={true}
                       keyboardType="default"
                       keyboardAppearance={isDarkMode ? 'dark' : 'light'}
                       clearButtonMode="never"
@@ -1596,7 +1721,8 @@ export default function AddCoffeeScreen({ navigation, route }) {
                       blurOnSubmit={false}
                       onPressIn={() => {
                         console.log('Input pressed');
-                        if (nameInputRef.current) {
+                        // Only focus if we don't already have a coffee selected
+                        if (nameInputRef.current && !coffeeData.coffeeId) {
                           nameInputRef.current.focus();
                         }
                       }}
@@ -1626,15 +1752,18 @@ export default function AddCoffeeScreen({ navigation, route }) {
                 <View style={styles.searchSuggestionsContainer}>
                   <ScrollView 
                     keyboardShouldPersistTaps="handled"
-                    style={{maxHeight: 300}}
+                    // style={{maxHeight: 300}}
                   >
                     {isLoading ? (
                       <ActivityIndicator style={styles.loader} size="small" color={theme.primaryText} />
                     ) : coffeeSuggestions.length > 0 ? (
-                      coffeeSuggestions.map((item) => (
+                      coffeeSuggestions.map((item, index) => (
                         <TouchableOpacity
                           key={item.id}
-                          style={styles.searchSuggestionItem}
+                          style={[
+                            styles.searchSuggestionItem,
+                            index === coffeeSuggestions.length - 1 && styles.searchSuggestionItemLast
+                          ]}
                           onPress={() => handleCoffeeSelect(item)}
                         >
                           <Image 
@@ -1647,6 +1776,18 @@ export default function AddCoffeeScreen({ navigation, route }) {
                           </View>
                         </TouchableOpacity>
                       ))
+                    ) : coffeeData.name.trim() ? (
+                      // Show "Add this coffee" button when user has typed something but no matches found
+                      <View style={styles.addCoffeeContainer}>
+                        <Text style={styles.noResultsText}>No coffees found for "{coffeeData.name}"</Text>
+                        <TouchableOpacity
+                          style={styles.addCoffeeButton}
+                          onPress={() => setShowAddCoffeeModal(true)}
+                        >
+                          <Ionicons name="add-circle" size={20} color={isDarkMode ? '#000000' : '#FFFFFF'} />
+                          <Text style={styles.addCoffeeButtonText}>Add this coffee</Text>
+                        </TouchableOpacity>
+                      </View>
                     ) : (
                       <Text style={styles.emptyText}>No coffees found</Text>
                     )}
@@ -1765,9 +1906,6 @@ export default function AddCoffeeScreen({ navigation, route }) {
             </View>
           )}
         </ScrollView>
-        
-
-      </KeyboardAvoidingView>
     );
   };
 
@@ -2151,6 +2289,85 @@ export default function AddCoffeeScreen({ navigation, route }) {
      );
    };
 
+  const renderAddCoffeeModal = () => (
+    <Modal
+      animationType="slide"
+      transparent={true}
+      visible={showAddCoffeeModal}
+      onRequestClose={() => setShowAddCoffeeModal(false)}
+    >
+      <View style={styles.addCoffeeModalContainer}>
+        <View style={[
+          styles.addCoffeeModalContent,
+          { 
+            paddingBottom: insets.bottom, 
+            backgroundColor: isDarkMode ? theme.altBackground : '#f4f4f4' 
+          }
+        ]}>
+          <View style={[styles.addCoffeeModalHeader, { borderBottomColor: theme.divider }]}>
+            <Text style={[styles.addCoffeeModalTitle, { color: theme.primaryText }]}>Add Coffee</Text>
+            <TouchableOpacity 
+              style={styles.closeButton}
+              onPress={() => setShowAddCoffeeModal(false)}
+            >
+              <Ionicons name="close" size={24} color={theme.primaryText} />
+            </TouchableOpacity>
+          </View>
+          
+          <View style={styles.addCoffeeOptionsContainer}>
+            <TouchableOpacity
+              style={[styles.addCoffeeOption, { backgroundColor: isDarkMode ? theme.cardBackground : theme.background, borderColor: theme.border }]}
+              onPress={() => handleAddCoffeeOption('url')}
+            >
+              <Ionicons name="link-outline" size={24} color={theme.primaryText} />
+              <View style={styles.addCoffeeOptionTextContainer}>
+                <Text style={[styles.addCoffeeOptionTitle, { color: theme.primaryText }]}>Paste URL</Text>
+                <Text style={[styles.addCoffeeOptionSubtitle, { color: theme.secondaryText }]}>Add coffee from a website URL</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={theme.secondaryText} />
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[styles.addCoffeeOption, { backgroundColor: isDarkMode ? theme.cardBackground : theme.background, borderColor: theme.border }]}
+              onPress={() => handleAddCoffeeOption('camera')}
+            >
+              <Ionicons name="camera-outline" size={24} color={theme.primaryText} />
+              <View style={styles.addCoffeeOptionTextContainer}>
+                <Text style={[styles.addCoffeeOptionTitle, { color: theme.primaryText }]}>Take Picture</Text>
+                <Text style={[styles.addCoffeeOptionSubtitle, { color: theme.secondaryText }]}>Scan coffee bag with camera</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={theme.secondaryText} />
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[styles.addCoffeeOption, { backgroundColor: isDarkMode ? theme.cardBackground : theme.background, borderColor: theme.border }]}
+              onPress={() => handleAddCoffeeOption('gallery')}
+            >
+              <Ionicons name="image-outline" size={24} color={theme.primaryText} />
+              <View style={styles.addCoffeeOptionTextContainer}>
+                <Text style={[styles.addCoffeeOptionTitle, { color: theme.primaryText }]}>Select Picture</Text>
+                <Text style={[styles.addCoffeeOptionSubtitle, { color: theme.secondaryText }]}>Choose from photo library</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={theme.secondaryText} />
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[styles.addCoffeeOption, { backgroundColor: isDarkMode ? theme.cardBackground : theme.background, borderColor: theme.border }]}
+              onPress={() => handleAddCoffeeOption('manual')}
+            >
+              <Ionicons name="create-outline" size={24} color={theme.primaryText} />
+              <View style={styles.addCoffeeOptionTextContainer}>
+                <Text style={[styles.addCoffeeOptionTitle, { color: theme.primaryText }]}>Enter Manually</Text>
+                <Text style={[styles.addCoffeeOptionSubtitle, { color: theme.secondaryText }]}>Fill out coffee details by hand</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={theme.secondaryText} />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+
       return (
       <View style={styles.container}>
         {renderContent()}
@@ -2158,6 +2375,7 @@ export default function AddCoffeeScreen({ navigation, route }) {
         {renderLocationSelector()}
         {renderFriendSelector()}
         {renderCreateRecipeModal()}
+        {renderAddCoffeeModal()}
       </View>
     );
 }
@@ -2172,6 +2390,7 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
   },
   inputContainer: {
     padding: 16,
+    // paddingTop: 8,
     paddingBottom: 8,
   },
   label: {
@@ -2334,8 +2553,9 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
     color: '#000000',
   },
   recipesContainer: {
-    padding: 16,
+    paddingHorizontal: 16,
     paddingTop: 8,
+    paddingBottom: 0,
   },
   recipeCard: {
     backgroundColor: '#F8F8F8',
@@ -2636,8 +2856,8 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
+    // borderBottomWidth: 1,
+    // borderBottomColor: '#E5E5EA',
   },
   selectorModalTitle: {
     fontSize: 18,
@@ -2656,7 +2876,7 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
     borderBottomColor: theme.divider || '#E5E5EA',
   },
   selectorModalItemSelected: {
-    backgroundColor: '#F0F7FF',
+    backgroundColor: isDarkMode ? theme.altBackground : '#F0F7FF',
   },
   selectorModalItemText: {
     fontSize: 16,
@@ -2675,16 +2895,18 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 6,
-    paddingHorizontal: 12,
-    backgroundColor: '#F0F7FF',
+    // paddingHorizontal: 12,
+    // backgroundColor: '#F0F7FF',
     borderRadius: 16,
   },
-  createRecipeButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#007AFF',
-    marginLeft: 4,
-  },
+      createRecipeButtonText: {
+      fontSize: 14,
+      fontWeight: '500',
+      color: theme.primaryText,
+      marginLeft: 4,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.primaryText,
+    },
   customRecipeCard: {
     backgroundColor: '#F8F8F8',
     borderRadius: 12,
@@ -2715,25 +2937,29 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
   },
   searchSuggestionsContainer: {
     backgroundColor: theme.background || (isDarkMode ? '#2C2C2E' : '#FFFFFF'),
-    borderWidth: 1,
-    borderColor: theme.border || '#E5E5EA',
-    borderRadius: 8,
-    marginTop: 8,
+    // borderWidth: 1,
+    // borderColor: theme.border || '#E5E5EA',
+    // borderRadius: 8,
+    marginTop: 4,
     // maxHeight: 300,
-    shadowColor: isDarkMode ? '#000000' : '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: isDarkMode ? 0.3 : 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    // shadowColor: isDarkMode ? '#000000' : '#000000',
+    // shadowOffset: { width: 0, height: 2 },
+    // shadowOpacity: isDarkMode ? 0.3 : 0.1,
+    // shadowRadius: 4,
+    // elevation: 3,
     zIndex: 1000,
     marginBottom: 16,
   },
   searchSuggestionItem: {
     padding: 12,
+    paddingHorizontal: 8,
     borderBottomWidth: 1,
     borderBottomColor: theme.divider || '#E5E5EA',
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  searchSuggestionItemLast: {
+    borderBottomWidth: 0,
   },
   suggestionAvatar: {
     width: 40,
@@ -2929,7 +3155,7 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     color: '#666666',
-    marginBottom: 12,
+    marginBottom: 4,
     marginLeft: 4,
   },
   createFirstRecipeButton: {
@@ -3024,6 +3250,7 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
     backgroundColor: theme.altBackground || '#F2F2F7',
     borderRadius: 8,
     padding: 12,
+    marginHorizontal: 8,
   },
   locationSearchIcon: {
     marginRight: 10,
@@ -3063,8 +3290,8 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
     backgroundColor: theme.cardBackground || (isDarkMode ? '#2C2C2E' : '#FFFFFF'),
     borderTopWidth: 1,
     borderTopColor: theme.divider || '#E5E5EA',
-    borderBottomWidth: 1,
-    borderBottomColor: theme.divider || '#E5E5EA',
+    // borderBottomWidth: 1,
+    // borderBottomColor: theme.divider || '#E5E5EA',
   },
   nearMeToggleContent: {
     flexDirection: 'row',
@@ -3121,8 +3348,6 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
     height: 40,
     borderRadius: 20,
     backgroundColor: '#E5E5EA',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
   },
   friendAvatarText: {
     fontSize: 14,
@@ -3188,8 +3413,6 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
     height: 20,
     borderRadius: 10,
     marginRight: 6,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
   },
   friendSearchContainer: {
     flexDirection: 'row',
@@ -3259,12 +3482,12 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
   },
   friendSelectorFooter: {
     borderTopWidth: 1,
-    borderTopColor: '#E5E5EA',
+    borderTopColor: theme.border || '#E5E5EA',
     padding: 16,
     alignItems: 'center',
   },
   confirmFriendsButton: {
-    backgroundColor: '#2196F3',
+    backgroundColor: isDarkMode ? '#FFFFFF' : '#000000',
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 8,
@@ -3272,7 +3495,7 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
     alignItems: 'center',
   },
   confirmFriendsText: {
-    color: '#FFFFFF',
+    color: isDarkMode ? '#000000' : '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -3478,5 +3701,79 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     borderRadius: 10,
     zIndex: 1,
+  },
+  addCoffeeContainer: {
+    padding: 16,
+    alignItems: 'center',
+  },
+  noResultsText: {
+    fontSize: 14,
+    color: theme.secondaryText,
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  addCoffeeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: isDarkMode ? '#FFFFFF' : '#000000',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 50,
+  },
+  addCoffeeButtonText: {
+    color: isDarkMode ? '#000000' : '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 6,
+  },
+  addCoffeeModalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  addCoffeeModalContent: {
+    backgroundColor: theme.cardBackground || (isDarkMode ? '#2C2C2E' : '#FFFFFF'),
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    minHeight: '50%',
+    maxHeight: '90%',
+  },
+  addCoffeeModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.divider,
+  },
+  addCoffeeModalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: theme.primaryText,
+  },
+  addCoffeeOptionsContainer: {
+    padding: 16,
+  },
+  addCoffeeOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderWidth: 2,
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  addCoffeeOptionTextContainer: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  addCoffeeOptionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  addCoffeeOptionSubtitle: {
+    fontSize: 14,
+    color: theme.secondaryText,
   },
 });
