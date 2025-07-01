@@ -1,3 +1,5 @@
+// DEPRECATED: This file is deprecated and will be removed in a future version.
+// Please use the individual mock data files (mockCoffees.json, mockCafes.json, etc.) instead.
 {
   "users": [
     {
