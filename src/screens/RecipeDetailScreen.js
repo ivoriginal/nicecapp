@@ -14,7 +14,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   Share,
-  ActionSheetIOS
+  ActionSheetIOS,
+  SafeAreaView
 } from 'react-native';
 import { Ionicons, AntDesign, Feather, MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useCoffee } from '../context/CoffeeContext';
@@ -33,6 +34,7 @@ import RecipeAttributes from '../components/RecipeAttributes';
 import { COLORS, FONTS, SIZES } from '../constants';
 import ToolBar from '../components/common/ToolBar';
 import { useTheme } from '../context/ThemeContext';
+import AddCoffeeScreen from './AddCoffeeScreen';
 
 const { width, height } = Dimensions.get('window');
 
@@ -92,6 +94,7 @@ export default function RecipeDetailScreen() {
   const [userNotes, setUserNotes] = useState('');
   const [mostPopularRating, setMostPopularRating] = useState(null);
   const [showHowWasItRating, setShowHowWasItRating] = useState(false);
+  const [showAddCoffeeModal, setShowAddCoffeeModal] = useState(false);
   
   // Mock the current user id for demo purposes
   const currentUserId = 'user1';
@@ -743,37 +746,39 @@ export default function RecipeDetailScreen() {
   };
 
   const handleUpvote = () => {
-    // Navigate to AddCoffeeScreen with pre-filled data from this recipe
+    // Show AddCoffeeScreen as modal with pre-filled data from this recipe
     if (recipe && coffee) {
-      navigation.navigate('AddCoffee', {
-        isModalVisible: true,
-        autoSelectCoffee: {
-          id: coffee.id,
-          name: coffee.name,
-          image: coffee.image,
-          roaster: coffee.roaster
-        },
-        preSelectedRecipe: {
-          id: recipe.id,
-          name: recipe.name,
-          method: recipe.method || recipe.brewingMethod,
-          amount: recipe.amount,
-          grindSize: recipe.grindSize,
-          waterVolume: recipe.waterVolume,
-          brewTime: recipe.brewTime,
-          steps: recipe.steps,
-          notes: recipe.notes,
-          userName: recipe.userName,
-          userAvatar: recipe.userAvatar,
-          userId: recipe.userId
-        },
-        coffeeId: coffee.id,
-        coffeeName: coffee.name,
-        roaster: coffee.roaster,
-        coffeeImage: coffee.image
-      });
+      setShowAddCoffeeModal(true);
     }
   };
+
+  const handleAddCoffeeModalClose = () => {
+    setShowAddCoffeeModal(false);
+  };
+
+  const handleAddCoffeeModalSave = () => {
+    setShowAddCoffeeModal(false);
+    // The actual save logic is handled by AddCoffeeScreen
+  };
+
+  // Create custom navigation object for the modal
+  const createModalNavigation = () => ({
+    goBack: handleAddCoffeeModalClose,
+    navigate: (screen, params) => {
+      if (screen === 'Home') {
+        handleAddCoffeeModalClose();
+      } else {
+        handleAddCoffeeModalClose();
+      }
+    },
+    setParams: (params) => {
+      if (params.shouldSave === true) {
+        handleAddCoffeeModalSave();
+      }
+    },
+    addListener: () => ({ remove: () => {} }),
+    setOptions: () => {}
+  });
   
   const handleSave = () => {
     if (!recipe) return;
@@ -1328,7 +1333,7 @@ export default function RecipeDetailScreen() {
                   style={[
                     styles.actionButton,
                     { 
-                      backgroundColor: saved ? theme.primaryText : theme.background,
+                      backgroundColor: saved ? "#000000" : theme.background,
                       borderColor: theme.border 
                     }
                   ]} 
@@ -1735,6 +1740,68 @@ export default function RecipeDetailScreen() {
           </>
         )}
       </ScrollView>
+      
+      {/* Add Coffee Modal */}
+      <Modal
+        transparent={true}
+        visible={showAddCoffeeModal}
+        animationType="slide"
+        onRequestClose={handleAddCoffeeModalClose}
+      >
+        <SafeAreaView style={[styles.addCoffeeModalContainer, { backgroundColor: theme.background }]}>
+          <View style={[styles.addCoffeeModalContent, { backgroundColor: theme.background }]}>
+            <View style={[styles.addCoffeeModalHeader, { backgroundColor: theme.background, borderBottomColor: theme.divider }]}>
+              <View style={styles.modalHeaderLeft}>
+                <TouchableOpacity
+                  style={styles.modalCloseButton}
+                  onPress={handleAddCoffeeModalClose}
+                >
+                  <Ionicons name="close" size={24} color={theme.primaryText} />
+                </TouchableOpacity>
+              </View>
+              <Text style={[styles.addCoffeeModalTitle, { color: theme.primaryText }]}>Log Coffee</Text>
+              <View style={styles.modalHeaderRight}>
+                {/* Save button will be handled by AddCoffeeScreen */}
+              </View>
+            </View>
+            
+            <View style={{ flex: 1 }}>
+              <AddCoffeeScreen
+                navigation={createModalNavigation()}
+                route={{
+                  params: {
+                    isModalVisible: true,
+                    autoSelectCoffee: {
+                      id: coffee?.id,
+                      name: coffee?.name,
+                      image: coffee?.image,
+                      roaster: coffee?.roaster
+                    },
+                    preSelectedRecipe: {
+                      id: recipe?.id,
+                      name: recipe?.name,
+                      method: recipe?.method || recipe?.brewingMethod,
+                      amount: recipe?.amount,
+                      grindSize: recipe?.grindSize,
+                      waterVolume: recipe?.waterVolume,
+                      brewTime: recipe?.brewTime,
+                      steps: recipe?.steps,
+                      notes: recipe?.notes,
+                      userName: recipe?.userName,
+                      userAvatar: recipe?.userAvatar,
+                      userId: recipe?.userId
+                    },
+                    coffeeId: coffee?.id,
+                    coffeeName: coffee?.name,
+                    roaster: coffee?.roaster,
+                    coffeeImage: coffee?.image
+                  }
+                }}
+              />
+            </View>
+          </View>
+        </SafeAreaView>
+      </Modal>
     </View>
   );
 }
@@ -2648,9 +2715,39 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
-// first container
+  // first container
   contentContainer: {
     paddingTop: 16,
     // paddingBottom: 16,
+  },
+  
+  // Add Coffee Modal styles
+  addCoffeeModalContainer: {
+    flex: 1,
+  },
+  addCoffeeModalContent: {
+    flex: 1,
+  },
+  addCoffeeModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+  },
+  modalHeaderLeft: {
+    width: 44,
+  },
+  modalHeaderRight: {
+    width: 44,
+  },
+  modalCloseButton: {
+    padding: 8,
+  },
+  addCoffeeModalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    textAlign: 'center',
   },
 }); 
