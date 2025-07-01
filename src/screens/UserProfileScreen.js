@@ -144,21 +144,24 @@ export default function UserProfileScreen() {
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: (evt, gestureState) => {
-        // Only respond to vertical movements
-        return Math.abs(gestureState.dy) > Math.abs(gestureState.dx);
+        // Allow both vertical and horizontal movement
+        return Math.abs(gestureState.dy) > 2;
       },
       onPanResponderMove: (evt, gestureState) => {
-        // Only allow downward movement
-        if (gestureState.dy > 0) {
-          profilePictureTranslateY.setValue(gestureState.dy);
-        }
+        // Update translateY based on gesture
+        profilePictureTranslateY.setValue(gestureState.dy);
       },
       onPanResponderRelease: (evt, gestureState) => {
-        if (gestureState.dy > 150) {
-          // Dismiss if dragged down more than 150px
+        // Calculate velocity threshold for quick flick
+        const isQuickFlick = Math.abs(gestureState.vy) > 0.5;
+        // Calculate position threshold for slow drag
+        const isDraggedFarEnough = Math.abs(gestureState.dy) > 100;
+
+        if (isQuickFlick || isDraggedFarEnough) {
+          // Dismiss if flicked quickly or dragged far enough
           Animated.timing(profilePictureTranslateY, {
-            toValue: 500,
-            duration: 200,
+            toValue: gestureState.dy > 0 ? Dimensions.get('window').height : -Dimensions.get('window').height,
+            duration: 250,
             useNativeDriver: true,
           }).start(() => {
             setShowProfilePicture(false);
@@ -168,9 +171,9 @@ export default function UserProfileScreen() {
           // Spring back to original position
           Animated.spring(profilePictureTranslateY, {
             toValue: 0,
+            tension: 40,
+            friction: 7,
             useNativeDriver: true,
-            tension: 100,
-            friction: 8,
           }).start();
         }
       },
@@ -1440,9 +1443,7 @@ export default function UserProfileScreen() {
                                 resizeMode="cover"
                               />
                             ) : (
-                              <View style={[styles.gearItemAvatar, { backgroundColor: '#F0F0F0', justifyContent: 'center', alignItems: 'center' }]}>
-                                <Ionicons name="hardware-chip" size={12} color="#666666" />
-                              </View>
+                              <View style={[styles.gearItemAvatar, { backgroundColor: theme.placeholder }]} />
                             )}
                           </View>
                           <Text style={[styles.gearItemText, { color: theme.primaryText }]}>{item}</Text>
@@ -1835,11 +1836,13 @@ export default function UserProfileScreen() {
                           ]}
                           onPress={() => navigation.navigate('CoffeeDetail', { coffeeId: item.id, skipAuth: true })}
                         >
-                          <AppImage
-                            source={item.imageUrl}
-                            style={styles.collectionCardImage}
-                            placeholder="cafe"
-                          />
+                          <View style={[styles.collectionCardImagePlaceholder, { backgroundColor: theme.placeholder }]}>
+                            <AppImage
+                              source={item.imageUrl}
+                              style={styles.collectionCardImage}
+                              placeholder="cafe"
+                            />
+                          </View>
                           <View style={styles.collectionCardInfo}>
                             <Text style={[styles.collectionCardName, { color: theme.primaryText }]} numberOfLines={1}>
                               {item.name}
@@ -1876,7 +1879,10 @@ export default function UserProfileScreen() {
                           onPress={() => handleRecipePress(item)}
                           onUserPress={() => null}
                           showCoffeeInfo={true}
-                          style={[styles.recipeCard, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
+                          style={[
+                            styles.recipeCard, 
+                            isDarkMode ? { backgroundColor: theme.cardBackground } : { backgroundColor: 'transparent' }
+                          ]}
                         />
                       )}
                       contentContainerStyle={styles.recipeListContainer}
@@ -2021,8 +2027,8 @@ export default function UserProfileScreen() {
       {/* Profile Picture Viewer */}
       <Modal
         visible={showProfilePicture}
-        animationType="slide"
-        presentationStyle="overFullScreen"
+        animationType="none"
+        transparent={true}
         onRequestClose={() => setShowProfilePicture(false)}
       >
         <Animated.View 
@@ -2031,19 +2037,14 @@ export default function UserProfileScreen() {
             {
               transform: [{ translateY: profilePictureTranslateY }],
               opacity: profilePictureTranslateY.interpolate({
-                inputRange: [0, 150],
-                outputRange: [1, 0.8],
-                extrapolate: 'clamp',
+                inputRange: [-200, 0, 200],
+                outputRange: [0.2, 1, 0.2],
               }),
             }
           ]}
           {...profilePicturePanResponder.panHandlers}
         >
-          <TouchableOpacity 
-            style={styles.profilePictureModalOverlay}
-            activeOpacity={1}
-            onPress={() => setShowProfilePicture(false)}
-          >
+          <View style={styles.profilePictureModalOverlay}>
             <View style={styles.profilePictureModalContent}>
               <AppImage
                 source={user?.userAvatar || 'https://via.placeholder.com/300'}
@@ -2056,11 +2057,21 @@ export default function UserProfileScreen() {
             {/* Close button */}
             <TouchableOpacity 
               style={styles.profilePictureCloseButton}
-              onPress={() => setShowProfilePicture(false)}
+              onPress={() => {
+                // Animate out before closing
+                Animated.timing(profilePictureTranslateY, {
+                  toValue: Dimensions.get('window').height,
+                  duration: 250,
+                  useNativeDriver: true,
+                }).start(() => {
+                  setShowProfilePicture(false);
+                  profilePictureTranslateY.setValue(0);
+                });
+              }}
             >
               <Ionicons name="close" size={24} color="#FFFFFF" />
             </TouchableOpacity>
-          </TouchableOpacity>
+          </View>
         </Animated.View>
       </Modal>
     </View>
@@ -2477,9 +2488,9 @@ const styles = StyleSheet.create({
   collectionCardImagePlaceholder: {
     width: '100%',
     height: 120,
-    backgroundColor: '#F0F0F0',
-    justifyContent: 'center',
-    alignItems: 'center',
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
+    overflow: 'hidden',
   },
   collectionCardInfo: {
     padding: 12,
@@ -2529,10 +2540,7 @@ const styles = StyleSheet.create({
   recipeCard: {
     width: '100%',
     marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
     borderRadius: 8,
-    backgroundColor: '#FFFFFF',
     overflow: 'hidden',
   },
   recipeCardImage: {
