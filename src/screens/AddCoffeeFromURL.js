@@ -36,8 +36,12 @@ export default function AddCoffeeFromURL({ navigation, route }) {
     profile: '',
     price: '',
     description: '',
-    image: ''
+    image: '',
+    roastDate: '',
+    bagSize: ''
   });
+  
+  const [addToUserCollection, setAddToUserCollection] = useState(false);
   
   // Configure navigation header
   useLayoutEffect(() => {
@@ -86,27 +90,36 @@ export default function AddCoffeeFromURL({ navigation, route }) {
       // Simulate API call to parse URL
       await new Promise(resolve => setTimeout(resolve, 1500));
       
-      // Mock parsing logic - in real app, this would call a backend service
-      // or use web scraping to extract coffee data from the URL
+      // Use consistent mock data for any URL
       const mockData = {
-        name: 'Single Origin Ethiopia Sidamo',
-        roaster: 'Blue Bottle Coffee',
-        origin: 'Ethiopia',
-        region: 'Sidamo',
-        producer: 'Duromina Cooperative',
-        altitude: '1,900m',
-        varietal: 'Heirloom',
+        name: 'Colombia La Primavera',
+        roaster: 'Intelligentsia Coffee',
+        origin: 'Colombia',
+        region: 'Huila',
+        producer: 'Finca La Primavera',
+        altitude: '1,750m',
+        varietal: 'Caturra, Castillo',
         process: 'Washed',
-        profile: 'Bright, floral, with notes of bergamot and chocolate',
-        price: '€24.00',
-        description: 'A bright and complex single-origin coffee with floral aromatics and a clean finish.',
+        profile: 'Caramel, red apple, milk chocolate',
+        price: '€21.50',
+        description: 'A beautifully balanced Colombian coffee with sweet caramel notes and a crisp, apple-like acidity. The finish is reminiscent of milk chocolate, creating a comforting and refined cup.',
         image: 'https://images.unsplash.com/photo-1447933601403-0c6688de566e'
       };
+      
+      // Validate URL format before accepting
+      if (!inputUrl.startsWith('http://') && !inputUrl.startsWith('https://')) {
+        throw new Error('Invalid URL format');
+      }
       
       setCoffeeData(mockData);
       
     } catch (error) {
-      Alert.alert('Error', 'Failed to parse URL. Please check the URL and try again.', [], {
+      let errorMessage = 'Failed to parse URL. Please check the URL and try again.';
+      if (error.message === 'Invalid URL format') {
+        errorMessage = 'Please enter a valid URL starting with http:// or https://';
+      }
+      
+      Alert.alert('Error', errorMessage, [], {
         userInterfaceStyle: isDarkMode ? 'dark' : 'light'
       });
     } finally {
@@ -134,26 +147,41 @@ export default function AddCoffeeFromURL({ navigation, route }) {
     }
     
     try {
-      // Add to collection
-      if (addToCollection) {
-        const newCoffee = {
-          id: `coffee-${Date.now()}`,
-          ...coffeeData,
-          addedAt: new Date().toISOString()
-        };
-        
-        await addToCollection(newCoffee);
+      const newCoffee = {
+        id: `coffee-${Date.now()}`,
+        ...coffeeData,
+        addedAt: new Date().toISOString()
+      };
+
+      // Add to collection if checkbox is checked
+      if (addToUserCollection) {
+        if (addToCollection) {
+          await addToCollection(newCoffee);
+        }
+        Alert.alert(
+          'Success', 
+          'Coffee added to your collection and the database!', 
+          [{ text: 'OK', onPress: () => navigation.goBack() }],
+          { userInterfaceStyle: isDarkMode ? 'dark' : 'light' }
+        );
+      } else {
+        // Just add to the database
+        if (addToCollection) {
+          await addToCollection({
+            ...newCoffee,
+            addToCollectionOnly: false
+          });
+        }
+        Alert.alert(
+          'Success', 
+          'Coffee added to the database!', 
+          [{ text: 'OK', onPress: () => navigation.goBack() }],
+          { userInterfaceStyle: isDarkMode ? 'dark' : 'light' }
+        );
       }
       
-      Alert.alert(
-        'Success', 
-        'Coffee added to your collection!', 
-        [{ text: 'OK', onPress: () => navigation.goBack() }],
-        { userInterfaceStyle: isDarkMode ? 'dark' : 'light' }
-      );
-      
     } catch (error) {
-      Alert.alert('Error', 'Failed to add coffee to collection', [], {
+      Alert.alert('Error', 'Failed to add coffee', [], {
         userInterfaceStyle: isDarkMode ? 'dark' : 'light'
       });
     }
@@ -250,6 +278,35 @@ export default function AddCoffeeFromURL({ navigation, route }) {
           {renderFormField('Flavor Profile', 'profile', 'Tasting notes')}
           {renderFormField('Price', 'price', 'Price per bag')}
           {renderFormField('Description', 'description', 'Additional details about this coffee', true)}
+          
+          {/* Add to Collection Section */}
+          <View style={styles.addToCollectionSection}>
+            <TouchableOpacity
+              style={styles.checkboxContainer}
+              onPress={() => setAddToUserCollection(!addToUserCollection)}
+            >
+              <View style={[
+                styles.checkbox,
+                { borderColor: theme.primaryText },
+                addToUserCollection && { backgroundColor: theme.primaryText }
+              ]}>
+                {addToUserCollection && (
+                  <Ionicons name="checkmark" size={16} color={theme.background} />
+                )}
+              </View>
+              <Text style={[styles.checkboxLabel, { color: theme.primaryText }]}>
+                Add to my collection
+              </Text>
+            </TouchableOpacity>
+            
+            {/* Additional fields when adding to collection */}
+            {addToUserCollection && (
+              <View style={styles.collectionFields}>
+                {renderFormField('Roast Date', 'roastDate', 'e.g., 2024-01-15 (optional)')}
+                {renderFormField('Bag Size', 'bagSize', 'e.g., 250g (optional)')}
+              </View>
+            )}
+          </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -326,5 +383,31 @@ const styles = StyleSheet.create({
   saveButtonText: {
     fontSize: 16,
     fontWeight: '600',
+  },
+  addToCollectionSection: {
+    marginTop: 24,
+    paddingTop: 24,
+    borderTopWidth: 1,
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderWidth: 2,
+    borderRadius: 6,
+    marginRight: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxLabel: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  collectionFields: {
+    marginTop: 8,
   },
 }); 
