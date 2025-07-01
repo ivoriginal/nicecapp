@@ -11,7 +11,10 @@ import {
   Alert,
   TextInput,
   Dimensions,
-  ImageBackground
+  ImageBackground,
+  Modal,
+  KeyboardAvoidingView,
+  Platform
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useCoffee } from '../context/CoffeeContext';
@@ -54,7 +57,10 @@ export default function CoffeeDetailScreen() {
     removeFromCollection,
     addToWishlist, 
     removeFromWishlist,
-    toggleFavorite
+    toggleFavorite,
+    addRecipe,
+    addCoffeeEvent,
+    currentAccount
   } = useCoffee();
   
   const navigation = useNavigation();
@@ -80,6 +86,17 @@ export default function CoffeeDetailScreen() {
   const [scrollY, setScrollY] = useState(0);
   const [showCoffeeNameInHeader, setShowCoffeeNameInHeader] = useState(false);
   const headerOpacity = useSharedValue(0);
+
+  // Recipe creation modal states
+  const [showCreateRecipeModal, setShowCreateRecipeModal] = useState(false);
+  const [recipeData, setRecipeData] = useState({
+    method: '',
+    amount: '',
+    grindSize: 'Medium',
+    waterVolume: '',
+    brewTime: '',
+    notes: ''
+  });
 
   useEffect(() => {
     // Always use mock data for development
@@ -258,7 +275,7 @@ export default function CoffeeDetailScreen() {
               origin: 'Unknown',
               process: 'Unknown',
               roastLevel: 'Medium',
-              price: '$18.00',
+              price: '€18.00',
               stats: {
                 rating: eventCoffee.rating,
                 reviews: Math.floor(Math.random() * 100) + 10,
@@ -638,13 +655,96 @@ export default function CoffeeDetailScreen() {
   };
 
   const navigateToCreateRecipe = () => {
-    navigation.navigate('CreateRecipe', { 
-      coffeeId: coffee.id,
-      coffeeName: coffee.name,
-      coffeeImage: coffee.image,
-      roaster: coffee.roaster,
-      skipAuth: true 
+    // Reset recipe data
+    setRecipeData({
+      method: '',
+      amount: '',
+      grindSize: 'Medium',
+      waterVolume: '',
+      brewTime: '',
+      notes: ''
     });
+    // Show the modal
+    setShowCreateRecipeModal(true);
+  };
+
+  const handleSubmitRecipe = async () => {
+    if (!recipeData.method || !recipeData.amount || !recipeData.waterVolume) {
+      Alert.alert('Error', 'Please fill in all required fields (Method, Coffee Amount, and Water Volume).');
+      return;
+    }
+
+    try {
+      // Create a unique ID for the recipe
+      const recipeId = `recipe-${Date.now()}`;
+      
+      // Create the recipe object
+      const newRecipe = {
+        id: recipeId,
+        name: `${coffee.name} ${recipeData.method}`,
+        coffeeId: coffee.id,
+        coffeeName: coffee.name,
+        method: recipeData.method,
+        amount: recipeData.amount,
+        grindSize: recipeData.grindSize,
+        waterVolume: recipeData.waterVolume,
+        brewTime: recipeData.brewTime,
+        notes: recipeData.notes,
+        creatorId: currentAccount?.id || 'user-default',
+        creatorName: currentAccount?.userName || 'You',
+        creatorAvatar: currentAccount?.userAvatar,
+        timestamp: new Date().toISOString(),
+        rating: 5
+      };
+
+      // Add the recipe to the context
+      await addRecipe(newRecipe);
+      
+      // Create a recipe creation event for the home feed
+      const recipeCreationEvent = {
+        id: `recipe-creation-${Date.now()}`,
+        type: 'created_recipe',
+        userId: currentAccount?.id || 'user-default',
+        userName: currentAccount?.userName || 'You',
+        userAvatar: currentAccount?.userAvatar,
+        timestamp: new Date().toISOString(),
+        coffeeId: coffee.id,
+        coffeeName: coffee.name,
+        roaster: coffee.roaster,
+        imageUrl: coffee.image,
+        recipeId: newRecipe.id,
+        recipeName: newRecipe.name,
+        method: newRecipe.method,
+        amount: newRecipe.amount,
+        grindSize: newRecipe.grindSize,
+        waterVolume: newRecipe.waterVolume,
+        brewTime: newRecipe.brewTime,
+        notes: newRecipe.notes
+      };
+      
+      // Add the recipe creation event to the feed
+      await addCoffeeEvent(recipeCreationEvent);
+      
+      // Close the modal and reset form
+      setShowCreateRecipeModal(false);
+      setRecipeData({
+        method: '',
+        amount: '',
+        grindSize: 'Medium',
+        waterVolume: '',
+        brewTime: '',
+        notes: ''
+      });
+      
+      // Refresh related recipes to show the new one
+      setRelatedRecipes(prev => [newRecipe, ...prev]);
+      
+      // Show success message
+      Alert.alert('Success', 'Recipe created successfully!');
+    } catch (error) {
+      console.error('Error saving recipe:', error);
+      Alert.alert('Error', 'Failed to save recipe. Please try again.');
+    }
   };
 
   const navigateToRoasterProfile = () => {
@@ -1140,6 +1240,161 @@ export default function CoffeeDetailScreen() {
           )}
         </View>
       </ScrollView>
+
+      {/* Create Recipe Modal */}
+      <Modal
+        visible={showCreateRecipeModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowCreateRecipeModal(false)}
+      >
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={[styles.recipeModalContainer, { backgroundColor: theme.background }]}
+        >
+          <View style={[styles.recipeModalHeader, { borderBottomColor: theme.divider }]}>
+            <TouchableOpacity onPress={() => setShowCreateRecipeModal(false)}>
+              <Text style={[styles.recipeModalCancel, { color: theme.primaryText }]}>Cancel</Text>
+            </TouchableOpacity>
+            <Text style={[styles.recipeModalTitle, { color: theme.primaryText }]}>Create Recipe</Text>
+            <TouchableOpacity 
+              onPress={handleSubmitRecipe}
+              disabled={!recipeData.method || !recipeData.amount || !recipeData.waterVolume}
+            >
+              <Text style={[
+                styles.recipeModalSubmit, 
+                { 
+                  color: (!recipeData.method || !recipeData.amount || !recipeData.waterVolume) 
+                    ? theme.secondaryText 
+                    : theme.primaryText,
+                  opacity: (!recipeData.method || !recipeData.amount || !recipeData.waterVolume) ? 0.5 : 1
+                }
+              ]}>Save</Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.recipeModalContent}>
+            {/* Coffee Info */}
+            <View style={[styles.coffeeInfoContainer, { backgroundColor: theme.altBackground }]}>
+              <AppImage 
+                source={coffee.image} 
+                style={styles.coffeeInfoImage}
+                resizeMode="cover"
+              />
+              <View style={styles.coffeeInfoText}>
+                <Text style={[styles.coffeeInfoName, { color: theme.primaryText }]}>{coffee.name}</Text>
+                <Text style={[styles.coffeeInfoRoaster, { color: theme.secondaryText }]}>{coffee.roaster}</Text>
+              </View>
+            </View>
+
+            {/* Form Fields */}
+            <View style={styles.formContainer}>
+              {/* Brewing Method */}
+              <View style={styles.fieldContainer}>
+                <Text style={[styles.fieldLabel, { color: theme.primaryText }]}>Brewing Method *</Text>
+                <TouchableOpacity 
+                  style={[styles.selectorButton, { backgroundColor: theme.altBackground, borderColor: theme.border }]}
+                  onPress={() => {
+                    const methods = ['V60', 'Chemex', 'AeroPress', 'French Press', 'Espresso', 'Cold Brew', 'Pour Over'];
+                    Alert.alert(
+                      'Select Method',
+                      '',
+                      methods.map(method => ({
+                        text: method,
+                        onPress: () => setRecipeData({...recipeData, method})
+                      })).concat([{text: 'Cancel', style: 'cancel'}])
+                    );
+                  }}
+                >
+                  <Text style={[styles.selectorButtonText, { color: theme.primaryText }]}>
+                    {recipeData.method || 'Select brewing method'}
+                  </Text>
+                  <Ionicons name="chevron-down" size={20} color={theme.secondaryText} />
+                </TouchableOpacity>
+              </View>
+
+              {/* Coffee Amount */}
+              <View style={styles.fieldContainer}>
+                <Text style={[styles.fieldLabel, { color: theme.primaryText }]}>Coffee Amount (g) *</Text>
+                <TextInput
+                  style={[styles.textInput, { backgroundColor: theme.altBackground, color: theme.primaryText, borderColor: theme.border }]}
+                  value={recipeData.amount}
+                  onChangeText={(text) => setRecipeData({...recipeData, amount: text})}
+                  placeholder="20"
+                  keyboardType="numeric"
+                  keyboardAppearance={isDarkMode ? 'dark' : 'light'}
+                  placeholderTextColor={theme.secondaryText}
+                />
+              </View>
+
+              {/* Grind Size */}
+              <View style={styles.fieldContainer}>
+                <Text style={[styles.fieldLabel, { color: theme.primaryText }]}>Grind Size</Text>
+                <TouchableOpacity 
+                  style={[styles.selectorButton, { backgroundColor: theme.altBackground, borderColor: theme.border }]}
+                  onPress={() => {
+                    const sizes = ['Extra Fine', 'Fine', 'Medium-Fine', 'Medium', 'Medium-Coarse', 'Coarse'];
+                    Alert.alert(
+                      'Select Grind Size',
+                      '',
+                      sizes.map(size => ({
+                        text: size,
+                        onPress: () => setRecipeData({...recipeData, grindSize: size})
+                      })).concat([{text: 'Cancel', style: 'cancel'}])
+                    );
+                  }}
+                >
+                  <Text style={[styles.selectorButtonText, { color: theme.primaryText }]}>{recipeData.grindSize}</Text>
+                  <Ionicons name="chevron-down" size={20} color={theme.secondaryText} />
+                </TouchableOpacity>
+              </View>
+
+              {/* Water Volume */}
+              <View style={styles.fieldContainer}>
+                <Text style={[styles.fieldLabel, { color: theme.primaryText }]}>Water Volume (ml) *</Text>
+                <TextInput
+                  style={[styles.textInput, { backgroundColor: theme.altBackground, color: theme.primaryText, borderColor: theme.border }]}
+                  value={recipeData.waterVolume}
+                  onChangeText={(text) => setRecipeData({...recipeData, waterVolume: text})}
+                  placeholder="300"
+                  keyboardType="numeric"
+                  keyboardAppearance={isDarkMode ? 'dark' : 'light'}
+                  placeholderTextColor={theme.secondaryText}
+                />
+              </View>
+
+              {/* Brew Time */}
+              <View style={styles.fieldContainer}>
+                <Text style={[styles.fieldLabel, { color: theme.primaryText }]}>Brew Time</Text>
+                <TextInput
+                  style={[styles.textInput, { backgroundColor: theme.altBackground, color: theme.primaryText, borderColor: theme.border }]}
+                  value={recipeData.brewTime}
+                  onChangeText={(text) => setRecipeData({...recipeData, brewTime: text})}
+                  placeholder="3:30"
+                  keyboardAppearance={isDarkMode ? 'dark' : 'light'}
+                  placeholderTextColor={theme.secondaryText}
+                />
+              </View>
+
+              {/* Notes */}
+              <View style={styles.fieldContainer}>
+                <Text style={[styles.fieldLabel, { color: theme.primaryText }]}>Notes</Text>
+                <TextInput
+                  style={[styles.textAreaInput, { backgroundColor: theme.altBackground, color: theme.primaryText, borderColor: theme.border }]}
+                  value={recipeData.notes}
+                  onChangeText={(text) => setRecipeData({...recipeData, notes: text})}
+                  placeholder="Any brewing notes or tips..."
+                  multiline
+                  numberOfLines={4}
+                  textAlignVertical="top"
+                  keyboardAppearance={isDarkMode ? 'dark' : 'light'}
+                  placeholderTextColor={theme.secondaryText}
+                />
+              </View>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
@@ -1532,6 +1787,95 @@ const styles = StyleSheet.create({
   viewMoreText: {
     fontWeight: '500',
     borderBottomWidth: 1,
+  },
+
+  // Recipe Modal Styles
+  recipeModalContainer: {
+    flex: 1,
+  },
+  recipeModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  recipeModalCancel: {
+    fontSize: 16,
+    fontWeight: '400',
+  },
+  recipeModalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  recipeModalSubmit: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  recipeModalContent: {
+    flex: 1,
+    padding: 16,
+  },
+  coffeeInfoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 24,
+  },
+  coffeeInfoImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    marginRight: 12,
+  },
+  coffeeInfoText: {
+    flex: 1,
+  },
+  coffeeInfoName: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  coffeeInfoRoaster: {
+    fontSize: 14,
+  },
+  formContainer: {
+    flex: 1,
+  },
+  fieldContainer: {
+    marginBottom: 20,
+  },
+  fieldLabel: {
+    fontSize: 16,
+    fontWeight: '500',
+    marginBottom: 8,
+  },
+  selectorButton: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  selectorButtonText: {
+    fontSize: 16,
+  },
+  textInput: {
+    padding: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    fontSize: 16,
+  },
+  textAreaInput: {
+    padding: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    fontSize: 16,
+    minHeight: 100,
+    textAlignVertical: 'top',
   },
 
 
