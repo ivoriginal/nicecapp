@@ -112,12 +112,12 @@ const CheckoutScreen = ({ navigation }) => {
           {cartItems.map(item => (
             <View key={item.id} style={styles.orderItem}>
               <Text style={styles.itemName}>{item.name} x {item.quantity}</Text>
-              <Text style={styles.itemPrice}>${(item.price * item.quantity).toFixed(2)}</Text>
+              <Text style={styles.itemPrice}>€{(item.price * item.quantity).toFixed(2)}</Text>
             </View>
           ))}
           <View style={styles.totalRow}>
             <Text style={styles.totalLabel}>Total</Text>
-            <Text style={styles.totalAmount}>${cartTotal.toFixed(2)}</Text>
+            <Text style={styles.totalAmount}>€{cartTotal.toFixed(2)}</Text>
           </View>
         </View>
 
