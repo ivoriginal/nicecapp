@@ -15,7 +15,9 @@ import {
   Platform,
   Share,
   ActionSheetIOS,
-  SafeAreaView
+  SafeAreaView,
+  Switch,
+  Keyboard
 } from 'react-native';
 import { Ionicons, AntDesign, Feather, MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useCoffee } from '../context/CoffeeContext';
@@ -27,6 +29,7 @@ import mockRecipes from '../data/mockRecipes.json';
 import mockUsers from '../data/mockUsers.json';
 import mockCoffees from '../data/mockCoffees.json';
 import mockEvents from '../data/mockEvents.json';
+import mockCafes from '../data/mockCafes.json';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import AppImage from '../components/common/AppImage';
 import RecipeStepCard from '../components/RecipeStepCard';
@@ -35,6 +38,12 @@ import { COLORS, FONTS, SIZES } from '../constants';
 import ToolBar from '../components/common/ToolBar';
 import { useTheme } from '../context/ThemeContext';
 import AddCoffeeScreen from './AddCoffeeScreen';
+import * as ImagePicker from 'expo-image-picker';
+import CoffeeCard from '../components/CoffeeCard';
+import RecipeCard from '../components/RecipeCard';
+import RecipeCard2 from '../components/RecipeCard2';
+import UserAvatar from '../components/UserAvatar';
+import CoffeeInfo from '../components/CoffeeInfo';
 
 const { width, height } = Dimensions.get('window');
 
@@ -95,6 +104,18 @@ export default function RecipeDetailScreen() {
   const [mostPopularRating, setMostPopularRating] = useState(null);
   const [showHowWasItRating, setShowHowWasItRating] = useState(false);
   const [showAddCoffeeModal, setShowAddCoffeeModal] = useState(false);
+  const [nearMeEnabled, setNearMeEnabled] = useState(false);
+  
+  const toggleNearMe = () => {
+    setNearMeEnabled(!nearMeEnabled);
+  };
+
+  // Helper function to get image source
+  const getImageSource = (uri) => {
+    if (!uri) return null;
+    if (typeof uri === 'number') return uri;
+    return { uri };
+  };
   
   // Mock the current user id for demo purposes
   const currentUserId = 'user1';
@@ -1268,7 +1289,7 @@ export default function RecipeDetailScreen() {
             )}
           
             {/* Recipe Title with Chips */}
-            <View style={[styles.recipeHeader, { backgroundColor: theme.cardBackground }]}>
+            <View style={[styles.recipeHeader, { backgroundColor: theme.background }]}>
               {/* Method and Coffee line */}
               <View style={[styles.recipeMethodContainer, { backgroundColor: theme.background }]}>
                 <TouchableOpacity 
@@ -1281,8 +1302,8 @@ export default function RecipeDetailScreen() {
                     {recipe.method || recipe.brewingMethod || 'Pour Over'}
                   </Text>
                 </TouchableOpacity>
-                <Text style={[styles.recipeText, { color: theme.secondaryText }]}>recipe</Text>
-                <Text style={[styles.recipeText, { color: theme.secondaryText }]}>for</Text>
+                <Text style={[styles.recipeText, { color: theme.secondaryText, marginLeft: 8 }]}>recipe</Text>
+                <Text style={[styles.recipeText, { color: theme.secondaryText, marginRight: 8 }]}>for</Text>
                 <TouchableOpacity 
                   style={[styles.chip, { backgroundColor: theme.background }]}
                   onPress={navigateToCoffeeDetail}
@@ -1426,7 +1447,7 @@ export default function RecipeDetailScreen() {
                         </View>
                       )}
                       {/* Show "No ratings yet" when there are no ratings */}
-                      {userRating === 0 && !mostPopularRating && logCount === 0 && (
+                      {userRating === 0 && !mostPopularRating && (
                         <View style={[styles.popularRatingContainer, { backgroundColor: theme.background }]}>
                           <Text style={[styles.popularRatingText, { color: theme.secondaryText }]}>
                             No ratings yet
@@ -1840,8 +1861,15 @@ const styles = StyleSheet.create({
   },
   
   // Recipe header and related styles
+
+  recipeHeader: {
+    paddingVertical: 16,
+    backgroundColor: '#FFFFFF',
+  },
+
   recipeHeaderContainer: {
     backgroundColor: '#FFFFFF',
+    // paddingVertical: 16,
     // padding: 16,
     // paddingVertical: 24,
     // margin: 16,
@@ -1878,11 +1906,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 8,
+    marginTop: 12,
   },
+  // author text
   recipeByText: {
     fontSize: 18,
     color: '#666666',
-    marginRight: 0,
+    marginRight: 8,
     alignSelf: 'center',
   },
   chipsContainer: {
@@ -1890,17 +1920,16 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+    // marginBottom: 16,
   },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    paddingLeft: 8,
+    // paddingVertical: 6,
+    // paddingHorizontal: 12,
+    paddingLeft: 0,
     borderRadius: 20,
     backgroundColor: '#F2F2F7',
-    marginLeft: 2,
   },
   chipIcon: {
     marginRight: 6,
@@ -1909,7 +1938,7 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: '500',
     color: '#333333',
-    lineHeight: 36,
+    // lineHeight: 36,
   },
   userChipText: {
     fontSize: 18,
@@ -2688,6 +2717,7 @@ const styles = StyleSheet.create({
     // borderBottomWidth: 1,
     // borderBottomColor: '#E5E5EA',
   },
+  // rating buttons container
   howWasItContainer: {
     marginTop: 16,
     padding: 0,
@@ -2699,7 +2729,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     width: '100%',
-    height: 60,
+    height: 48,
     alignItems: 'stretch',
   },
   howWasItRatingButton: {
@@ -2750,4 +2780,38 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
   },
+  nearMeToggleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0'
+  },
+  nearMeToggleContent: {
+    flexDirection: 'row',
+    alignItems: 'center'
+  },
+  nearMeIcon: {
+    marginRight: 8
+  },
+  nearMeText: {
+    fontSize: 16,
+    color: '#333'
+  },
+  locationIcon: {
+    marginRight: 8
+  },
+  locationLogo: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    marginRight: 8
+  },
+  locationSelectorContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1
+  }
 }); 
