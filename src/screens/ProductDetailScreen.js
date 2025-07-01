@@ -78,7 +78,7 @@ const ProductDetailScreen = ({ route, navigation }) => {
         
         <View style={styles.contentContainer}>
           <Text style={styles.productName}>{product.name}</Text>
-          <Text style={styles.productPrice}>${product.price.toFixed(2)}</Text>
+          <Text style={styles.productPrice}>€{product.price.toFixed(2)}</Text>
           
           <View style={styles.divider} />
           
