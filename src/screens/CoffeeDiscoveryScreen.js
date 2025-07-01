@@ -610,14 +610,12 @@ const CoffeeDiscoveryScreen = ({ navigation, route }) => {
             onPress={() => setSortModalVisible(true)}
           >
             <View style={styles.sortChipContent}>
-              <Text>
-                <Ionicons 
-                  name="swap-vertical" 
-                  size={14} 
-                  color={sortOrder !== 'default' ? (isDarkMode ? theme.background : '#FFFFFF') : theme.primaryText} 
-                  style={styles.sortIcon}
-                />
-              </Text>
+              <Ionicons 
+                name="swap-vertical" 
+                size={14} 
+                color={sortOrder !== 'default' ? (isDarkMode ? theme.background : '#FFFFFF') : theme.primaryText} 
+                style={styles.sortIcon}
+              />
               <Text 
                 style={[
                   styles.filterBarItemText,
@@ -782,14 +780,43 @@ const CoffeeDiscoveryScreen = ({ navigation, route }) => {
     );
   };
 
+  // Add this helper function before the component
+  const getCountryFlag = (countryName) => {
+    // Normalize country names
+    const normalizedName = countryName === 'Ruanda' ? 'Rwanda' :
+                          countryName === 'Perú' ? 'Peru' :
+                          countryName === 'Bolivia (Plurinational State of)' ? 'Bolivia' :
+                          countryName;
+    
+    const countryFlags = {
+      'Ethiopia': '🇪🇹',
+      'Bolivia': '🇧🇴',
+      'Colombia': '🇨🇴',
+      'Brazil': '🇧🇷',
+      'Costa Rica': '🇨🇷',
+      'Guatemala': '🇬🇹',
+      'Honduras': '🇭🇳',
+      'Indonesia': '🇮🇩',
+      'Kenya': '🇰🇪',
+      'Mexico': '🇲🇽',
+      'Nicaragua': '🇳🇮',
+      'Panama': '🇵🇦',
+      'Peru': '🇵🇪',
+      'Rwanda': '🇷🇼',
+      'Tanzania': '🇹🇿',
+      'Uganda': '🇺🇬',
+      'Vietnam': '🇻🇳',
+      'Yemen': '🇾🇪',
+      // Add more countries as needed
+    };
+    
+    return countryFlags[normalizedName] || '';
+  };
+
   const renderCoffeeItem = ({ item }) => {
-    // Get sellers for this coffee
     let sellers = mockCoffees.sellers[item.id] || [];
     
-    // If no sellers are specified but coffee has a roasterId, 
-    // add the roaster as a seller
     if (sellers.length === 0 && item.roasterId) {
-      // Find the roaster in existing sellers to get their data
       const roasterInfo = Object.values(mockCoffees.sellers || {})
         .flat()
         .find(seller => seller.id === item.roasterId);
@@ -797,11 +824,10 @@ const CoffeeDiscoveryScreen = ({ navigation, route }) => {
       if (roasterInfo) {
         sellers = [roasterInfo];
       } else {
-        // Create basic seller info from the roaster data
         sellers = [{
           id: item.roasterId,
           name: item.roaster,
-          avatar: item.image, // Use coffee image as fallback
+          avatar: item.image,
           location: "",
           isRoaster: true,
           businessAccount: true
@@ -809,25 +835,36 @@ const CoffeeDiscoveryScreen = ({ navigation, route }) => {
       }
     }
     
+    const countryFlag = getCountryFlag(item.origin);
+    
     return (
       <View style={[styles.coffeeCardContainer, { borderBottomColor: theme.divider }]}>
         <TouchableOpacity 
           style={[styles.coffeeCard, { backgroundColor: theme.background }]}
           onPress={() => navigation.navigate('CoffeeDetail', { coffeeId: item.id })}
         >
-          <AppImage 
-            source={item.image || item.images?.[0]} 
-            style={styles.coffeeImage}
-            placeholder="cafe"
-          />
+          <View style={[styles.coffeeImageContainer, { backgroundColor: theme.placeholder }]}>
+            <AppImage 
+              source={item.image || item.images?.[0]} 
+              style={[styles.coffeeImage, { backgroundColor: theme.placeholder }]}
+              placeholder="cafe"
+            />
+          </View>
           <View style={styles.coffeeContent}>
             <Text style={[styles.coffeeName, { color: theme.primaryText }]}>{item.name}</Text>
             <Text style={[styles.coffeeRoaster, { color: theme.secondaryText }]}>{item.roaster}</Text>
             <View style={styles.coffeeDetailsRow}>
-              <Text style={[styles.coffeeOrigin, { color: theme.secondaryText }]}>{item.origin}</Text>
+              <View style={styles.originProcessContainer}>
+                <Text 
+                  style={[styles.coffeeOrigin, { color: theme.secondaryText }]}
+                  numberOfLines={1}
+                >
+                  {countryFlag} {item.origin}
+                  {item.process && <Text style={[styles.coffeeProcess, { color: theme.secondaryText }]}> • {item.process}</Text>}
+                </Text>
+              </View>
               <Text style={[styles.coffeePrice, { color: theme.primaryText }]}>€{item.price.toFixed(2)}</Text>
             </View>
-            {item.process && <Text style={[styles.coffeeProcess, { color: theme.secondaryText }]}>{item.process}</Text>}
           </View>
         </TouchableOpacity>
       </View>
@@ -858,7 +895,7 @@ const CoffeeDiscoveryScreen = ({ navigation, route }) => {
           style={[
             styles.clearFiltersFab, 
             { 
-              bottom: insets.bottom + 16,
+              bottom: insets.bottom,
               backgroundColor: isDarkMode ? '#FFFFFF' : '#000000'
             }
           ]}
@@ -1049,7 +1086,7 @@ const styles = StyleSheet.create({
   },
 
   coffeeList: {
-    paddingBottom: 120, // Add space for FAB
+    paddingBottom: 60, // Reduced from 120 to account for just the FAB height + some spacing
   },
   coffeeCardContainer: {
     borderBottomWidth: 1,
@@ -1059,13 +1096,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 12,
   },
-  coffeeImage: {
-    width: 80,
-    height: 80,
+  coffeeImageContainer: {
+    width: 64,
+    height: 64,
     borderRadius: 8,
-    resizeMode: 'cover',
-    alignSelf: 'center',
+    // marginLeft: 12,
     marginRight: 12,
+    overflow: 'hidden',
+  },
+  coffeeImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+    backgroundColor: 'transparent',
   },
   coffeeContent: {
     flex: 1,
@@ -1077,27 +1120,30 @@ const styles = StyleSheet.create({
   },
   coffeeRoaster: {
     fontSize: 14,
-    color: '#666666',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   coffeeDetailsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 4,
+    alignItems: 'center',
+  },
+  originProcessContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 8,
   },
   coffeeOrigin: {
-    fontSize: 14,
-    color: '#666666',
+    fontSize: 12,
+    flex: 1,
+  },
+  coffeeProcess: {
+    fontSize: 12,
   },
   coffeePrice: {
     fontSize: 14,
     fontWeight: '600',
-  },
-  coffeeProcess: {
-    fontSize: 14,
-    color: '#666666',
-    fontStyle: 'italic',
-    marginBottom: 4,
+    marginLeft: 8,
   },
   emptyContainer: {
     alignItems: 'center',
@@ -1115,14 +1161,14 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     paddingHorizontal: 32,
     paddingVertical: 14,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 4.65,
-    elevation: 8,
+    // shadowColor: '#000',
+    // shadowOffset: {
+    //   width: 0,
+    //   height: 4,
+    // },
+    // shadowOpacity: 0.3,
+    // shadowRadius: 4.65,
+    // elevation: 8,
   },
   clearFiltersFabText: {
     fontSize: 16,
