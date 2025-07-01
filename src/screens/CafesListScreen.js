@@ -175,7 +175,7 @@ const cafes = goodCafeIds.map(cafeId => {
       <View style={[styles.filterContainer, { backgroundColor: theme.background }]}>
         <View style={styles.filterRow}>
           <TouchableOpacity 
-            style={[styles.citySelector, { backgroundColor: theme.secondaryBackground }]}
+            style={[styles.citySelector, { backgroundColor: theme.cardBackground }]}
             onPress={() => setCitySheetVisible(true)}
           >
             <Ionicons 
@@ -190,7 +190,7 @@ const cafes = goodCafeIds.map(cafeId => {
           <TouchableOpacity 
             style={[
               styles.filterChip,
-              { backgroundColor: theme.secondaryBackground },
+              { backgroundColor: theme.cardBackground },
               isOpenNowEnabled && [styles.activeFilterChip, { backgroundColor: theme.primaryText }]
             ]}
             onPress={toggleOpenNow}
