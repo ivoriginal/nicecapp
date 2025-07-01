@@ -22,7 +22,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function SavedScreen() {
   const { coffeeCollection, coffeeWishlist, recipes, favorites, removeFromWishlist, loadSavedRecipes, currentAccount, isAuthenticated, user, toggleFavorite } = useCoffee();
-  const { theme } = useTheme();
+  const { theme, isDarkMode } = useTheme();
   const navigation = useNavigation();
   const route = useRoute();
   const insets = useSafeAreaInsets();
@@ -32,6 +32,9 @@ export default function SavedScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [savedItems, setSavedItems] = useState([]);
   const [isEditing, setIsEditing] = useState(false);
+
+  // Create dynamic styles based on theme
+  const styles = createStyles(theme, isDarkMode);
 
   // Format wishlist items for rendering
   const savedCoffees = Array.isArray(coffeeWishlist) ? coffeeWishlist : [];
@@ -61,6 +64,7 @@ export default function SavedScreen() {
         shadowOpacity: 0,
         borderBottomWidth: 0,
       },
+      headerTintColor: theme.primaryText,
       headerRight: () => (
         <TouchableOpacity
           onPress={() => setIsEditing(!isEditing)}
@@ -82,7 +86,7 @@ export default function SavedScreen() {
       console.log('Initial load with activeTab:', activeTab);
       updateSavedItemsForTab(activeTab);
     }
-  }, [theme.background, isEditing]);
+  }, [theme.background, theme.primaryText, isEditing]);
 
   // Use route params to determine what to display
   useEffect(() => {
@@ -232,7 +236,7 @@ export default function SavedScreen() {
 
   const renderEmptyState = (message) => (
     <View style={styles.emptyContainer}>
-      <Ionicons name="bookmark-outline" size={50} color="#CCCCCC" />
+      <Ionicons name="bookmark-outline" size={50} color={theme.iconColor} />
       <Text style={styles.emptyText}>{message}</Text>
     </View>
   );
@@ -284,7 +288,7 @@ export default function SavedScreen() {
             <Ionicons 
               name="cafe-outline" 
               size={60} 
-              color="#CCCCCC" 
+              color={theme.iconColor} 
             />
             <Text style={styles.emptyTitle}>No Saved Coffees</Text>
             <Text style={styles.emptyMessage}>
@@ -314,7 +318,7 @@ export default function SavedScreen() {
             <Ionicons 
               name="book-outline" 
               size={60} 
-              color="#CCCCCC" 
+              color={theme.iconColor} 
             />
             <Text style={styles.emptyTitle}>No Saved Recipes</Text>
             <Text style={styles.emptyMessage}>
@@ -327,10 +331,11 @@ export default function SavedScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+// Create styles as a function that takes theme as parameter
+const createStyles = (theme, isDarkMode) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.background,
   },
   header: {
     flexDirection: 'row',
@@ -339,7 +344,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
+    borderBottomColor: theme.divider,
+    backgroundColor: theme.background,
   },
   backButton: {
     padding: 4,
@@ -347,12 +353,13 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#000000',
+    color: theme.primaryText,
   },
   tabContainer: {
     flexDirection: 'row',
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
+    borderBottomColor: theme.divider,
+    backgroundColor: theme.background,
   },
   tab: {
     flex: 1,
@@ -365,10 +372,10 @@ const styles = StyleSheet.create({
   },
   tabText: {
     fontSize: 16,
-    color: '#666666',
+    color: theme.secondaryText,
   },
   activeTabText: {
-    color: '#000000',
+    color: theme.primaryText,
     fontWeight: '600',
   },
   activeTabIndicator: {
@@ -377,7 +384,7 @@ const styles = StyleSheet.create({
     left: '25%',
     right: '25%',
     height: 2,
-    backgroundColor: '#000000',
+    backgroundColor: theme.primaryText,
   },
   sectionContainer: {
     paddingVertical: 4,
@@ -392,6 +399,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 8,
+    backgroundColor: theme.background,
   },
   coffeeImageContainer: {
     width: 56,
@@ -399,6 +407,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     overflow: 'hidden',
     marginRight: 12,
+    backgroundColor: theme.placeholder,
   },
   coffeeImage: {
     width: '100%',
@@ -411,10 +420,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 2,
+    color: theme.primaryText,
   },
   coffeeRoaster: {
     fontSize: 14,
-    color: '#666666',
+    color: theme.secondaryText,
   },
   removeButton: {
     padding: 8,
@@ -424,10 +434,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 200,
+    backgroundColor: theme.background,
   },
   emptyText: {
     fontSize: 16,
-    color: '#666666',
+    color: theme.secondaryText,
     textAlign: 'center',
     marginTop: 10,
   },
@@ -445,31 +456,23 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 8,
     right: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: isDarkMode ? 'rgba(0, 0, 0, 0.7)' : 'rgba(255, 255, 255, 0.9)',
     borderRadius: 12,
     padding: 4,
-    // shadowColor: '#000',
-    // shadowOffset: {
-    //   width: 0,
-    //   height: 2,
-    // },
-    // shadowOpacity: 0.25,
-    // shadowRadius: 3.84,
-    // elevation: 5,
   },
   listContent: {
     padding: 16,
+    backgroundColor: theme.background,
   },
   emptyTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#000000',
+    color: theme.primaryText,
     marginBottom: 10,
   },
   emptyMessage: {
     fontSize: 16,
-    color: '#666666',
+    color: theme.secondaryText,
     textAlign: 'center',
   },
-
 }); 
