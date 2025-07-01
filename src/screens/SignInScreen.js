@@ -58,19 +58,19 @@ export default function SignInScreen() {
           <View style={[styles.logoCircle, { backgroundColor: theme.primaryText }]}>
             <Ionicons name="cafe" size={40} color={theme.background} />
           </View>
-          <Text style={[styles.appName, { color: theme.primaryText }]}>nicecup</Text>
+          {/* <Text style={[styles.appName, { color: theme.primaryText }]}>nicecup</Text> */}
         </View>
 
         {/* USP Content */}
-        <View style={styles.uspContainer}>
+        {/* <View style={styles.uspContainer}>
           <Text style={[styles.uspTitle, { color: theme.primaryText }]}>
             Your Coffee Journey,{'\n'}Perfectly Tracked
           </Text>
-        </View>
+        </View> */}
 
         {/* Sign In Buttons */}
         <View style={styles.signInContainer}>
-          <View style={styles.featuresContainer}>
+          {/* <View style={styles.featuresContainer}>
             <View style={styles.feature}>
               <Ionicons name="library-outline" size={24} color={theme.primaryText} />
               <Text style={[styles.featureText, { color: theme.secondaryText }]}>
@@ -98,7 +98,7 @@ export default function SignInScreen() {
                 Discover local roasters
               </Text>
             </View>
-          </View>
+          </View> */}
           {Platform.OS === 'ios' && (
             <TouchableOpacity
               style={[styles.signInButton, styles.appleButton, { backgroundColor: theme.primaryText }]}
@@ -144,7 +144,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     width: '100%',
-    aspectRatio: 4/3,
+    aspectRatio: 1/1,
+    // height: '75%',
     // marginTop: '10%',
     // marginBottom: '8%',
     alignSelf: 'center',
@@ -152,7 +153,7 @@ const styles = StyleSheet.create({
   logoCircle: {
     width: 80,
     height: 80,
-    borderRadius: 40,
+    borderRadius: 12,
     backgroundColor: '#000000',
     alignItems: 'center',
     justifyContent: 'center',
