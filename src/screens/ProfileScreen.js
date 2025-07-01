@@ -21,6 +21,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useCoffee } from '../context/CoffeeContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect, CommonActions } from '@react-navigation/native';
+import * as ImagePicker from 'expo-image-picker';
 import ThemeCoffeeLogCard from '../components/ThemeCoffeeLogCard';
 import eventEmitter from '../utils/EventEmitter';
 import mockGear from '../data/mockGear.json';
@@ -107,7 +108,8 @@ export default function ProfileScreen() {
     removeFromCollection,
     removeFromWishlist,
     removeCoffeeEvent,
-    signOut
+    signOut,
+    deleteRecipe
   } = useCoffee();
   
   // Add theme context at the component level
@@ -142,6 +144,14 @@ export default function ProfileScreen() {
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const scrollViewRef = useRef(null);
   const [shopFilter, setShopFilter] = useState('coffee'); // 'coffee' or 'gear'
+  
+  // Add new states for coffee addition modal
+  const [showAddCoffeeModal, setShowAddCoffeeModal] = useState(false);
+  
+  // Collection view and sorting states
+  const [collectionViewMode, setCollectionViewMode] = useState('grid'); // 'grid' or 'list'
+  const [sortBy, setSortBy] = useState('recent'); // 'recent', 'name', 'roaster'
+  const [showSortModal, setShowSortModal] = useState(false);
 
   // Default user data for when we don't have loaded data yet
   const defaultUsers = {
@@ -706,6 +716,242 @@ export default function ProfileScreen() {
                                         recipe.isCreated);
   };
 
+  // Handle long press on collection item
+  const handleCollectionItemLongPress = (item) => {
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ['Remove from Collection', 'Cancel'],
+          destructiveButtonIndex: 0,
+          cancelButtonIndex: 1,
+          userInterfaceStyle: isDarkMode ? 'dark' : 'light',
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 0) {
+            handleRemoveFromCollection(item);
+          }
+        }
+      );
+    } else {
+      Alert.alert(
+        'Collection Options',
+        'What would you like to do?',
+        [
+          {
+            text: 'Remove from Collection',
+            style: 'destructive',
+            onPress: () => handleRemoveFromCollection(item)
+          },
+          {
+            text: 'Cancel',
+            style: 'cancel'
+          }
+        ],
+        {
+          userInterfaceStyle: isDarkMode ? 'dark' : 'light'
+        }
+      );
+    }
+  };
+
+  // Handle long press on recipe
+  const handleRecipeLongPress = (item) => {
+    // Only show delete option if current user is the creator
+    const isCreator = item.userId === currentAccount || item.creatorId === currentAccount;
+    
+    if (!isCreator) return; // Don't show action sheet if not creator
+    
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ['Delete Recipe', 'Cancel'],
+          destructiveButtonIndex: 0,
+          cancelButtonIndex: 1,
+          userInterfaceStyle: isDarkMode ? 'dark' : 'light',
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 0) {
+            handleDeleteRecipe(item);
+          }
+        }
+      );
+    } else {
+      Alert.alert(
+        'Recipe Options',
+        'What would you like to do?',
+        [
+          {
+            text: 'Delete Recipe',
+            style: 'destructive',
+            onPress: () => handleDeleteRecipe(item)
+          },
+          {
+            text: 'Cancel',
+            style: 'cancel'
+          }
+        ],
+        {
+          userInterfaceStyle: isDarkMode ? 'dark' : 'light'
+        }
+      );
+    }
+  };
+
+  // Handle remove from collection
+  const handleRemoveFromCollection = (item) => {
+    Alert.alert(
+      'Remove from Collection',
+      `Remove "${item.name}" from your collection?`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel'
+        },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: () => {
+            removeFromCollection(item.id);
+            showToast('Removed from collection');
+          }
+        }
+      ],
+      {
+        userInterfaceStyle: isDarkMode ? 'dark' : 'light'
+      }
+    );
+  };
+
+  // Handle delete recipe
+  const handleDeleteRecipe = (item) => {
+    Alert.alert(
+      'Delete Recipe',
+      `Are you sure you want to delete "${item.name}"? This action cannot be undone.`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel'
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            if (deleteRecipe) {
+              deleteRecipe(item.id);
+            }
+            showToast('Recipe deleted');
+          }
+        }
+      ],
+      {
+        userInterfaceStyle: isDarkMode ? 'dark' : 'light'
+      }
+    );
+  };
+
+  // Handle add coffee modal options
+  const handleAddCoffeeOption = async (option) => {
+    setShowAddCoffeeModal(false);
+    
+    switch (option) {
+      case 'url':
+        handleURLInput();
+        break;
+      case 'camera':
+        await handleTakePhoto();
+        break;
+      case 'gallery':
+        await handleSelectFromGallery();
+        break;
+      case 'manual':
+        navigation.navigate('AddCoffeeManually');
+        break;
+    }
+  };
+
+  // Handle URL input with alert
+  const handleURLInput = () => {
+    Alert.prompt(
+      'Enter Coffee URL',
+      'Paste the URL of a coffee product page to extract details automatically',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel'
+        },
+        {
+          text: 'Parse URL',
+          onPress: (url) => {
+            if (url && url.trim()) {
+              navigation.navigate('AddCoffeeFromURL', { url: url.trim() });
+            } else {
+              Alert.alert('Error', 'Please enter a valid URL');
+            }
+          }
+        }
+      ],
+      'plain-text',
+      '',
+      'url'
+    );
+  };
+
+  // Handle camera capture
+  const handleTakePhoto = async () => {
+    try {
+      const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+      
+      if (permissionResult.granted === false) {
+        Alert.alert('Permission Required', 'You need to grant permission to access your camera');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled) {
+        navigation.navigate('AddCoffeeFromCamera', { 
+          capturedImage: result.assets[0].uri 
+        });
+      }
+    } catch (error) {
+      console.error('Error taking photo:', error);
+      Alert.alert('Error', 'Failed to take photo. Please try again.');
+    }
+  };
+
+  // Handle gallery selection
+  const handleSelectFromGallery = async () => {
+    try {
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (permissionResult.granted === false) {
+        Alert.alert('Permission Required', 'You need to grant permission to access your photos');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled) {
+        navigation.navigate('AddCoffeeFromGallery', { 
+          selectedImage: result.assets[0].uri 
+        });
+      }
+    } catch (error) {
+      console.error('Error selecting image:', error);
+      Alert.alert('Error', 'Failed to select image. Please try again.');
+    }
+  };
+
   // Render coffee item
   const renderCoffeeItem = ({ item }) => {
     // Enhance item with default recipe data if missing
@@ -738,34 +984,50 @@ export default function ProfileScreen() {
   };
 
   // Render collection item
-  const renderCollectionItem = ({ item }) => (
-    <TouchableOpacity 
-      style={[
-        styles.collectionCard, 
-        { 
-          backgroundColor: isDarkMode ? theme.cardBackground : theme.background,
-          borderColor: isDarkMode ? theme.cardBackground : theme.border,
-        }
-      ]}
-      onPress={() => handleCoffeePress(item)}
-    >
-      {item.image ? (
-        <Image
-          source={{ uri: item.image || 'https://images.unsplash.com/photo-1447933601403-0c6688de566e' }}
-          style={styles.collectionCardImage}
-          resizeMode="cover"
-        />
-      ) : (
-        <View style={styles.collectionCardImagePlaceholder}>
-          <Ionicons name="cafe-outline" size={30} color="#666666" />
+  const renderCollectionItem = ({ item }) => {
+    const isListView = collectionViewMode === 'list';
+    console.log('Rendering collection item:', item.name, 'in', collectionViewMode, 'mode, isListView:', isListView);
+    
+    return (
+      <TouchableOpacity 
+        style={[
+          isListView ? styles.collectionListItem : styles.collectionCard, 
+          { 
+            backgroundColor: isDarkMode ? theme.cardBackground : theme.background,
+            borderColor: isDarkMode ? theme.cardBackground : theme.border,
+          }
+        ]}
+        onPress={() => handleCoffeePress(item)}
+        onLongPress={() => handleCollectionItemLongPress(item)}
+      >
+        {item.image ? (
+          <Image
+            source={{ uri: item.image || 'https://images.unsplash.com/photo-1447933601403-0c6688de566e' }}
+            style={isListView ? styles.collectionListImage : styles.collectionCardImage}
+            resizeMode="cover"
+          />
+        ) : (
+          <View style={isListView ? styles.collectionListImagePlaceholder : styles.collectionCardImagePlaceholder}>
+            <Ionicons name="cafe-outline" size={isListView ? 50 : 30} color="#666666" />
+          </View>
+        )}
+        <View style={isListView ? styles.collectionListInfo : styles.collectionCardInfo}>
+          <Text style={[
+            isListView ? styles.collectionListName : styles.collectionCardName, 
+            { color: theme.primaryText }
+          ]} numberOfLines={1}>
+            {item.name}
+          </Text>
+          <Text style={[
+            isListView ? styles.collectionListRoaster : styles.collectionCardRoaster, 
+            { color: theme.secondaryText }
+          ]} numberOfLines={1}>
+            {item.roaster}
+          </Text>
         </View>
-      )}
-      <View style={styles.collectionCardInfo}>
-        <Text style={[styles.collectionCardName, { color: theme.primaryText }]} numberOfLines={1}>{item.name}</Text>
-        <Text style={[styles.collectionCardRoaster, { color: theme.secondaryText }]} numberOfLines={1}>{item.roaster}</Text>
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   // Render wishlist item
   const renderWishlistItem = ({ item }) => (
@@ -786,18 +1048,23 @@ export default function ProfileScreen() {
 
   // Render recipe item
   const renderRecipeItem = ({ item }) => (
-    <RecipeCard
-      recipe={item}
-      onPress={() => handleRecipePress(item)}
-      onUserPress={(userId, userName) => handleUserPress({userId, userName})}
-      style={[
-        styles.fullWidthRecipe,
-        {
-          backgroundColor: isDarkMode ? theme.cardBackground : theme.background,
-          borderColor: isDarkMode ? theme.divider : '#E5E5EA'
-        }
-      ]}
-    />
+    <TouchableOpacity
+      onLongPress={() => handleRecipeLongPress(item)}
+      activeOpacity={0.7}
+    >
+      <RecipeCard
+        recipe={item}
+        onPress={() => handleRecipePress(item)}
+        onUserPress={(userId, userName) => handleUserPress({userId, userName})}
+        style={[
+          styles.fullWidthRecipe,
+          {
+            backgroundColor: isDarkMode ? theme.cardBackground : theme.background,
+            borderColor: isDarkMode ? theme.divider : '#E5E5EA'
+          }
+        ]}
+      />
+    </TouchableOpacity>
   );
 
   // Render tabs
@@ -833,6 +1100,49 @@ export default function ProfileScreen() {
     <View style={[styles.emptyContainer, { backgroundColor: theme.background }]}>
       <Ionicons name="cafe-outline" size={50} color={theme.secondaryText} />
       <Text style={[styles.emptyText, { color: theme.secondaryText }]}>{message}</Text>
+    </View>
+  );
+
+  // Render collection section header
+  const renderCollectionHeader = () => (
+    <View style={[styles.collectionHeader, { backgroundColor: theme.background, borderBottomColor: theme.divider }]}>
+        {/* Sort by chip */}
+        <TouchableOpacity 
+          style={[styles.sortChip]}
+          onPress={() => setShowSortModal(true)}
+        >
+        <Text style={[styles.sortChipText, { color: theme.primaryText }]}>
+          Sort by {sortBy === 'recent' ? 'Recent' : sortBy === 'name' ? 'Name' : 'Roaster'}
+        </Text>
+        <Ionicons name="chevron-down" size={16} color={theme.secondaryText} style={styles.sortChipIcon} />
+      </TouchableOpacity>
+
+      {/* Action buttons */}
+      <View style={styles.headerActions}>
+                {/* Grid/List toggle button */}
+                <TouchableOpacity 
+          style={[styles.headerActionButton, { backgroundColor: theme.background }]}
+          onPress={() => {
+            const newMode = collectionViewMode === 'grid' ? 'list' : 'grid';
+            console.log('Toggling view mode from', collectionViewMode, 'to', newMode);
+            setCollectionViewMode(newMode);
+          }}
+        >
+          <Ionicons 
+            name={collectionViewMode === 'grid' ? "list-outline" : "grid-outline"} 
+            size={24} 
+            color={theme.primaryText} 
+          />
+        </TouchableOpacity>
+        
+        {/* Add to collection button */}
+        <TouchableOpacity 
+          style={[styles.headerActionButton, { backgroundColor: theme.background }]}
+          onPress={() => setShowAddCoffeeModal(true)}
+        >
+          <Ionicons name="add" size={24} color={theme.primaryText} />
+        </TouchableOpacity>
+      </View>
     </View>
   );
 
@@ -1102,21 +1412,35 @@ export default function ProfileScreen() {
                   )}
                 />
               </View>
-            ) : coffeeCollection && coffeeCollection.length > 0 ? (
-              <View style={[styles.collectionSection, { backgroundColor: theme.background }]}>
-                <FlatList
-                  data={coffeeCollection}
-                  renderItem={renderCollectionItem}
-                  keyExtractor={(item) => item.id}
-                  numColumns={2}
-                  columnWrapperStyle={styles.collectionCardRow}
-                  showsVerticalScrollIndicator={false}
-                  scrollEnabled={false}
-                  contentContainerStyle={{paddingHorizontal: 16, paddingTop: 16}}
-                />
-              </View>
             ) : (
-              renderEmptyState(`No ${isBusinessAccount ? 'products' : 'coffees'} in ${isBusinessAccount ? 'shop' : 'collection'} yet`)
+              <View style={[styles.collectionSection, { backgroundColor: theme.background }]}>
+                {/* Collection header - only show for non-business collection */}
+                {!isBusinessAccount && renderCollectionHeader()}
+                
+                {coffeeCollection && coffeeCollection.length > 0 ? (
+                  <FlatList
+                    key={collectionViewMode} // Force re-render when view mode changes
+                    data={coffeeCollection.sort((a, b) => {
+                      if (sortBy === 'name') return a.name.localeCompare(b.name);
+                      if (sortBy === 'roaster') return a.roaster.localeCompare(b.roaster);
+                      // Default to recent (by addedAt or id)
+                      return new Date(b.addedAt || 0) - new Date(a.addedAt || 0);
+                    })}
+                    renderItem={renderCollectionItem}
+                    keyExtractor={(item) => item.id}
+                    numColumns={collectionViewMode === 'grid' ? 2 : 1}
+                    columnWrapperStyle={collectionViewMode === 'grid' ? styles.collectionCardRow : null}
+                    showsVerticalScrollIndicator={false}
+                    scrollEnabled={false}
+                    contentContainerStyle={{
+                      paddingHorizontal: 16, 
+                      paddingTop: !isBusinessAccount ? 0 : 16
+                    }}
+                  />
+                ) : (
+                  renderEmptyState(`No ${isBusinessAccount ? 'products' : 'coffees'} in ${isBusinessAccount ? 'shop' : 'collection'} yet`)
+                )}
+              </View>
             )}
           </View>
         )}
@@ -1544,6 +1868,140 @@ export default function ProfileScreen() {
       <StatusBar barStyle={isDarkMode ? "light" : "dark"} />
 
       {renderContent()}
+      
+            {/* FAB is now replaced by section header - keeping this comment for reference */}
+      
+            {/* Add Coffee Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={showAddCoffeeModal}
+        onRequestClose={() => setShowAddCoffeeModal(false)}
+      >
+        <View style={styles.addCoffeeModalContainer}>
+          <View style={[
+            styles.addCoffeeModalContent,
+            { paddingBottom: insets.bottom + 12, backgroundColor: theme.cardBackground }
+          ]}>
+            <View style={[styles.addCoffeeModalHeader, { borderBottomColor: theme.divider }]}>
+              <Text style={[styles.addCoffeeModalTitle, { color: theme.primaryText }]}>Add Coffee</Text>
+              <TouchableOpacity 
+                style={styles.closeButton}
+                onPress={() => setShowAddCoffeeModal(false)}
+              >
+                <Ionicons name="close" size={24} color={theme.primaryText} />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.addCoffeeOptionsContainer}>
+              <TouchableOpacity
+                style={[styles.addCoffeeOption, { backgroundColor: isDarkMode ? theme.cardBackground : theme.background, borderColor: theme.border }]}
+                onPress={() => handleAddCoffeeOption('url')}
+              >
+                <Ionicons name="link-outline" size={24} color={theme.primaryText} />
+                <View style={styles.addCoffeeOptionTextContainer}>
+                  <Text style={[styles.addCoffeeOptionTitle, { color: theme.primaryText }]}>Paste URL</Text>
+                  <Text style={[styles.addCoffeeOptionSubtitle, { color: theme.secondaryText }]}>Add coffee from a website URL</Text>
+                </View>
+                {/* <Ionicons name="chevron-forward" size={20} color={theme.secondaryText} /> */}
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[styles.addCoffeeOption, { backgroundColor: isDarkMode ? theme.cardBackground : theme.background, borderColor: theme.border }]}
+                onPress={() => handleAddCoffeeOption('camera')}
+              >
+                <Ionicons name="camera-outline" size={24} color={theme.primaryText} />
+                <View style={styles.addCoffeeOptionTextContainer}>
+                  <Text style={[styles.addCoffeeOptionTitle, { color: theme.primaryText }]}>Take Picture</Text>
+                  <Text style={[styles.addCoffeeOptionSubtitle, { color: theme.secondaryText }]}>Scan coffee bag with camera</Text>
+                </View>
+                {/* <Ionicons name="chevron-forward" size={20} color={theme.secondaryText} /> */}
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[styles.addCoffeeOption, { backgroundColor: isDarkMode ? theme.cardBackground : theme.background, borderColor: theme.border }]}
+                onPress={() => handleAddCoffeeOption('gallery')}
+              >
+                <Ionicons name="image-outline" size={24} color={theme.primaryText} />
+                <View style={styles.addCoffeeOptionTextContainer}>
+                  <Text style={[styles.addCoffeeOptionTitle, { color: theme.primaryText }]}>Select Picture</Text>
+                  <Text style={[styles.addCoffeeOptionSubtitle, { color: theme.secondaryText }]}>Choose from photo library</Text>
+                </View>
+                {/* <Ionicons name="chevron-forward" size={20} color={theme.secondaryText} /> */}
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[styles.addCoffeeOption, { backgroundColor: isDarkMode ? theme.cardBackground : theme.background, borderColor: theme.border }]}
+                onPress={() => handleAddCoffeeOption('manual')}
+              >
+                <Ionicons name="create-outline" size={24} color={theme.primaryText} />
+                <View style={styles.addCoffeeOptionTextContainer}>
+                  <Text style={[styles.addCoffeeOptionTitle, { color: theme.primaryText }]}>Enter Manually</Text>
+                  <Text style={[styles.addCoffeeOptionSubtitle, { color: theme.secondaryText }]}>Fill out coffee details by hand</Text>
+                </View>
+                {/* <Ionicons name="chevron-forward" size={20} color={theme.secondaryText} /> */}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+      
+      {/* Sort Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={showSortModal}
+        onRequestClose={() => setShowSortModal(false)}
+      >
+        <View style={styles.sortModalContainer}>
+          <View style={[
+            styles.sortModalContent,
+            { paddingBottom: insets.bottom + 12, backgroundColor: theme.cardBackground }
+          ]}>
+            <View style={[styles.sortModalHeader, { borderBottomColor: theme.divider }]}>
+              <Text style={[styles.sortModalTitle, { color: theme.primaryText }]}>Sort Collection</Text>
+              <TouchableOpacity 
+                style={styles.closeButton}
+                onPress={() => setShowSortModal(false)}
+              >
+                <Ionicons name="close" size={24} color={theme.primaryText} />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.sortOptionsContainer}>
+              {[
+                { value: 'recent', label: 'Recently Added', icon: 'time-outline' },
+                { value: 'name', label: 'Coffee Name', icon: 'text-outline' },
+                { value: 'roaster', label: 'Roaster Name', icon: 'business-outline' }
+              ].map((option) => (
+                <TouchableOpacity
+                  key={option.value}
+                  style={[
+                    styles.sortOption, 
+                    { 
+                      backgroundColor: isDarkMode ? theme.cardBackground : theme.background,
+                      borderColor: theme.border 
+                    }
+                  ]}
+                  onPress={() => {
+                    setSortBy(option.value);
+                    setShowSortModal(false);
+                  }}
+                >
+                  <Ionicons name={option.icon} size={24} color={theme.primaryText} />
+                  <Text style={[styles.sortOptionTitle, { color: theme.primaryText }]}>
+                    {option.label}
+                  </Text>
+                  {sortBy === option.value && (
+                    <Ionicons name="checkmark" size={24} color="#34C759" />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </View>
+      </Modal>
+      
       {renderAccountModal()}
       
       {/* Custom Toast for iOS */}
@@ -1937,6 +2395,7 @@ const styles = StyleSheet.create({
     height: 120,
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12,
+    backgroundColor: '#F0F0F0',
   },
   collectionCardImagePlaceholder: {
     width: '100%',
@@ -2077,5 +2536,206 @@ const styles = StyleSheet.create({
   followStatLabel: {
     fontSize: 14,
     color: '#666666',
+  },
+  fab: {
+    position: 'absolute',
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 28,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  fabText: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  addCoffeeModalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  addCoffeeModalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+  addCoffeeModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    paddingBottom: 0,
+    // borderBottomWidth: 1,
+    // borderBottomColor: '#E5E5E5',
+  },
+  addCoffeeModalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#000000',
+  },
+  addCoffeeOptionsContainer: {
+    padding: 16,
+  },
+  addCoffeeOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+    marginBottom: 8,
+  },
+  addCoffeeOptionTextContainer: {
+    flex: 1,
+    marginLeft: 16,
+  },
+  addCoffeeOptionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000000',
+    marginBottom: 2,
+  },
+  addCoffeeOptionSubtitle: {
+    fontSize: 14,
+    color: '#666666',
+    display: 'none',
+  },
+  // Collection header styles
+  collectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    // borderBottomWidth: StyleSheet.hairlineWidth,
+    // borderBottomColor: '#E5E5EA',
+  },
+  sortChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    // paddingHorizontal: 12,
+    // paddingVertical: 8,
+    // borderRadius: 20,
+    // borderWidth: 1,
+    // borderColor: '#E5E5EA',
+  },
+  sortChipText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  sortChipIcon: {
+    marginLeft: 4,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerActionButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    // marginLeft: 8,
+  },
+  // Collection list view styles
+  collectionListItem: {
+    flexDirection: 'row',
+    // padding: 16,
+    // borderWidth: 1,
+    // borderColor: '#E5E5EA',
+    // borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    marginBottom: 12,
+    marginHorizontal: 0,
+    // shadowColor: '#000',
+    // shadowOffset: { width: 0, height: 1 },
+    // shadowOpacity: 0.1,
+    // shadowRadius: 2,
+    // elevation: 2,
+  },
+  collectionListImage: {
+    width: 64,
+    height: 64,
+    borderRadius: 12,
+    backgroundColor: '#F0F0F0',
+  },
+  collectionListImagePlaceholder: {
+    width: 80,
+    height: 80,
+    backgroundColor: '#F0F0F0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 12,
+  },
+  collectionListInfo: {
+    flex: 1,
+    marginLeft: 16,
+    justifyContent: 'center',
+  },
+  collectionListName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#000000',
+    marginBottom: 6,
+  },
+  collectionListRoaster: {
+    fontSize: 16,
+    color: '#666666',
+  },
+  // Sort modal styles
+  sortModalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  sortModalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+  sortModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    paddingBottom: 0,
+  },
+  sortModalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#000000',
+  },
+  sortOptionsContainer: {
+    padding: 16,
+  },
+  sortOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+    marginBottom: 8,
+  },
+  sortOptionTitle: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#000000',
+    flex: 1,
+    marginLeft: 16,
   },
 }); 
