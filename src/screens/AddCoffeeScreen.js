@@ -17,7 +17,9 @@ import {
   Image,
   Modal,
   SafeAreaView,
-  FlatList
+  FlatList,
+  Switch,
+  ActionSheetIOS
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
@@ -32,6 +34,7 @@ import CoffeeInfo from '../components/CoffeeInfo';
 import mockCafes from '../data/mockCafes.json';
 import mockCoffees from '../data/mockCoffees.json';
 import mockUsers from '../data/mockUsers.json';
+import mockRecipes from '../data/mockRecipes.json';
 import { mockFollowersData } from '../data/mockFollowers';
 
 // Helper function to format brew time as MM:SS
@@ -622,7 +625,8 @@ export default function AddCoffeeScreen({ navigation, route }) {
 
 
   const handleRecipePress = (recipe) => {
-    if (Platform.OS === 'ios') {
+    // Only use ActionSheetIOS if we're on iOS and the module is available
+    if (Platform.OS === 'ios' && ActionSheetIOS?.showActionSheetWithOptions) {
       ActionSheetIOS.showActionSheetWithOptions(
         {
           options: ['Cancel', 'Use as is', 'Remix'],
