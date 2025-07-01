@@ -41,7 +41,7 @@ const GearListScreen = ({ navigation, route }) => {
   // Available filter options
   const filterOptions = {
     category: ['Grinder', 'Kettle', 'Pour Over', 'Scale', 'Brewer'],
-    priceRange: ['Under $50', '$50-$100', '$100-$200', 'Over $200'],
+    priceRange: ['Under €50', '€50-€100', '€100-€200', 'Over €200'],
     brand: ['Fellow', 'Hario', 'Baratza', 'Comandante', 'Aerobie', 'Acaia', 'Chemex']
   };
   
@@ -115,10 +115,10 @@ const GearListScreen = ({ navigation, route }) => {
     if (filters.priceRange.length > 0) {
       gear = gear.filter(item => {
         return filters.priceRange.some(range => {
-          if (range === 'Under $50' && item.price < 50) return true;
-          if (range === '$50-$100' && item.price >= 50 && item.price < 100) return true;
-          if (range === '$100-$200' && item.price >= 100 && item.price < 200) return true;
-          if (range === 'Over $200' && item.price >= 200) return true;
+          if (range === 'Under €50' && item.price < 50) return true;
+          if (range === '€50-€100' && item.price >= 50 && item.price < 100) return true;
+          if (range === '€100-€200' && item.price >= 100 && item.price < 200) return true;
+          if (range === 'Over €200' && item.price >= 200) return true;
           return false;
         });
       });
