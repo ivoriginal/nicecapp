@@ -2,7 +2,7 @@ import React from 'react';
 import { Ionicons } from "@expo/vector-icons";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { useColorScheme, Button, Modal, View, Text, StyleSheet, Alert, Keyboard, TouchableOpacity, Platform, Image, FlatList, SafeAreaView } from "react-native";
-import { useState, useContext, useEffect, useRef } from "react";
+import { useState, useContext, useRef } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StatusBar } from 'expo-status-bar';
 import { useFonts, Molle_400Regular_Italic } from '@expo-google-fonts/molle';
