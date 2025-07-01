@@ -45,7 +45,7 @@ const OrderConfirmationScreen = ({ route, navigation }) => {
           <View style={styles.divider} />
           <View style={styles.cardRow}>
             <Text style={styles.cardLabel}>Amount Paid:</Text>
-            <Text style={styles.cardValue}>${orderTotal.toFixed(2)}</Text>
+            <Text style={styles.cardValue}>€{orderTotal.toFixed(2)}</Text>
           </View>
           <View style={styles.divider} />
           <View style={styles.cardRow}>
