@@ -24,6 +24,7 @@ const CoffeeContext = createContext({
   coffeeWishlist: [],
   favorites: [],
   recipes: [],
+  userAddedCoffees: [], // Add state for user-added coffees
   isLoading: true,
   isAuthenticated: false, // Default to false until authenticated
   currentAccount: null,
@@ -46,6 +47,8 @@ const CoffeeContext = createContext({
   loadData: () => {},
   getRecipesForCoffee: () => [],
   addRecipe: () => {},
+  addCoffeeToCatalog: () => {}, // Add function for adding coffee to global catalog
+  getAllAvailableCoffees: () => [], // Add function to get all coffees
   switchAccount: () => {},
   signIn: () => {},
   signOut: () => {}
@@ -62,6 +65,7 @@ export const CoffeeProvider = ({ children }) => {
   const [coffeeWishlist, setCoffeeWishlist] = useState([]);
   const [favorites, setFavorites] = useState([]);
   const [recipes, setRecipes] = useState([]);
+  const [userAddedCoffees, setUserAddedCoffees] = useState([]); // State for user-added coffees
   const [hiddenEvents, setHiddenEvents] = useState(new Set());
   const [currentAccount, setCurrentAccount] = useState(null); // Will be set after authentication
   const [allEvents, setAllEvents] = useState([]); // All events from all users
@@ -516,6 +520,11 @@ export const CoffeeProvider = ({ children }) => {
   const addToCollection = (coffee) => {
     console.log('Adding coffee to collection:', coffee.name);
     
+    // First, add the coffee to the global catalog if it's a new user-added coffee
+    if (coffee.id && coffee.id.startsWith('coffee-')) {
+      addCoffeeToCatalog(coffee);
+    }
+    
     // Create a coffee object with all necessary properties
     const coffeeItem = {
       id: coffee.id,
@@ -701,6 +710,67 @@ export const CoffeeProvider = ({ children }) => {
     });
   };
 
+  // Add coffee to global catalog (for discovery)
+  const addCoffeeToCatalog = (coffee) => {
+    console.log('Adding coffee to global catalog:', coffee.name);
+    
+    // Create a standardized coffee object for the catalog
+    const catalogCoffee = {
+      id: coffee.id,
+      name: coffee.name,
+      roaster: coffee.roaster || '',
+      origin: coffee.origin || '',
+      region: coffee.region || '',
+      producer: coffee.producer || '',
+      altitude: coffee.altitude || '',
+      varietal: coffee.varietal || '',
+      process: coffee.process || '',
+      profile: coffee.profile || coffee.description || '',
+      price: parseFloat(coffee.price) || 0,
+      description: coffee.description || '',
+      image: coffee.image || 'https://images.unsplash.com/photo-1447933601403-0c6688de566e',
+      roastLevel: coffee.roastLevel || 'Medium',
+      roastDate: coffee.roastDate || '',
+      bagSize: coffee.bagSize || '',
+      certifications: coffee.certifications || '',
+      stats: coffee.stats || null,
+      addedBy: currentAccount,
+      addedAt: new Date().toISOString(),
+      isUserAdded: true
+    };
+    
+    // Check if this coffee is already in the catalog
+    const isInCatalog = userAddedCoffees.some(c => c.id === coffee.id);
+    
+    if (!isInCatalog) {
+      // Add to user-added coffees state
+      setUserAddedCoffees(prev => [...prev, catalogCoffee]);
+      console.log('Coffee added to catalog successfully');
+    } else {
+      console.log('Coffee already exists in catalog');
+    }
+    
+    return catalogCoffee;
+  };
+
+  // Get all available coffees (mock + user-added)
+  const getAllAvailableCoffees = () => {
+    // Combine mock coffees with user-added coffees
+    const mockCoffees = mockCoffeesData?.coffees || [];
+    const allCoffees = [...mockCoffees, ...userAddedCoffees];
+    
+    // Sort by name or keep original order
+    return allCoffees.sort((a, b) => {
+      // Put user-added coffees first (newest first)
+      if (a.isUserAdded && !b.isUserAdded) return -1;
+      if (!a.isUserAdded && b.isUserAdded) return 1;
+      if (a.isUserAdded && b.isUserAdded) {
+        return new Date(b.addedAt) - new Date(a.addedAt);
+      }
+      return a.name.localeCompare(b.name);
+    });
+  };
+
   // Authentication functions
   const signIn = async (accountId = 'user1') => {
     try {
@@ -761,6 +831,7 @@ export const CoffeeProvider = ({ children }) => {
     coffeeWishlist,
     favorites,
     recipes,
+    userAddedCoffees,
     isLoading: loading,
     error,
     isAuthenticated,
@@ -785,6 +856,8 @@ export const CoffeeProvider = ({ children }) => {
     loadData,
     getRecipesForCoffee,
     addRecipe,
+    addCoffeeToCatalog,
+    getAllAvailableCoffees,
     switchAccount,
     loadSavedRecipes,
     setRecipes,
@@ -797,6 +870,7 @@ export const CoffeeProvider = ({ children }) => {
     coffeeWishlist,
     favorites,
     recipes,
+    userAddedCoffees,
     loading,
     error,
     isAuthenticated,
@@ -816,6 +890,8 @@ export const CoffeeProvider = ({ children }) => {
     loadData,
     getRecipesForCoffee,
     addRecipe,
+    addCoffeeToCatalog,
+    getAllAvailableCoffees,
     switchAccount,
     loadSavedRecipes,
     setRecipes,
