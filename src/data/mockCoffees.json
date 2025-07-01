@@ -279,7 +279,7 @@
     },
     {
       "id": "coffee-benti-nenka",
-      "name": "Benti Nenka (Anaeróbico)",
+      "name": "Benti Nenka",
       "roaster": "Toma Café",
       "roasterId": "business-toma",
       "origin": "Ethiopia",
@@ -305,7 +305,7 @@
     {
       "id": "coffee-benti-nenka",
       "type": "coffee",
-      "name": "Benti Nenka (Anaeróbico)",
+      "name": "Benti Nenka",
       "roaster": "Toma Café",
       "imageUrl": "https://cdn.shopify.com/s/files/1/0561/2172/1001/files/ET_BENT_NENK_800x.jpg?v=1738772089",
       "rating": 4.8,
