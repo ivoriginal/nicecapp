@@ -23,6 +23,11 @@ import EditProfileScreen from './src/screens/EditProfileScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import FollowersScreen from './src/screens/FollowersScreen';
 import SignInScreen from './src/screens/SignInScreen';
+// Add Coffee screens
+import AddCoffeeFromURL from './src/screens/AddCoffeeFromURL';
+import AddCoffeeFromCamera from './src/screens/AddCoffeeFromCamera';
+import AddCoffeeFromGallery from './src/screens/AddCoffeeFromGallery';
+import AddCoffeeManually from './src/screens/AddCoffeeManually';
 import { CoffeeProvider, useCoffee } from './src/context/CoffeeContext';
 import { NotificationsProvider } from './src/context/NotificationsContext';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
@@ -504,6 +509,38 @@ function MainNavigator({ theme, handleRecipeOptions, handleCoffeeOptions }) {
           title: route.params?.type === 'followers' ? 'Followers' : 'Following',
           headerBackTitle: 'Back'
         })} 
+      />
+      <Stack.Screen 
+        name="AddCoffeeFromURL" 
+        component={AddCoffeeFromURL} 
+        options={{ 
+          title: 'Add from URL',
+          headerBackTitle: 'Back'
+        }} 
+      />
+      <Stack.Screen 
+        name="AddCoffeeFromCamera" 
+        component={AddCoffeeFromCamera} 
+        options={{ 
+          title: 'Add from Camera',
+          headerBackTitle: 'Back'
+        }} 
+      />
+      <Stack.Screen 
+        name="AddCoffeeFromGallery" 
+        component={AddCoffeeFromGallery} 
+        options={{ 
+          title: 'Add from Gallery',
+          headerBackTitle: 'Back'
+        }} 
+      />
+      <Stack.Screen 
+        name="AddCoffeeManually" 
+        component={AddCoffeeManually} 
+        options={{ 
+          title: 'Add Manually',
+          headerBackTitle: 'Back'
+        }} 
       />
     </Stack.Navigator>
   );
