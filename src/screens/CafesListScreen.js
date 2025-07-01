@@ -571,6 +571,7 @@ const styles = StyleSheet.create({
   },
   cafesList: {
     paddingHorizontal: 16,
+    paddingBottom: 32,
   },
   cafeCard: {
     borderRadius: 12,
