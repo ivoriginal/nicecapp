@@ -1020,7 +1020,7 @@ export default function SearchScreen() {
           <View style={styles.popularCoffeeOriginContainer}>
             <Text style={[styles.popularCoffeeOrigin, { color: theme.secondaryText }]}>{item.origin}</Text>
           </View>
-          <Text style={[styles.popularCoffeePrice, { color: theme.primaryText }]}>${item.price.toFixed(2)}</Text>
+          <Text style={[styles.popularCoffeePrice, { color: theme.primaryText }]}>€{item.price.toFixed(2)}</Text>
         </View>
       </View>
     </TouchableOpacity>
