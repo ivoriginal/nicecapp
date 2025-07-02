@@ -18,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useCoffee } from '../context/CoffeeContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Toast from '../components/Toast';
 
 const { width } = Dimensions.get('window');
 
@@ -47,6 +48,16 @@ export default function AddCoffeeFromCamera({ navigation, route }) {
   });
   
   const [addToUserCollection, setAddToUserCollection] = useState(false);
+  
+  // Toast state
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  
+  // Helper function to show toast
+  const showToast = (message) => {
+    setToastMessage(message);
+    setToastVisible(true);
+  };
   
   // Configure navigation header
   useLayoutEffect(() => {
@@ -184,12 +195,7 @@ export default function AddCoffeeFromCamera({ navigation, route }) {
         if (addToCollection) {
           await addToCollection(newCoffee);
         }
-        Alert.alert(
-          'Success', 
-          'Coffee added to your collection and the database!', 
-          [{ text: 'OK', onPress: () => navigation.goBack() }],
-          { userInterfaceStyle: isDarkMode ? 'dark' : 'light' }
-        );
+        showToast('Coffee added to your collection and the database!');
       } else {
         // Just add to the database
         if (addToCollection) {
@@ -198,13 +204,13 @@ export default function AddCoffeeFromCamera({ navigation, route }) {
             addToCollectionOnly: false
           });
         }
-        Alert.alert(
-          'Success', 
-          'Coffee added to the database!', 
-          [{ text: 'OK', onPress: () => navigation.goBack() }],
-          { userInterfaceStyle: isDarkMode ? 'dark' : 'light' }
-        );
+        showToast('Coffee added to the database!');
       }
+      
+      // Navigate back after a short delay to let user see the toast
+      setTimeout(() => {
+        navigation.goBack();
+      }, 1500);
       
     } catch (error) {
       Alert.alert('Error', 'Failed to add coffee', [], {
@@ -343,6 +349,12 @@ export default function AddCoffeeFromCamera({ navigation, route }) {
           </View>
         )}
       </ScrollView>
+      
+      <Toast
+        visible={toastVisible}
+        message={toastMessage}
+        onDismiss={() => setToastVisible(false)}
+      />
     </KeyboardAvoidingView>
   );
 }
