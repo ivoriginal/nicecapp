@@ -457,6 +457,7 @@ const ThemeCoffeeLogCard = ({
             showCoffeeInfo={true}
             compact={false}
             isRecipeCreationEvent={true}
+            style={{ marginBottom: 0 }}  // Override the default margin
           />
         </View>
       );
