@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, Image, ScrollView, TextInput, Switch, Modal } from 'react-native';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, Image, ScrollView, TextInput, Switch, Modal, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import mockCafes from '../data/mockCafes.json';
@@ -11,13 +11,24 @@ const CafesListScreen = ({ navigation, route }) => {
   const { theme, isDarkMode } = useTheme();
   const { title = 'Cafés Near You' } = route.params || {};
   
+  // Modal state for adding cafes
+  const [showAddCafeModal, setShowAddCafeModal] = useState(false);
+  
   // Set the navigation title dynamically
   useEffect(() => {
     navigation.setOptions({
       title: title,
-      headerBackTitle: 'Back'
+      headerBackTitle: 'Back',
+      headerRight: () => (
+        <TouchableOpacity 
+          style={{ marginRight: 16 }}
+          onPress={() => setShowAddCafeModal(true)}
+        >
+          <Ionicons name="add" size={24} color={theme.primaryText} />
+        </TouchableOpacity>
+      )
     });
-  }, [navigation, title]);
+  }, [navigation, title, theme.primaryText]);
   
   // Get good cafes by resolving IDs to full cafe data
 const goodCafeIds = mockCafes.goodCafes || [];
@@ -348,6 +359,54 @@ const cafes = goodCafeIds.map(cafeId => {
     );
   };
   
+  // Handle add cafe modal options
+  const handleAddCafeOption = (option) => {
+    setShowAddCafeModal(false);
+    
+    switch (option) {
+      case 'maps_url':
+        handleGoogleMapsURL();
+        break;
+      case 'manual':
+        handleManualEntry();
+        break;
+    }
+  };
+
+  // Handle Google Maps URL input
+  const handleGoogleMapsURL = () => {
+    Alert.prompt(
+      'Enter Google Maps URL',
+      'Paste the Google Maps URL of the cafe to extract details automatically',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel'
+        },
+        {
+          text: 'Parse URL',
+          onPress: (url) => {
+            if (url && url.trim()) {
+              // In a real app, you would navigate to a screen that processes the Google Maps URL
+              Alert.alert('Success', 'Google Maps URL parsing would be implemented here');
+            } else {
+              Alert.alert('Error', 'Please enter a valid Google Maps URL');
+            }
+          }
+        }
+      ],
+      'plain-text',
+      '',
+      'url'
+    );
+  };
+
+  // Handle manual entry
+  const handleManualEntry = () => {
+    // In a real app, you would navigate to a manual cafe entry screen
+    Alert.alert('Manual Entry', 'Manual cafe entry screen would be implemented here');
+  };
+  
   const renderCafeItem = ({ item }) => {
     const isOpen = isCafeOpen(item);
     
@@ -422,10 +481,69 @@ const cafes = goodCafeIds.map(cafeId => {
     );
   };
 
+  // Add Cafe Modal (add this before the return statement)
+  const renderAddCafeModal = () => {
+    return (
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={showAddCafeModal}
+        onRequestClose={() => setShowAddCafeModal(false)}
+      >
+        <View style={styles.addCafeModalContainer}>
+          <View style={[
+            styles.addCafeModalContent,
+            { 
+              paddingBottom: insets.bottom + 12, 
+              backgroundColor: isDarkMode ? theme.altBackground : '#f4f4f4' 
+            }
+          ]}>
+            <View style={[styles.addCafeModalHeader, { borderBottomColor: theme.divider }]}>
+              <Text style={[styles.addCafeModalTitle, { color: theme.primaryText }]}>Add Cafe</Text>
+              <TouchableOpacity 
+                style={styles.closeButton}
+                onPress={() => setShowAddCafeModal(false)}
+              >
+                <Ionicons name="close" size={24} color={theme.primaryText} />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.addCafeOptionsContainer}>
+              <TouchableOpacity
+                style={[styles.addCafeOption, { backgroundColor: isDarkMode ? theme.cardBackground : theme.background, borderColor: theme.border }]}
+                onPress={() => handleAddCafeOption('maps_url')}
+              >
+                <Ionicons name="map-outline" size={24} color={theme.primaryText} />
+                <View style={styles.addCafeOptionTextContainer}>
+                  <Text style={[styles.addCafeOptionTitle, { color: theme.primaryText }]}>Paste Google Maps URL</Text>
+                  <Text style={[styles.addCafeOptionSubtitle, { color: theme.secondaryText }]}>Add cafe from Google Maps link</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={theme.secondaryText} />
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[styles.addCafeOption, { backgroundColor: isDarkMode ? theme.cardBackground : theme.background, borderColor: theme.border }]}
+                onPress={() => handleAddCafeOption('manual')}
+              >
+                <Ionicons name="create-outline" size={24} color={theme.primaryText} />
+                <View style={styles.addCafeOptionTextContainer}>
+                  <Text style={[styles.addCafeOptionTitle, { color: theme.primaryText }]}>Enter Manually</Text>
+                  <Text style={[styles.addCafeOptionSubtitle, { color: theme.secondaryText }]}>Fill out cafe details by hand</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={theme.secondaryText} />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    );
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: isDarkMode ? theme.background : '#FFFFFF' }]}>
       {renderFilterUI()}
       {renderCitySheet()}
+      {renderAddCafeModal()}
 
       <FlatList
         data={filteredCafes}
@@ -656,6 +774,59 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
+  },
+  addCafeModalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  addCafeModalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+  addCafeModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5E5',
+  },
+  addCafeModalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#000000',
+  },
+  addCafeOptionsContainer: {
+    padding: 16,
+  },
+  addCafeOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+    marginBottom: 12,
+  },
+  addCafeOptionTextContainer: {
+    flex: 1,
+    marginLeft: 16,
+  },
+  addCafeOptionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000000',
+    marginBottom: 2,
+  },
+  addCafeOptionSubtitle: {
+    fontSize: 14,
+    color: '#666666',
+  },
+  closeButton: {
+    padding: 5,
   },
 });
 
