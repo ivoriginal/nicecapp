@@ -144,35 +144,43 @@ export default function UserProfileScreen() {
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: (evt, gestureState) => {
-        // Allow both vertical and horizontal movement
-        return Math.abs(gestureState.dy) > 2;
+        // Only respond to vertical gestures, and require a minimum threshold
+        return Math.abs(gestureState.dy) > 5 && Math.abs(gestureState.dy) > Math.abs(gestureState.dx);
       },
       onPanResponderMove: (evt, gestureState) => {
-        // Update translateY based on gesture
-        profilePictureTranslateY.setValue(gestureState.dy);
+        // Only update translateY if gesture is primarily vertical
+        if (Math.abs(gestureState.dy) > Math.abs(gestureState.dx)) {
+          // Clamp the movement to prevent overscrolling
+          const clampedValue = Math.max(-50, Math.min(gestureState.dy, Dimensions.get('window').height));
+          profilePictureTranslateY.setValue(clampedValue);
+        }
       },
       onPanResponderRelease: (evt, gestureState) => {
-        // Calculate velocity threshold for quick flick
-        const isQuickFlick = Math.abs(gestureState.vy) > 0.5;
-        // Calculate position threshold for slow drag
-        const isDraggedFarEnough = Math.abs(gestureState.dy) > 100;
-
-        if (isQuickFlick || isDraggedFarEnough) {
-          // Dismiss if flicked quickly or dragged far enough
-          Animated.timing(profilePictureTranslateY, {
-            toValue: gestureState.dy > 0 ? Dimensions.get('window').height : -Dimensions.get('window').height,
-            duration: 250,
-            useNativeDriver: true,
-          }).start(() => {
-            setShowProfilePicture(false);
-            profilePictureTranslateY.setValue(0);
-          });
+        // Only consider vertical movement for dismissal
+        const verticalMovement = gestureState.dy;
+        const verticalVelocity = gestureState.vy;
+        
+        // Calculate thresholds
+        const isQuickFlick = Math.abs(verticalVelocity) > 0.8;
+        const isDraggedFarEnough = Math.abs(verticalMovement) > 150;
+        
+                 // Only dismiss if moving downward (positive dy)
+         if ((isQuickFlick || isDraggedFarEnough) && verticalMovement > 0) {
+           // Dismiss with smooth animation
+           Animated.timing(profilePictureTranslateY, {
+             toValue: Dimensions.get('window').height,
+             duration: 200,
+             useNativeDriver: true,
+           }).start(() => {
+             // Just hide modal - value will be reset when modal opens next time
+             setShowProfilePicture(false);
+           });
         } else {
           // Spring back to original position
           Animated.spring(profilePictureTranslateY, {
             toValue: 0,
-            tension: 40,
-            friction: 7,
+            tension: 50,
+            friction: 8,
             useNativeDriver: true,
           }).start();
         }
@@ -823,10 +831,9 @@ export default function UserProfileScreen() {
       <TouchableOpacity 
         style={[
           styles.coffeeCard,
-          { 
-            backgroundColor: theme.cardBackground,
-            borderColor: theme.border
-          }
+          isDarkMode 
+            ? { backgroundColor: theme.cardBackground, borderWidth: 0 }
+            : { backgroundColor: 'transparent', borderColor: theme.border, borderWidth: 1 }
         ]}
         onPress={() => navigation.navigate('CoffeeDetail', { 
           coffeeId: coffeeData.id,
@@ -847,12 +854,7 @@ export default function UserProfileScreen() {
     );
   };
 
-  // Reset profile picture animation when modal opens
-  useEffect(() => {
-    if (showProfilePicture) {
-      profilePictureTranslateY.setValue(0);
-    }
-  }, [showProfilePicture]);
+
 
   // Load user's collection (coffees they've tried)
   useEffect(() => {
@@ -1148,10 +1150,9 @@ export default function UserProfileScreen() {
     <TouchableOpacity 
       style={[
         styles.gearCard,
-        { 
-          backgroundColor: theme.cardBackground,
-          borderColor: theme.border
-        }
+        isDarkMode 
+          ? { backgroundColor: theme.cardBackground, borderWidth: 0 }
+          : { backgroundColor: 'transparent', borderColor: theme.border, borderWidth: 1 }
       ]}
       onPress={() => navigation.navigate('GearDetail', { 
         gearName: item.name,
@@ -1163,7 +1164,7 @@ export default function UserProfileScreen() {
           source={item.imageUrl} 
           style={styles.gearImage}
           resizeMode="cover"
-          placeholder="hardware-chip"
+          placeholder="cafe"
         />
       </View>
       <View style={styles.gearInfo}>
@@ -1309,7 +1310,11 @@ export default function UserProfileScreen() {
         {user && (
           <>
             <View style={[styles.profileSection, { backgroundColor: theme.background }]}>
-              <TouchableOpacity onPress={() => setShowProfilePicture(true)}>
+              <TouchableOpacity onPress={() => {
+              // Reset animation value before showing modal to prevent freeze
+              profilePictureTranslateY.setValue(0);
+              setShowProfilePicture(true);
+            }}>
                 <AppImage 
                   source={user.userAvatar || 'https://via.placeholder.com/80'} 
                   style={[
@@ -1435,7 +1440,7 @@ export default function UserProfileScreen() {
                           style={[styles.gearItem, { backgroundColor: theme.cardBackground }]}
                           onPress={() => handleGearPress(item)}
                         >
-                          <View style={[styles.gearItemAvatarContainer, { borderColor: theme.background }]}>
+                          <View style={styles.gearItemAvatarContainer}>
                             {gearImage ? (
                               <Image 
                                 source={{ uri: gearImage }}
@@ -2061,11 +2066,11 @@ export default function UserProfileScreen() {
                 // Animate out before closing
                 Animated.timing(profilePictureTranslateY, {
                   toValue: Dimensions.get('window').height,
-                  duration: 250,
+                  duration: 200,
                   useNativeDriver: true,
                 }).start(() => {
+                  // Just hide modal - value will be reset when modal opens next time
                   setShowProfilePicture(false);
-                  profilePictureTranslateY.setValue(0);
                 });
               }}
             >
@@ -2315,8 +2320,6 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
     overflow: 'hidden',
     marginRight: 8,
   },
@@ -2909,7 +2912,7 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: 4,
-    marginRight: 8,
+    marginRight: 0,
   },
   reviewsHeaderContainer: {
     flexDirection: 'row',
