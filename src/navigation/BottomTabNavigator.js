@@ -137,6 +137,10 @@ export default function BottomTabNavigator({ navigation: mainNavigation }) {
       } else if (screen === 'Home') {
         // If navigating to Home, just close the modal
         setIsModalVisible(false);
+      } else if (['AddCoffeeFromURL', 'AddCoffeeFromCamera', 'AddCoffeeFromGallery', 'AddCoffeeManually'].includes(screen)) {
+        // For Add Coffee flows, close the modal and navigate using the main navigation
+        setIsModalVisible(false);
+        mainNavigation.navigate(screen, params);
       } else {
         handleSaveComplete();
       }
