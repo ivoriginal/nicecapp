@@ -82,11 +82,11 @@ export default function HomeScreen({ navigation }) {
     
     // Standard navigation with just the ID
     navigation.navigate('CoffeeDetail', { 
-      coffeeId: event.coffeeId,
+      coffeeId: event.coffeeId || event.id,
       skipAuth: true,
       // If the event has coffee properties, pass them directly
       coffee: event.name ? {
-        id: event.coffeeId,
+        id: event.coffeeId || event.id,
         name: event.name || event.coffeeName,
         roaster: event.roaster || event.roasterName,
         image: event.image || event.imageUrl,
