@@ -2,8 +2,13 @@ import React from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
+import { useTheme } from '../context/ThemeContext';
 
 const CoffeeEventCard = ({ event, onPress }) => {
+  const { theme } = useTheme();
+  
+  const styles = createStyles(theme);
+  
   const formattedDate = format(new Date(event.date), 'MMM d, yyyy');
   
   return (
@@ -61,10 +66,10 @@ const CoffeeEventCard = ({ event, onPress }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme) => StyleSheet.create({
   container: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
+    backgroundColor: theme.background,
     borderRadius: 12,
     marginHorizontal: 16,
     marginVertical: 8,
@@ -90,7 +95,7 @@ const styles = StyleSheet.create({
   placeholderImage: {
     width: '100%',
     height: '100%',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: theme.placeholder,
     justifyContent: 'center',
     alignItems: 'center',
   },
