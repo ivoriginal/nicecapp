@@ -9,7 +9,8 @@ import {
   ActionSheetIOS,
   Share,
   Platform,
-  Alert
+  Alert,
+  Animated
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -65,14 +66,35 @@ const GearWishlistScreen = () => {
   const styles = createStyles(theme, isDarkMode, insets);
   const navigation = useNavigation();
   const route = useRoute();
-  const { userId, userName, isCurrentUser } = route.params || {};
+  const { userId, userName, isCurrentUser, addedGear } = route.params || {};
   const [wishlistItems, setWishlistItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const toastOpacity = useState(new Animated.Value(0))[0];
 
   useEffect(() => {
-    loadWishlist();
+    // Only load from mock data if we don't have any items yet
+    if (wishlistItems.length === 0) {
+      loadWishlist();
+    }
   }, [userId]);
+
+  // Handle success toast when gear is added
+  useEffect(() => {
+    if (addedGear) {
+      // Add the new gear to the wishlist items
+      setWishlistItems(prevItems => [...prevItems, {
+        id: `gear-${Date.now()}`, // Generate a temporary ID
+        ...addedGear
+      }]);
+      
+      showToast(`${addedGear.name} added to your wishlist`);
+      // Clear the addedGear param to prevent showing toast again
+      navigation.setParams({ addedGear: null });
+    }
+  }, [addedGear]);
 
   useEffect(() => {
     // Configure navigation header with three-dot menu or Done button
@@ -131,6 +153,27 @@ const GearWishlistScreen = () => {
     setWishlistItems(prev => prev.filter(item => item.id !== itemId));
   };
 
+  const showToast = (message) => {
+    setToastMessage(message);
+    setToastVisible(true);
+    
+    Animated.sequence([
+      Animated.timing(toastOpacity, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.delay(2000),
+      Animated.timing(toastOpacity, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setToastVisible(false);
+    });
+  };
+
   const handleShare = async () => {
     try {
       await Share.share({
@@ -147,7 +190,7 @@ const GearWishlistScreen = () => {
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
         {
-          options: ['Cancel', 'Share', 'Edit'],
+          options: ['Cancel', 'Share Wishlist', 'Edit'],
           cancelButtonIndex: 0,
         },
         (buttonIndex) => {
@@ -165,7 +208,7 @@ const GearWishlistScreen = () => {
         '',
         [
           { text: 'Cancel', style: 'cancel' },
-          { text: 'Share', onPress: handleShare },
+          { text: 'Share Wishlist', onPress: handleShare },
           { text: 'Edit', onPress: () => setIsEditing(true) },
         ]
       );
@@ -247,9 +290,34 @@ const GearWishlistScreen = () => {
       
       {/* FAB (Floating Action Button) - Hide in edit mode or when viewing other user's wishlist */}
       {!isEditing && isCurrentUser && (
-        <TouchableOpacity style={styles.fab}>
+        <TouchableOpacity 
+          style={styles.fab}
+          onPress={() => navigation.navigate('AddGear', { 
+            userId: userId,
+            onAddGear: (newGear) => {
+              setWishlistItems(prev => [...prev, newGear]);
+              showToast(`${newGear.name} added to your wishlist`);
+            }
+          })}
+        >
           <Text style={styles.fabText}>Add gear</Text>
         </TouchableOpacity>
+      )}
+
+      {/* Toast */}
+      {toastVisible && (
+        <Animated.View 
+          style={[
+            styles.toast,
+            { 
+              opacity: toastOpacity,
+              bottom: 100 + (insets?.bottom || 0)
+            }
+          ]}
+        >
+          <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+          <Text style={styles.toastText}>{toastMessage}</Text>
+        </Animated.View>
       )}
     </View>
   );
@@ -398,6 +466,21 @@ const createStyles = (theme, isDarkMode, insets) => StyleSheet.create({
     borderRadius: 28,
     paddingHorizontal: 32,
     paddingVertical: 14,
+  },
+  fabText: {
+    color: isDarkMode ? '#000000' : '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  toast: {
+    position: 'absolute',
+    alignSelf: 'center',
+    backgroundColor: theme.cardBackground,
+    borderRadius: 25,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -406,11 +489,14 @@ const createStyles = (theme, isDarkMode, insets) => StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 4.65,
     elevation: 8,
+    borderWidth: isDarkMode ? 1 : 0,
+    borderColor: theme.border,
   },
-  fabText: {
-    color: isDarkMode ? '#000000' : '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
+  toastText: {
+    color: theme.primaryText,
+    fontSize: 14,
+    fontWeight: '500',
+    marginLeft: 8,
   },
 });
 
