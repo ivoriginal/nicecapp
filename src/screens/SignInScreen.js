@@ -144,10 +144,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     width: '100%',
-    aspectRatio: 1/1,
+    aspectRatio: 3/4,
     // height: '75%',
     // marginTop: '10%',
     // marginBottom: '8%',
+    // marginBottom: '-24',
+    marginTop: '-16',
     alignSelf: 'center',
   },
   logoCircle: {
@@ -237,5 +239,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     // marginTop: 16,
     lineHeight: 16,
+    paddingHorizontal: 16,
   },
 }); 
