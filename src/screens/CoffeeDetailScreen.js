@@ -14,7 +14,9 @@ import {
   ImageBackground,
   Modal,
   KeyboardAvoidingView,
-  Platform
+  Platform,
+  ActionSheetIOS,
+  Share
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useCoffee } from '../context/CoffeeContext';
@@ -103,67 +105,9 @@ export default function CoffeeDetailScreen() {
     const fetchCoffee = () => {
       setLoading(true);
       try {
-        // First check if coffee was passed through route params
-        const routeCoffee = route.params?.coffee;
-        if (routeCoffee) {
-          console.log('Using coffee object from route params:', routeCoffee.name);
-          
-          // Create a complete coffee object with all required fields
-          const enhancedCoffee = {
-            ...routeCoffee,
-            // Ensure all needed properties exist
-            id: routeCoffee.id || routeCoffee.coffeeId || coffeeId,
-            name: routeCoffee.name || routeCoffee.coffeeName || 'Unknown Coffee',
-            roaster: routeCoffee.roaster || 'Unknown Roaster',
-            // Use the first available image source
-            image: routeCoffee.image || routeCoffee.imageUrl || 'https://images.unsplash.com/photo-1447933601403-0c6688de566e',
-            // Add defaults for missing properties
-            origin: routeCoffee.origin || 'Unknown',
-            process: routeCoffee.process || 'Unknown',
-            roastLevel: routeCoffee.roastLevel || 'Medium',
-            price: routeCoffee.price || '$--',
-            description: routeCoffee.description || 'No description available',
-            // Ensure stats object exists
-            stats: routeCoffee.stats || {
-              rating: routeCoffee.rating || 0,
-              reviews: routeCoffee.reviews || 0,
-              brews: routeCoffee.brews || 0,
-              wishlist: routeCoffee.wishlist || 0
-            }
-          };
-          
-          setCoffee(enhancedCoffee);
-          setIsInCollection(routeCoffee.isInCollection || false);
-          setIsSaved(routeCoffee.isInWishlist || false);
-          
-          if (routeCoffee.recipes) {
-            setRelatedRecipes(routeCoffee.recipes);
-          }
-          
-          // Set sellers for this coffee from mockCoffees
-          const sellersList = mockCoffees.sellers[enhancedCoffee.id] || [];
-          
-          // Enhance seller info with additional business data if available
-          const enhancedSellers = sellersList.map(seller => {
-            // Check if this is a business that has a corresponding entry in businesses
-            const businessData = mockCafes.roasters.find(b => b.id === seller.id);
-            if (businessData) {
-              return {
-                ...seller,
-                // Use avatar from business if available, otherwise use existing seller avatar
-                avatar: businessData.avatar || businessData.logo || seller.avatar
-              };
-            }
-            return seller;
-          });
-          
-          setSellers(enhancedSellers);
-          setLoading(false);
-          return;
-        }
-
         console.log('Looking for coffee with ID:', coffeeId);
-        // Check if we can find the exact coffee in the mock data by ID
+        
+        // Always try to find the complete coffee data from mockCoffees.json first
         const exactCoffeeMatch = mockCoffees.coffees.find(c => 
           c.id === coffeeId || 
           `coffee-${c.id}` === coffeeId || 
@@ -306,6 +250,65 @@ export default function CoffeeDetailScreen() {
             return;
           }
         } else {
+          // Check if coffee was passed through route params as fallback
+          const routeCoffee = route.params?.coffee;
+          if (routeCoffee) {
+            console.log('Using coffee object from route params as fallback:', routeCoffee.name);
+            
+            // Create a complete coffee object with all required fields
+            const enhancedCoffee = {
+              ...routeCoffee,
+              // Ensure all needed properties exist
+              id: routeCoffee.id || routeCoffee.coffeeId || coffeeId,
+              name: routeCoffee.name || routeCoffee.coffeeName || 'Unknown Coffee',
+              roaster: routeCoffee.roaster || 'Unknown Roaster',
+              // Use the first available image source
+              image: routeCoffee.image || routeCoffee.imageUrl || 'https://images.unsplash.com/photo-1447933601403-0c6688de566e',
+              // Add defaults for missing properties
+              origin: routeCoffee.origin || 'Unknown',
+              process: routeCoffee.process || 'Unknown',
+              roastLevel: routeCoffee.roastLevel || 'Medium',
+              price: routeCoffee.price || '$--',
+              description: routeCoffee.description || 'No description available',
+              // Ensure stats object exists
+              stats: routeCoffee.stats || {
+                rating: routeCoffee.rating || 0,
+                reviews: routeCoffee.reviews || 0,
+                brews: routeCoffee.brews || 0,
+                wishlist: routeCoffee.wishlist || 0
+              }
+            };
+            
+            setCoffee(enhancedCoffee);
+            setIsInCollection(routeCoffee.isInCollection || false);
+            setIsSaved(routeCoffee.isInWishlist || false);
+            
+            if (routeCoffee.recipes) {
+              setRelatedRecipes(routeCoffee.recipes);
+            }
+            
+            // Set sellers for this coffee from mockCoffees
+            const sellersList = mockCoffees.sellers[enhancedCoffee.id] || [];
+            
+            // Enhance seller info with additional business data if available
+            const enhancedSellers = sellersList.map(seller => {
+              // Check if this is a business that has a corresponding entry in businesses
+              const businessData = mockCafes.roasters.find(b => b.id === seller.id);
+              if (businessData) {
+                return {
+                  ...seller,
+                  // Use avatar from business if available, otherwise use existing seller avatar
+                  avatar: businessData.avatar || businessData.logo || seller.avatar
+                };
+              }
+              return seller;
+            });
+            
+            setSellers(enhancedSellers);
+            setLoading(false);
+            return;
+          }
+          
           // As a last resort, use the first coffee in the mock data
           // But log a warning to help with debugging
           console.warn(`Coffee ID ${coffeeId} not found - defaulting to first coffee in mockCoffees`);
@@ -415,6 +418,64 @@ export default function CoffeeDetailScreen() {
     };
   });
 
+  // Add action sheet handler
+  const showActionSheet = () => {
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ['Cancel', 'Share', 'Suggest Changes'],
+          cancelButtonIndex: 0,
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 1) {
+            handleShare();
+          } else if (buttonIndex === 2) {
+            handleSuggestChanges();
+          }
+        }
+      );
+    } else {
+      // For Android, use Alert with multiple buttons
+      Alert.alert(
+        'Coffee Options',
+        '',
+        [
+          {
+            text: 'Share',
+            onPress: handleShare,
+          },
+          {
+            text: 'Suggest Changes',
+            onPress: handleSuggestChanges,
+          },
+          {
+            text: 'Cancel',
+            style: 'cancel',
+          },
+        ]
+      );
+    }
+  };
+
+  const handleShare = async () => {
+    try {
+      const result = await Share.share({
+        message: `Check out this amazing coffee: ${coffee.name} by ${coffee.roaster}`,
+        title: `${coffee.name} - ${coffee.roaster}`,
+      });
+    } catch (error) {
+      console.error('Error sharing:', error);
+    }
+  };
+
+  const handleSuggestChanges = () => {
+    Alert.alert(
+      'Suggest Changes',
+      'This feature will allow you to suggest changes to coffee information.',
+      [{ text: 'OK' }]
+    );
+  };
+
   // Set up navigation options
   useLayoutEffect(() => {
     if (coffee) {
@@ -462,6 +523,21 @@ export default function CoffeeDetailScreen() {
           borderBottomColor: theme.divider,
         },
         headerTintColor: theme.primaryText, // Set back button color
+        headerRight: () => (
+          <TouchableOpacity
+            onPress={showActionSheet}
+            style={{
+              paddingHorizontal: 16,
+              paddingVertical: 8,
+            }}
+          >
+            <Ionicons 
+              name="ellipsis-horizontal" 
+              size={24} 
+              color={theme.primaryText} 
+            />
+          </TouchableOpacity>
+        ),
       });
     }
   }, [navigation, coffee, theme, isDarkMode, scrollY, showCoffeeNameInHeader, animatedDefaultTitleStyle, animatedCoffeeTitleStyle]);
@@ -515,7 +591,21 @@ export default function CoffeeDetailScreen() {
           borderBottomColor: theme.divider,
         },
         headerTintColor: theme.primaryText,
-        headerRight: undefined, // Clear any right buttons from previous screens
+        headerRight: () => (
+          <TouchableOpacity
+            onPress={showActionSheet}
+            style={{
+              paddingHorizontal: 16,
+              paddingVertical: 8,
+            }}
+          >
+            <Ionicons 
+              name="ellipsis-horizontal" 
+              size={24} 
+              color={theme.primaryText} 
+            />
+          </TouchableOpacity>
+        ),
       });
     }
   }, [isFocused, coffee, theme, isDarkMode, scrollY, showCoffeeNameInHeader, animatedDefaultTitleStyle, animatedCoffeeTitleStyle]);
