@@ -481,23 +481,100 @@ const CoffeeDiscoveryScreen = ({ navigation, route }) => {
     setSortOrder('default');
   };
 
+  // Handle gallery selection
+  const handleSelectFromGallery = async () => {
+    try {
+      console.log('handleSelectFromGallery called');
+      console.log('Requesting media library permission...');
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      console.log('Media library permission result:', permissionResult);
+      
+      if (permissionResult.granted === false) {
+        console.log('Media library permission denied');
+        Alert.alert('Permission Required', 'You need to grant permission to access your photos');
+        return;
+      }
+
+      console.log('Permission granted, launching image library...');
+      const result = await ImagePicker.launchImageLibraryAsync();
+      console.log('Image library result:', result);
+
+      if (!result.canceled) {
+        console.log('Image selected, navigating to AddCoffeeFromGallery');
+        navigation.navigate('AddCoffeeFromGallery', { 
+          selectedImage: result.assets[0].uri 
+        });
+      } else {
+        console.log('Image selection canceled');
+      }
+    } catch (error) {
+      console.error('Error in handleSelectFromGallery:', error);
+      Alert.alert(
+        'Error',
+        'Failed to select image. Error: ' + error.message
+      );
+    }
+  };
+
+  // Handle camera capture
+  const handleTakePhoto = async () => {
+    try {
+      console.log('handleTakePhoto called');
+      console.log('Requesting camera permission...');
+      const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+      console.log('Camera permission result:', permissionResult);
+      
+      if (permissionResult.granted === false) {
+        console.log('Camera permission denied');
+        Alert.alert('Permission Required', 'You need to grant permission to access your camera');
+        return;
+      }
+
+      console.log('Permission granted, launching camera...');
+      const result = await ImagePicker.launchCameraAsync();
+      console.log('Camera result:', result);
+
+      if (!result.canceled) {
+        console.log('Photo taken, navigating to AddCoffeeFromCamera');
+        navigation.navigate('AddCoffeeFromCamera', { 
+          capturedImage: result.assets[0].uri 
+        });
+      } else {
+        console.log('Photo capture canceled');
+      }
+    } catch (error) {
+      console.error('Error in handleTakePhoto:', error);
+      Alert.alert(
+        'Error',
+        'Failed to take photo. Error: ' + error.message
+      );
+    }
+  };
+
   // Handle add coffee modal options
   const handleAddCoffeeOption = async (option) => {
+    console.log('handleAddCoffeeOption called with option:', option);
     setShowAddCoffeeModal(false);
     
-    switch (option) {
-      case 'url':
-        handleURLInput();
-        break;
-      case 'camera':
-        await handleTakePhoto();
-        break;
-      case 'gallery':
-        await handleSelectFromGallery();
-        break;
-      case 'manual':
-        navigation.navigate('AddCoffeeManually');
-        break;
+    try {
+      switch (option) {
+        case 'url':
+          handleURLInput();
+          break;
+        case 'camera':
+          console.log('Calling handleTakePhoto...');
+          await handleTakePhoto();
+          break;
+        case 'gallery':
+          console.log('Calling handleSelectFromGallery...');
+          await handleSelectFromGallery();
+          break;
+        case 'manual':
+          navigation.navigate('AddCoffeeManually');
+          break;
+      }
+    } catch (error) {
+      console.error('Error in handleAddCoffeeOption:', error);
     }
   };
 
@@ -526,62 +603,6 @@ const CoffeeDiscoveryScreen = ({ navigation, route }) => {
       '',
       'url'
     );
-  };
-
-  // Handle camera capture
-  const handleTakePhoto = async () => {
-    try {
-      const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
-      
-      if (permissionResult.granted === false) {
-        Alert.alert('Permission Required', 'You need to grant permission to access your camera');
-        return;
-      }
-
-      const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [4, 3],
-        quality: 0.8,
-      });
-
-      if (!result.canceled) {
-        navigation.navigate('AddCoffeeFromCamera', { 
-          capturedImage: result.assets[0].uri 
-        });
-      }
-    } catch (error) {
-      console.error('Error taking photo:', error);
-      Alert.alert('Error', 'Failed to take photo. Please try again.');
-    }
-  };
-
-  // Handle gallery selection
-  const handleSelectFromGallery = async () => {
-    try {
-      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      
-      if (permissionResult.granted === false) {
-        Alert.alert('Permission Required', 'You need to grant permission to access your photos');
-        return;
-      }
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [4, 3],
-        quality: 0.8,
-      });
-
-      if (!result.canceled) {
-        navigation.navigate('AddCoffeeFromGallery', { 
-          selectedImage: result.assets[0].uri 
-        });
-      }
-    } catch (error) {
-      console.error('Error selecting image:', error);
-      Alert.alert('Error', 'Failed to select image. Please try again.');
-    }
   };
 
   const renderFilterBar = () => {
@@ -684,7 +705,7 @@ const CoffeeDiscoveryScreen = ({ navigation, route }) => {
         onRequestClose={() => setModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: theme.background }]}>
+          <View style={[styles.modalContent, { backgroundColor: theme.cardBackground }]}>
             <View style={[styles.modalHeader, { borderBottomColor: theme.divider }]}>
               <Text style={[styles.modalTitle, { color: theme.primaryText }]}>{selectedCategory.label}</Text>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
@@ -736,7 +757,7 @@ const CoffeeDiscoveryScreen = ({ navigation, route }) => {
         onRequestClose={() => setSortModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: theme.background }]}>
+          <View style={[styles.modalContent, { backgroundColor: theme.cardBackground }]}>
             <View style={[styles.modalHeader, { borderBottomColor: theme.divider }]}>
               <Text style={[styles.modalTitle, { color: theme.primaryText }]}>Sort By</Text>
               <TouchableOpacity onPress={() => setSortModalVisible(false)}>
@@ -876,7 +897,7 @@ const CoffeeDiscoveryScreen = ({ navigation, route }) => {
       <FlatList
         data={coffees}
         renderItem={renderCoffeeItem}
-        keyExtractor={item => item.id}
+        keyExtractor={item => `${item.id}-${item.roaster ? item.roaster.toLowerCase().replace(/\s+/g, '-') : ''}-${item.price}`}
         contentContainerStyle={styles.coffeeList}
         ListHeaderComponent={renderFilterBar()}
         ListEmptyComponent={
@@ -1089,12 +1110,12 @@ const styles = StyleSheet.create({
     paddingBottom: 60, // Reduced from 120 to account for just the FAB height + some spacing
   },
   coffeeCardContainer: {
-    borderBottomWidth: 1,
+    // borderBottomWidth: 1,
   },
   coffeeCard: {
     flexDirection: 'row',
     paddingHorizontal: 12,
-    paddingVertical: 12,
+    paddingVertical: 8,
   },
   coffeeImageContainer: {
     width: 64,
