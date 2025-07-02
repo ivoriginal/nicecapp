@@ -798,7 +798,9 @@ export default function RecipeDetailScreen() {
       }
     },
     addListener: () => ({ remove: () => {} }),
-    setOptions: () => {}
+    setOptions: () => {},
+    // Add theme context to navigation
+    theme: isDarkMode ? 'dark' : 'light'
   });
   
   const handleSave = () => {
@@ -824,9 +826,14 @@ export default function RecipeDetailScreen() {
           savedUsers: newSavedState 
             ? [...(recipe.savedUsers || []), currentUserId]
             : (recipe.savedUsers || []).filter(id => id !== currentUserId),
-          // Preserve existing log data
+          // Preserve ALL existing data
           logs: recipe.logs || logCount,
-          loggedUsers: recipe.loggedUsers || []
+          loggedUsers: recipe.loggedUsers || [],
+          userRatings: recipe.userRatings || {},
+          ratingStats: recipe.ratingStats || {},
+          averageRating: recipe.averageRating || 0,
+          ratingCount: recipe.ratingCount || 0,
+          saves: newSavedState ? (recipe.saves || 0) + 1 : Math.max(0, (recipe.saves || 0) - 1)
         };
         
         // Update recipe in context
@@ -1337,15 +1344,24 @@ export default function RecipeDetailScreen() {
             <View style={[styles.actionsOuterContainer, { backgroundColor: theme.background }]}>
               <View style={[styles.actionButtonsContainer, { backgroundColor: theme.background }]}>
                                                   <TouchableOpacity 
-                  style={[styles.actionButton, { backgroundColor: theme.background }]} 
+                  style={[
+                    styles.actionButton,
+                    { 
+                      backgroundColor: theme.background,
+                      borderColor: theme.border 
+                    }
+                  ]} 
                   onPress={handleUpvote}
                 >
                   <Ionicons 
                     name="add-circle-outline" 
                     size={20} 
-                    color={logged ? theme.primaryText : theme.primaryText} 
+                    color={theme.primaryText} 
                   />
-                  <Text style={[styles.actionButtonText, { color: theme.primaryText }]}>
+                  <Text style={[
+                    styles.actionButtonText,
+                    { color: theme.primaryText }
+                  ]}>
                     Log
                   </Text>
                 </TouchableOpacity>
@@ -1771,20 +1787,18 @@ export default function RecipeDetailScreen() {
       >
         <SafeAreaView style={[styles.addCoffeeModalContainer, { backgroundColor: theme.background }]}>
           <View style={[styles.addCoffeeModalContent, { backgroundColor: theme.background }]}>
-            <View style={[styles.addCoffeeModalHeader, { backgroundColor: theme.background, borderBottomColor: theme.divider }]}>
-              <View style={styles.modalHeaderLeft}>
-                <TouchableOpacity
-                  style={styles.modalCloseButton}
-                  onPress={handleAddCoffeeModalClose}
-                >
-                  <Ionicons name="close" size={24} color={theme.primaryText} />
-                </TouchableOpacity>
-              </View>
-              <Text style={[styles.addCoffeeModalTitle, { color: theme.primaryText }]}>Log Coffee</Text>
-              <View style={styles.modalHeaderRight}>
-                {/* Save button will be handled by AddCoffeeScreen */}
-              </View>
+                      <View style={[styles.addCoffeeModalHeader, { backgroundColor: theme.background, borderBottomColor: theme.border }]}>
+            <View style={styles.modalHeaderLeft}>
+              <TouchableOpacity
+                style={[styles.modalCloseButton, { backgroundColor: theme.background }]}
+                onPress={handleAddCoffeeModalClose}
+              >
+                <Ionicons name="close" size={24} color={theme.primaryText} />
+              </TouchableOpacity>
             </View>
+            <Text style={[styles.addCoffeeModalTitle, { color: theme.primaryText }]}>Log Coffee</Text>
+            <View style={styles.modalHeaderRight} />
+          </View>
             
             <View style={{ flex: 1 }}>
               <AddCoffeeScreen
@@ -1792,6 +1806,9 @@ export default function RecipeDetailScreen() {
                 route={{
                   params: {
                     isModalVisible: true,
+                    isDarkMode: isDarkMode,
+                    theme: theme,
+                    hideHomeLocation: true,
                     autoSelectCoffee: {
                       id: coffee?.id,
                       name: coffee?.name,
@@ -2762,8 +2779,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
     borderBottomWidth: 1,
   },
   modalHeaderLeft: {
@@ -2774,6 +2791,7 @@ const styles = StyleSheet.create({
   },
   modalCloseButton: {
     padding: 8,
+    borderRadius: 8,
   },
   addCoffeeModalTitle: {
     fontSize: 18,
