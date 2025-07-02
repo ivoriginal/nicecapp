@@ -412,6 +412,7 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
   coffeeImage: {
     width: '100%',
     height: '100%',
+    backgroundColor: theme.placeholder,
   },
   coffeeInfo: {
     flex: 1,
