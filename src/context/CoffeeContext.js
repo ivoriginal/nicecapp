@@ -755,11 +755,26 @@ export const CoffeeProvider = ({ children }) => {
 
   // Get all available coffees (mock + user-added)
   const getAllAvailableCoffees = () => {
-    // Combine mock coffees with user-added coffees
-    const mockCoffees = mockCoffeesData?.coffees || [];
-    const allCoffees = [...mockCoffees, ...userAddedCoffees];
+    // Get mock coffees
+    const mockCoffeesList = mockCoffees?.coffees || [];
     
-    // Sort by name or keep original order
+    // Create a Map to track unique coffees by ID
+    const uniqueCoffees = new Map();
+    
+    // Add mock coffees first
+    mockCoffeesList.forEach(coffee => {
+      uniqueCoffees.set(coffee.id, coffee);
+    });
+    
+    // Add user-added coffees, overwriting mock coffees if IDs match
+    userAddedCoffees.forEach(coffee => {
+      uniqueCoffees.set(coffee.id, coffee);
+    });
+    
+    // Convert Map back to array
+    const allCoffees = Array.from(uniqueCoffees.values());
+    
+    // Sort the coffees
     return allCoffees.sort((a, b) => {
       // Put user-added coffees first (newest first)
       if (a.isUserAdded && !b.isUserAdded) return -1;
