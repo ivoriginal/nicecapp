@@ -46,10 +46,702 @@ const RECENT_SEARCHES_KEY = 'recent_searches';
 const MAX_RECENT_SEARCHES = 5;
 const SEARCH_INPUT_BG_COLOR = '#F0F0F0';
 
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 16,
+    marginVertical: 8,
+  },
+  searchContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: SEARCH_INPUT_BG_COLOR,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    height: 48,
+    // No shadow or elevation
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    height: '100%',
+    fontSize: 16,
+  },
+  clearButton: {
+    padding: 4,
+  },
+  cancelButton: {
+    marginLeft: 8,
+    paddingHorizontal: 10,
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    color: '#007AFF',
+    fontWeight: '500',
+  },
+  filterChipsContainer: {
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 8,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5EA',
+  },
+  filterContainer: {
+    paddingHorizontal: 16,
+  },
+  filterChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#F2F2F7',
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  activeFilterChip: {
+    backgroundColor: '#000000',
+    borderColor: '#000000',
+  },
+  filterText: {
+    fontSize: 14,
+    color: '#000000',
+  },
+  activeFilterText: {
+    color: '#FFFFFF',
+  },
+  searchResultsWrapper: {
+    flex: 1,
+  },
+  resultsContainer: {
+    paddingBottom: 16,
+    paddingTop: 8,
+  },
+  resultItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  resultContent: {
+    flex: 1,
+  },
+  coffeeName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000000',
+    marginBottom: 4,
+  },
+  roasterName: {
+    fontSize: 14,
+    color: '#666666',
+  },
+  emptyContainer: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#666666',
+  },
+  discoveryContainer: {
+    flex: 1,
+  },
+  discoveryContentContainer: {
+    paddingTop: 16,
+  },
+  carouselSection: {
+    marginBottom: 32,
+  },
+  carouselSectionTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#000000',
+    marginHorizontal: 4,
+  },
+  carouselContainer: {
+    paddingHorizontal: 16,
+  },
+  carouselCard: {
+    width: 160,
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+    marginRight: 12,
+  },
+  carouselImage: {
+    width: '100%',
+    height: '100%',
+  },
+  carouselOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    paddingHorizontal: 12,
+    padding: 12,
+    paddingBottom: 4,
+  },
+  carouselTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  carouselSubtitle: {
+    fontSize: 14,
+    color: '#FFFFFF',
+    marginBottom: 1,
+  },
+  carouselStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  carouselPrice: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#FFFFFF',
+  },
+  carouselOrigin: {
+    fontSize: 14,
+    color: '#FFFFFF',
+  },
+  carouselType: {
+    fontSize: 14,
+    color: '#FFFFFF',
+  },
+  recentSearchesContainer: {
+    marginHorizontal: 16,
+    marginBottom: 24,
+    marginTop: 16,
+  },
+  recentSearchesHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  recentSearchesTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#000000',
+  },
+  recentSearchItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 8,
+  },
+  recentSearchText: {
+    fontSize: 16,
+    color: '#000000',
+    marginLeft: 12,
+  },
+  clearRecentText: {
+    fontSize: 14,
+    color: '#007AFF',
+  },
+  removeRecentButton: {
+    marginLeft: 'auto',
+    padding: 4,
+  },
+  emptyRecentContainer: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  emptyRecentText: {
+    fontSize: 16,
+    color: '#666666',
+  },
+  userCard: {
+    width: 180,
+    height: 232,
+    borderRadius: 12,
+    marginRight: 12,
+    overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
+    flexDirection: 'column',
+    alignItems: 'center',
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+  },
+  userAvatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    marginBottom: 12,
+    borderWidth: 1,
+  },
+  userInfo: {
+    width: '100%',
+    alignItems: 'center',
+  },
+  userName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000000',
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  userUsername: {
+    fontSize: 14,
+    color: '#666666',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  followButton: {
+    backgroundColor: '#000000',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginTop: 'auto',
+  },
+  followButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  eventCard: {
+    width: CARD_WIDTH,
+    height: CARD_HEIGHT,
+    borderRadius: 12,
+    marginHorizontal: 8,
+    overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
+  },
+  eventImage: {
+    width: '100%',
+    height: '100%',
+  },
+  eventContent: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 12,
+  },
+  eventUserInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  eventUserAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 8,
+    borderWidth: 1,
+  },
+  eventUserName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000000',
+  },
+  eventCoffeeName: {
+    fontSize: 14,
+    color: '#666666',
+  },
+  eventRoaster: {
+    fontSize: 14,
+    color: '#666666',
+  },
+  eventRating: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  eventRatingText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#000000',
+    marginLeft: 4,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginHorizontal: 16,
+    marginBottom: 12,
+  },
+  viewAllText: {
+    fontSize: 14,
+    // color: '#007AFF',
+    fontWeight: '600',
+    borderBottomWidth: 1,
+    borderBottomColor: '#000000',
+  },
+  cafeLogo: {
+    width: 40,
+    height: 40,
+    borderRadius: 4,
+    backgroundColor: '#242526',
+    borderWidth: 1,
+    borderColor: '#242526',
+    marginRight: 12,
+  },
+  cafeInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  cafeTextContainer: {
+    flex: 1,
+  },
+  popularCoffeeCard: {
+    width: CARD_WIDTH,
+    borderRadius: 12,
+    marginRight: 12,
+    overflow: 'hidden',
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+  },
+  popularCoffeeImage: {
+    width: 64,
+    height: 64,
+    borderRadius: 8,
+    marginRight: 12,
+    backgroundColor: '#E5E5EA',
+  },
+  popularCoffeeContent: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  popularCoffeeName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000000',
+    marginBottom: 3,
+  },
+  popularCoffeeRoaster: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#666666',
+    marginBottom: 8,
+  },
+  popularCoffeeDetails: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  popularCoffeeOriginContainer: {
+    flex: 1,
+  },
+  popularCoffeeOrigin: {
+    fontSize: 14,
+    color: '#666666',
+  },
+  popularCoffeePrice: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#000000',
+  },
+  userCarouselContainer: {
+    paddingHorizontal: 16,
+  },
+  cafeRoasterTag: {
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginTop: 4,
+    alignSelf: 'flex-start',
+  },
+  cafeRoasterTagText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  resultUserImage: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    marginRight: 12,
+  },
+  resultBusinessImage: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    marginRight: 12,
+  },
+  resultCoffeeImage: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    marginRight: 12,
+  },
+  carouselRoasterContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  carouselRoasterLogo: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    marginRight: 8,
+    backgroundColor: '#FFFFFF',
+  },
+  recipeCard: {
+    width: 250,
+    borderRadius: 12,
+    marginRight: 12,
+    overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+  },
+  recipeImage: {
+    width: '100%',
+    height: 140,
+    backgroundColor: '#E5E5EA',
+  },
+  recipeContent: {
+    padding: 12,
+  },
+  recipeName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000000',
+    marginBottom: 3,
+  },
+  recipeCoffeeName: {
+    fontSize: 14,
+    color: '#666666',
+    marginBottom: 8,
+  },
+  recipeCreatorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  recipeCreatorAvatar: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    marginRight: 8,
+  },
+  recipeCreatorName: {
+    fontSize: 14,
+    color: '#333333',
+  },
+  recipeStatsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  recipeStat: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  recipeStatText: {
+    fontSize: 14,
+    color: '#666666',
+    marginLeft: 4,
+  },
+
+  suggestedUserCard: {
+    width: 170,
+    padding: 16,
+    borderRadius: 12,
+    marginRight: 12,
+    alignItems: 'center',
+  },
+  suggestedUserAvatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    marginBottom: 12,
+    backgroundColor: '#E5E5EA',
+    borderWidth: 1,
+  },
+  suggestedUserName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000000',
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  suggestedUserHandle: {
+    fontSize: 14,
+    color: '#666666',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  cafeListCard: {
+    borderRadius: 12,
+    marginRight: 12,
+    width: 280,
+    overflow: 'hidden',
+  },
+  cafeListImage: {
+    width: '100%',
+    height: 120,
+  },
+  cafeListContent: {
+    padding: 12,
+  },
+  cafeListHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  cafeListLogo: {
+    width: 40,
+    height: 40,
+    borderRadius: 4,
+    marginRight: 8,
+    borderWidth: 1,
+  },
+  cafeListTitleContainer: {
+    flex: 1,
+  },
+  cafeListName: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  cafeListLocation: {
+    fontSize: 13,
+    color: '#666666',
+  },
+  cafeListStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  statusIndicator: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 50,
+    marginLeft: 4,
+  },
+  openStatus: {
+    backgroundColor: '#E7F7EE',
+  },
+  closedStatus: {
+    backgroundColor: '#FEECEA',
+  },
+  statusText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#000000',
+  },
+  ratingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  ratingText: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginLeft: 4,
+  },
+  reviewCount: {
+    fontSize: 11,
+    color: '#666666',
+    marginLeft: 4,
+  },
+  cafeListContainer: {
+    paddingLeft: 16,
+    paddingRight: 4,
+  },
+
+  searchResultItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 12,
+    marginHorizontal: 16,
+    marginVertical: 6,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+  },
+  searchResultImageContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    overflow: 'hidden',
+    marginRight: 12,
+  },
+  searchResultImage: {
+    width: '100%',
+    height: '100%',
+  },
+  searchResultContent: {
+    flex: 1,
+  },
+  searchResultTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000000',
+  },
+  searchResultSubtitle: {
+    fontSize: 14,
+    color: '#666666',
+    marginBottom: 4,
+  },
+  categoryContainer: {
+    flexDirection: 'row',
+  },
+  categoryTag: {
+    backgroundColor: '#F2F2F7',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    alignSelf: 'flex-start',
+  },
+  categoryText: {
+    fontSize: 10,
+    fontWeight: '500',
+    color: '#666666',
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#000000',
+    marginHorizontal: 4,
+  },
+  viewMoreButton: {
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    marginLeft: 8,
+  },
+  viewMoreText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  gearCard: {
+    marginRight: 12,
+    width: 160,
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+});
+
 export default function SearchScreen() {
   const insets = useSafeAreaInsets();
   const { currentAccount, coffeeCollection } = useCoffee();
-  const { theme, isDarkMode } = useTheme(); // Add this line to use the theme
+  const { theme, isDarkMode } = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -845,10 +1537,10 @@ export default function SearchScreen() {
         <Image 
           source={imageSource}
           style={[
-            isGearItem ? styles.resultCoffeeImage : 
-            isCoffeeItem ? styles.resultCoffeeImage : 
-            isRoaster || isCafeLocation ? styles.resultBusinessImage : 
-            styles.resultUserImage,
+            isGearItem ? [styles.resultCoffeeImage, { backgroundColor: theme.placeholder }] : 
+            isCoffeeItem ? [styles.resultCoffeeImage, { backgroundColor: theme.placeholder }] : 
+            isRoaster || isCafeLocation ? [styles.resultBusinessImage, { backgroundColor: theme.placeholder }] : 
+            [styles.resultUserImage, { backgroundColor: theme.placeholder }],
             { borderColor: theme.divider }
           ]} 
           resizeMode="cover"
@@ -1360,9 +2052,15 @@ export default function SearchScreen() {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
+    <View style={[
+      styles.container, 
+      { 
+        backgroundColor: theme.background,
+        paddingTop: insets.top
+      }
+    ]}>
       <View style={styles.searchRow}>
-        <View style={[styles.searchContainer, { backgroundColor: isDarkMode ? '#1C1C1E' : SEARCH_INPUT_BG_COLOR }]}>
+        <View style={[styles.searchContainer, { backgroundColor: SEARCH_INPUT_BG_COLOR }]}>
           <Ionicons name="search" size={20} color={theme.primaryText} style={styles.searchIcon} />
           <TextInput
             ref={searchInputRef}
@@ -1406,7 +2104,7 @@ export default function SearchScreen() {
       </View>
 
       {isSearching && searchQuery.length > 0 ? (
-        <View style={[styles.searchResultsWrapper, { backgroundColor: theme.background }]}>
+        <View style={styles.searchResultsWrapper}>
           {!isInputFocused && renderFilterChips()}
           <FlatList
             data={filteredResults}
@@ -1414,16 +2112,16 @@ export default function SearchScreen() {
             keyExtractor={item => item.id}
             contentContainerStyle={styles.resultsContainer}
             ListEmptyComponent={
-              <View style={[styles.emptyContainer, { backgroundColor: theme.background }]}>
-                <Text style={[styles.emptyText, { color: theme.secondaryText }]}>No results found</Text>
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>No results found</Text>
               </View>
             }
           />
         </View>
       ) : isInputFocused && !searchQuery ? (
-        <View style={[styles.recentSearchesContainer, { backgroundColor: theme.background }]}>
+        <View style={styles.recentSearchesContainer}>
           <View style={styles.recentSearchesHeader}>
-            <Text style={[styles.recentSearchesTitle, { color: theme.primaryText }]}>Recent Searches</Text>
+            <Text style={styles.recentSearchesTitle}>Recent Searches</Text>
             {recentSearches.length > 0 && (
               <TouchableOpacity onPress={clearRecentSearches}>
                 <Text style={[styles.clearRecentText, { color: isDarkMode ? '#0A84FF' : '#007AFF' }]}>Clear All</Text>
@@ -1435,11 +2133,11 @@ export default function SearchScreen() {
             recentSearches.map((search, index) => (
               <TouchableOpacity 
                 key={index} 
-                style={[styles.recentSearchItem, { backgroundColor: theme.cardBackground }]}
+                style={styles.recentSearchItem}
                 onPress={() => handleRecentSearchPress(search)}
               >
                 <Ionicons name="time-outline" size={20} color={theme.primaryText} />
-                <Text style={[styles.recentSearchText, { color: theme.primaryText }]}>{search}</Text>
+                <Text style={styles.recentSearchText}>{search}</Text>
                 <TouchableOpacity 
                   style={styles.removeRecentButton}
                   onPress={() => removeRecentSearch(search)}
@@ -1449,14 +2147,14 @@ export default function SearchScreen() {
               </TouchableOpacity>
             ))
           ) : (
-            <View style={[styles.emptyRecentContainer, { backgroundColor: theme.background }]}>
-              <Text style={[styles.emptyRecentText, { color: theme.secondaryText }]}>No recent searches</Text>
+            <View style={styles.emptyRecentContainer}>
+              <Text style={styles.emptyRecentText}>No recent searches</Text>
             </View>
           )}
         </View>
       ) : (
         <ScrollView 
-          style={[styles.discoveryContainer, { backgroundColor: theme.background }]}
+          style={styles.discoveryContainer}
           contentContainerStyle={styles.discoveryContentContainer}
           showsVerticalScrollIndicator={false}
         >
@@ -1499,702 +2197,3 @@ export default function SearchScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  searchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: 16,
-    marginVertical: 8,
-  },
-  searchContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: SEARCH_INPUT_BG_COLOR,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    height: 48,
-    // No shadow or elevation
-  },
-  searchIcon: {
-    marginRight: 8,
-  },
-  searchInput: {
-    flex: 1,
-    height: '100%',
-    fontSize: 16,
-  },
-  clearButton: {
-    padding: 4,
-  },
-  cancelButton: {
-    marginLeft: 8,
-    paddingHorizontal: 10,
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    color: '#007AFF',
-    fontWeight: '500',
-  },
-  filterChipsContainer: {
-    backgroundColor: '#FFFFFF',
-    paddingVertical: 8,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
-  },
-  filterContainer: {
-    paddingHorizontal: 16,
-  },
-  filterChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#F2F2F7',
-    marginRight: 8,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-    height: 36,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  activeFilterChip: {
-    backgroundColor: '#000000',
-    borderColor: '#000000',
-  },
-  filterText: {
-    fontSize: 14,
-    color: '#000000',
-  },
-  activeFilterText: {
-    color: '#FFFFFF',
-  },
-  searchResultsWrapper: {
-    flex: 1,
-  },
-  resultsContainer: {
-    paddingBottom: 16,
-    paddingTop: 8,
-  },
-  resultItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-  },
-  resultContent: {
-    flex: 1,
-  },
-  coffeeName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000000',
-    marginBottom: 4,
-  },
-  roasterName: {
-    fontSize: 14,
-    color: '#666666',
-  },
-  emptyContainer: {
-    padding: 20,
-    alignItems: 'center',
-  },
-  emptyText: {
-    fontSize: 16,
-    color: '#666666',
-  },
-  discoveryContainer: {
-    flex: 1,
-  },
-  discoveryContentContainer: {
-    paddingTop: 16,
-  },
-  carouselSection: {
-    marginBottom: 32,
-  },
-  carouselSectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#000000',
-    marginHorizontal: 4,
-  },
-  carouselContainer: {
-    paddingHorizontal: 16,
-  },
-  carouselCard: {
-    width: 160,
-    borderRadius: 8,
-    overflow: 'hidden',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-    marginRight: 12,
-  },
-  carouselImage: {
-    width: '100%',
-    height: '100%',
-  },
-  carouselOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    paddingHorizontal: 12,
-    padding: 12,
-    paddingBottom: 4,
-  },
-  carouselTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    marginBottom: 4,
-  },
-  carouselSubtitle: {
-    fontSize: 14,
-    color: '#FFFFFF',
-    marginBottom: 1,
-  },
-  carouselStats: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  carouselPrice: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#FFFFFF',
-  },
-  carouselOrigin: {
-    fontSize: 14,
-    color: '#FFFFFF',
-  },
-  carouselType: {
-    fontSize: 14,
-    color: '#FFFFFF',
-  },
-  recentSearchesContainer: {
-    marginHorizontal: 16,
-    marginBottom: 24,
-    marginTop: 16,
-  },
-  recentSearchesHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  recentSearchesTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#000000',
-  },
-  recentSearchItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 8,
-  },
-  recentSearchText: {
-    fontSize: 16,
-    color: '#000000',
-    marginLeft: 12,
-  },
-  clearRecentText: {
-    fontSize: 14,
-    color: '#007AFF',
-  },
-  removeRecentButton: {
-    marginLeft: 'auto',
-    padding: 4,
-  },
-  emptyRecentContainer: {
-    padding: 20,
-    alignItems: 'center',
-  },
-  emptyRecentText: {
-    fontSize: 16,
-    color: '#666666',
-  },
-  userCard: {
-    width: 180,
-    height: 232,
-    borderRadius: 12,
-    marginRight: 12,
-    overflow: 'hidden',
-    backgroundColor: '#FFFFFF',
-    flexDirection: 'column',
-    alignItems: 'center',
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-  },
-  userAvatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    marginBottom: 12,
-    borderWidth: 1,
-  },
-  userInfo: {
-    width: '100%',
-    alignItems: 'center',
-  },
-  userName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000000',
-    marginBottom: 4,
-    textAlign: 'center',
-  },
-  userUsername: {
-    fontSize: 14,
-    color: '#666666',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  followButton: {
-    backgroundColor: '#000000',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginTop: 'auto',
-  },
-  followButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  eventCard: {
-    width: CARD_WIDTH,
-    height: CARD_HEIGHT,
-    borderRadius: 12,
-    marginHorizontal: 8,
-    overflow: 'hidden',
-    backgroundColor: '#FFFFFF',
-  },
-  eventImage: {
-    width: '100%',
-    height: '100%',
-  },
-  eventContent: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: 12,
-  },
-  eventUserInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  eventUserAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 8,
-    borderWidth: 1,
-  },
-  eventUserName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000000',
-  },
-  eventCoffeeName: {
-    fontSize: 14,
-    color: '#666666',
-  },
-  eventRoaster: {
-    fontSize: 14,
-    color: '#666666',
-  },
-  eventRating: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  eventRatingText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#000000',
-    marginLeft: 4,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginHorizontal: 16,
-    marginBottom: 12,
-  },
-  viewAllText: {
-    fontSize: 14,
-    // color: '#007AFF',
-    fontWeight: '600',
-    borderBottomWidth: 1,
-    borderBottomColor: '#000000',
-  },
-  cafeLogo: {
-    width: 40,
-    height: 40,
-    borderRadius: 4,
-    backgroundColor: '#242526',
-    borderWidth: 1,
-    borderColor: '#242526',
-    marginRight: 12,
-  },
-  cafeInfoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  cafeTextContainer: {
-    flex: 1,
-  },
-  popularCoffeeCard: {
-    width: CARD_WIDTH,
-    borderRadius: 12,
-    marginRight: 12,
-    overflow: 'hidden',
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-  },
-  popularCoffeeImage: {
-    width: 64,
-    height: 64,
-    borderRadius: 8,
-    marginRight: 12,
-    backgroundColor: '#E5E5EA',
-  },
-  popularCoffeeContent: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  popularCoffeeName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000000',
-    marginBottom: 3,
-  },
-  popularCoffeeRoaster: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#666666',
-    marginBottom: 8,
-  },
-  popularCoffeeDetails: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  popularCoffeeOriginContainer: {
-    flex: 1,
-  },
-  popularCoffeeOrigin: {
-    fontSize: 14,
-    color: '#666666',
-  },
-  popularCoffeePrice: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#000000',
-  },
-  userCarouselContainer: {
-    paddingHorizontal: 16,
-  },
-  cafeRoasterTag: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    marginTop: 4,
-    alignSelf: 'flex-start',
-  },
-  cafeRoasterTagText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  resultUserImage: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    marginRight: 12,
-    backgroundColor: '#F2F2F7',
-    borderWidth: 1,
-  },
-  resultBusinessImage: {
-    width: 44,
-    height: 44,
-    borderRadius: 8,
-    marginRight: 12,
-    backgroundColor: '#F2F2F7',
-    borderWidth: 1,
-  },
-  resultCoffeeImage: {
-    width: 44,
-    height: 44,
-    borderRadius: 6,
-    marginRight: 12,
-    backgroundColor: '#F2F2F7',
-    borderWidth: 1,
-  },
-  carouselRoasterContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  carouselRoasterLogo: {
-    width: 20,
-    height: 20,
-    borderRadius: 4,
-    marginRight: 8,
-    backgroundColor: '#FFFFFF',
-  },
-  recipeCard: {
-    width: 250,
-    borderRadius: 12,
-    marginRight: 12,
-    overflow: 'hidden',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-  },
-  recipeImage: {
-    width: '100%',
-    height: 140,
-    backgroundColor: '#E5E5EA',
-  },
-  recipeContent: {
-    padding: 12,
-  },
-  recipeName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000000',
-    marginBottom: 3,
-  },
-  recipeCoffeeName: {
-    fontSize: 14,
-    color: '#666666',
-    marginBottom: 8,
-  },
-  recipeCreatorContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  recipeCreatorAvatar: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    marginRight: 8,
-  },
-  recipeCreatorName: {
-    fontSize: 14,
-    color: '#333333',
-  },
-  recipeStatsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  recipeStat: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  recipeStatText: {
-    fontSize: 14,
-    color: '#666666',
-    marginLeft: 4,
-  },
-
-  suggestedUserCard: {
-    width: 170,
-    padding: 16,
-    borderRadius: 12,
-    marginRight: 12,
-    alignItems: 'center',
-  },
-  suggestedUserAvatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    marginBottom: 12,
-    backgroundColor: '#E5E5EA',
-    borderWidth: 1,
-  },
-  suggestedUserName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000000',
-    marginBottom: 4,
-    textAlign: 'center',
-  },
-  suggestedUserHandle: {
-    fontSize: 14,
-    color: '#666666',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  cafeListCard: {
-    borderRadius: 12,
-    marginRight: 12,
-    width: 280,
-    overflow: 'hidden',
-  },
-  cafeListImage: {
-    width: '100%',
-    height: 120,
-  },
-  cafeListContent: {
-    padding: 12,
-  },
-  cafeListHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  cafeListLogo: {
-    width: 40,
-    height: 40,
-    borderRadius: 4,
-    marginRight: 8,
-    borderWidth: 1,
-  },
-  cafeListTitleContainer: {
-    flex: 1,
-  },
-  cafeListName: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 2,
-  },
-  cafeListLocation: {
-    fontSize: 13,
-    color: '#666666',
-  },
-  cafeListStats: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  statusIndicator: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 50,
-    marginLeft: 4,
-  },
-  openStatus: {
-    backgroundColor: '#E7F7EE',
-  },
-  closedStatus: {
-    backgroundColor: '#FEECEA',
-  },
-  statusText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#000000',
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  ratingText: {
-    fontSize: 12,
-    fontWeight: '600',
-    marginLeft: 4,
-  },
-  reviewCount: {
-    fontSize: 11,
-    color: '#666666',
-    marginLeft: 4,
-  },
-  cafeListContainer: {
-    paddingLeft: 16,
-    paddingRight: 4,
-  },
-
-  searchResultItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 12,
-    marginHorizontal: 16,
-    marginVertical: 6,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-  },
-  searchResultImageContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 8,
-    overflow: 'hidden',
-    marginRight: 12,
-  },
-  searchResultImage: {
-    width: '100%',
-    height: '100%',
-  },
-  searchResultContent: {
-    flex: 1,
-  },
-  searchResultTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000000',
-  },
-  searchResultSubtitle: {
-    fontSize: 14,
-    color: '#666666',
-    marginBottom: 4,
-  },
-  categoryContainer: {
-    flexDirection: 'row',
-  },
-  categoryTag: {
-    backgroundColor: '#F2F2F7',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    alignSelf: 'flex-start',
-  },
-  categoryText: {
-    fontSize: 10,
-    fontWeight: '500',
-    color: '#666666',
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#000000',
-    marginHorizontal: 4,
-  },
-  viewMoreButton: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    marginLeft: 8,
-  },
-  viewMoreText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  gearCard: {
-    marginRight: 12,
-    width: 160,
-    borderRadius: 8,
-    overflow: 'hidden',
-  },
-}); 
