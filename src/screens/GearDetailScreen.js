@@ -721,8 +721,10 @@ const styles = StyleSheet.create({
   },
   brandName: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '400',
     marginBottom: 12,
+    // borderBottomWidth: 1,
+    // borderBottomColor: '#E5E5EA',
   },
   ratingSection: {
     marginBottom: 16,
@@ -758,6 +760,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginVertical: 16,
+    marginTop: 8,
     // marginTop: 12,
     gap: 8,
   },
