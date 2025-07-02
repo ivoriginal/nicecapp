@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator, CardStyleInterpolators } from '@react-navigation/stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { StyleSheet, TouchableOpacity, ActionSheetIOS, Platform, Alert, Share, StatusBar as RNStatusBar } from 'react-native';
+import { StyleSheet, TouchableOpacity, ActionSheetIOS, Platform, Alert, Share, StatusBar as RNStatusBar, View } from 'react-native';
 import BottomTabNavigator from './src/navigation/BottomTabNavigator';
 import CoffeeDetailScreen from './src/screens/CoffeeDetailScreen';
 import RecipeDetailScreen from './src/screens/RecipeDetailScreen';
@@ -28,6 +28,7 @@ import AddCoffeeFromURL from './src/screens/AddCoffeeFromURL';
 import AddCoffeeFromCamera from './src/screens/AddCoffeeFromCamera';
 import AddCoffeeFromGallery from './src/screens/AddCoffeeFromGallery';
 import AddCoffeeManually from './src/screens/AddCoffeeManually';
+import AddGearScreen from './src/screens/AddGearScreen';
 import { CoffeeProvider, useCoffee } from './src/context/CoffeeContext';
 import { NotificationsProvider } from './src/context/NotificationsContext';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
@@ -204,89 +205,92 @@ function AppContent() {
     backgroundColor: theme.background
   };
 
+  // iOS-specific navigation container theme to prevent background color issues
+  const navigationTheme = {
+    dark: isDarkMode,
+    colors: {
+      primary: theme.primaryText,
+      background: Platform.OS === 'ios' ? 'transparent' : theme.background,
+      card: theme.cardBackground,
+      text: theme.primaryText,
+      border: theme.divider,
+      notification: '#FF3B30',
+    },
+    fonts: Platform.select({
+      web: {
+        regular: {
+          fontFamily: 'System',
+          fontWeight: '400',
+        },
+        medium: {
+          fontFamily: 'System',
+          fontWeight: '500',
+        },
+        bold: {
+          fontFamily: 'System',
+          fontWeight: '600',
+        },
+        heavy: {
+          fontFamily: 'System',
+          fontWeight: '700',
+        },
+      },
+      ios: {
+        regular: {
+          fontFamily: 'System',
+          fontWeight: '400',
+        },
+        medium: {
+          fontFamily: 'System',
+          fontWeight: '500',
+        },
+        bold: {
+          fontFamily: 'System',
+          fontWeight: '600',
+        },
+        heavy: {
+          fontFamily: 'System',
+          fontWeight: '700',
+        },
+      },
+      default: {
+        regular: {
+          fontFamily: 'sans-serif',
+          fontWeight: 'normal',
+        },
+        medium: {
+          fontFamily: 'sans-serif-medium',
+          fontWeight: 'normal',
+        },
+        bold: {
+          fontFamily: 'sans-serif',
+          fontWeight: '600',
+        },
+        heavy: {
+          fontFamily: 'sans-serif',
+          fontWeight: '700',
+        },
+      },
+    }),
+  };
+
   return (
     <>
       <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
       <NotificationsProvider>
-        <NavigationContainer
-          theme={{
-            dark: isDarkMode,
-            colors: {
-              primary: theme.primaryText,
-              background: theme.background,
-              card: theme.cardBackground,
-              text: theme.primaryText,
-              border: theme.divider,
-              notification: '#FF3B30',
-            },
-            fonts: Platform.select({
-              web: {
-                regular: {
-                  fontFamily: 'System',
-                  fontWeight: '400',
-                },
-                medium: {
-                  fontFamily: 'System',
-                  fontWeight: '500',
-                },
-                bold: {
-                  fontFamily: 'System',
-                  fontWeight: '600',
-                },
-                heavy: {
-                  fontFamily: 'System',
-                  fontWeight: '700',
-                },
-              },
-              ios: {
-                regular: {
-                  fontFamily: 'System',
-                  fontWeight: '400',
-                },
-                medium: {
-                  fontFamily: 'System',
-                  fontWeight: '500',
-                },
-                bold: {
-                  fontFamily: 'System',
-                  fontWeight: '600',
-                },
-                heavy: {
-                  fontFamily: 'System',
-                  fontWeight: '700',
-                },
-              },
-              default: {
-                regular: {
-                  fontFamily: 'sans-serif',
-                  fontWeight: 'normal',
-                },
-                medium: {
-                  fontFamily: 'sans-serif-medium',
-                  fontWeight: 'normal',
-                },
-                bold: {
-                  fontFamily: 'sans-serif',
-                  fontWeight: '600',
-                },
-                heavy: {
-                  fontFamily: 'sans-serif',
-                  fontWeight: '700',
-                },
-              },
-            }),
-          }}
-        >
-          <CoffeeProvider>
-            <AuthenticatedNavigator 
-              theme={theme} 
-              handleRecipeOptions={handleRecipeOptions} 
-              handleCoffeeOptions={handleCoffeeOptions}
-              headerStyle={headerStyle}
-              headerTintColor={headerTintColor}
-              cardStyle={cardStyle}
-            />
-          </CoffeeProvider>
+        <NavigationContainer theme={navigationTheme}>
+          <View style={{ flex: 1, backgroundColor: theme.background }}>
+            <CoffeeProvider>
+              <AuthenticatedNavigator 
+                theme={theme} 
+                handleRecipeOptions={handleRecipeOptions} 
+                handleCoffeeOptions={handleCoffeeOptions}
+                headerStyle={headerStyle}
+                headerTintColor={headerTintColor}
+                cardStyle={cardStyle}
+              />
+            </CoffeeProvider>
+          </View>
         </NavigationContainer>
       </NotificationsProvider>
     </>
@@ -322,14 +326,14 @@ function AuthenticatedNavigator({ theme, handleRecipeOptions, handleCoffeeOption
           cardStyleInterpolator: CardStyleInterpolators.forNoAnimation,
         }} 
       >
-        {(props) => <MainNavigator {...props} theme={theme} handleRecipeOptions={handleRecipeOptions} handleCoffeeOptions={handleCoffeeOptions} />}
+        {(props) => <MainNavigator {...props} theme={theme} handleRecipeOptions={handleRecipeOptions} handleCoffeeOptions={handleCoffeeOptions} headerStyle={headerStyle} />}
       </Stack.Screen>
     </Stack.Navigator>
   );
 }
 
 // MainNavigator component to handle all screens when authenticated
-function MainNavigator({ theme, handleRecipeOptions, handleCoffeeOptions }) {
+function MainNavigator({ theme, handleRecipeOptions, handleCoffeeOptions, headerStyle }) {
   return (
     <Stack.Navigator
       screenOptions={{
@@ -446,6 +450,15 @@ function MainNavigator({ theme, handleRecipeOptions, handleCoffeeOptions }) {
           title: route.params?.isCurrentUser ? 'My Gear Wishlist' : `${route.params?.userName}'s Gear Wishlist`,
           headerBackTitle: 'Back'
         })} 
+      />
+      <Stack.Screen 
+        name="AddGear" 
+        component={AddGearScreen} 
+        options={{ 
+          title: 'Add Gear',
+          headerBackTitle: 'Back',
+          cardStyleInterpolator: CardStyleInterpolators.forVerticalIOS,
+        }} 
       />
       <Stack.Screen 
         name="GearList" 
