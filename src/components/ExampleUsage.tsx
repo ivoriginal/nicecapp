@@ -77,7 +77,7 @@ const ExampleUsage: React.FC<ExampleUsageProps> = ({ coffeeId }) => {
           <p><strong>Process:</strong> {coffee.process}</p>
           <p><strong>Varietal:</strong> {coffee.varietal}</p>
           <p><strong>Profile:</strong> {coffee.profile}</p>
-          <p><strong>Price:</strong> ${coffee.price}</p>
+          <p><strong>Price:</strong> €{coffee.price}</p>
         </div>
       </div>
 
