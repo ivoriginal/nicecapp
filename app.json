@@ -13,7 +13,12 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "We need access to your camera to take photos of coffee bags.",
+        "NSPhotoLibraryUsageDescription": "We need access to your photo library to select coffee bag photos.",
+        "NSMicrophoneUsageDescription": "We need access to your microphone for video recording."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -22,10 +27,26 @@
       },
       "navigationBarColor": "#ffffff",
       "softwareKeyboardLayoutMode": "pan",
-      "navigationBarHidden": false
+      "navigationBarHidden": false,
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow $(PRODUCT_NAME) to access your photos to select coffee bag images.",
+          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera to take photos of coffee bags.",
+          "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone."
+        }
+      ]
+    ]
   }
 }
