@@ -89,7 +89,7 @@ export default function AddCoffeeScreen({ navigation, route }) {
     grinderUsed: '',
     steps: recipeToRemix?.steps || [],
     location: 'Home',
-    locationId: null,
+    locationId: 'home',
   });
   
   // Extract minutes and seconds from brewTime if provided as "M:SS" format
@@ -142,6 +142,7 @@ export default function AddCoffeeScreen({ navigation, route }) {
   const [showTopBorder, setShowTopBorder] = useState(false);
   const nameInputRef = useRef(null);
   const scrollViewRef = useRef(null);
+  const recipeModalScrollRef = useRef(null);
   const { autoSelectCoffee } = route.params || {};
 
   const { 
@@ -170,7 +171,7 @@ export default function AddCoffeeScreen({ navigation, route }) {
 
   // State for location search and filtering
   const [locationSearchText, setLocationSearchText] = useState('');
-  const [filteredLocations, setFilteredLocations] = useState(cafeLocations);
+  const [filteredLocations, setFilteredLocations] = useState([]);
   const [nearMeEnabled, setNearMeEnabled] = useState(false);
   
   // State for friend tagging
@@ -310,32 +311,24 @@ export default function AddCoffeeScreen({ navigation, route }) {
     setNearMeEnabled(newNearMeState);
     filterLocations(locationSearchText, newNearMeState);
   };
+
+  // Initialize filtered locations on mount
+  useEffect(() => {
+    filterLocations('', false);
+  }, []);
   
   // Filter locations based on search text and near me toggle
   const filterLocations = (searchText, nearMe) => {
-    let filtered = cafeLocations;
+    let filtered = cafeLocations.filter(location => 
+      // Exclude the home location from the list
+      location.id !== 'home' && 
+      location.name.toLowerCase().includes(searchText.toLowerCase())
+    );
     
-    // Apply search text filter if provided
-    if (searchText.trim() !== '') {
-      filtered = filtered.filter(
-        location => 
-          // Always include Home
-          location.isDefault || 
-          // Filter by name or address containing the search text
-          location.name.toLowerCase().includes(searchText.toLowerCase()) ||
-          (location.address && location.address.toLowerCase().includes(searchText.toLowerCase()))
-      );
-    }
-    
-    // Apply near me filter if enabled
     if (nearMe) {
-      // In a real app, this would filter based on user's GPS coordinates
-      // For demo, just filter to show a subset of locations
-      filtered = filtered.filter(
-        location => 
-          location.isDefault || 
-          location.id.includes('kima') || 
-          location.id.includes('cafelab')
+      // Filter for Murcia locations (assuming this is indicated by address containing "Murcia")
+      filtered = filtered.filter(location => 
+        location.address && location.address.toLowerCase().includes('murcia')
       );
     }
     
@@ -472,7 +465,7 @@ export default function AddCoffeeScreen({ navigation, route }) {
         grinderUsed: '',
         steps: [],
         location: 'Home',
-        locationId: null,
+        locationId: 'home',
       });
       setCoffeeSuggestions([]);
       setRecipeSuggestions([]);
@@ -773,7 +766,7 @@ export default function AddCoffeeScreen({ navigation, route }) {
         grinderUsed: '',
         steps: [],
         location: 'Home',
-        locationId: null,
+        locationId: 'home',
       });
       setTaggedFriends([]);
       setSelectedRecipe(null);
@@ -1011,7 +1004,7 @@ export default function AddCoffeeScreen({ navigation, route }) {
               handleCreateRecipe();
             }}
           >
-            <Ionicons name="add" size={20} color="#007AFF" />
+            <Ionicons name="add" size={20} color={theme.primaryText} />
             <Text style={styles.createFirstRecipeButtonText}>Create Recipe</Text>
           </TouchableOpacity>
         </View>
@@ -1252,46 +1245,31 @@ export default function AddCoffeeScreen({ navigation, route }) {
   const renderLocationSelector = () => (
     <Modal
       visible={showLocationSelector}
-      transparent={true}
       animationType="slide"
+      transparent={true}
       onRequestClose={() => setShowLocationSelector(false)}
     >
-      <View style={styles.modalOverlay}>
-        <View style={[styles.selectorModalContent, { paddingBottom: insets.bottom + (keyboardVisible ? keyboardHeight : 0) }]}>
-          <View style={styles.selectorModalHeader}>
-            <Text style={styles.selectorModalTitle}>Select Location</Text>
+      <View style={styles.modalContainer}>
+        <View style={[styles.modalContent, { backgroundColor: theme.cardBackground }]}>
+          <View style={[styles.modalHeader, { borderBottomWidth: 0 }]}>
+            <Text style={[styles.modalTitle, { color: theme.primaryText }]}>Select Location</Text>
             <TouchableOpacity 
-              style={styles.selectorModalCloseButton}
               onPress={() => setShowLocationSelector(false)}
+              style={styles.closeButton}
             >
               <Ionicons name="close" size={24} color={theme.primaryText} />
             </TouchableOpacity>
           </View>
-          
-          {/* Near me toggle */}
-          <View style={styles.nearMeToggleContainer}>
-            <View style={styles.nearMeToggleContent}>
-              <Ionicons name="locate" size={20} color="#666" style={styles.nearMeIcon} />
-              <Text style={styles.nearMeText}>Near Me</Text>
-            </View>
-            <Switch
-              value={nearMeEnabled}
-              onValueChange={toggleNearMe}
-              trackColor={{ false: isDarkMode ? '#38383A' : '#E0E0E0', true: isDarkMode ? '#48484A' : '#CCCCCC' }}
-              thumbColor={nearMeEnabled ? (isDarkMode ? '#FFFFFF' : '#000000') : (isDarkMode ? '#8E8E93' : '#FFFFFF')}
-            />
-          </View>
-          
-          {/* Search field */}
+
           <View style={styles.locationSearchContainer}>
-            <Ionicons name="search" size={20} color="#666" style={styles.locationSearchIcon} />
+            <Ionicons name="search" size={20} color={theme.secondaryText} style={styles.locationSearchIcon} />
             <TextInput
               style={styles.locationSearchInput}
               placeholder="Search cafés"
               value={locationSearchText}
               onChangeText={handleLocationSearch}
               keyboardAppearance={isDarkMode ? 'dark' : 'light'}
-              clearButtonMode="while-editing"
+              clearButtonMode="never"
             />
             {locationSearchText ? (
               <TouchableOpacity
@@ -1302,53 +1280,104 @@ export default function AddCoffeeScreen({ navigation, route }) {
               </TouchableOpacity>
             ) : null}
           </View>
-          
-          <FlatList
-            data={filteredLocations}
-            keyExtractor={(item) => item.id}
-            style={styles.locationList}
-            renderItem={({ item }) => (
-              <TouchableOpacity 
-                style={styles.selectorModalItem}
+
+          <TouchableOpacity 
+            style={[
+              styles.nearMeToggleContainer,
+              nearMeEnabled && { backgroundColor: theme.altBackground }
+            ]}
+            onPress={toggleNearMe}
+          >
+            <View style={styles.nearMeToggleContent}>
+              <Ionicons name="locate" size={20} color={theme.secondaryText} style={styles.nearMeIcon} />
+              <Text style={styles.nearMeText}>Near me</Text>
+            </View>
+            <Switch
+              value={nearMeEnabled}
+              onValueChange={toggleNearMe}
+              trackColor={{ false: '#E5E5EA', true: '#34C759' }}
+            />
+          </TouchableOpacity>
+
+          <ScrollView style={styles.locationList}>
+            {/* Add "None" option at the top */}
+            <TouchableOpacity
+              style={[
+                styles.selectorModalItem,
+                coffeeData.locationId === 'home' && styles.selectorModalItemSelected
+              ]}
+              onPress={() => {
+                setCoffeeData({
+                  ...coffeeData,
+                  locationId: 'home',
+                  location: 'Home'
+                });
+                setShowLocationSelector(false);
+              }}
+            >
+              <View style={styles.locationItem}>
+                <View style={styles.locationIcon}>
+                  <Ionicons name="close" size={20} color={theme.secondaryText} />
+                </View>
+                <View style={styles.locationInfo}>
+                  <Text style={[styles.selectorModalItemText, { color: theme.primaryText }]}>
+                    None
+                  </Text>
+                  <Text style={[styles.locationAddress, { color: theme.secondaryText }]}>
+                    Clear location selection
+                  </Text>
+                </View>
+              </View>
+              {coffeeData.locationId === 'home' && (
+                <Ionicons name="checkmark" size={24} color={theme.accent || '#007AFF'} />
+              )}
+            </TouchableOpacity>
+            
+            {filteredLocations.map(location => (
+              <TouchableOpacity
+                key={location.id}
+                style={[
+                  styles.selectorModalItem,
+                  coffeeData.locationId === location.id && styles.selectorModalItemSelected
+                ]}
                 onPress={() => {
-                  setCoffeeData({
-                    ...coffeeData,
-                    location: item.name,
-                    locationId: item.id
-                  });
+                  // If clicking on already selected location, unselect it
+                  if (coffeeData.locationId === location.id) {
+                    setCoffeeData({
+                      ...coffeeData,
+                      locationId: 'home',
+                      location: 'Home'
+                    });
+                  } else {
+                    setCoffeeData({
+                      ...coffeeData,
+                      locationId: location.id,
+                      location: location.name
+                    });
+                  }
                   setShowLocationSelector(false);
                 }}
               >
                 <View style={styles.locationItem}>
-                  {item.isDefault ? (
-                    <Ionicons name="home" size={20} color={theme.primaryText} style={styles.locationIcon} />
-                  ) : item.logo ? (
-                    <Image 
-                      source={getImageSource(item.logo)} 
-                      style={styles.locationLogo}
-                    />
-                  ) : (
-                    <View style={styles.locationLogoPlaceholder}>
-                      <Text style={styles.locationLogoPlaceholderText}>
-                        {item.name.substring(0, 1)}
-                      </Text>
-                    </View>
-                  )}
+                  <Image 
+                    source={getImageSource(location.logo)} 
+                    style={styles.locationLogo} 
+                  />
                   <View style={styles.locationInfo}>
-                    <Text style={styles.selectorModalItemText}>{item.name}</Text>
-                    {item.address && (
-                      <Text style={styles.locationAddress}>{item.address}</Text>
-                    )}
+                    <Text style={[styles.selectorModalItemText, { color: theme.primaryText }]}>
+                      {location.name}
+                    </Text>
+                    <Text style={[styles.locationAddress, { color: theme.secondaryText }]}>
+                      {location.address}
+                    </Text>
                   </View>
                 </View>
+                {coffeeData.locationId === location.id && (
+                  <Ionicons name="checkmark" size={24} color={theme.accent || '#007AFF'} />
+                )}
               </TouchableOpacity>
-            )}
-            ListEmptyComponent={
-              <View style={styles.emptyLocationsContainer}>
-                <Text style={styles.emptyText}>No locations found</Text>
-              </View>
-            }
-          />
+            ))}
+          </ScrollView>
         </View>
       </View>
     </Modal>
@@ -1381,14 +1410,14 @@ export default function AddCoffeeScreen({ navigation, route }) {
           
           {/* Search field */}
           <View style={styles.friendSearchContainer}>
-            <Ionicons name="search" size={20} color="#666" style={styles.friendSearchIcon} />
+            <Ionicons name="search" size={20} color={theme.secondaryText} style={styles.friendSearchIcon} />
             <TextInput
               style={styles.friendSearchInput}
               placeholder="Search friends..."
               value={friendSearchText}
               onChangeText={handleFriendSearch}
               keyboardAppearance={isDarkMode ? 'dark' : 'light'}
-              clearButtonMode="while-editing"
+              clearButtonMode="never"
               autoCapitalize="none"
             />
             {friendSearchText ? (
@@ -1455,19 +1484,23 @@ export default function AddCoffeeScreen({ navigation, route }) {
             }
           />
           
-          {/* Confirm button at the bottom */}
-          {selectedFriendsTemp.length > 0 && (
-            <View style={styles.friendSelectorFooter}>
-              <TouchableOpacity 
-                style={styles.confirmFriendsButton}
-                onPress={confirmFriendSelections}
-              >
-                <Text style={styles.confirmFriendsText}>
-                  Add {selectedFriendsTemp.length} {selectedFriendsTemp.length === 1 ? 'friend' : 'friends'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          )}
+          {/* Confirm button at the bottom - always visible */}
+          <View style={styles.friendSelectorFooter}>
+            <TouchableOpacity 
+              style={[
+                styles.confirmFriendsButton,
+                selectedFriendsTemp.length === 0 && { opacity: 0.5 }
+              ]}
+              onPress={confirmFriendSelections}
+              disabled={selectedFriendsTemp.length === 0}
+            >
+              <Text style={styles.confirmFriendsText}>
+                {selectedFriendsTemp.length > 0 
+                  ? `Tag ${selectedFriendsTemp.length} ${selectedFriendsTemp.length === 1 ? 'friend' : 'friends'}`
+                  : 'Tag friends'}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     </Modal>
@@ -1475,6 +1508,16 @@ export default function AddCoffeeScreen({ navigation, route }) {
 
   const renderFriendTags = () => (
     <View style={styles.friendTagsContainer}>
+      <TouchableOpacity 
+        style={styles.addFriendButton}
+        onPress={() => {
+          setSelectedFriendsTemp([]); // Reset temp selections when opening
+          setShowFriendSelector(true);
+        }}
+      >
+        <Ionicons name="add" size={20} color={theme.primaryText} />
+        <Text style={styles.addFriendText}>Tag a friend</Text>
+      </TouchableOpacity>
       {taggedFriends.map(friend => (
         <View key={friend.id} style={styles.friendTag}>
           {friend.userAvatar && (
@@ -1492,16 +1535,6 @@ export default function AddCoffeeScreen({ navigation, route }) {
           </TouchableOpacity>
         </View>
       ))}
-      <TouchableOpacity 
-        style={styles.addFriendButton}
-        onPress={() => {
-          setSelectedFriendsTemp([]); // Reset temp selections when opening
-          setShowFriendSelector(true);
-        }}
-      >
-        <Ionicons name="add" size={20} color={theme.primaryText} />
-        <Text style={styles.addFriendText}>Tag a friend</Text>
-      </TouchableOpacity>
     </View>
   );
 
@@ -1679,9 +1712,9 @@ export default function AddCoffeeScreen({ navigation, route }) {
         onScroll={handleScroll}
         scrollEventThrottle={16}
       >
-          <View style={styles.inputContainer}>
+          <View>
             {coffeeData.coffeeId ? (
-              <View style={styles.selectedCoffeeContainer}>
+              <View style={[styles.selectedCoffeeContainer, { marginHorizontal: 16 }]}>
                 <Image 
                   source={{ uri: coffeeSuggestions[0]?.imageUrl || coffeeSuggestions[0]?.image }} 
                   style={styles.selectedCoffeeImage} 
@@ -1698,7 +1731,7 @@ export default function AddCoffeeScreen({ navigation, route }) {
                 </TouchableOpacity>
               </View>
             ) : (
-              <View>
+              <View style={styles.inputContainer}>
                 <View style={styles.inputWrapper}>
                   <TouchableOpacity 
                     activeOpacity={0.8}
@@ -1810,16 +1843,22 @@ export default function AddCoffeeScreen({ navigation, route }) {
               >
                 <View style={styles.locationSelectorContent}>
                   {coffeeData.locationId === 'home' ? (
-                    <Ionicons name="home" size={20} color={theme.secondaryText} style={styles.locationIcon} />
+                    <View style={styles.locationIcon}>
+                      <Ionicons name="home" size={20} color={theme.secondaryText} />
+                    </View>
                   ) : coffeeData.locationId === 'near-me' ? (
-                    <Ionicons name="navigate" size={20} color={theme.secondaryText} style={styles.locationIcon} />
+                    <View style={styles.locationIcon}>
+                      <Ionicons name="navigate" size={20} color={theme.secondaryText} />
+                    </View>
                   ) : coffeeData.locationId ? (
                     <Image 
                       source={getImageSource(cafeLocations.find(loc => loc.id === coffeeData.locationId)?.logo)} 
                       style={styles.locationLogo} 
                     />
                   ) : (
-                    <Ionicons name="home" size={20} color={theme.secondaryText} style={styles.locationIcon} />
+                    <View style={styles.locationIcon}>
+                      <Ionicons name="home" size={20} color={theme.secondaryText} />
+                    </View>
                   )}
                   <Text style={styles.selectorButtonText}>
                     {coffeeData.location}
@@ -2011,41 +2050,115 @@ export default function AddCoffeeScreen({ navigation, route }) {
 
 
 
-  const renderCreateRecipeModal = () => {
-    const [recipeData, setRecipeData] = useState({
-      method: '',
-      amount: '',
-      grindSize: 'Medium',
-      waterVolume: '',
-      brewTime: '',
-      notes: ''
-    });
+  // Move state variables outside of render function so they persist
+  const [recipeModalData, setRecipeModalData] = useState({
+    method: '',
+    amount: '',
+    grindSize: 'Medium',
+    waterVolume: '',
+    brewMinutes: '',
+    brewSeconds: '',
+    notes: '',
+    gear: [],
+    grinder: '',
+    clicks: '',
+    steps: []
+  });
+  
+  const [showMethodSelector, setShowMethodSelector] = useState(false);
+  const [showGearSelector, setShowGearSelector] = useState(false);
+  const [showGrinderSelector, setShowGrinderSelector] = useState(false);
 
+  // Selector states for inline dropdowns
+
+  // Define options arrays at component level
+  const brewingMethods = ['V60', 'Chemex', 'AeroPress', 'French Press', 'Espresso', 'Kalita Wave', 'Siphon'];
+  const gearOptions = ['V60', 'Chemex', 'AeroPress', 'French Press', 'Espresso Machine', 'Kalita Wave', 'Siphon', 'Scale', 'Timer', 'Thermometer'];
+  const grinderOptions = ['Commandante', 'Baratza Encore', 'Hario Mini Mill', 'Timemore C2', '1Zpresso JX', 'Manual', 'Other'];
+
+  // Define handler functions at component level
+  const handleMethodSelect = (method) => {
+    // Auto-select the coffee maker based on brewing method
+    let newGear = [];
+    if (method === 'Chemex') {
+      newGear = ['Chemex'];
+    } else if (method === 'V60') {
+      newGear = ['V60'];
+    } else if (method === 'AeroPress') {
+      newGear = ['AeroPress'];
+    } else if (method === 'French Press') {
+      newGear = ['French Press'];
+    } else if (method === 'Espresso') {
+      newGear = ['Espresso Machine'];
+    } else if (method === 'Kalita Wave') {
+      newGear = ['Kalita Wave'];
+    } else if (method === 'Siphon') {
+      newGear = ['Siphon'];
+    } else {
+      // For other methods, keep existing gear or add the method if it exists in gear options
+      newGear = [...(recipeModalData.gear || [])];
+      if (gearOptions.includes(method) && !newGear.includes(method)) {
+        newGear.push(method);
+      }
+    }
+    setRecipeModalData({...recipeModalData, method, gear: newGear});
+    setShowMethodSelector(false);
+  };
+  
+  const handleGearToggle = (gearItem) => {
+    const currentGear = recipeModalData.gear || [];
+    const newGear = currentGear.includes(gearItem)
+      ? currentGear.filter(g => g !== gearItem)
+      : [...currentGear, gearItem];
+    setRecipeModalData({...recipeModalData, gear: newGear});
+  };
+  
+  const handleGrinderSelect = (grinder) => {
+    setRecipeModalData({...recipeModalData, grinder, clicks: grinder === 'Commandante' ? recipeModalData.clicks : ''});
+    setShowGrinderSelector(false);
+  };
+
+      // Modal-based selectors replaced with inline selectors
+
+  const renderCreateRecipeModal = () => {
+  
     // Initialize recipe data when remix recipe changes or when creating new recipe
     useEffect(() => {
       if (isRemixing && recipeToRemix) {
-        setRecipeData({
+        setRecipeModalData({
           method: recipeToRemix.method || recipeToRemix.brewingMethod || '',
           amount: recipeToRemix.amount || recipeToRemix.coffeeAmount || '',
           grindSize: recipeToRemix.grindSize || 'Medium',
           waterVolume: recipeToRemix.waterVolume || recipeToRemix.waterAmount || '',
           brewTime: recipeToRemix.brewTime || '',
-          notes: '' // Keep notes empty by default for remixes
+          notes: '', // Keep notes empty by default for remixes
+          gear: [],
+          grinder: '',
+          clicks: '',
+          brewMinutes: '',
+          brewSeconds: '',
+          steps: recipeToRemix.steps || []
         });
       } else {
-        setRecipeData({
+        setRecipeModalData({
           method: '',
           amount: '',
           grindSize: 'Medium',
           waterVolume: '',
           brewTime: '',
-          notes: ''
+          notes: '',
+          gear: [],
+          grinder: '',
+          clicks: '',
+          brewMinutes: '',
+          brewSeconds: '',
+          steps: []
         });
       }
     }, [isRemixing, recipeToRemix]);
 
     const handleSaveRecipe = async () => {
-      if (!recipeData.method || !recipeData.amount || !recipeData.waterVolume) {
+      if (!recipeModalData.method || !recipeModalData.amount || !recipeModalData.waterVolume) {
         Alert.alert('Error', 'Please fill in all required fields.');
         return;
       }
@@ -2054,15 +2167,15 @@ export default function AddCoffeeScreen({ navigation, route }) {
         const recipeId = `recipe-${Date.now()}`;
         const newRecipe = {
           id: recipeId,
-          name: `${coffeeData.name} ${recipeData.method}`,
+          name: `${coffeeData.name} ${recipeModalData.method}`,
           coffeeId: coffeeData.coffeeId,
           coffeeName: coffeeData.name,
-          method: recipeData.method,
-          amount: recipeData.amount,
-          grindSize: recipeData.grindSize,
-          waterVolume: recipeData.waterVolume,
-          brewTime: recipeData.brewTime,
-          notes: recipeData.notes,
+          method: recipeModalData.method,
+          amount: recipeModalData.amount,
+          grindSize: recipeModalData.grindSize,
+          waterVolume: recipeModalData.waterVolume,
+          brewTime: recipeModalData.brewTime,
+          notes: recipeModalData.notes,
           creatorId: currentAccount?.id || 'user-default',
           creatorName: currentAccount?.userName || 'You',
           creatorAvatar: currentAccount?.userAvatar,
@@ -2128,33 +2241,45 @@ export default function AddCoffeeScreen({ navigation, route }) {
     };
 
     return (
-      <Modal
-        visible={showCreateRecipe}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => {
-          setShowCreateRecipe(false);
-          setRemixRecipe(null);
-        }}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
-                {isRemixing || remixRecipe ? 'Remix Recipe' : 'Create Recipe'}
-              </Text>
-              <TouchableOpacity 
-                onPress={() => {
-                  setShowCreateRecipe(false);
-                  setRemixRecipe(null);
-                }}
-                style={styles.closeButton}
-              >
-                <Ionicons name="close" size={24} color={theme.primaryText} />
-              </TouchableOpacity>
-            </View>
+      <>
+        <Modal
+          visible={showCreateRecipe}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={() => setShowCreateRecipe(false)}
+        >
+        <View style={[styles.reviewModalContainer, { backgroundColor: theme.background }]}>
+          <View style={[styles.reviewModalHeader, { borderBottomColor: theme.divider }]}>
+            <TouchableOpacity onPress={() => setShowCreateRecipe(false)}>
+              <Text style={[styles.reviewModalCancel, { color: theme.primaryText }]}>Cancel</Text>
+            </TouchableOpacity>
+            <Text style={[styles.reviewModalTitle, { color: theme.primaryText }]}>Create Recipe</Text>
+            <TouchableOpacity 
+              onPress={handleSaveRecipe}
+              disabled={!recipeModalData.method || !recipeModalData.amount || !recipeModalData.waterVolume}
+            >
+              <Text style={[
+                styles.reviewModalSubmit, 
+                { 
+                  color: (!recipeModalData.method || !recipeModalData.amount || !recipeModalData.waterVolume) 
+                    ? theme.secondaryText 
+                    : theme.primaryText,
+                  opacity: (!recipeModalData.method || !recipeModalData.amount || !recipeModalData.waterVolume) ? 0.5 : 1
+                }
+              ]}>Save</Text>
+            </TouchableOpacity>
+          </View>
 
-            <ScrollView style={styles.previewContent}>
+          <View style={styles.reviewModalContent}>
+            <ScrollView
+              ref={recipeModalScrollRef}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="interactive"
+              contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 300 }}
+              showsVerticalScrollIndicator={true}
+              scrollToOverflowEnabled={true}
+              nestedScrollEnabled={true}
+            >
               {/* Coffee Card */}
               <View style={styles.selectedCoffeeContainer}>
                 <Image 
@@ -2162,14 +2287,14 @@ export default function AddCoffeeScreen({ navigation, route }) {
                   style={styles.selectedCoffeeImage} 
                 />
                 <View style={styles.selectedCoffeeInfo}>
-                  <Text style={styles.selectedCoffeeName}>{coffeeData.name}</Text>
-                  <Text style={styles.selectedCoffeeRoaster}>{coffeeSuggestions[0]?.roaster}</Text>
+                  <Text style={[styles.selectedCoffeeName, { color: theme.primaryText }]}>{coffeeData.name}</Text>
+                  <Text style={[styles.selectedCoffeeRoaster, { color: theme.secondaryText }]}>{coffeeSuggestions[0]?.roaster}</Text>
                 </View>
               </View>
               
               {(isRemixing || remixRecipe) && (
                 <View style={styles.remixAttribution}>
-                  <Text style={styles.remixAttributionText}>
+                  <Text style={[styles.remixAttributionText, { color: theme.secondaryText }]}>
                     Based on recipe by {recipeToRemix?.userName || remixRecipe?.userName || 'Unknown'}
                   </Text>
                 </View>
@@ -2177,121 +2302,386 @@ export default function AddCoffeeScreen({ navigation, route }) {
               
               <View style={styles.recipeFormContainer}>
                 <View style={styles.inputContainer}>
-                  <Text style={styles.label}>Brewing Method *</Text>
+                  <Text style={[styles.label, { color: theme.primaryText }]}>Brewing Method *</Text>
                   <TouchableOpacity 
-                    style={styles.selectorButton}
+                    style={[styles.selectorButton, { backgroundColor: theme.altBackground, borderColor: theme.border }]}
                     onPress={() => {
-                      const methods = ['V60', 'Chemex', 'AeroPress', 'French Press', 'Espresso'];
-                      Alert.alert(
-                        'Select Method',
-                        '',
-                        methods.map(method => ({
-                          text: method,
-                          onPress: () => setRecipeData({...recipeData, method})
-                        })).concat([{text: 'Cancel', style: 'cancel'}])
-                      );
+                      // Close other selectors
+                      setShowGearSelector(false);
+                      setShowGrinderSelector(false);
+                      setShowMethodSelector(!showMethodSelector);
                     }}
                   >
-                    <Text style={styles.selectorButtonText}>
-                      {recipeData.method || 'Select brewing method'}
+                    <Text style={[styles.selectorButtonText, { color: theme.primaryText }]}>
+                      {recipeModalData.method || 'Select brewing method'}
                     </Text>
-                    <Ionicons name="chevron-down" size={20} color="#666666" />
+                    <Ionicons 
+                      name={showMethodSelector ? "chevron-up" : "chevron-down"} 
+                      size={20} 
+                      color={theme.secondaryText} 
+                    />
                   </TouchableOpacity>
+                  
+                  {showMethodSelector && (
+                    <ScrollView style={[styles.inlineSelector, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
+                      {brewingMethods.map(method => (
+                        <TouchableOpacity
+                          key={method}
+                          style={[
+                            styles.inlineSelectorItem,
+                            recipeModalData.method === method && styles.inlineSelectorItemSelected
+                          ]}
+                          onPress={() => {
+                            handleMethodSelect(method);
+                            setShowMethodSelector(false);
+                          }}
+                        >
+                          <Text style={[styles.inlineSelectorText, { color: theme.primaryText }]}>
+                            {method}
+                          </Text>
+                          {recipeModalData.method === method && (
+                            <Ionicons name="checkmark" size={20} color={theme.accent || '#007AFF'} />
+                          )}
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  )}
                 </View>
 
                 <View style={styles.inputContainer}>
-                  <Text style={styles.label}>Coffee Amount (g) *</Text>
+                  <Text style={[styles.label, { color: theme.primaryText }]}>Coffee Maker</Text>
+                  <TouchableOpacity 
+                    style={[styles.selectorButton, { backgroundColor: theme.altBackground, borderColor: theme.border }]}
+                    onPress={() => {
+                      // Close other selectors
+                      setShowMethodSelector(false);
+                      setShowGrinderSelector(false);
+                      setShowGearSelector(!showGearSelector);
+                    }}
+                  >
+                    <Text style={[styles.selectorButtonText, { color: theme.primaryText }]}>
+                      {recipeModalData.gear?.length > 0 ? recipeModalData.gear.join(', ') : 'Select coffee maker'}
+                    </Text>
+                    <Ionicons 
+                      name={showGearSelector ? "chevron-up" : "chevron-down"} 
+                      size={20} 
+                      color={theme.secondaryText} 
+                    />
+                  </TouchableOpacity>
+                  
+                  {showGearSelector && (
+                    <ScrollView style={[styles.inlineSelector, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
+                      {gearOptions.map(gear => (
+                        <TouchableOpacity
+                          key={gear}
+                          style={[
+                            styles.inlineSelectorItem,
+                            recipeModalData.gear?.includes(gear) && styles.inlineSelectorItemSelected
+                          ]}
+                          onPress={() => handleGearToggle(gear)}
+                        >
+                          <Text style={[styles.inlineSelectorText, { color: theme.primaryText }]}>
+                            {gear}
+                          </Text>
+                          {recipeModalData.gear?.includes(gear) && (
+                            <Ionicons name="checkmark" size={20} color={theme.accent || '#007AFF'} />
+                          )}
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  )}
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={[styles.label, { color: theme.primaryText }]}>Grinder</Text>
+                  <TouchableOpacity 
+                    style={[styles.selectorButton, { backgroundColor: theme.altBackground, borderColor: theme.border }]}
+                    onPress={() => {
+                      // Close other selectors
+                      setShowMethodSelector(false);
+                      setShowGearSelector(false);
+                      setShowGrinderSelector(!showGrinderSelector);
+                    }}
+                  >
+                    <Text style={[styles.selectorButtonText, { color: theme.primaryText }]}>
+                      {recipeModalData.grinder || 'Select grinder (optional)'}
+                    </Text>
+                    <Ionicons 
+                      name={showGrinderSelector ? "chevron-up" : "chevron-down"} 
+                      size={20} 
+                      color={theme.secondaryText} 
+                    />
+                  </TouchableOpacity>
+                  
+                  {showGrinderSelector && (
+                    <ScrollView style={[styles.inlineSelector, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
+                      {grinderOptions.map(grinder => (
+                        <TouchableOpacity
+                          key={grinder}
+                          style={[
+                            styles.inlineSelectorItem,
+                            recipeModalData.grinder === grinder && styles.inlineSelectorItemSelected
+                          ]}
+                          onPress={() => {
+                            handleGrinderSelect(grinder);
+                            setShowGrinderSelector(false);
+                          }}
+                        >
+                          <Text style={[styles.inlineSelectorText, { color: theme.primaryText }]}>
+                            {grinder}
+                          </Text>
+                          {recipeModalData.grinder === grinder && (
+                            <Ionicons name="checkmark" size={20} color={theme.accent || '#007AFF'} />
+                          )}
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  )}
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={[styles.label, { color: theme.primaryText }]}>
+                    {recipeModalData.grinder === 'Commandante' ? 'Clicks' : 'Grind Size'}
+                  </Text>
+                  {recipeModalData.grinder === 'Commandante' ? (
+                    <TextInput
+                      style={[styles.input, { backgroundColor: theme.altBackground, color: theme.primaryText, borderColor: theme.border }]}
+                      value={recipeModalData.clicks}
+                      onChangeText={(text) => setRecipeModalData({...recipeModalData, clicks: text})}
+                      placeholder="15"
+                      keyboardType="numeric"
+                      keyboardAppearance={isDarkMode ? 'dark' : 'light'}
+                      placeholderTextColor={theme.secondaryText}
+                    />
+                  ) : (
+                    <View style={styles.stepperContainer}>
+                      <TouchableOpacity 
+                        style={styles.stepperButton}
+                        onPress={() => {
+                          const sizes = ['Extra Fine', 'Fine', 'Medium-Fine', 'Medium', 'Medium-Coarse', 'Coarse'];
+                          const currentIndex = sizes.indexOf(recipeModalData.grindSize);
+                          if (currentIndex > 0) {
+                            setRecipeModalData({...recipeModalData, grindSize: sizes[currentIndex - 1]});
+                          }
+                        }}
+                      >
+                        <Ionicons name="remove" size={20} color={theme.primaryText} />
+                      </TouchableOpacity>
+                      <Text style={[styles.stepperValue, { color: theme.primaryText }]}>
+                        {recipeModalData.grindSize}
+                      </Text>
+                      <TouchableOpacity 
+                        style={styles.stepperButton}
+                        onPress={() => {
+                          const sizes = ['Extra Fine', 'Fine', 'Medium-Fine', 'Medium', 'Medium-Coarse', 'Coarse'];
+                          const currentIndex = sizes.indexOf(recipeModalData.grindSize);
+                          if (currentIndex < sizes.length - 1) {
+                            setRecipeModalData({...recipeModalData, grindSize: sizes[currentIndex + 1]});
+                          }
+                        }}
+                      >
+                        <Ionicons name="add" size={20} color={theme.primaryText} />
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={[styles.label, { color: theme.primaryText }]}>Coffee Amount (g) *</Text>
                   <TextInput
-                    style={styles.input}
-                    value={recipeData.amount}
-                    onChangeText={(text) => setRecipeData({...recipeData, amount: text})}
+                    style={[styles.input, { backgroundColor: theme.altBackground, color: theme.primaryText, borderColor: theme.border }]}
+                    value={recipeModalData.amount}
+                    onChangeText={(text) => setRecipeModalData({...recipeModalData, amount: text})}
                     placeholder="20"
                     keyboardType="numeric"
                     keyboardAppearance={isDarkMode ? 'dark' : 'light'}
-                    placeholderTextColor="#999"
+                    placeholderTextColor={theme.secondaryText}
                   />
                 </View>
 
                 <View style={styles.inputContainer}>
-                  <Text style={styles.label}>Grind Size</Text>
-                  <TouchableOpacity 
-                    style={styles.selectorButton}
-                    onPress={() => {
-                      const sizes = ['Extra Fine', 'Fine', 'Medium-Fine', 'Medium', 'Medium-Coarse', 'Coarse'];
-                      Alert.alert(
-                        'Select Grind Size',
-                        '',
-                        sizes.map(size => ({
-                          text: size,
-                          onPress: () => setRecipeData({...recipeData, grindSize: size})
-                        })).concat([{text: 'Cancel', style: 'cancel'}])
-                      );
-                    }}
-                  >
-                    <Text style={styles.selectorButtonText}>{recipeData.grindSize}</Text>
-                    <Ionicons name="chevron-down" size={20} color="#666666" />
-                  </TouchableOpacity>
-                </View>
-
-                <View style={styles.inputContainer}>
-                  <Text style={styles.label}>Water Volume (ml) *</Text>
+                  <Text style={[styles.label, { color: theme.primaryText }]}>Water Volume (ml) *</Text>
                   <TextInput
-                    style={styles.input}
-                    value={recipeData.waterVolume}
-                    onChangeText={(text) => setRecipeData({...recipeData, waterVolume: text})}
+                    style={[styles.input, { backgroundColor: theme.altBackground, color: theme.primaryText, borderColor: theme.border }]}
+                    value={recipeModalData.waterVolume}
+                    onChangeText={(text) => setRecipeModalData({...recipeModalData, waterVolume: text})}
                     placeholder="300"
                     keyboardType="numeric"
                     keyboardAppearance={isDarkMode ? 'dark' : 'light'}
-                    placeholderTextColor="#999"
+                    placeholderTextColor={theme.secondaryText}
                   />
                 </View>
 
+                {/* Show ratio when both coffee amount and water volume are filled */}
+                {recipeModalData.amount && recipeModalData.waterVolume && (
+                  <View style={styles.inputContainer}>
+                    <Text style={[styles.label, { color: theme.primaryText }]}>Ratio</Text>
+                    <View style={[styles.input, styles.ratioDisplay, { backgroundColor: theme.altBackground, borderColor: theme.border }]}>
+                      <Text style={[styles.ratioText, { color: theme.primaryText }]}>
+                        1:{Math.round((parseFloat(recipeModalData.waterVolume) / parseFloat(recipeModalData.amount)) * 10) / 10}
+                      </Text>
+                    </View>
+                  </View>
+                )}
+
                 <View style={styles.inputContainer}>
-                  <Text style={styles.label}>Brew Time</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={recipeData.brewTime}
-                    onChangeText={(text) => setRecipeData({...recipeData, brewTime: text})}
-                    placeholder="3:30"
-                    keyboardAppearance={isDarkMode ? 'dark' : 'light'}
-                    placeholderTextColor="#999"
-                  />
+                  <Text style={[styles.label, { color: theme.primaryText }]}>Steps (optional)</Text>
+                  {recipeModalData.steps.length === 0 ? (
+                    <TouchableOpacity 
+                      style={styles.addStepButton}
+                      onPress={() => {
+                        const newStep = { time: '', water: '', description: '' };
+                        setRecipeModalData({...recipeModalData, steps: [newStep]});
+                      }}
+                    >
+                      <Ionicons name="add" size={20} color={theme.primaryText} />
+                      <Text style={[styles.addStepButtonText, { color: theme.primaryText }]}>Add brewing step</Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <View style={styles.stepsContainer}>
+                      {recipeModalData.steps.map((step, index) => (
+                        <View key={index} style={[styles.stepRow, { backgroundColor: theme.altBackground, borderColor: theme.border }]}>
+                          <Text style={[styles.stepNumber, { color: theme.primaryText }]}>{index + 1}</Text>
+                          
+                          <View style={styles.stepInputs}>
+                            <View style={styles.stepInputGroup}>
+                              <Text style={[styles.stepInputLabel, { color: theme.secondaryText }]}>Time</Text>
+                              <TextInput
+                                style={[styles.stepInput, { backgroundColor: theme.cardBackground, color: theme.primaryText, borderColor: theme.border }]}
+                                value={step.time}
+                                onChangeText={(text) => {
+                                  const newSteps = [...recipeModalData.steps];
+                                  newSteps[index] = {...newSteps[index], time: text};
+                                  setRecipeModalData({...recipeModalData, steps: newSteps});
+                                }}
+                                placeholder="0:30"
+                                keyboardAppearance={isDarkMode ? 'dark' : 'light'}
+                                placeholderTextColor={theme.secondaryText}
+                              />
+                            </View>
+                            
+                            <View style={styles.stepInputGroup}>
+                              <Text style={[styles.stepInputLabel, { color: theme.secondaryText }]}>Water (g)</Text>
+                              <TextInput
+                                style={[styles.stepInput, { backgroundColor: theme.cardBackground, color: theme.primaryText, borderColor: theme.border }]}
+                                value={step.water}
+                                onChangeText={(text) => {
+                                  const newSteps = [...recipeModalData.steps];
+                                  newSteps[index] = {...newSteps[index], water: text};
+                                  setRecipeModalData({...recipeModalData, steps: newSteps});
+                                }}
+                                placeholder="50"
+                                keyboardType="numeric"
+                                keyboardAppearance={isDarkMode ? 'dark' : 'light'}
+                                placeholderTextColor={theme.secondaryText}
+                              />
+                            </View>
+                            
+                            <View style={[styles.stepInputGroup, { flex: 1 }]}>
+                              <Text style={[styles.stepInputLabel, { color: theme.secondaryText }]}>Description</Text>
+                              <TextInput
+                                style={[styles.stepInput, { backgroundColor: theme.cardBackground, color: theme.primaryText, borderColor: theme.border }]}
+                                value={step.description}
+                                onChangeText={(text) => {
+                                  const newSteps = [...recipeModalData.steps];
+                                  newSteps[index] = {...newSteps[index], description: text};
+                                  setRecipeModalData({...recipeModalData, steps: newSteps});
+                                }}
+                                placeholder="Pour slowly..."
+                                keyboardAppearance={isDarkMode ? 'dark' : 'light'}
+                                placeholderTextColor={theme.secondaryText}
+                              />
+                            </View>
+                          </View>
+                          
+                          <TouchableOpacity 
+                            style={styles.removeStepButton}
+                            onPress={() => {
+                              const newSteps = recipeModalData.steps.filter((_, i) => i !== index);
+                              setRecipeModalData({...recipeModalData, steps: newSteps});
+                            }}
+                          >
+                            <Ionicons name="trash-outline" size={20} color="#FF3B30" />
+                          </TouchableOpacity>
+                        </View>
+                      ))}
+                      
+                      <TouchableOpacity 
+                        style={styles.addStepButton}
+                        onPress={() => {
+                          const newStep = { time: '', water: '', description: '' };
+                          setRecipeModalData({...recipeModalData, steps: [...recipeModalData.steps, newStep]});
+                        }}
+                      >
+                        <Ionicons name="add" size={20} color={theme.primaryText} />
+                        <Text style={[styles.addStepButtonText, { color: theme.primaryText }]}>Add another step</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
                 </View>
 
                 <View style={styles.inputContainer}>
-                  <Text style={styles.label}>Notes</Text>
+                  <Text style={[styles.label, { color: theme.primaryText }]}>Total Immersion Time</Text>
+                  <View style={styles.timeInputContainer}>
+                    <View style={styles.timeInputWrapper}>
+                      <TextInput
+                        style={[styles.timeInput, { backgroundColor: theme.altBackground, color: theme.primaryText, borderColor: theme.border }]}
+                        value={recipeModalData.brewMinutes}
+                        onChangeText={(text) => setRecipeModalData({...recipeModalData, brewMinutes: text})}
+                        placeholder="3"
+                        keyboardType="numeric"
+                        keyboardAppearance={isDarkMode ? 'dark' : 'light'}
+                        placeholderTextColor={theme.secondaryText}
+                        maxLength={2}
+                      />
+                      <Text style={[styles.timeLabel, { color: theme.secondaryText }]}>min</Text>
+                    </View>
+                    <Text style={[styles.timeSeparator, { color: theme.primaryText }]}>:</Text>
+                    <View style={styles.timeInputWrapper}>
+                      <TextInput
+                        style={[styles.timeInput, { backgroundColor: theme.altBackground, color: theme.primaryText, borderColor: theme.border }]}
+                        value={recipeModalData.brewSeconds}
+                        onChangeText={(text) => setRecipeModalData({...recipeModalData, brewSeconds: text})}
+                        placeholder="30"
+                        keyboardType="numeric"
+                        keyboardAppearance={isDarkMode ? 'dark' : 'light'}
+                        placeholderTextColor={theme.secondaryText}
+                        maxLength={2}
+                      />
+                      <Text style={[styles.timeLabel, { color: theme.secondaryText }]}>sec</Text>
+                    </View>
+                  </View>
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={[styles.label, { color: theme.primaryText }]}>Notes</Text>
                   <TextInput
-                    style={[styles.input, {height: 80}]}
-                    value={recipeData.notes}
-                    onChangeText={(text) => setRecipeData({...recipeData, notes: text})}
+                    style={[styles.input, { height: 80, backgroundColor: theme.altBackground, color: theme.primaryText, borderColor: theme.border }]}
+                    value={recipeModalData.notes}
+                    onChangeText={(text) => setRecipeModalData({...recipeModalData, notes: text})}
                     placeholder="Any brewing notes..."
                     multiline
                     textAlignVertical="top"
                     keyboardAppearance={isDarkMode ? 'dark' : 'light'}
-                    placeholderTextColor="#999"
+                    placeholderTextColor={theme.secondaryText}
+                    onFocus={() => {
+                      // Scroll to the bottom when notes field is focused
+                      setTimeout(() => {
+                        if (recipeModalScrollRef.current) {
+                          recipeModalScrollRef.current.scrollToEnd({ animated: true });
+                        }
+                      }, 300);
+                    }}
                   />
                 </View>
-                 
-                 {/* Save Button */}
-                 <TouchableOpacity
-                   style={[
-                     styles.createRecipeSaveButton,
-                     (!recipeData.method || !recipeData.amount || !recipeData.waterVolume) && styles.createRecipeSaveButtonDisabled
-                   ]}
-                   onPress={handleSaveRecipe}
-                   disabled={!recipeData.method || !recipeData.amount || !recipeData.waterVolume}
-                 >
-                   <Text style={styles.createRecipeSaveButtonText}>
-                     {isRemixing || remixRecipe ? 'Save Remix' : 'Save Recipe'}
-                   </Text>
-                 </TouchableOpacity>
-               </View>
-             </ScrollView>
-           </View>
-         </View>
-       </Modal>
-     );
-   };
+              </View>
+            </ScrollView>
+          </View>
+          </View>
+        </Modal>
+      </>
+    );
+  };
 
   const renderAddCoffeeModal = () => (
     <Modal
@@ -2380,6 +2770,8 @@ export default function AddCoffeeScreen({ navigation, route }) {
         {renderFriendSelector()}
         {renderCreateRecipeModal()}
         {renderAddCoffeeModal()}
+        
+        {/* Modal-based selectors removed - now using inline selectors */}
       </View>
     );
 }
@@ -2393,9 +2785,9 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
     flex: 1,
   },
   inputContainer: {
-    padding: 16,
-    // paddingTop: 8,
-    paddingBottom: 8,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    paddingTop: 8,
   },
   label: {
     fontSize: 16,
@@ -2449,14 +2841,16 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
   selectedCoffeeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.altBackground || '#F2F2F7',
-    borderRadius: 8,
+    marginTop: 8,
+    marginBottom: 16,
     padding: 12,
+    backgroundColor: theme.altBackground || '#F2F2F7',
+    borderRadius: 12,
   },
   selectedCoffeeImage: {
-    width: 48,
-    height: 48,
-    borderRadius: 6,
+    width: 60,
+    height: 60,
+    borderRadius: 8,
     marginRight: 12,
   },
   selectedCoffeeInfo: {
@@ -2465,12 +2859,10 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
   selectedCoffeeName: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.primaryText,
     marginBottom: 4,
   },
   selectedCoffeeRoaster: {
     fontSize: 14,
-    color: theme.secondaryText,
   },
   popularCoffeeCard: {
     width: 250,
@@ -2558,11 +2950,19 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
   },
   recipesContainer: {
     paddingHorizontal: 16,
-    paddingTop: 8,
+    paddingTop: 0,
     paddingBottom: 0,
   },
+  recipesSubheader: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#666666',
+    marginTop: 0,
+    marginBottom: 4,
+    marginLeft: 4,
+  },
   recipeCard: {
-    backgroundColor: '#F8F8F8',
+    backgroundColor: theme.cardBackground || (isDarkMode ? '#2C2C2E' : '#FFFFFF'),
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
@@ -2571,7 +2971,7 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   recipeMethod: {
     fontSize: 16,
@@ -2833,35 +3233,39 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
     paddingHorizontal: 16,
   },
   selectorButton: {
-    padding: 12,
-    backgroundColor: theme.altBackground || '#F2F2F7',
-    borderRadius: 8,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    padding: 12,
+    backgroundColor: theme.altBackground || '#F2F2F7',
+    borderRadius: 8,
   },
   selectorButtonText: {
     fontSize: 16,
-    color: theme.primaryText,
   },
   selectorModalContainer: {
     flex: 1,
     justifyContent: 'flex-end',
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    zIndex: 9999,
+    elevation: 9999,
   },
   selectorModalContent: {
     backgroundColor: theme.cardBackground || (isDarkMode ? '#2C2C2E' : '#FFFFFF'),
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12,
     maxHeight: '80%',
+    flex: 1,
+    zIndex: 10000,
+    elevation: 10000,
   },
   selectorModalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
-    // borderBottomWidth: 1,
-    // borderBottomColor: '#E5E5EA',
+    zIndex: 10001,
+    elevation: 10001,
   },
   selectorModalTitle: {
     fontSize: 18,
@@ -2878,6 +3282,7 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
     padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: theme.divider || '#E5E5EA',
+    minHeight: 72,
   },
   selectorModalItemSelected: {
     backgroundColor: isDarkMode ? theme.altBackground : '#F0F7FF',
@@ -2894,23 +3299,22 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 4,
   },
   createRecipeButton: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 6,
-    // paddingHorizontal: 12,
-    // backgroundColor: '#F0F7FF',
     borderRadius: 16,
   },
-      createRecipeButtonText: {
-      fontSize: 14,
-      fontWeight: '500',
-      color: theme.primaryText,
-      marginLeft: 4,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.primaryText,
-    },
+  createRecipeButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: theme.primaryText,
+    marginLeft: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.primaryText,
+  },
   customRecipeCard: {
     backgroundColor: '#F8F8F8',
     borderRadius: 12,
@@ -3155,17 +3559,10 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 32,
   },
-  recipesSubheader: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#666666',
-    marginBottom: 4,
-    marginLeft: 4,
-  },
   createFirstRecipeButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F0F7FF',
+    backgroundColor: theme.cardBackground,
     borderRadius: 20,
     paddingVertical: 8,
     paddingHorizontal: 16,
@@ -3174,7 +3571,7 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
   createFirstRecipeButtonText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#007AFF',
+    color: theme.primaryText,
     marginLeft: 4,
   },
   createOwnButton: {
@@ -3194,21 +3591,23 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
   timeInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
   },
   timeInputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F2F2F7',
+    backgroundColor: theme.cardBackground,
     borderRadius: 8,
     padding: 12,
     flex: 1,
+    borderWidth: 1,
+    borderColor: theme.border,
   },
   timeInput: {
-    fontSize: 18,
+    fontSize: 16,
     flex: 1,
     textAlign: 'center',
-    color: '#000000',
+    color: theme.primaryText,
   },
   timeLabel: {
     fontSize: 14,
@@ -3225,9 +3624,14 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+    // minHeight: 40,
   },
   locationIcon: {
+    width: 32,
+    height: 32,
     marginRight: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   locationLogo: {
     width: 32,
@@ -3251,10 +3655,10 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
   locationSearchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.altBackground || '#F2F2F7',
+    backgroundColor: isDarkMode ? theme.altBackground : '#dee3e4',
     borderRadius: 8,
     padding: 12,
-    marginHorizontal: 8,
+    marginHorizontal: 12,
   },
   locationSearchIcon: {
     marginRight: 10,
@@ -3290,10 +3694,8 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 12,
+    padding: 16,
     backgroundColor: theme.cardBackground || (isDarkMode ? '#2C2C2E' : '#FFFFFF'),
-    borderTopWidth: 1,
-    borderTopColor: theme.divider || '#E5E5EA',
     // borderBottomWidth: 1,
     // borderBottomColor: theme.divider || '#E5E5EA',
   },
@@ -3336,6 +3738,7 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 10,
     marginBottom: 8,
+    marginRight: 8,
   },
   addFriendText: {
     fontSize: 14,
@@ -3421,7 +3824,7 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
   friendSearchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.altBackground || '#F2F2F7',
+    backgroundColor: isDarkMode ? theme.altBackground : '#dee3e4',
     borderRadius: 8,
     padding: 12,
     marginBottom: 8,
@@ -3518,18 +3921,14 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
     fontWeight: '600',
   },
   remixAttribution: {
-    backgroundColor: '#F0F7FF',
-    borderRadius: 8,
+    marginBottom: 24,
     padding: 12,
-    marginTop: 16,
-    marginBottom: 16,
-    borderLeftWidth: 3,
-    borderLeftColor: '#007AFF',
+    backgroundColor: theme.altBackground || '#F2F2F7',
+    borderRadius: 12,
   },
   remixAttributionText: {
     fontSize: 14,
-    color: '#007AFF',
-    fontWeight: '500',
+    textAlign: 'center',
   },
   headerSaveButton: {
     marginRight: 16,
@@ -3603,7 +4002,7 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
     fontWeight: '600',
   },
   recipeFormContainer: {
-    marginTop: 16,
+    marginBottom: 24,
   },
   recipeFormNote: {
     fontSize: 14,
@@ -3655,7 +4054,8 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
     borderBottomColor: '#E5E5EA',
   },
   recipeFormContainer: {
-    padding: 16,
+    // padding: 16,
+    marginTop: 4,
   },
   recipeFormTitle: {
     fontSize: 22,
@@ -3779,5 +4179,122 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
   addCoffeeOptionSubtitle: {
     fontSize: 14,
     color: theme.secondaryText,
+  },
+  inlineSelector: {
+    marginTop: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    maxHeight: 200,
+    overflow: 'hidden',
+  },
+  inlineSelectorItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.divider || '#E5E5EA',
+  },
+  inlineSelectorItemSelected: {
+    backgroundColor: isDarkMode ? theme.altBackground : '#F0F7FF',
+  },
+  inlineSelectorText: {
+    fontSize: 16,
+    color: theme.primaryText,
+  },
+  stepsContainer: {
+    marginTop: 8,
+  },
+  stepRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginBottom: 8,
+  },
+  stepNumber: {
+    fontSize: 16,
+    fontWeight: '600',
+    width: 24,
+    textAlign: 'center',
+    marginTop: 8,
+  },
+  stepInputs: {
+    flex: 1,
+    flexDirection: 'row',
+    marginLeft: 12,
+    marginRight: 8,
+  },
+  stepInputGroup: {
+    marginRight: 8,
+    minWidth: 60,
+  },
+  stepInputLabel: {
+    fontSize: 12,
+    marginBottom: 4,
+  },
+  stepInput: {
+    fontSize: 14,
+    padding: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    textAlign: 'center',
+  },
+  addStepButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+    backgroundColor: theme.altBackground || '#F2F2F7',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: theme.border || '#E5E5EA',
+    borderStyle: 'dashed',
+  },
+  addStepButtonText: {
+    fontSize: 16,
+    marginLeft: 6,
+  },
+  removeStepButton: {
+    padding: 8,
+    marginTop: 4,
+  },
+  ratioDisplay: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: 44,
+  },
+  ratioText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  reviewModalContainer: {
+    flex: 1,
+  },
+  reviewModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  reviewModalCancel: {
+    fontSize: 16,
+    fontWeight: '400',
+  },
+  reviewModalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  reviewModalSubmit: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  reviewModalContent: {
+    flex: 1,
+    paddingBottom: 16,
+    paddingTop: 8,
   },
 });
