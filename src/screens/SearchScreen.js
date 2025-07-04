@@ -1371,7 +1371,11 @@ export default function SearchScreen() {
             placeholderTextColor={theme.secondaryText}
             value={searchQuery}
             onChangeText={handleSearch}
-            onFocus={() => setIsInputFocused(true)}
+            onFocus={() => {
+              setIsInputFocused(true);
+              // Ensure filter resets to "All" whenever the user starts a new search
+              setActiveFilter('all');
+            }}
             onBlur={() => setIsInputFocused(false)}
             onSubmitEditing={handleSearchSubmit}
             returnKeyType="search"
