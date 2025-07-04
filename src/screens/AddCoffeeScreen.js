@@ -1304,45 +1304,66 @@ export default function AddCoffeeScreen({ navigation, route }) {
           </View>
           
           <FlatList
-            data={filteredLocations}
+            // Hide the default "Home" option from the selectable list
+            data={filteredLocations.filter(loc => !loc.isDefault)}
             keyExtractor={(item) => item.id}
             style={styles.locationList}
-            renderItem={({ item }) => (
-              <TouchableOpacity 
-                style={styles.selectorModalItem}
-                onPress={() => {
-                  setCoffeeData({
-                    ...coffeeData,
-                    location: item.name,
-                    locationId: item.id
-                  });
-                  setShowLocationSelector(false);
-                }}
-              >
-                <View style={styles.locationItem}>
-                  {item.isDefault ? (
-                    <Ionicons name="home" size={20} color={theme.primaryText} style={styles.locationIcon} />
-                  ) : item.logo ? (
-                    <Image 
-                      source={getImageSource(item.logo)} 
-                      style={styles.locationLogo}
-                    />
-                  ) : (
-                    <View style={styles.locationLogoPlaceholder}>
-                      <Text style={styles.locationLogoPlaceholderText}>
-                        {item.name.substring(0, 1)}
-                      </Text>
-                    </View>
-                  )}
-                  <View style={styles.locationInfo}>
-                    <Text style={styles.selectorModalItemText}>{item.name}</Text>
-                    {item.address && (
-                      <Text style={styles.locationAddress}>{item.address}</Text>
+            renderItem={({ item }) => {
+              const isSelected = coffeeData.locationId === item.id;
+              return (
+                <TouchableOpacity
+                  style={[
+                    styles.selectorModalItem,
+                    isSelected && styles.selectorModalItemSelected,
+                  ]}
+                  onPress={() => {
+                    // Tapping the currently-selected café will reset to "Home"
+                    if (coffeeData.locationId === item.id) {
+                      setCoffeeData({
+                        ...coffeeData,
+                        location: 'Home',
+                        locationId: null,
+                      });
+                    } else {
+                      setCoffeeData({
+                        ...coffeeData,
+                        location: item.name,
+                        locationId: item.id,
+                      });
+                    }
+                    setShowLocationSelector(false);
+                  }}
+                >
+                  <View style={styles.locationItem}>
+                    {item.logo ? (
+                      <Image
+                        source={getImageSource(item.logo)}
+                        style={styles.locationLogo}
+                      />
+                    ) : (
+                      <View style={styles.locationLogoPlaceholder}>
+                        <Text style={styles.locationLogoPlaceholderText}>
+                          {item.name.substring(0, 1)}
+                        </Text>
+                      </View>
                     )}
+                    <View style={styles.locationInfo}>
+                      <Text
+                        style={[
+                          styles.selectorModalItemText,
+                          isSelected && styles.selectorModalItemTextSelected,
+                        ]}
+                      >
+                        {item.name}
+                      </Text>
+                      {item.address && (
+                        <Text style={styles.locationAddress}>{item.address}</Text>
+                      )}
+                    </View>
                   </View>
-                </View>
-              </TouchableOpacity>
-            )}
+                </TouchableOpacity>
+              );
+            }}
             ListEmptyComponent={
               <View style={styles.emptyLocationsContainer}>
                 <Text style={styles.emptyText}>No locations found</Text>
