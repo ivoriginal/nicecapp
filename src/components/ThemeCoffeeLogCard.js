@@ -15,6 +15,7 @@ const ThemeCoffeeLogCard = ({
   onUserPress, 
   onOptionsPress, 
   onLikePress, 
+  onFollowChanged,
   currentUserId, 
   showToast,
   containerStyle 
@@ -535,8 +536,8 @@ const ThemeCoffeeLogCard = ({
             </View>
             <FollowButton 
               userId={event.recommendedUserId || event.userId}
-              isFollowing={false}
-              onFollowChanged={() => {}}
+              isFollowing={event.isFollowing || false}
+              onFollowChanged={onFollowChanged}
             />
           </TouchableOpacity>
         </View>

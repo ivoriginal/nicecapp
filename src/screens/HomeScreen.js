@@ -15,6 +15,8 @@ export default function HomeScreen({ navigation }) {
   const [toastMessage, setToastMessage] = useState('');
   const [initialLoadDone, setInitialLoadDone] = useState(false);
   const { theme, isDarkMode } = useTheme();
+  // Track followed users locally (id -> bool). In real app, this would hit the API
+  const [followedUsers, setFollowedUsers] = useState({});
 
   console.log('HomeScreen rendering, allEvents length:', allEvents?.length || 0);
 
@@ -182,6 +184,11 @@ export default function HomeScreen({ navigation }) {
     // Handle liking/unliking
   };
 
+  const handleFollowChange = (userId, isFollowing) => {
+    console.log('Follow status changed for', userId, '->', isFollowing);
+    setFollowedUsers(prev => ({ ...prev, [userId]: isFollowing }));
+  };
+
   if (isLoading) {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
@@ -224,6 +231,7 @@ export default function HomeScreen({ navigation }) {
               onUserPress={handleUserPress}
               onOptionsPress={handleOptionsPress}
               onLikePress={handleLikePress}
+              onFollowChanged={handleFollowChange}
               currentUserId={currentAccount}
               showToast={showToast}
             />
