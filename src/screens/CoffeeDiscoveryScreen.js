@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, ScrollView, Modal, TouchableWithoutFeedback, Alert } from 'react-native';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, ScrollView, Modal, TouchableWithoutFeedback, Alert, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -22,6 +22,10 @@ const CoffeeDiscoveryScreen = ({ navigation, route }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [sortModalVisible, setSortModalVisible] = useState(false);
   const [showAddCoffeeModal, setShowAddCoffeeModal] = useState(false);
+
+  // NEW STATE: search bar visibility & query
+  const [showSearchInput, setShowSearchInput] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const [filterCategories, setFilterCategories] = useState([]);
   
@@ -445,8 +449,14 @@ const CoffeeDiscoveryScreen = ({ navigation, route }) => {
       filteredCoffees = filteredCoffees.sort((a, b) => b.price - a.price);
     }
     
+    // NEW: apply text search filter (coffee name only)
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filteredCoffees = filteredCoffees.filter(coffee => coffee.name.toLowerCase().includes(query));
+    }
+
     setCoffees(filteredCoffees);
-  }, [activeFilters, sortOrder, filterCategories, getAllAvailableCoffees]);
+  }, [activeFilters, sortOrder, filterCategories, getAllAvailableCoffees, searchQuery]);
 
   const openFilterModal = (category) => {
     setSelectedCategory(category);
@@ -871,6 +881,39 @@ const CoffeeDiscoveryScreen = ({ navigation, route }) => {
     );
   };
 
+  // NEW: scroll handler to toggle search input visibility
+  const handleScroll = (event) => {
+    const offsetY = event.nativeEvent.contentOffset.y;
+    if (offsetY < -40 && !showSearchInput) {
+      setShowSearchInput(true);
+    } else if (offsetY > 0 && showSearchInput) {
+      setShowSearchInput(false);
+    }
+  };
+
+  // NEW: render search input above filters
+  const renderSearchInput = () => (
+    <View style={[styles.searchContainer, { height: showSearchInput ? 50 : 0 }]}>      
+      {showSearchInput && (
+        <TextInput
+          style={[
+            styles.searchInput,
+            {
+              backgroundColor: isDarkMode ? theme.cardBackground : '#F2F2F7',
+              color: theme.primaryText,
+              borderColor: isDarkMode ? theme.border : '#E5E5EA'
+            }
+          ]}
+          placeholder="Search coffee"
+          placeholderTextColor={theme.secondaryText}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          returnKeyType="search"
+        />
+      )}
+    </View>
+  );
+
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <FlatList
@@ -878,12 +921,19 @@ const CoffeeDiscoveryScreen = ({ navigation, route }) => {
         renderItem={renderCoffeeItem}
         keyExtractor={item => item.id}
         contentContainerStyle={styles.coffeeList}
-        ListHeaderComponent={renderFilterBar()}
+        ListHeaderComponent={() => (
+          <View>
+            {renderSearchInput()}
+            {renderFilterBar()}
+          </View>
+        )}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Text style={[styles.emptyText, { color: theme.secondaryText }]}>No coffees found</Text>
           </View>
         }
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
       />
       
       {renderFilterModal()}
@@ -1226,6 +1276,18 @@ const styles = StyleSheet.create({
   addCoffeeOptionSubtitle: {
     fontSize: 14,
     color: '#666666',
+  },
+  searchContainer: {
+    paddingHorizontal: 12,
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  searchInput: {
+    height: 40,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    fontSize: 16,
   },
 });
 
