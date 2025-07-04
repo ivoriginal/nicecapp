@@ -281,11 +281,30 @@ export default function CreateRecipeScreen({ navigation, route }) {
   };
 
   const isFormValid = () => {
-    return recipeData.method && 
+    const hasRequired = recipeData.method && 
            recipeData.amount && 
            recipeData.grindSize && 
            recipeData.waterVolume && 
            (recipeData.brewTime || (recipeData.brewMinutes && recipeData.brewSeconds));
+
+    if (isRemixing && recipe) {
+      // Determine if the user changed any field compared to the original recipe
+      const originalSteps = recipe?.steps || [];
+      const stepsChanged = JSON.stringify(recipeData.steps) !== JSON.stringify(originalSteps);
+
+      const hasChanges =
+        recipeData.method !== (recipe?.method || recipe?.brewingMethod || '') ||
+        recipeData.amount !== (recipe?.amount?.toString() || recipe?.coffeeAmount?.toString() || '') ||
+        recipeData.grindSize !== (recipe?.grindSize || 'Medium') ||
+        recipeData.waterVolume !== (recipe?.waterVolume?.toString() || recipe?.waterAmount?.toString() || '') ||
+        ((calculateTotalBrewTime() || recipeData.brewTime) !== (recipe?.brewTime || '')) ||
+        recipeData.notes !== (recipe?.notes || '') ||
+        stepsChanged;
+
+      return hasRequired && hasChanges;
+    }
+
+    return hasRequired;
   };
 
   // Handle missing coffee data
@@ -525,7 +544,7 @@ export default function CreateRecipeScreen({ navigation, route }) {
             disabled={!isFormValid()}
           >
             <Text style={[styles.saveButtonText, !isFormValid() && styles.saveButtonTextDisabled]}>
-              Save Recipe
+              {isRemixing ? 'Save Remix' : 'Save Recipe'}
             </Text>
           </TouchableOpacity>
         </View>

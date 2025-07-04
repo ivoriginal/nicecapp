@@ -85,11 +85,17 @@ function AppContent() {
             // Remix functionality
             console.log('Remixing recipe:', recipe);
             
-            // Navigate to MainTabs with the AddCoffee screen and pass the recipe
+            // Navigate to MainTabs with the CreateRecipe screen and pass the recipe
             navigation.navigate('MainTabs', { 
-              screen: 'AddCoffee',
+              screen: 'CreateRecipe',
               params: { 
                 recipe: recipe,
+                coffee: {
+                  id: recipe.coffeeId,
+                  name: recipe.coffeeName,
+                  roaster: recipe.roaster,
+                  image: recipe.imageUrl
+                },
                 isRemixing: true
               }
             });
@@ -111,11 +117,17 @@ function AppContent() {
             onPress: () => {
               console.log('Remixing recipe:', recipe);
               
-              // Navigate to MainTabs with the AddCoffee screen and pass the recipe
+              // Navigate to MainTabs with the CreateRecipe screen and pass the recipe
               navigation.navigate('MainTabs', { 
-                screen: 'AddCoffee',
+                screen: 'CreateRecipe',
                 params: { 
                   recipe: recipe,
+                  coffee: {
+                    id: recipe.coffeeId,
+                    name: recipe.coffeeName,
+                    roaster: recipe.roaster,
+                    image: recipe.imageUrl
+                  },
                   isRemixing: true
                 }
               });

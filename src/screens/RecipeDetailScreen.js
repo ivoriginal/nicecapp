@@ -966,40 +966,15 @@ export default function RecipeDetailScreen() {
         } else if (buttonIndex === 1) {
           // Handle remix - navigate to AddCoffeeScreen with remix mode
           if (recipe && coffee) {
-            navigation.navigate('AddCoffee', {
-              isModalVisible: true,
-              isRemixing: true,
-              recipe: {
-                id: recipe.id,
-                name: recipe.name,
-                method: recipe.method || recipe.brewingMethod,
-                amount: recipe.amount,
-                grindSize: recipe.grindSize,
-                waterVolume: recipe.waterVolume,
-                brewTime: recipe.brewTime,
-                steps: recipe.steps,
-                notes: recipe.notes,
-                userName: recipe.userName,
-                userAvatar: recipe.userAvatar,
-                userId: recipe.userId,
-                coffeeName: coffee.name,
-                coffeeId: coffee.id
-              },
-              autoSelectCoffee: {
+            navigation.navigate('CreateRecipe', {
+              coffee: {
                 id: coffee.id,
                 name: coffee.name,
                 image: coffee.image,
-                roaster: coffee.roaster
+                roaster: coffee.roaster,
               },
-              coffeeId: coffee.id,
-              coffeeName: coffee.name,
-              roaster: coffee.roaster,
-              coffeeImage: coffee.image,
-              basedOnRecipe: {
-                id: recipe.id,
-                name: recipe.name,
-                userName: recipe.userName
-              }
+              recipe: recipe,
+              isRemixing: true,
             });
           }
         } else if (buttonIndex === 2) {
@@ -1046,6 +1021,24 @@ export default function RecipeDetailScreen() {
     if (percentage >= 40) return 'emoticon-neutral-outline'; // Average/Mixed ratings  
     return 'thumb-down-outline'; // Negative ratings
   };
+
+  // 1. Add diff helper after utility functions (safeRender, getRatingDescription, getRatingIcon)
+  const baseRecipeReference = (recipe && recipe.originalRecipe) || basedOnRecipe || null;
+
+  const renderDiffValue = (currentValue, originalValue, suffix = '') => {
+    if (baseRecipeReference && originalValue !== undefined && originalValue !== null && String(currentValue) !== String(originalValue)) {
+      return (
+        <Text style={[styles.detailValue, { color: theme.primaryText }]}> 
+          <Text style={styles.diffRemoved}>{safeRender(originalValue)}{suffix}</Text> → <Text style={styles.diffAdded}>{safeRender(currentValue)}{suffix}</Text>
+        </Text>
+      );
+    }
+    return <Text style={[styles.detailValue, { color: theme.primaryText }]}>{safeRender(currentValue)}{suffix}</Text>;
+  };
+
+  // Dynamically collect remixes created by users for this recipe
+  const userGeneratedRemixes = recipes.filter(r => r.originalRecipe && r.originalRecipe.id === recipeId);
+  const displayedRemixes = userGeneratedRemixes.length > 0 ? userGeneratedRemixes : sampleRemixes;
 
   if (loading) {
     return (
@@ -1519,23 +1512,23 @@ export default function RecipeDetailScreen() {
               <View style={[styles.detailsGrid, { backgroundColor: theme.background }]}>
                 <View style={[styles.detailItem, { backgroundColor: theme.background }]}>
                   <Text style={[styles.detailLabel, { color: theme.primaryText }]}>Coffee</Text>
-                  <Text style={[styles.detailValue, { color: theme.primaryText }]}>{safeRender(recipe.amount || recipe.coffeeAmount, '18')}g</Text>
+                  {renderDiffValue(recipe.amount || recipe.coffeeAmount, baseRecipeReference?.amount || baseRecipeReference?.coffeeAmount, 'g')}
                 </View>
                 <View style={[styles.detailItem, { backgroundColor: theme.background }]}>
                   <Text style={[styles.detailLabel, { color: theme.primaryText }]}>Grind Size</Text>
-                  <Text style={[styles.detailValue, { color: theme.primaryText }]}>{safeRender(recipe.grindSize, 'Medium')}</Text>
+                  {renderDiffValue(recipe.grindSize, baseRecipeReference?.grindSize)}
                 </View>
                 <View style={[styles.detailItem, { backgroundColor: theme.background }]}>
                   <Text style={[styles.detailLabel, { color: theme.primaryText }]}>Water</Text>
-                  <Text style={[styles.detailValue, { color: theme.primaryText }]}>{safeRender(recipe.waterVolume || recipe.waterAmount, '300')}ml</Text>
+                  {renderDiffValue(recipe.waterVolume || recipe.waterAmount, baseRecipeReference?.waterVolume || baseRecipeReference?.waterAmount, 'ml')}
                 </View>
                 <View style={[styles.detailItem, { backgroundColor: theme.background }]}>
                   <Text style={[styles.detailLabel, { color: theme.primaryText }]}>Water Temp</Text>
-                  <Text style={[styles.detailValue, { color: theme.primaryText }]}>{safeRender(recipe.waterTemperature, '90')}°C</Text>
+                  {renderDiffValue(recipe.waterTemperature, baseRecipeReference?.waterTemperature, '°C')}
                 </View>
                 <View style={[styles.detailItem, { backgroundColor: theme.background }]}>
                   <Text style={[styles.detailLabel, { color: theme.primaryText }]}>Brew Time</Text>
-                  <Text style={[styles.detailValue, { color: theme.primaryText }]}>{safeRender(recipe.brewTime, '3:00')}</Text>
+                  {renderDiffValue(recipe.brewTime, baseRecipeReference?.brewTime)}
                 </View>
                 {recipe.filterType && (
                   <View style={[styles.detailItem, { backgroundColor: theme.background }]}>
@@ -1649,20 +1642,20 @@ export default function RecipeDetailScreen() {
             )}
 
             {/* New section: Remixes by Other Users */}
-            {recipe && (recipe.hasRemixes || sampleRemixes.length > 0) && (
+            {recipe && (recipe.hasRemixes || displayedRemixes.length > 0) && (
               <View style={[styles.section, { backgroundColor: theme.background, borderTopColor: theme.divider }]}>
                 <View style={[styles.sectionHeader, { backgroundColor: theme.background }]}>
                   <Text style={[styles.sectionTitle, styles.sectionTitleInHeader, { color: theme.primaryText }]}>Remixes</Text>
                 </View>
                 <View style={[styles.remixesContainer, { backgroundColor: theme.background }]}>
                   {/* Sample remixes - in a real app, these would come from the API */}
-                  {sampleRemixes.length > 0 ? (
-                    sampleRemixes.map((remix, index) => (
+                  {displayedRemixes.length > 0 ? (
+                    displayedRemixes.map((remix, index) => (
                       <TouchableOpacity 
                         key={remix.id}
                         style={[
                           styles.remixCard,
-                          index === sampleRemixes.length - 1 && styles.lastRemixCard,
+                          index === displayedRemixes.length - 1 && styles.lastRemixCard,
                           { 
                             backgroundColor: theme.background,
                             borderBottomColor: theme.divider 
@@ -2813,5 +2806,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1
-  }
+  },
+  diffAdded: {
+    color: '#2ecc71',
+    fontWeight: '600',
+  },
+  diffRemoved: {
+    color: '#e74c3c',
+    textDecorationLine: 'line-through',
+    marginRight: 4,
+  },
 }); 
