@@ -1864,6 +1864,7 @@ const styles = StyleSheet.create({
 
   recipeHeader: {
     paddingVertical: 16,
+    paddingHorizontal: 16,
     backgroundColor: '#FFFFFF',
   },
 
