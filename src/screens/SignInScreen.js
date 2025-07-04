@@ -7,13 +7,17 @@ import {
   StatusBar,
   SafeAreaView,
   Image,
-  Platform
+  Platform,
+  TextInput,
+  ActivityIndicator,
+  Alert
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useCoffee } from '../context/CoffeeContext';
 import { useTheme } from '../context/ThemeContext';
 import { useFonts, Molle_400Regular_Italic } from '@expo-google-fonts/molle';
+import { supabase } from '../lib/supabase';
 
 export default function SignInScreen() {
   const navigation = useNavigation();
@@ -23,6 +27,9 @@ export default function SignInScreen() {
   const [fontsLoaded] = useFonts({
     Molle_400Regular_Italic,
   });
+
+  const [email, setEmail] = React.useState('');
+  const [loadingEmail, setLoadingEmail] = React.useState(false);
 
   // Don't render anything if fonts aren't loaded yet
   if (!fontsLoaded) {
@@ -48,6 +55,24 @@ export default function SignInScreen() {
     }
   };
 
+  const handleEmailSubmit = async () => {
+    if (!email) {
+      Alert.alert('Error', 'Please enter your email address');
+      return;
+    }
+    try {
+      setLoadingEmail(true);
+      const { error } = await supabase.auth.signInWithOtp({ email });
+      if (error) throw error;
+      navigation.navigate('CheckEmailScreen', { email });
+    } catch (error) {
+      console.error('Email sign-in error:', error);
+      Alert.alert('Error', error.message);
+    } finally {
+      setLoadingEmail(false);
+    }
+  };
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <StatusBar barStyle={isDarkMode ? "light" : "dark"} />
@@ -70,35 +95,28 @@ export default function SignInScreen() {
 
         {/* Sign In Buttons */}
         <View style={styles.signInContainer}>
-          {/* <View style={styles.featuresContainer}>
-            <View style={styles.feature}>
-              <Ionicons name="library-outline" size={24} color={theme.primaryText} />
-              <Text style={[styles.featureText, { color: theme.secondaryText }]}>
-                Build your coffee collection
-              </Text>
-            </View>
-            
-            <View style={styles.feature}>
-              <Ionicons name="restaurant-outline" size={24} color={theme.primaryText} />
-              <Text style={[styles.featureText, { color: theme.secondaryText }]}>
-                Track brewing recipes
-              </Text>
-            </View>
-            
-            <View style={styles.feature}>
-              <Ionicons name="people-outline" size={24} color={theme.primaryText} />
-              <Text style={[styles.featureText, { color: theme.secondaryText }]}>
-                Connect with coffee lovers
-              </Text>
-            </View>
-            
-            <View style={styles.feature}>
-              <Ionicons name="storefront-outline" size={24} color={theme.primaryText} />
-              <Text style={[styles.featureText, { color: theme.secondaryText }]}>
-                Discover local roasters
-              </Text>
-            </View>
-          </View> */}
+          {/* Email sign-in */}
+          <View style={[styles.emailInputContainer, { backgroundColor: theme.cardBackground, borderColor: theme.divider }]}>
+            <TextInput
+              style={[styles.emailInput, { color: theme.primaryText }]}
+              placeholder="Email address"
+              placeholderTextColor={theme.secondaryText}
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              returnKeyType="send"
+              onSubmitEditing={handleEmailSubmit}
+            />
+            <TouchableOpacity onPress={handleEmailSubmit} disabled={loadingEmail}>
+              {loadingEmail ? (
+                <ActivityIndicator size="small" color={theme.primaryText} />
+              ) : (
+                <Ionicons name="arrow-forward" size={20} color={theme.primaryText} />
+              )}
+            </TouchableOpacity>
+          </View>
+          
           {Platform.OS === 'ios' && (
             <TouchableOpacity
               style={[styles.signInButton, styles.appleButton, { backgroundColor: theme.primaryText }]}
@@ -237,5 +255,19 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     // marginTop: 16,
     lineHeight: 16,
+  },
+  emailInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+    borderRadius: 12,
+    height: 56,
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
+  emailInput: {
+    flex: 1,
+    fontSize: 16,
   },
 }); 
