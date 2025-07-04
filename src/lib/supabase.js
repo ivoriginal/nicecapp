@@ -328,4 +328,70 @@ export const getUser = async () => {
   if (!session) throw new Error('Auth session missing!');
   return session.user;
   */
+};
+
+// =========================
+// User directory helpers
+// =========================
+
+// Fetch all registered users
+export const getAllUsers = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .select('*');
+
+    if (error) {
+      console.error('Error fetching all users:', error);
+      throw error;
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error('getAllUsers failure, falling back to empty array:', error);
+    return [];
+  }
+};
+
+// Fetch users that match a list of email addresses
+export const getUsersByEmails = async (emailList = []) => {
+  if (!emailList.length) return [];
+
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .in('email', emailList);
+
+    if (error) {
+      console.error('Error fetching users by email list:', error);
+      throw error;
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error('getUsersByEmails failure, returning empty array:', error);
+    return [];
+  }
+};
+
+// Generic helper to insert a notification for a given user in the DB
+export const addNotificationForUser = async (notification) => {
+  try {
+    const { data, error } = await supabase
+      .from('notifications')
+      .insert([{ ...notification }])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error inserting notification:', error);
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('addNotificationForUser failure:', error);
+    throw error;
+  }
 }; 

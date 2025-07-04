@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useLayoutEffect } from 'react';
 import { View, Text, FlatList, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, Platform, Alert } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import mockUsers from '../data/mockUsers.json';
+import { getAllUsers, getUsersByEmails, addNotificationForUser, getUser as getCurrentUser } from '../lib/supabase';
+import { useNotifications } from '../context/NotificationsContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import PeopleCard from '../components/PeopleCard';
@@ -42,12 +43,14 @@ const PeopleListScreen = () => {
   const route = useRoute();
   const insets = useSafeAreaInsets();
   const { theme, isDarkMode } = useTheme();
+  const { addNotification } = useNotifications();
   const [searchQuery, setSearchQuery] = useState('');
   const [people, setPeople] = useState([]);
   const [filteredPeople, setFilteredPeople] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [showContactsBanner, setShowContactsBanner] = useState(true);
+  const [currentUser, setCurrentUser] = useState(null);
   
   // Configure navigation header
   useLayoutEffect(() => {
@@ -73,31 +76,43 @@ const PeopleListScreen = () => {
     }
   }, [route.params?.type]);
   
-  // Simulate fetching people data
+  // Fetch users from Supabase
   useEffect(() => {
-    const fetchPeople = () => {
-      // Get users from mockUsers and filter out business accounts
-      const usersData = (mockUsers.users || []).filter(user => 
-        !user.isBusinessAccount && 
-        user.userName !== 'Vértigo y Calambre' && 
-        user.userName !== 'You' &&
-        !user.id.includes('business')
-      );
-      setPeople(usersData);
-      setFilteredPeople(usersData);
-      setLoading(false);
+    const fetchPeople = async () => {
+      try {
+        setLoading(true);
+        const user = await getCurrentUser();
+        setCurrentUser(user);
+
+        const supabaseUsers = await getAllUsers();
+
+        let usersData = Array.isArray(supabaseUsers) ? supabaseUsers : [];
+
+        // Filter out the current user and any business accounts if such a flag exists
+        usersData = usersData.filter(u => u.id !== user?.id && !u?.isBusinessAccount);
+
+        setPeople(usersData);
+        setFilteredPeople(usersData);
+      } catch (error) {
+        console.error('Error fetching people from Supabase:', error);
+        Alert.alert('Error', 'Unable to load users list.');
+      } finally {
+        setLoading(false);
+      }
     };
-    
+
     fetchPeople();
   }, []);
   
   // Filter people based on search query
   useEffect(() => {
     if (searchQuery) {
-      const filtered = people.filter(person => 
-        person.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        person.fullName.toLowerCase().includes(searchQuery.toLowerCase())
-      );
+      const lower = searchQuery.toLowerCase();
+      const filtered = people.filter(person => {
+        const name = person.userName || person.username || person.fullName || person.full_name || '';
+        const fullName = person.fullName || person.full_name || '';
+        return name.toLowerCase().includes(lower) || fullName.toLowerCase().includes(lower);
+      });
       setFilteredPeople(filtered);
     } else {
       setFilteredPeople(people);
@@ -110,55 +125,84 @@ const PeopleListScreen = () => {
 
   const handleConnectContacts = async () => {
     try {
-      // Request permission to access contacts
       const { status } = await Contacts.requestPermissionsAsync();
-      
-      if (status === 'granted') {
-        // Permission granted, fetch contacts
-        const { data } = await Contacts.getContactsAsync({
-          fields: [
-            Contacts.Fields.Name,
-            Contacts.Fields.PhoneNumbers,
-            Contacts.Fields.Emails,
-          ],
+
+      if (status !== 'granted') {
+        Alert.alert(
+          'Permission Required',
+          'Please allow access to your contacts to find people you know.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+
+      const { data } = await Contacts.getContactsAsync({
+        fields: [Contacts.Fields.Name, Contacts.Fields.PhoneNumbers, Contacts.Fields.Emails],
+      });
+
+      if (!data?.length) {
+        Alert.alert('No Contacts', 'No contacts found on your device.', [{ text: 'OK' }]);
+        return;
+      }
+
+      // Extract unique email addresses
+      const emailSet = new Set();
+      data.forEach(contact => {
+        (contact.emails || []).forEach(e => {
+          if (e.email) emailSet.add(e.email.toLowerCase());
+        });
+      });
+
+      const emailList = Array.from(emailSet);
+
+      // Query Supabase for matching users
+      const matchedUsers = await getUsersByEmails(emailList);
+
+      // Ensure we have the latest currentUser info
+      let activeUser = currentUser;
+      if (!activeUser) {
+        activeUser = await getCurrentUser();
+        setCurrentUser(activeUser);
+      }
+
+      // Send notifications
+      if (matchedUsers.length && activeUser) {
+        // Notify matched users that current user joined
+        matchedUsers.forEach(async (matchedUser) => {
+          try {
+            await addNotificationForUser({
+              type: 'contact_joined',
+              userId: activeUser.id,
+              targetUserId: matchedUser.id,
+              message: `${activeUser.user_metadata?.name || activeUser.email} just joined NiceCup!`,
+              timestamp: new Date().toISOString(),
+              read: false,
+            });
+          } catch (err) {
+            console.error('Failed inserting remote notification:', err);
+          }
         });
 
-        if (data.length > 0) {
-          // Here you would typically:
-          // 1. Send these contacts to your backend
-          // 2. Match them against your user database
-          // 3. Show matching results to the user
-          
-          // For now, we'll just show a success message
-          Alert.alert(
-            "Contacts Found",
-            `Found ${data.length} contacts. We'll look for matches and notify you.`,
-            [{ text: "OK" }]
-          );
-          
-          // Hide the banner after successful connection
-          setShowContactsBanner(false);
-        } else {
-          Alert.alert(
-            "No Contacts",
-            "No contacts found on your device.",
-            [{ text: "OK" }]
-          );
-        }
-      } else {
-        Alert.alert(
-          "Permission Required",
-          "Please allow access to your contacts to find people you know.",
-          [{ text: "OK" }]
-        );
+        // Local notification for current user
+        addNotification({
+          type: 'contacts_on_app',
+          targetUserId: activeUser.id,
+          message: `${matchedUsers.length} of your contacts are already on NiceCup!`,
+        });
       }
-    } catch (error) {
+
       Alert.alert(
-        "Error",
-        "There was an error accessing your contacts. Please try again.",
-        [{ text: "OK" }]
+        'Contacts Connected',
+        matchedUsers.length
+          ? `We found ${matchedUsers.length} contacts already on NiceCup!`
+          : `Found ${data.length} contacts. We'll notify you when they join NiceCup.`,
+        [{ text: 'OK' }]
       );
+
+      setShowContactsBanner(false);
+    } catch (error) {
       console.error('Error accessing contacts:', error);
+      Alert.alert('Error', 'There was an error accessing your contacts. Please try again.', [{ text: 'OK' }]);
     }
   };
 
@@ -187,53 +231,29 @@ const PeopleListScreen = () => {
   };
 
   const renderUserItem = ({ item }) => {
-    // Handle avatar source based on user
-    let avatar;
-    
-    if (item.id === 'user11') {
-      // Use the AppImage component with the string path which it knows how to handle
-      return (
-        <TouchableOpacity 
-          style={[styles.userCard, { backgroundColor: 'transparent' }]}
-          onPress={() => navigation.navigate('UserProfileBridge', { 
-            userId: item.id, 
-            userName: item.userName || item.name,
-            skipAuth: true 
-          })}
-        >
-          <AppImage 
-            source="assets/users/elias-veris.jpg" 
-            style={styles.userAvatar}
-            placeholder="person"
-          />
-          <View style={styles.userInfo}>
-            <Text style={[styles.userName, { color: theme.primaryText }]}>{item.userName || item.name}</Text>
-            <Text style={[styles.userHandle, { color: theme.secondaryText }]} numberOfLines={1}>{item.handle}</Text>
-          </View>
-          <TouchableOpacity style={[styles.followButton, { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' }]}>
-            <Text style={[styles.followButtonText, { color: isDarkMode ? '#000000' : '#FFFFFF' }]}>Follow</Text>
-          </TouchableOpacity>
-        </TouchableOpacity>
-      );
-    }
-    
+    const displayName = item.userName || item.username || item.full_name || 'User';
+    const handle = item.handle || item.email || '';
+    const avatarSource = item.userAvatar || item.avatar_url || item.avatar || null;
+
     return (
       <TouchableOpacity 
         style={[styles.userCard, { backgroundColor: 'transparent' }]}
         onPress={() => navigation.navigate('UserProfileBridge', { 
           userId: item.id, 
-          userName: item.userName || item.name,
+          userName: displayName,
           skipAuth: true 
         })}
       >
         <AppImage 
-          source={item.userAvatar || item.avatar} 
+          source={avatarSource} 
           style={styles.userAvatar}
           placeholder="person"
         />
         <View style={styles.userInfo}>
-          <Text style={[styles.userName, { color: theme.primaryText }]}>{item.userName || item.name}</Text>
-          <Text style={[styles.userHandle, { color: theme.secondaryText }]} numberOfLines={1}>{item.handle}</Text>
+          <Text style={[styles.userName, { color: theme.primaryText }]}>{displayName}</Text>
+          {handle ? (
+            <Text style={[styles.userHandle, { color: theme.secondaryText }]} numberOfLines={1}>{handle}</Text>
+          ) : null}
         </View>
         <TouchableOpacity style={[styles.followButton, { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' }]}>
           <Text style={[styles.followButtonText, { color: isDarkMode ? '#000000' : '#FFFFFF' }]}>Follow</Text>
@@ -252,12 +272,20 @@ const PeopleListScreen = () => {
     ) : null
   );
 
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', backgroundColor: theme.background }]}>
+        <ActivityIndicator size="large" color={theme.primaryText} />
+      </View>
+    );
+  }
+
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <FlatList
         data={filteredPeople}
         renderItem={renderUserItem}
-        keyExtractor={item => item.id}
+        keyExtractor={item => item.id?.toString()}
         contentContainerStyle={styles.usersList}
         ListHeaderComponent={ListHeader}
       />
