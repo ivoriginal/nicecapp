@@ -1359,6 +1359,67 @@ export default function SearchScreen() {
     );
   };
 
+  const renderRoastersSection = () => {
+    const roasters = mockCafes.roasters || [];
+    if (!roasters || roasters.length === 0) return null;
+
+    return (
+      <View style={styles.carouselSection}>
+        <View style={styles.sectionHeader}>
+          <Text style={[styles.carouselSectionTitle, { color: theme.primaryText }]}>Roasters</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('RoastersList')}>
+            <Text style={[styles.viewAllText, { color: theme.primaryText, borderBottomColor: theme.primaryText }]}>View more</Text>
+          </TouchableOpacity>
+        </View>
+        <FlatList
+          data={roasters}
+          renderItem={({ item }) => {
+            // Prepare image source using existing helper
+            const imageUrl = item.avatar || item.logo || item.imageUrl || item.coverImage;
+            const imageSource = getImageSource(imageUrl);
+            return (
+              <TouchableOpacity
+                style={[
+                  styles.suggestedUserCard,
+                  {
+                    borderWidth: isDarkMode ? 0 : 1,
+                    borderColor: isDarkMode ? 'transparent' : theme.divider,
+                    backgroundColor: isDarkMode ? theme.cardBackground : 'transparent'
+                  }
+                ]}
+                onPress={() => navigation.navigate('UserProfileBridge', {
+                  userId: item.id,
+                  userName: item.name,
+                  isBusinessAccount: true,
+                  isRoaster: true,
+                  skipAuth: true
+                })}
+              >
+                <Image
+                  source={imageSource}
+                  style={[styles.suggestedUserAvatar, { borderColor: theme.divider }]}
+                  resizeMode="cover"
+                />
+                <Text style={[styles.suggestedUserName, { color: theme.primaryText }]} numberOfLines={1}>
+                  {item.name}
+                </Text>
+                {item.location && (
+                  <Text style={[styles.suggestedUserHandle, { color: theme.secondaryText }]} numberOfLines={1}>
+                    {item.location}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            );
+          }}
+          keyExtractor={(item) => item.id}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.userCarouselContainer}
+        />
+      </View>
+    );
+  };
+
   return (
     <View style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
       <View style={styles.searchRow}>
@@ -1462,6 +1523,7 @@ export default function SearchScreen() {
         >
           {renderPopularCoffeeCarousel()}
           {renderGoodCafesSection()}
+          {renderRoastersSection()}
           {/* {renderRecipesForYouSection()} */}
           
           {/* Coffee Gear Section */}

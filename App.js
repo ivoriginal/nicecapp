@@ -34,6 +34,7 @@ import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import * as NavigationBar from 'expo-navigation-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
+import RoastersListScreen from './src/screens/RoastersListScreen';
 
 const Stack = createStackNavigator();
 
@@ -541,6 +542,11 @@ function MainNavigator({ theme, handleRecipeOptions, handleCoffeeOptions }) {
           title: 'Add Manually',
           headerBackTitle: 'Back'
         }} 
+      />
+      <Stack.Screen 
+        name="RoastersList" 
+        component={RoastersListScreen} 
+        options={{ headerShown: true, title: 'Roasters', headerBackTitle: 'Back' }} 
       />
     </Stack.Navigator>
   );
