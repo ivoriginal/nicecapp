@@ -8,6 +8,7 @@ import PeopleCard from '../components/PeopleCard';
 import { COLORS, FONTS } from '../constants';
 import AppImage from '../components/common/AppImage';
 import { useTheme } from '../context/ThemeContext';
+import { useCoffee } from '../context/CoffeeContext';
 import * as Contacts from 'expo-contacts';
 
 const ContactsBanner = ({ onConnect, theme, isDarkMode }) => (
@@ -37,17 +38,30 @@ const ContactsBanner = ({ onConnect, theme, isDarkMode }) => (
   </TouchableOpacity>
 );
 
+const NewUserBadge = ({ theme }) => (
+  <View style={[styles.newUserBadge, { backgroundColor: theme.accent || '#007AFF' }]}>
+    <Text style={styles.newUserBadgeText}>New</Text>
+  </View>
+);
+
+const SectionHeader = ({ title, theme }) => (
+  <View style={[styles.sectionHeader, { backgroundColor: theme.background }]}>
+    <Text style={[styles.sectionHeaderText, { color: theme.primaryText }]}>{title}</Text>
+  </View>
+);
+
 const PeopleListScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const insets = useSafeAreaInsets();
   const { theme, isDarkMode } = useTheme();
+  const { following, isFollowing } = useCoffee();
   const [searchQuery, setSearchQuery] = useState('');
-  const [people, setPeople] = useState([]);
-  const [filteredPeople, setFilteredPeople] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
   const [showContactsBanner, setShowContactsBanner] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [newUsers, setNewUsers] = useState([]);
+  const [otherUsers, setOtherUsers] = useState([]);
+  const [allUnfollowedUsers, setAllUnfollowedUsers] = useState([]);
   
   // Configure navigation header
   useLayoutEffect(() => {
@@ -73,37 +87,62 @@ const PeopleListScreen = () => {
     }
   }, [route.params?.type]);
   
-  // Simulate fetching people data
-  useEffect(() => {
-    const fetchPeople = () => {
-      // Get users from mockUsers and filter out business accounts
-      const usersData = (mockUsers.users || []).filter(user => 
-        !user.isBusinessAccount && 
-        user.userName !== 'Vértigo y Calambre' && 
-        user.userName !== 'You' &&
-        !user.id.includes('business')
-      );
-      setPeople(usersData);
-      setFilteredPeople(usersData);
+  // Fetch people data
+  const fetchPeople = () => {
+    try {
+      // Get all users from mockUsers
+      const allUsers = mockUsers.users;
+      
+      // Filter out users we already follow
+      const unfollowedUsers = allUsers.filter(user => !isFollowing(user.id));
+      
+      // Store all unfollowed users for filtering
+      setAllUnfollowedUsers(unfollowedUsers);
+      
+      // Split into new and other users
+      const now = new Date();
+      const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      
+      const newUsersList = unfollowedUsers.filter(user => {
+        const joinDate = new Date(user.joinDate || '2024-01-01');
+        return joinDate > oneWeekAgo;
+      });
+      
+      const otherUsersList = unfollowedUsers.filter(user => {
+        const joinDate = new Date(user.joinDate || '2024-01-01');
+        return joinDate <= oneWeekAgo;
+      });
+
+      setNewUsers(newUsersList);
+      setOtherUsers(otherUsersList);
+    } catch (error) {
+      console.error('Error fetching people:', error);
+    } finally {
       setLoading(false);
-    };
-    
+    }
+  };
+
+  // Load data when component mounts or following list changes
+  useEffect(() => {
     fetchPeople();
-  }, []);
+  }, [following]);
   
   // Filter people based on search query
   useEffect(() => {
     if (searchQuery) {
-      const filtered = people.filter(person => 
+      const filtered = allUnfollowedUsers.filter(person => 
         person.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        person.fullName.toLowerCase().includes(searchQuery.toLowerCase())
+        person.fullName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        person.handle?.toLowerCase().includes(searchQuery.toLowerCase())
       );
-      setFilteredPeople(filtered);
+      setNewUsers([]);
+      setOtherUsers(filtered);
     } else {
-      setFilteredPeople(people);
+      // Reset to original data when search is cleared
+      fetchPeople();
     }
-  }, [searchQuery, people]);
-  
+  }, [searchQuery]);
+
   const handleSearch = (text) => {
     setSearchQuery(text);
   };
@@ -186,7 +225,7 @@ const PeopleListScreen = () => {
     );
   };
 
-  const renderUserItem = ({ item }) => {
+  const renderUserItem = ({ item, section }) => {
     // Handle avatar source based on user
     let avatar;
     
@@ -207,7 +246,10 @@ const PeopleListScreen = () => {
             placeholder="person"
           />
           <View style={styles.userInfo}>
-            <Text style={[styles.userName, { color: theme.primaryText }]}>{item.userName || item.name}</Text>
+            <View style={styles.userNameContainer}>
+              <Text style={[styles.userName, { color: theme.primaryText }]}>{item.userName || item.name}</Text>
+              {item.isNew && <NewUserBadge theme={theme} />}
+            </View>
             <Text style={[styles.userHandle, { color: theme.secondaryText }]} numberOfLines={1}>{item.handle}</Text>
           </View>
           <TouchableOpacity style={[styles.followButton, { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' }]}>
@@ -232,7 +274,10 @@ const PeopleListScreen = () => {
           placeholder="person"
         />
         <View style={styles.userInfo}>
-          <Text style={[styles.userName, { color: theme.primaryText }]}>{item.userName || item.name}</Text>
+          <View style={styles.userNameContainer}>
+            <Text style={[styles.userName, { color: theme.primaryText }]}>{item.userName || item.name}</Text>
+            {item.isNew && <NewUserBadge theme={theme} />}
+          </View>
           <Text style={[styles.userHandle, { color: theme.secondaryText }]} numberOfLines={1}>{item.handle}</Text>
         </View>
         <TouchableOpacity style={[styles.followButton, { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' }]}>
@@ -240,6 +285,11 @@ const PeopleListScreen = () => {
         </TouchableOpacity>
       </TouchableOpacity>
     );
+  };
+
+  const renderSectionHeader = ({ section }) => {
+    if (!section.data.length) return null;
+    return <SectionHeader title={section.title} theme={theme} />;
   };
 
   const ListHeader = () => (
@@ -252,14 +302,27 @@ const PeopleListScreen = () => {
     ) : null
   );
 
+  const sections = [
+    {
+      title: 'New Users',
+      data: newUsers
+    },
+    {
+      title: searchQuery ? 'Search Results' : 'All Users',
+      data: otherUsers
+    }
+  ].filter(section => section.data.length > 0);
+
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <FlatList
-        data={filteredPeople}
+        sections={sections}
         renderItem={renderUserItem}
+        renderSectionHeader={renderSectionHeader}
         keyExtractor={item => item.id}
         contentContainerStyle={styles.usersList}
         ListHeaderComponent={ListHeader}
+        stickySectionHeadersEnabled={false}
       />
     </View>
   );
@@ -290,6 +353,11 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 16,
   },
+  userNameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   userName: {
     fontSize: 16,
     fontWeight: '600',
@@ -317,7 +385,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   // New styles for the contacts banner
-  // aka contacts banner styles
   bannerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -344,6 +411,29 @@ const styles = StyleSheet.create({
   inviteButton: {
     fontSize: 16,
     fontWeight: '600',
+  },
+  // New user badge styles
+  newUserBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+    backgroundColor: '#007AFF',
+  },
+  newUserBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  // Section header styles
+  sectionHeader: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  sectionHeaderText: {
+    fontSize: 14,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
 });
 

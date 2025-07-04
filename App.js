@@ -1,8 +1,8 @@
 import React, { useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator, CardStyleInterpolators } from '@react-navigation/stack';
+import { createStackNavigator, CardStyleInterpolators, useFocusEffect } from '@react-navigation/stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { StyleSheet, TouchableOpacity, ActionSheetIOS, Platform, Alert, Share, StatusBar as RNStatusBar, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, ActionSheetIOS, Platform, Alert, Share, StatusBar as RNStatusBar, View, Linking } from 'react-native';
 import BottomTabNavigator from './src/navigation/BottomTabNavigator';
 import CoffeeDetailScreen from './src/screens/CoffeeDetailScreen';
 import RecipeDetailScreen from './src/screens/RecipeDetailScreen';
@@ -23,6 +23,7 @@ import EditProfileScreen from './src/screens/EditProfileScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import FollowersScreen from './src/screens/FollowersScreen';
 import SignInScreen from './src/screens/SignInScreen';
+import OnboardingScreen from './src/screens/OnboardingScreen';
 // Add Coffee screens
 import AddCoffeeFromURL from './src/screens/AddCoffeeFromURL';
 import AddCoffeeFromCamera from './src/screens/AddCoffeeFromCamera';
@@ -35,6 +36,8 @@ import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import * as NavigationBar from 'expo-navigation-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
+import CheckEmailScreen from './src/screens/CheckEmailScreen';
+import { supabase } from './src/lib/supabase';
 
 const Stack = createStackNavigator();
 
@@ -314,6 +317,22 @@ function AuthenticatedNavigator({ theme, handleRecipeOptions, handleCoffeeOption
       <Stack.Screen 
         name="SignIn" 
         component={SignInScreen} 
+        options={{ 
+          headerShown: false,
+          cardStyleInterpolator: CardStyleInterpolators.forVerticalIOS,
+        }} 
+      />
+      <Stack.Screen 
+        name="Onboarding" 
+        component={OnboardingScreen} 
+        options={{ 
+          headerShown: false,
+          cardStyleInterpolator: CardStyleInterpolators.forVerticalIOS,
+        }} 
+      />
+      <Stack.Screen 
+        name="CheckEmail" 
+        component={CheckEmailScreen} 
         options={{ 
           headerShown: false,
           cardStyleInterpolator: CardStyleInterpolators.forVerticalIOS,

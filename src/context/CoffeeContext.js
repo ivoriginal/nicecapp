@@ -2,8 +2,8 @@ import React, { createContext, useState, useContext, useEffect, useCallback, use
 import { 
   saveCoffeeEvent, 
   getCoffeeEvents, 
-  saveToCollection, 
-  removeFromCollection,
+  saveToCollection as saveToCollectionLocal, 
+  removeFromCollection as removeFromCollectionLocal,
   getCollection,
   saveToWishlist,
   removeFromWishlist,
@@ -11,11 +11,35 @@ import {
   saveFavorites,
   getFavorites
 } from '../lib/dataProvider';
+import { supabase, saveToCollection as saveToCollectionDB } from '../lib/supabase';
 import mockEvents from '../data/mockEvents.json';
 import mockUsers from '../data/mockUsers.json';
 import mockCoffees from '../data/mockCoffees.json';
 import mockCoffeesData from '../data/mockCoffees.json';
 import mockRecipes from '../data/mockRecipes.json';
+
+// Helper function to map Supabase profile format to app format
+const mapSupabaseProfileToAppFormat = (supabaseProfile) => {
+  if (!supabaseProfile) return null;
+  
+  return {
+    id: supabaseProfile.id,
+    email: supabaseProfile.email,
+    userName: supabaseProfile.full_name || supabaseProfile.username || supabaseProfile.email?.split('@')[0] || 'User',
+    userHandle: supabaseProfile.username || supabaseProfile.email?.split('@')[0] || 'user',
+    userAvatar: supabaseProfile.avatar_url,
+    location: supabaseProfile.location || '',
+    bio: supabaseProfile.bio,
+    gear: supabaseProfile.gear || [],
+    gearWishlist: supabaseProfile.gearWishlist || [],
+    // Keep original Supabase fields as well for compatibility
+    full_name: supabaseProfile.full_name,
+    username: supabaseProfile.username,
+    avatar_url: supabaseProfile.avatar_url,
+    created_at: supabaseProfile.created_at,
+    updated_at: supabaseProfile.updated_at
+  };
+};
 
 // Create the context with a default value
 const CoffeeContext = createContext({
@@ -51,7 +75,10 @@ const CoffeeContext = createContext({
   getAllAvailableCoffees: () => [], // Add function to get all coffees
   switchAccount: () => {},
   signIn: () => {},
-  signOut: () => {}
+  signOut: () => {},
+  followUser: () => {},
+  unfollowUser: () => {},
+  isFollowing: () => false,
 });
 
 export const CoffeeProvider = ({ children }) => {
@@ -67,210 +94,417 @@ export const CoffeeProvider = ({ children }) => {
   const [recipes, setRecipes] = useState([]);
   const [userAddedCoffees, setUserAddedCoffees] = useState([]); // State for user-added coffees
   const [hiddenEvents, setHiddenEvents] = useState(new Set());
-  const [currentAccount, setCurrentAccount] = useState(null); // Will be set after authentication
+  const [currentAccount, setCurrentAccount] = useState(null); // Will be set to real Supabase user ID
   const [allEvents, setAllEvents] = useState([]); // All events from all users
   const [following, setFollowing] = useState([]); // Users that the current user follows
   const [followers, setFollowers] = useState([]); // Users that follow the current user
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [accounts] = useState([
-    { id: 'user1', userName: 'Ivo Vilches', userAvatar: require('../../assets/users/ivo-vilches.jpg'), email: 'ivo.vilches@example.com' },
-    { id: 'user2', userName: 'Vértigo y Calambre', userAvatar: require('../../assets/businesses/vertigo-logo.jpg'), email: 'contacto@vertigoycalambre.com' },
-    { id: 'user3', userName: 'Carlos Hernández', userAvatar: require('../../assets/users/carlos-hernandez.jpg'), email: 'carlos.hernandez@example.com' }
-  ]);
   
+  // Remove mock accounts - use real Supabase users only
+  const [accounts] = useState([]); // Empty array since we're using real auth
+
   // Initialize on mount
   useEffect(() => {
     console.log('CoffeeContext initializing...');
     console.log('Initial authentication state:', isAuthenticated);
     console.log('Initial current account:', currentAccount);
     
-    // Auto-sign in for development purposes
-    if (!isAuthenticated && !currentAccount) {
-      console.log('Auto-signing in as user1 for development...');
-      const autoSignIn = async () => {
-        try {
-          await signIn('user1');
-        } catch (error) {
-          console.error('Auto sign-in failed:', error);
+    // Check for existing session on initialization
+    const checkExistingSession = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Error getting session:', error);
+          setLoading(false);
+          return;
+        }
+
+        if (session?.user?.id) {
+          console.log('Found existing session for user:', session.user.id);
+          setCurrentAccount(session.user.id);
+          setIsAuthenticated(true);
+          await loadData(session.user.id);
+        } else {
+          console.log('No existing session found');
           setLoading(false);
         }
-      };
-      setTimeout(autoSignIn, 1000);
-    } else {
-      setLoading(false);
-    }
-  }, []);
+      } catch (error) {
+        console.error('Error checking session:', error);
+        setLoading(false);
+      }
+    };
 
-  // Load data for a specific account - memoized to prevent re-renders
-  const loadData = useCallback(async (specificAccount = null) => {
-    try {
-      const accountToLoad = specificAccount || currentAccount;
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state changed:', event, session?.user?.id);
       
-      // Check if we have a valid account to load data for
-      if (!accountToLoad) {
-        console.log('No account specified for loadData, skipping...');
-        return;
-      }
-      
-      console.log('Loading data for account:', accountToLoad);
-      
-      // Prevent duplicate loading (to avoid infinite loops)
-      if (loading && initialized) {
-        console.log('Already loading data, skipping duplicate load');
-        return;
-      }
-      
-      setLoading(true);
-      setError(null);
-      
-      // Initialize gear data variables
-      let gearData = [];
-      let gearWishlistData = [];
-      
-      // Get gear data from mockUsers.json to ensure it's available
-      const mockUserData = mockUsers.users.find(u => u.id === accountToLoad);
-      if (mockUserData) {
-        console.log(`Found mockUserData for ${accountToLoad} with gear:`, mockUserData.gear);
-        gearData = mockUserData.gear || [];
-        gearWishlistData = mockUserData.gearWishlist || [];
-      }
-      
-      // Set user data from accounts list
-      const userData = accounts.find(acc => acc.id === accountToLoad);
-      if (userData) {
-        console.log('Found user data:', userData);
-        setUser(userData);
-      } else {
-        console.error('User data not found for account ID:', accountToLoad);
-        setError('User data not found');
-        return;
-      }
-      
-      // Define our local account data structure
-      const accountData = {
-        'user1': { coffeeEvents: [], coffeeCollection: [], coffeeWishlist: [], favorites: [], recipes: [] },
-        'user2': { coffeeEvents: [], coffeeCollection: [], coffeeWishlist: [], favorites: [], recipes: [] },
-        'user3': { coffeeEvents: [], coffeeCollection: [], coffeeWishlist: [], favorites: [], recipes: [] }
-      };
-      
-      // IMPORTANT: Collect all events for social feed - do this BEFORE loading account-specific data
-      let allUserEvents = [];
-      
-      // Load events from mockEvents.json if available
-      if (mockEvents.coffeeEvents && Array.isArray(mockEvents.coffeeEvents)) {
-        console.log(`Adding ${mockEvents.coffeeEvents.length} events from mockEvents.json`);
-        
-        // Filter out any events without coffee data
-        const validCoffeeEvents = mockEvents.coffeeEvents.filter(
-          event => event.coffeeId && event.coffeeName && !event.type
-        );
-        
-        allUserEvents = [...mockEvents.coffeeEvents];
-        
-        // We're now only using mockEvents.coffeeEvents for all event data
-      }
-      
-      // Only add events from accountData if we want to supplement split files
-      // This can be removed once the migration to split files is complete
-      else {
-        // Create an empty accountData object if it doesn't exist
-        const accountData = {
-          'user1': {
-            coffeeEvents: [],
-            coffeeCollection: [],
-            coffeeWishlist: [],
-            favorites: [],
-            recipes: []
-          }
-        };
-        
-        for (const acct in accountData) {
-          if (accountData[acct]?.coffeeEvents && Array.isArray(accountData[acct].coffeeEvents)) {
-            console.log(`Adding ${accountData[acct].coffeeEvents.length} events from ${acct}`);
-            // Make sure each event has all required data
-            const eventsWithUserInfo = accountData[acct].coffeeEvents.map(event => {
-              // Ensure each event has proper user info
-              if (!event.userName || !event.userAvatar) {
-                const accountInfo = accounts.find(a => a.id === acct);
-                return {
-                  ...event,
-                  userName: event.userName || accountInfo?.userName || 'Unknown User',
-                  userAvatar: event.userAvatar || accountInfo?.userAvatar || null,
-                };
-              }
-              return event;
-            });
-            allUserEvents = [...allUserEvents, ...eventsWithUserInfo];
+      if (event === 'SIGNED_IN' && session?.user?.id) {
+        console.log('User signed in:', session.user.id);
+        setCurrentAccount(session.user.id);
+        setIsAuthenticated(true);
+        // Only load data if we don't already have it for this user
+        if (!user || user.id !== session.user.id) {
+          await loadData(session.user.id);
+        }
+      } else if (event === 'SIGNED_OUT') {
+        console.log('User signed out');
+        setCurrentAccount(null);
+        setIsAuthenticated(false);
+        setUser(null);
+        setCoffeeEvents([]);
+        setCoffeeCollection([]);
+        setCoffeeWishlist([]);
+        setFavorites([]);
+        setRecipes([]);
+        setAllEvents([]);
+        setFollowing([]);
+        setFollowers([]);
+        setInitialized(false);
+        setError(null);
+        setLoading(false);
+      } else if (event === 'TOKEN_REFRESHED' && session?.user?.id) {
+        console.log('Token refreshed for user:', session.user.id);
+        // Update current account if needed but don't reload data
+        if (currentAccount !== session.user.id) {
+          setCurrentAccount(session.user.id);
+          setIsAuthenticated(true);
+          // Only load data if the user ID changed
+          if (!user || user.id !== session.user.id) {
+            await loadData(session.user.id);
           }
         }
       }
+    });
+
+    // Only check session if we're not already authenticated
+    if (!isAuthenticated && !currentAccount) {
+      checkExistingSession();
+    } else if (!isAuthenticated) {
+      setLoading(false);
+    }
+
+    // Cleanup subscription on unmount
+    return () => {
+      subscription?.unsubscribe();
+    };
+  }, []); // Empty dependency array to run only once on mount
+
+  // Load data for a specific account - memoized to prevent re-renders
+  const loadData = useCallback(async (accountToLoad) => {
+    console.log('=== LOADDATA DEBUG ===');
+    console.log('accountToLoad:', accountToLoad);
+    console.log('typeof accountToLoad:', typeof accountToLoad);
+    console.log('loading state:', loading);
+    
+    if (!accountToLoad) {
+      console.error('No account ID provided to loadData');
+      console.error('accountToLoad is:', accountToLoad);
+      setError('No account ID provided');
+      return;
+    }
+
+    if (loading) {
+      console.log('Already loading data, skipping loadData');
+      return;
+    }
+
+    console.log('Loading data for account:', accountToLoad);
+    setLoading(true);
+    setError(null);
+
+    try {
+      console.log('Attempting to fetch profile from Supabase...');
       
-      // Sort by date (newest first)
-      allUserEvents.sort((a, b) => new Date(b.date || b.timestamp) - new Date(a.date || a.timestamp));
-      
-      // Filter out events from user3 (Carlos Hernández) as he should have no activity
-      const filteredEvents = allUserEvents.filter(event => event.userId !== 'user3');
-      
-      console.log('FINAL - Setting allEvents with length:', filteredEvents.length);
-      console.log('Events preview:', filteredEvents.slice(0, 3).map(e => ({ id: e.id, user: e.userName })));
-      setAllEvents(filteredEvents);
-      
-      // Extract unique coffeeIds from user events to add to their collection
-      const userEvents = filteredEvents.filter(event => event.userId === accountToLoad && event.coffeeId && event.coffeeName);
-      console.log(`Found ${userEvents.length} events for user ${accountToLoad} to potentially add to collection`);
-      
-      // Create collection items from coffee logs
-      const collectionItemsFromLogs = userEvents.map(event => ({
-        id: event.coffeeId,
-        name: event.coffeeName,
-        roaster: event.roaster || '',
-        image: event.imageUrl || 'https://images.unsplash.com/photo-1447933601403-0c6688de566e',
-        userId: accountToLoad
-      }));
-      
-      // Get existing collection
-      const existingCollection = accountData[accountToLoad]?.coffeeCollection || [];
-      
-      // Combine existing collection with items from logs, avoiding duplicates
-      const existingIds = new Set(existingCollection.map(item => item.id));
-      const newItems = collectionItemsFromLogs.filter(item => !existingIds.has(item.id));
-      
-      // Create combined collection
-      const combinedCollection = [...existingCollection, ...newItems];
-      console.log(`Added ${newItems.length} items to collection from logs`);
-      
-      // Set current user's data
-      const userOwnEvents = allUserEvents.filter(event => event.userId === accountToLoad);
-      console.log(`Setting ${userOwnEvents.length} events for user ${accountToLoad}'s own activity tab`);
-      setCoffeeEvents(userOwnEvents);
-      setCoffeeCollection(combinedCollection);
-      setCoffeeWishlist(accountData[accountToLoad]?.coffeeWishlist || []);
-      setFavorites(accountData[accountToLoad]?.favorites || []);
-      setRecipes(accountData[accountToLoad]?.recipes || []);
-      
-      // Update accountData with the new collection
-      if (accountData[accountToLoad]) {
-        accountData[accountToLoad].coffeeCollection = combinedCollection;
+      // Get the user's profile
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', accountToLoad)
+        .single();
+
+      console.log('Supabase profile query result:', { profile, profileError });
+
+      if (profileError) {
+        // If profile doesn't exist (PGRST116 error), try to create one from auth user
+        if (profileError.code === 'PGRST116') {
+          console.log('Profile not found, attempting to create from auth user...');
+          
+          try {
+            // Get the auth user data
+            const { data: { user }, error: userError } = await supabase.auth.getUser();
+            
+            if (userError || !user || user.id !== accountToLoad) {
+              throw new Error('Unable to get auth user data');
+            }
+            
+            // First, check if a profile exists with this email (but different ID)
+            const { data: existingProfile, error: existingProfileError } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('email', user.email)
+              .single();
+            
+            if (existingProfile && !existingProfileError) {
+              console.log('Found existing profile with same email:', existingProfile);
+              const mappedProfile = mapSupabaseProfileToAppFormat(existingProfile);
+              setUser(mappedProfile);
+            } else {
+              // Create a basic profile
+              const username = user.user_metadata?.username || user.email?.split('@')[0] || 'user';
+              const full_name = user.user_metadata?.full_name || username;
+              
+              const { data: newProfile, error: createError } = await supabase
+                .from('profiles')
+                .insert([
+                  {
+                    id: user.id,
+                    email: user.email,
+                    username: username,
+                    full_name: full_name,
+                    avatar_url: user.user_metadata?.avatar_url || null,
+                    bio: user.user_metadata?.bio || null,
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                  }
+                ])
+                .select()
+                .single();
+                
+              if (createError) {
+                console.error('Error creating profile:', createError);
+                
+                // If it's still a duplicate key error, try to find the profile by email again
+                if (createError.code === '23505') {
+                  const { data: duplicateProfile, error: duplicateError } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('email', user.email)
+                    .single();
+                    
+                  if (duplicateProfile && !duplicateError) {
+                    console.log('Using existing profile found after duplicate error:', duplicateProfile);
+                    const mappedProfile = mapSupabaseProfileToAppFormat(duplicateProfile);
+                    setUser(mappedProfile);
+                  } else {
+                    throw new Error('Profile creation failed due to duplicate constraint');
+                  }
+                } else {
+                  throw new Error('Failed to create user profile');
+                }
+              } else {
+                console.log('Successfully created profile:', newProfile);
+                const mappedProfile = mapSupabaseProfileToAppFormat(newProfile);
+                setUser(mappedProfile);
+              }
+            }
+          } catch (createProfileError) {
+            console.error('Error creating profile:', createProfileError);
+            
+            // Fallback: create a minimal user object from auth data
+            const { data: { user }, error: userError } = await supabase.auth.getUser();
+            if (user && !userError) {
+              const fallbackUser = {
+                id: user.id,
+                email: user.email,
+                username: user.email?.split('@')[0] || 'user',
+                full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
+                avatar_url: user.user_metadata?.avatar_url || null,
+                bio: null
+              };
+              console.log('Using fallback user object:', fallbackUser);
+              const mappedFallback = mapSupabaseProfileToAppFormat(fallbackUser);
+              setUser(mappedFallback);
+            } else {
+              throw new Error('Failed to create or load user profile');
+            }
+          }
+        } else {
+          console.error('Error fetching profile:', profileError);
+          throw new Error('Failed to fetch profile data');
+        }
+      } else if (!profile) {
+        console.error('Profile not found for account:', accountToLoad);
+        throw new Error('Profile not found');
+      } else {
+        console.log('Setting user profile:', profile);
+        const mappedProfile = mapSupabaseProfileToAppFormat(profile);
+        setUser(mappedProfile);
       }
       
-      // Load saved recipes from mockUsers and mockRecipes (after setting initial data)
-      loadSavedRecipes();
+      // Load coffee events from Supabase
+      console.log('Loading coffee events from Supabase...');
+      console.log('=== LOADING COFFEE EVENTS DEBUG ===');
+      console.log('Loading events for user_id:', accountToLoad);
+      console.log('Profile object:', profile);
       
-      // Set following and followers - for the social feed, everyone follows everyone
-      const otherUsers = accounts.filter(acc => acc.id !== accountToLoad);
-      setFollowing(otherUsers);
-      setFollowers(otherUsers);
+      let { data: coffeeEventsData, error: eventsError } = await supabase
+        .from('coffee_events')
+        .select('*')
+        .eq('user_id', accountToLoad)
+        .order('created_at', { ascending: false });
+
+      console.log('=== COFFEE EVENTS QUERY RESULT ===');
+      console.log('Events found:', coffeeEventsData?.length || 0);
+      console.log('Query error:', eventsError);
+      console.log('Raw events data:', coffeeEventsData);
+
+      // Remove any legacy seeded test events that were inserted previously
+      const seededCoffeeNames = ['Ethiopia Yirgacheffe', 'Colombia Huila', 'Kenya Nyeri'];
+      if (coffeeEventsData && coffeeEventsData.length > 0) {
+        const seedIds = coffeeEventsData
+          .filter(ev => seededCoffeeNames.includes(ev.coffee_name))
+          .map(ev => ev.id);
+
+        if (seedIds.length > 0) {
+          console.log('Cleaning up legacy seeded events:', seedIds);
+          const { error: deleteError } = await supabase
+            .from('coffee_events')
+            .delete()
+            .in('id', seedIds);
+
+          if (deleteError) {
+            console.error('Failed to delete seeded events:', deleteError);
+          }
+
+          // Filter them out locally as well
+          coffeeEventsData = coffeeEventsData.filter(ev => !seedIds.includes(ev.id));
+        }
+      }
+
+      if (eventsError) {
+        console.error('Error loading coffee events:', eventsError);
+      } else {
+        console.log(`Loaded ${coffeeEventsData?.length || 0} coffee events from Supabase`);
+        
+        // Transform Supabase events to UI format
+        const transformedEvents = (coffeeEventsData || []).map(event => ({
+          id: event.id,
+          coffeeId: event.coffee_id,
+          coffeeName: event.coffee_name,
+          roaster: event.roaster,
+          imageUrl: event.image_url,
+          rating: event.rating,
+          date: event.created_at,
+          brewingMethod: event.brewing_method,
+          grindSize: event.grind_size,
+          waterVolume: event.water_volume,
+          brewTime: event.brew_time,
+          amount: event.amount,
+          notes: event.notes,
+          userId: event.user_id,
+          userName: profile?.full_name || profile?.username || profile?.email?.split('@')[0] || 'User',
+          userAvatar: profile?.avatar_url,
+          friends: event.friends ? JSON.parse(event.friends) : [],
+          location: event.location,
+          isPublic: event.is_public,
+          hasRecipe: event.has_recipe,
+          originalRecipe: event.recipe_data ? JSON.parse(event.recipe_data) : null,
+          timestamp: event.created_at
+        }));
+        
+        setCoffeeEvents(transformedEvents);
+        setAllEvents(transformedEvents);
+
+        // === Fallback: load public events for new users with no posts ===
+        if (transformedEvents.length === 0) {
+          try {
+            // Fetch recent public events from Supabase for discovery feed
+            const { data: publicEvents, error: publicEventsError } = await supabase
+              .from('coffee_events')
+              .select('*')
+              .eq('is_public', true)
+              .order('created_at', { ascending: false })
+              .limit(20);
+
+            if (!publicEventsError && publicEvents && publicEvents.length > 0) {
+              // Get unique author IDs
+              const authorIds = [...new Set(publicEvents.map(ev => ev.user_id))];
+
+              // Fetch author profiles in one query
+              const { data: authorProfiles, error: authorProfilesError } = await supabase
+                .from('profiles')
+                .select('*')
+                .in('id', authorIds);
+
+              const profileMap = {};
+              if (!authorProfilesError && authorProfiles) {
+                authorProfiles.forEach(p => {
+                  profileMap[p.id] = p;
+                });
+              }
+
+              const fallbackEvents = publicEvents
+                .filter(ev => profileMap[ev.user_id]) // ensure author exists
+                .map(ev => {
+                const author = profileMap[ev.user_id];
+                return {
+                  id: ev.id,
+                  coffeeId: ev.coffee_id,
+                  coffeeName: ev.coffee_name,
+                  roaster: ev.roaster,
+                  imageUrl: ev.image_url,
+                  rating: ev.rating,
+                  date: ev.created_at,
+                  brewingMethod: ev.brewing_method,
+                  grindSize: ev.grind_size,
+                  waterVolume: ev.water_volume,
+                  brewTime: ev.brew_time,
+                  amount: ev.amount,
+                  notes: ev.notes,
+                  userId: ev.user_id,
+                  userName: author.full_name || author.username || author.email?.split('@')[0] || 'User',
+                  userAvatar: author.avatar_url,
+                  friends: ev.friends ? JSON.parse(ev.friends) : [],
+                  location: ev.location,
+                  isPublic: ev.is_public,
+                  hasRecipe: ev.has_recipe,
+                  originalRecipe: ev.recipe_data ? JSON.parse(ev.recipe_data) : null,
+                  timestamp: ev.created_at
+                };
+              });
+
+              // Show discovery feed on Home only – don't mix into user's personal timeline
+              setAllEvents(fallbackEvents);
+            } else if (publicEventsError) {
+              console.error('Error fetching fallback events:', publicEventsError);
+            }
+          } catch (fallbackErr) {
+            console.error('Unexpected error fetching fallback events:', fallbackErr);
+          }
+        }
+      }
+
+      // Initialize empty collections for new users
+      setCoffeeCollection([]);
+      setCoffeeWishlist([]);
+      setFavorites([]);
+      setRecipes([]);
       
+      // Get all other users for following/followers
+      const { data: otherProfiles, error: otherProfilesError } = await supabase
+        .from('profiles')
+        .select('*')
+        .neq('id', accountToLoad);
+
+      if (otherProfilesError) {
+        console.error('Error fetching other profiles:', otherProfilesError);
+      } else {
+        setFollowing(otherProfiles || []);
+        setFollowers(otherProfiles || []);
+      }
+
+      setInitialized(true);
       console.log('CoffeeContext - Data loaded successfully');
     } catch (error) {
       console.error('Error loading data:', error);
       setError(error.message);
+      setInitialized(false);
     } finally {
       setLoading(false);
-      setInitialized(true);
-      console.log('CoffeeContext - Loading complete, loading set to false');
+      console.log('CoffeeContext - Loading complete');
     }
-  }, [currentAccount, accounts, loading, initialized]);
+  }, [loading]);
 
   // Load saved recipes from mockUsers and mockRecipes
   const loadSavedRecipes = () => {
@@ -378,85 +612,101 @@ export const CoffeeProvider = ({ children }) => {
     }
   };
   
-  // Function to switch between accounts - memoized to prevent re-renders
+  // Function to switch between accounts - since we're using real auth, this just refreshes current user data
   const switchAccount = useCallback(async (account) => {
     try {
-      // Default to user1 if invalid account is provided
-      const targetAccount = account || 'user1';
-      console.log('CoffeeContext - Switching account to:', targetAccount);
+      console.log('CoffeeContext - Refreshing user data for account:', account);
       
-      // Verify the account exists in accounts array
-      const userData = accounts.find(user => user.id === targetAccount);
-      if (!userData) {
-        console.error('Invalid account - account not found in accounts array');
-        throw new Error('Invalid account');
+      // For real authentication, we don't switch accounts, we just refresh the current user's data
+      if (account && account === currentAccount) {
+        console.log('Refreshing data for current authenticated user');
+        await loadData(account);
+      } else {
+        console.warn('Cannot switch to different account with real authentication');
+        throw new Error('Account switching not supported with real authentication');
       }
-      
-      console.log('Found user data for switch:', userData);
-      
-      // First set the current account
-      setCurrentAccount(targetAccount);
-      console.log('Current account set to:', targetAccount);
-      
-      // Then set user immediately to avoid flash of empty state
-      setUser(userData);
-      console.log('User set to:', userData);
-      
-      // Clear current data to avoid seeing stale data
-      setCoffeeEvents([]);
-      setCoffeeCollection([]);
-      setCoffeeWishlist([]);
-      setFavorites([]);
-      setRecipes([]);
-      console.log('Cleared existing data');
-      
-      // Set loading state to true
-      setLoading(true);
-      console.log('Set loading to true');
-      
-      // Small delay to ensure state updates have taken effect
-      setTimeout(async () => {
-        try {
-          // Now load data for the newly set account
-          console.log('Loading data for account after switch:', targetAccount);
-          await loadData(targetAccount);
-        } catch (loadError) {
-          console.error('Error loading data after account switch:', loadError);
-          setError('Failed to load account data');
-        }
-      }, 100);
     } catch (error) {
-      console.error('Error switching account:', error);
-      setError('Failed to switch account');
-      
-      // Revert to Ivo Vilches if there's an error
-      const defaultUser = accounts.find(u => u.id === 'user1');
-      setCurrentAccount('user1');
-      setUser(defaultUser);
-      
-      // Try to load default user data
-      setTimeout(() => {
-        loadData('user1');
-      }, 100);
+      console.error('Error refreshing account data:', error);
+      setError('Failed to refresh account data');
     }
-  }, [accounts, currentAccount, user, loadData]);
+  }, [currentAccount, loadData]);
 
   const addCoffeeEvent = async (eventData) => {
     try {
-      // Create a new event with a unique ID
+      console.log('=== ADDCOFFEEEVENT DEBUG ===');
+      console.log('Adding coffee event for user:', currentAccount, user?.id);
+      console.log('User object:', user);
+      console.log('Event data:', eventData);
+      
+      if (!currentAccount || !user?.id) {
+        throw new Error('No authenticated user found');
+      }
+
+      // Create event data for Supabase with proper structure
+      const supabaseEventData = {
+        user_id: user.id, // Use the authenticated user's ID
+        coffee_name: eventData.coffeeName || eventData.name,
+        coffee_id: eventData.coffeeId,
+        rating: eventData.rating || null,
+        notes: eventData.notes || '',
+        brewing_method: eventData.brewingMethod || eventData.method || null,
+        grind_size: eventData.grindSize || null,
+        water_volume: eventData.waterVolume || null,
+        brew_time: eventData.brewTime || null,
+        amount: eventData.amount || null,
+        roaster: eventData.roaster || null,
+        location: eventData.location || null,
+        image_url: eventData.imageUrl || null,
+        is_public: eventData.isPublic !== undefined ? eventData.isPublic : true,
+        friends: eventData.friends ? JSON.stringify(eventData.friends) : null,
+        has_recipe: eventData.hasRecipe || false,
+        recipe_data: eventData.originalRecipe ? JSON.stringify(eventData.originalRecipe) : null
+      };
+
+      console.log('=== SAVING TO SUPABASE ===');
+      console.log('Saving to Supabase with user_id:', supabaseEventData.user_id);
+      console.log('Full supabase event data:', supabaseEventData);
+
+      // Save to Supabase
+      const { data: savedEvent, error: saveError } = await supabase
+        .from('coffee_events')
+        .insert([supabaseEventData])
+        .select()
+        .single();
+
+      if (saveError) {
+        console.error('Error saving to Supabase:', saveError);
+        throw new Error(`Failed to save coffee event: ${saveError.message}`);
+      }
+
+      console.log('Successfully saved to Supabase:', savedEvent);
+
+      // Create a display event object for the UI
       const newEvent = {
-        ...eventData,
-        id: Date.now().toString(), // Simple unique ID
-        date: new Date().toISOString(),
-        userId: currentAccount,
-        userName: user?.userName || 'Guest',
-        userAvatar: user?.userAvatar || null,
-        // Ensure friends data is preserved
-        friends: eventData.friends || []
+        id: savedEvent.id,
+        type: eventData.type || 'coffee_log',
+        coffeeId: eventData.coffeeId,
+        coffeeName: eventData.coffeeName || eventData.name,
+        roaster: eventData.roaster,
+        imageUrl: eventData.imageUrl,
+        rating: eventData.rating,
+        date: savedEvent.created_at,
+        brewingMethod: eventData.brewingMethod || eventData.method,
+        grindSize: eventData.grindSize,
+        notes: eventData.notes,
+        userId: user.id,
+        userName: user.full_name || user.username || user.email?.split('@')[0] || 'User',
+        userAvatar: user.avatar_url,
+        friends: eventData.friends || [],
+        location: eventData.location,
+        isPublic: eventData.isPublic !== undefined ? eventData.isPublic : true,
+        hasRecipe: eventData.hasRecipe || false,
+        originalRecipe: eventData.originalRecipe || null,
+        timestamp: savedEvent.created_at
       };
       
       // Log the new event data for debugging
-      console.log('Adding new coffee event with friends:', {
+      console.log('Adding new coffee event to UI state:', {
         eventId: newEvent.id,
         friends: newEvent.friends,
         friendsCount: newEvent.friends?.length
@@ -468,9 +718,37 @@ export const CoffeeProvider = ({ children }) => {
       // Add the new event to the allEvents state too
       setAllEvents(prevEvents => [newEvent, ...prevEvents]);
       
-      // Also update the accountData object
-      if (accountData[currentAccount]) {
-        accountData[currentAccount].coffeeEvents = [newEvent, ...(accountData[currentAccount].coffeeEvents || [])];
+      // If this wasn't already an "added_to_collection" event, automatically add the coffee to the collection
+      if (eventData.type !== 'added_to_collection') {
+        const coffeeData = {
+          id: newEvent.coffeeId,
+          name: newEvent.coffeeName,
+          roaster: newEvent.roaster,
+          image: newEvent.imageUrl,
+          origin: eventData.origin || '',
+          process: eventData.process || '',
+          roastLevel: eventData.roastLevel || 'Medium'
+        };
+
+        setCoffeeCollection(prevCollection => {
+          const isInCollection = prevCollection.some(c => c.id === newEvent.coffeeId);
+          if (!isInCollection) {
+            console.log('Automatically adding coffee to collection after logging event:', coffeeData.name);
+            const coffeeItem = {
+              id: coffeeData.id,
+              name: coffeeData.name,
+              roaster: coffeeData.roaster || '',
+              image: coffeeData.image || 'https://images.unsplash.com/photo-1447933601403-0c6688de566e',
+              origin: coffeeData.origin || '',
+              process: coffeeData.process || '',
+              roastLevel: coffeeData.roastLevel || 'Medium',
+              timestamp: new Date().toISOString(),
+              userId: user.id
+            };
+            return [...prevCollection, coffeeItem];
+          }
+          return prevCollection;
+        });
       }
       
       // Return the new event in case it's needed by the caller
@@ -499,25 +777,46 @@ export const CoffeeProvider = ({ children }) => {
   };
 
   // Add function to remove a coffee event (if it doesn't exist already)
-  const removeCoffeeEvent = (eventId) => {
-    console.log('Removing coffee event with ID:', eventId);
-    // Remove from coffeeEvents state
-    setCoffeeEvents(prevEvents => prevEvents.filter(event => event.id !== eventId));
-    // Remove from allEvents state too
-    setAllEvents(prevEvents => prevEvents.filter(event => event.id !== eventId));
-    
-    // Update accountData too if needed
-    if (accountData[currentAccount] && accountData[currentAccount].coffeeEvents) {
-      accountData[currentAccount].coffeeEvents = accountData[currentAccount].coffeeEvents.filter(
-        event => event.id !== eventId
-      );
+  const removeCoffeeEvent = async (eventId) => {
+    try {
+      console.log('Removing coffee event with ID:', eventId);
+
+      // Optimistic UI update – remove from local state first
+      setCoffeeEvents(prevEvents => prevEvents.filter(event => event.id !== eventId));
+      setAllEvents(prevEvents => prevEvents.filter(event => event.id !== eventId));
+
+      if (accountData[currentAccount] && accountData[currentAccount].coffeeEvents) {
+        accountData[currentAccount].coffeeEvents = accountData[currentAccount].coffeeEvents.filter(
+          event => event.id !== eventId
+        );
+      }
+
+      // Persist deletion to Supabase
+      if (eventId) {
+        const { error: deleteError } = await supabase
+          .from('coffee_events')
+          .delete()
+          .eq('id', eventId)
+          .eq('user_id', user?.id);
+
+        if (deleteError) {
+          console.error('Supabase delete error:', deleteError);
+          // Re-add event locally if deletion failed so UI stays consistent
+          // NOTE: Ideally we would re-fetch from backend, but this is simpler for now.
+          throw deleteError;
+        }
+      }
+
+      return true;
+    } catch (err) {
+      console.error('Error removing event:', err);
+      setError(err.message || 'Failed to delete coffee log');
+      return false;
     }
-    
-    return true;
   };
 
   // Add to collection function - implements the "Mark as Tried" button functionality
-  const addToCollection = (coffee) => {
+  const addToCollection = async (coffee) => {
     console.log('Adding coffee to collection:', coffee.name);
     
     // First, add the coffee to the global catalog if it's a new user-added coffee
@@ -551,6 +850,27 @@ export const CoffeeProvider = ({ children }) => {
           accountData[currentAccount].coffeeCollection = [];
         }
         accountData[currentAccount].coffeeCollection.push(coffeeItem);
+      }
+
+      // Persist the collection entry to Supabase
+      try {
+        await saveToCollectionDB(coffeeItem);
+        console.log('Saved coffee to Supabase collection');
+      } catch (error) {
+        console.error('Error saving coffee to Supabase:', error);
+      }
+
+      // Create an event indicating the user added this coffee to their collection
+      try {
+        await addCoffeeEvent({
+          type: 'added_to_collection',
+          coffeeId: coffeeItem.id,
+          coffeeName: coffeeItem.name,
+          roaster: coffeeItem.roaster,
+          imageUrl: coffeeItem.image
+        });
+      } catch (error) {
+        console.error('Error creating collection event:', error);
       }
     }
     
@@ -787,38 +1107,25 @@ export const CoffeeProvider = ({ children }) => {
   };
 
   // Authentication functions
-  const signIn = async (accountId = 'user1') => {
-    try {
-      console.log('=== SIGNING IN ===');
-      console.log('Signing in as:', accountId);
-      setLoading(true);
-      
-      // Set authentication state and current account
-      setIsAuthenticated(true);
-      setCurrentAccount(accountId);
-      console.log('Authentication state set to true, current account set to:', accountId);
-      
-      // Explicitly pass the accountId to loadData to avoid race condition
-      await loadData(accountId);
-      
-      console.log('Sign in successful - data loaded');
-    } catch (error) {
-      console.error('Sign in error:', error);
-      setError('Failed to sign in');
-      throw error;
-    } finally {
-      setLoading(false);
-      console.log('Sign in process completed');
-    }
+  const signIn = async () => {
+    console.log('SignIn function called - auth state listener will handle the rest');
+    // The auth state listener will automatically handle:
+    // - Setting currentAccount
+    // - Setting isAuthenticated
+    // - Loading user data
+    // So we don't need to do anything here
   };
 
   const signOut = async () => {
+    console.log('Signing out...');
     try {
-      console.log('Signing out');
-      
-      // Clear all state
-      setIsAuthenticated(false);
+      setLoading(true);
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+
+      // Reset all state
       setCurrentAccount(null);
+      setIsAuthenticated(false);
       setUser(null);
       setCoffeeEvents([]);
       setCoffeeCollection([]);
@@ -828,15 +1135,87 @@ export const CoffeeProvider = ({ children }) => {
       setAllEvents([]);
       setFollowing([]);
       setFollowers([]);
-      setHiddenEvents(new Set());
+      setInitialized(false);
       setError(null);
-      
-      console.log('Sign out successful');
     } catch (error) {
-      console.error('Sign out error:', error);
-      setError('Failed to sign out');
+      console.error('Error during sign out:', error);
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Follow a user
+  const followUser = async (userIdToFollow) => {
+    try {
+      // Update local state immediately for better UX
+      setFollowing(prev => [...prev, userIdToFollow]);
+
+      // Update in database
+      const { error } = await supabase
+        .from('follows')
+        .insert([
+          { follower_id: currentAccount, following_id: userIdToFollow }
+        ]);
+
+      if (error) {
+        // Revert on error
+        setFollowing(prev => prev.filter(id => id !== userIdToFollow));
+        throw error;
+      }
+
+      // Trigger notification for the followed user
+      await supabase
+        .from('notifications')
+        .insert([{
+          user_id: userIdToFollow,
+          type: 'follow',
+          actor_id: currentAccount,
+          read: false
+        }]);
+
+      // Reload data to get updated follower counts
+      await loadData(currentAccount);
+
+    } catch (error) {
+      console.error('Error following user:', error.message || error);
       throw error;
     }
+  };
+
+  // Unfollow a user
+  const unfollowUser = async (userIdToUnfollow) => {
+    try {
+      // Update local state immediately for better UX
+      setFollowing(prev => prev.filter(id => id !== userIdToUnfollow));
+
+      // Update in database
+      const { error } = await supabase
+        .from('follows')
+        .delete()
+        .match({ 
+          follower_id: currentAccount, 
+          following_id: userIdToUnfollow 
+        });
+
+      if (error) {
+        // Revert on error
+        setFollowing(prev => [...prev, userIdToUnfollow]);
+        throw error;
+      }
+
+      // Reload data to get updated follower counts
+      await loadData(currentAccount);
+
+    } catch (error) {
+      console.error('Error unfollowing user:', error.message || error);
+      throw error;
+    }
+  };
+
+  // Check if following a user
+  const isFollowing = (userId) => {
+    return following.includes(userId);
   };
 
   // Memoize the context value to prevent unnecessary re-renders
@@ -878,7 +1257,10 @@ export const CoffeeProvider = ({ children }) => {
     setRecipes,
     updateRecipe,
     signIn,
-    signOut
+    signOut,
+    followUser,
+    unfollowUser,
+    isFollowing,
   }), [
     coffeeEvents,
     coffeeCollection,
@@ -912,7 +1294,10 @@ export const CoffeeProvider = ({ children }) => {
     setRecipes,
     updateRecipe,
     signIn,
-    signOut
+    signOut,
+    followUser,
+    unfollowUser,
+    isFollowing,
   ]);
 
   return (

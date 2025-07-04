@@ -711,7 +711,7 @@ export default function CoffeeDetailScreen() {
     setToastVisible(true);
   };
 
-  const handleAddToCollection = () => {
+  const handleAddToCollection = async () => {
     if (isInCollection) {
       removeFromCollection(coffee.id);
       setIsInCollection(false);
@@ -720,6 +720,29 @@ export default function CoffeeDetailScreen() {
       addToCollection(coffee);
       setIsInCollection(true);
       showToast('Added to collection');
+
+      // Create a feed event for adding to collection
+      try {
+        const randomString = Math.random().toString(36).substring(2, 8);
+        const eventId = `collection-add-${Date.now()}-${randomString}`;
+        
+        const collectionAddEvent = {
+          id: eventId,
+          type: 'added_to_collection',
+          userId: currentAccount?.id || 'user-default',
+          userName: currentAccount?.userName || 'You',
+          userAvatar: currentAccount?.userAvatar,
+          timestamp: new Date().toISOString(),
+          coffeeId: coffee.id,
+          coffeeName: coffee.name,
+          roaster: coffee.roaster,
+          imageUrl: coffee.image,
+        };
+
+        await addCoffeeEvent(collectionAddEvent);
+      } catch (error) {
+        console.error('Error creating "add to collection" event:', error);
+      }
     }
   };
 

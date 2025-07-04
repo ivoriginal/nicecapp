@@ -3,8 +3,9 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert, ActionSheetIOS, Share,
 import { Ionicons } from '@expo/vector-icons';
 import AppImage from './common/AppImage';
 import RecipeCard from './RecipeCard';
-import FollowButton from './FollowButton';
+
 import { useTheme } from '../context/ThemeContext';
+import { useCoffee } from '../context/CoffeeContext';
 import { useNavigation } from '@react-navigation/native';
 
 // A replacement for CoffeeLogCard that properly handles themes
@@ -17,10 +18,12 @@ const ThemeCoffeeLogCard = ({
   onLikePress, 
   currentUserId, 
   showToast,
-  containerStyle 
+  containerStyle,
+  hideFollowButton = false // Add prop to control follow button visibility
 }) => {
   // Get theme from context
   const { theme, isDarkMode } = useTheme();
+  const { isFollowing } = useCoffee();
   
   // Create dynamic styles based on current theme
   const styles = createStyles(theme, isDarkMode);
@@ -51,6 +54,9 @@ const ThemeCoffeeLogCard = ({
 
   // Check if this is the current user's post
   const isCurrentUserPost = event.userId === currentUserId;
+
+  // Check if we're following this user
+  const userIsFollowed = isFollowing(event.userId);
 
   // Handle options menu press
   const handleOptionsPress = () => {
@@ -234,6 +240,10 @@ const ThemeCoffeeLogCard = ({
       return 'added to store';
     }
     
+    if (event.type === 'added_to_collection') {
+      return 'added to collection';
+    }
+    
     return 'tried';
   };
 
@@ -252,7 +262,7 @@ const ThemeCoffeeLogCard = ({
                 <AppImage source={event.imageUrl} style={styles.coffeeImage} placeholder="cafe" />
               ) : (
                 <View style={styles.placeholderImage}>
-                  <Ionicons name="cafe" size={24} color={theme.secondaryText} />
+                  <Ionicons name="cafe" size={20} color={theme.secondaryText} />
                 </View>
               )}
             </View>
@@ -534,11 +544,10 @@ const ThemeCoffeeLogCard = ({
                 <Text style={styles.recommendedUserName}>{event.recommendedUserName || event.userName}</Text>
               </View>
             </View>
-            <FollowButton 
+            <MinimalFollowButton
               userId={event.recommendedUserId || event.userId}
               isFollowing={false}
-              onToggleFollow={() => {}}
-              compact={true}
+              onToggle={() => {}}
             />
           </TouchableOpacity>
         </View>
@@ -550,6 +559,40 @@ const ThemeCoffeeLogCard = ({
   };
   
   const navigation = useNavigation();
+
+  // Create a minimal follow button for card use
+  const MinimalFollowButton = ({ userId, isFollowing, onToggle }) => {
+    const [loading, setLoading] = useState(false);
+    const { followUser, unfollowUser } = useCoffee();
+
+    const handlePress = async () => {
+      setLoading(true);
+      try {
+        if (isFollowing) {
+          await unfollowUser(userId);
+        } else {
+          await followUser(userId);
+        }
+        onToggle && onToggle();
+      } catch (error) {
+        console.error('Error updating follow status:', error.message || error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    return (
+      <TouchableOpacity
+        onPress={handlePress}
+        disabled={loading}
+        style={styles.minimalFollowButton}
+      >
+        <Text style={[styles.minimalFollowButtonText, { color: theme.primaryText }]}>
+          {isFollowing ? 'Following' : 'Follow'}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <View style={[styles.container, containerStyle]}>
@@ -630,6 +673,14 @@ const ThemeCoffeeLogCard = ({
             </View>
           </TouchableOpacity>
           <View style={styles.headerActionsContainer}>
+            {/* Follow button for authors the current user doesn't yet follow */}
+            {!isCurrentUserPost && !hideFollowButton && (
+              <MinimalFollowButton
+                userId={event.userId}
+                isFollowing={userIsFollowed}
+                onToggle={() => {}}
+              />
+            )}
             <TouchableOpacity
               onPress={handleOptionsPress}
               style={styles.optionsButton}
@@ -1232,11 +1283,6 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
      flexDirection: 'row',
      alignItems: 'center',
    },
-  //  userName: {
-  //   //  fontSize: 16,
-  //    fontWeight: '600',
-  //    marginRight: 4,
-  //  },
    verifiedIcon: {
      marginLeft: 4,
    },
@@ -1263,10 +1309,15 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
      paddingHorizontal: 12,
      paddingBottom: 12,
    },
-   optionsButton: {
-     padding: 8,
-     borderRadius: 16,
-   },
+       minimalFollowButton: {
+      // No padding and no background as requested
+    },
+    minimalFollowButtonText: {
+      fontSize: 14,
+      fontWeight: '500',
+      color: theme.primaryText,
+      marginRight: 8,
+    },
 });
 
 export default ThemeCoffeeLogCard; 

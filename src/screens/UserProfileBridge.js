@@ -228,14 +228,10 @@ export default function UserProfileBridge() {
     const handleUnknownProfile = () => {
       console.warn(`User/Cafe not found for ID: ${userId} or name: ${userName}`);
       console.log('Available users in mockUsers:', mockUsers.users.map(u => ({ id: u.id, userName: u.userName })));
-      navigateToUserProfile({
-        userId: userId || 'unknown',
-        userName: userName || 'Unknown User',
-        isBusinessAccount: isBusinessAccount,
-        isRoaster: isRoaster,
-        location: location,
-        skipAuth
-      });
+      
+      // Instead of navigating to an empty profile, set an error
+      setError(`Profile not found for ${userName || userId}`);
+      return;
     };
 
     const navigateToUserProfile = (params) => {

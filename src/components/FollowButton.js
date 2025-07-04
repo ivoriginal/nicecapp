@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { TouchableOpacity, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { COLORS, FONTS, SIZES } from '../constants';
 import { useTheme } from '../context/ThemeContext';
+import { useCoffee } from '../context/CoffeeContext';
 
 const FollowButton = ({ 
   userId, 
@@ -10,14 +11,24 @@ const FollowButton = ({
   style
 }) => {
   const { theme } = useTheme();
+  const { followUser, unfollowUser, isFollowing: checkIsFollowing } = useCoffee();
   const [isFollowing, setIsFollowing] = useState(initialIsFollowing);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Update follow state when userId changes
+  useEffect(() => {
+    setIsFollowing(checkIsFollowing(userId));
+  }, [userId, checkIsFollowing]);
 
   const handlePress = async () => {
     setIsLoading(true);
     try {
-      // In a real app, you would make an API call here to follow/unfollow
-      // For now, we'll just toggle the state
+      if (isFollowing) {
+        await unfollowUser(userId);
+      } else {
+        await followUser(userId);
+      }
+      
       const newFollowState = !isFollowing;
       setIsFollowing(newFollowState);
       

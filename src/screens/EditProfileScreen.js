@@ -26,25 +26,59 @@ import mockGear from '../data/mockGear.json';
 import gearDetails from '../data/gearDetails';
 import eventEmitter from '../utils/EventEmitter';
 import { useTheme } from '../context/ThemeContext';
+import { supabase } from '../lib/supabase';
 
 // Sample list of cities in Spain
 const CITIES = [
-  'Madrid, Spain',
-  'Barcelona, Spain',
-  'Valencia, Spain',
-  'Seville, Spain',
-  'Zaragoza, Spain',
-  'Málaga, Spain',
-  'Murcia, Spain',
-  'Palma, Spain',
-  'Las Palmas, Spain',
-  'Bilbao, Spain',
+  'A Coruña, Spain',
+  'Albacete, Spain',
+  'Alcalá de Henares, Spain',
+  'Alcorcón, Spain',
   'Alicante, Spain',
+  'Almería, Spain',
+  'Badajoz, Spain',
+  'Barcelona, Spain',
+  'Bilbao, Spain',
+  'Burgos, Spain',
+  'Cáceres, Spain',
+  'Cádiz, Spain',
+  'Cartagena, Spain',
+  'Castellón de la Plana, Spain',
   'Córdoba, Spain',
+  'Elche, Spain',
+  'Fuenlabrada, Spain',
+  'Getafe, Spain',
+  'Gijón, Spain',
+  'Granada, Spain',
+  'Huelva, Spain',
+  'Jaén, Spain',
+  'Jerez de la Frontera, Spain',
+  'Las Palmas, Spain',
+  'León, Spain',
+  'Lleida, Spain',
+  'Logroño, Spain',
+  'Madrid, Spain',
+  'Málaga, Spain',
+  'Marbella, Spain',
+  'Móstoles, Spain',
+  'Murcia, Spain',
+  'Oviedo, Spain',
+  'Palma de Mallorca, Spain',
+  'Pamplona, Spain',
+  'Sabadell, Spain',
+  'Salamanca, Spain',
+  'San Sebastián, Spain',
+  'Santa Cruz de Tenerife, Spain',
+  'Santander, Spain',
+  'Santiago de Compostela, Spain',
+  'Sevilla, Spain',
+  'Tarragona, Spain',
+  'Toledo, Spain',
+  'Valencia, Spain',
   'Valladolid, Spain',
   'Vigo, Spain',
-  'Gijón, Spain',
-  'Granada, Spain'
+  'Vitoria-Gasteiz, Spain',
+  'Zaragoza, Spain'
 ];
 
 // Custom Toast component for iOS
@@ -162,7 +196,7 @@ export default function EditProfileScreen() {
       const finalUserData = {
         userName: user?.userName || routeParamsUserData.userName || '',
         // Prioritize location from route params if available, fallback to user context location
-        location: locationFromParams || user?.location || 'Murcia, Spain',
+        location: locationFromParams || user?.location || '',
         userAvatar: avatarUri,
         userHandle: user?.userHandle || routeParamsUserData.userHandle || '',
         gear: user?.gear || routeParamsUserData.gear || []
@@ -290,16 +324,26 @@ export default function EditProfileScreen() {
     console.log('  userData:', userData);
     console.log('  selectedGear:', selectedGear);
     
-    if (originalData && originalData.userName && userData.userName) {
+    if (originalData && userData.userName) {
+      // Handle both Supabase format (full_name, username) and app format (userName, userHandle)
+      const originalName = originalData.userName || originalData.full_name || originalData.username || '';
+      const originalHandle = originalData.userHandle || originalData.username || '';
+      const originalLocation = originalData.location || '';
+      const originalAvatar = originalData.userAvatar || originalData.avatar_url || '';
+      const originalGear = originalData.gear || [];
+      
       const changes = {
-        nameChanged: originalData.userName !== userData.userName,
-        locationChanged: originalData.location !== userData.location,
-        avatarChanged: originalData.userAvatar !== userData.userAvatar,
-        handleChanged: originalData.userHandle !== userData.userHandle,
-        gearChanged: !arraysEqual(originalData.gear || [], selectedGear || [])
+        nameChanged: originalName !== userData.userName,
+        locationChanged: originalLocation !== userData.location,
+        avatarChanged: originalAvatar !== userData.userAvatar,
+        handleChanged: originalHandle !== userData.userHandle,
+        gearChanged: !arraysEqual(originalGear, selectedGear || [])
       };
       
       console.log('  changes:', changes);
+      console.log('  originalName vs userData.userName:', originalName, 'vs', userData.userName);
+      console.log('  originalHandle vs userData.userHandle:', originalHandle, 'vs', userData.userHandle);
+      console.log('  originalLocation vs userData.location:', originalLocation, 'vs', userData.location);
       
       const hasAnyChanges = changes.nameChanged || changes.locationChanged || 
                            changes.avatarChanged || changes.handleChanged || changes.gearChanged;
@@ -361,7 +405,7 @@ export default function EditProfileScreen() {
     setIsSaving(true);
     
     // Use setTimeout to ensure the flag is set before the navigation listener checks it
-    setTimeout(() => {
+    setTimeout(async () => {
       console.log('Saving profile with data:', userData);
       console.log('Location being saved:', userData.location);
       
@@ -370,37 +414,73 @@ export default function EditProfileScreen() {
         ...user,
         id: currentAccount,
         userName: userData.userName,
-        location: userData.location || 'Murcia, Spain', // Ensure location is never empty
+        location: userData.location || '', // Allow empty location
         userAvatar: userData.userAvatar,
-        userHandle: userData.userHandle || user.userHandle,
+        userHandle: userData.userHandle || user?.userHandle,
         gear: selectedGear
       };
       
       console.log('Final updated user data:', updatedUser);
       
-      // In a real app, you would update the backend here
-      // For our mock app, we can update the context
+      // Update Supabase profile
       try {
-        // Go back to Profile screen first to avoid navigation conflicts
-        navigation.goBack();
+        console.log('Updating Supabase profile...');
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({
+            full_name: userData.userName,
+            username: userData.userHandle || user?.userHandle,
+            avatar_url: userData.userAvatar,
+            location: userData.location || '', // Add location to Supabase update
+            updated_at: new Date().toISOString(),
+            gear: selectedGear // Add gear to Supabase update
+          })
+          .eq('id', currentAccount);
+
+        if (updateError) {
+          console.error('Error updating Supabase profile:', updateError);
+          throw new Error('Failed to update profile in database');
+        }
         
-        // After a short delay to allow navigation to complete, update the ProfileScreen
-        setTimeout(() => {
-          // Create a profile update event for the profile screen to detect
-          console.log('Emitting profile update with location:', updatedUser.location);
-          eventEmitter.emit('profileUpdated', { 
-            user: {
-              ...updatedUser,
-              // Ensure location is explicitly included with a fallback value
-              location: updatedUser.location || 'Murcia, Spain'
-            },
-            message: 'Profile updated'
-          });
-        }, 100);
-      } catch (error) {
-        console.error('Error saving profile:', error);
-        setIsSaving(false); // Reset the saving flag on error
-        Alert.alert('Error', 'Failed to update profile');
+        console.log('Supabase profile updated successfully');
+        
+        // Create the complete user object with all fields
+        const updatedUserData = {
+          ...user,
+          id: currentAccount,
+          userName: userData.userName,
+          userHandle: userData.userHandle || user?.userHandle,
+          userAvatar: userData.userAvatar,
+          location: userData.location || '', // Keep location in local state
+          gear: selectedGear || [],
+          // Preserve other important fields
+          isBusinessAccount: user?.isBusinessAccount || false,
+          email: user?.email,
+          gearWishlist: user?.gearWishlist || []
+        };
+        
+        // First update local context
+        if (loadData) {
+          await loadData(currentAccount);
+        }
+        
+        // Then emit profile update event with complete user data
+        console.log('Emitting profile update with data:', updatedUserData);
+        eventEmitter.emit('profileUpdated', { 
+          user: updatedUserData,
+          message: 'Profile updated'
+        });
+        
+        // Go back to Profile screen with updated data
+        navigation.navigate('Root', {
+          screen: 'Profile',
+          params: { updatedUserData }
+        });
+      } catch (supabaseError) {
+        console.error('Supabase update error:', supabaseError);
+        Alert.alert('Error', 'Failed to save profile to database: ' + supabaseError.message);
+        setIsSaving(false);
+        return;
       }
     }, 50); // Small delay to ensure isSaving flag is set
   };
@@ -926,7 +1006,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     paddingTop: 16,
-    maxHeight: Platform.OS === 'ios' ? '80%' : '90%',
+    height: '80%',
   },
   modalHeader: {
     flexDirection: 'row',

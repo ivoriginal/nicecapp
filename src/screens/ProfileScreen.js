@@ -115,15 +115,8 @@ export default function ProfileScreen() {
   // Add theme context at the component level
   const { theme, isDarkMode, toggleTheme } = useTheme();
   
-  // Track current account locally with persistence in state
-  const [localCurrentAccount, setLocalCurrentAccount] = useState(() => {
-    // Check if we have a saved account in AsyncStorage or similar
-    // For now, use the context account or default to user1
-    return contextCurrentAccount || 'user1';
-  });
-  
-  // Use local account always to make the selection stick
-  const currentAccount = localCurrentAccount;
+  // Use the real authenticated user account from context
+  const currentAccount = contextCurrentAccount;
 
   const safeAreaInsets = useSafeAreaInsets();
   const insets = safeAreaInsets ? {
@@ -134,8 +127,6 @@ export default function ProfileScreen() {
   } : { top: 0, bottom: 0, left: 0, right: 0 };
   const [refreshing, setRefreshing] = useState(false);
   const [localError, setLocalError] = useState(null);
-  const [showAccountSheet, setShowAccountSheet] = useState(false);
-  const [modalVisible, setModalVisible] = useState(false);
   const [activeTab, setActiveTab] = useState('coffee');
   const [recipeFilter, setRecipeFilter] = useState('all'); // 'all', 'created', 'saved'
   const [enableRefreshControl, setEnableRefreshControl] = useState(false);
@@ -153,55 +144,18 @@ export default function ProfileScreen() {
   const [sortBy, setSortBy] = useState('recent'); // 'recent', 'name', 'roaster'
   const [showSortModal, setShowSortModal] = useState(false);
 
-  // Default user data for when we don't have loaded data yet
-  const defaultUsers = {
-    'user1': {
-      id: 'user1',
-      userName: 'Ivo Vilches',
-      userHandle: 'ivoriginal',
-      userAvatar: require('../../assets/users/ivo-vilches.jpg'),
-      email: 'ivo.vilches@example.com',
-      location: 'Murcia, Spain',
-      isBusinessAccount: false,
-      gear: ["AeroPress", "Chemex", "Hario V60", "Hario Ceramic Slim", "Hario Range Server"],
-      gearWishlist: ["9Barista Espresso Machine Mk.1", "Fellow Stagg EKG"]
-    },
-    'user2': {
-      id: 'user2',
-      userName: 'Vértigo y Calambre',
-      userHandle: 'vertigoycalambre',
-      userAvatar: require('../../assets/businesses/vertigo-logo.jpg'),
-      email: 'contacto@vertigoycalambre.com',
-      location: 'Murcia, Spain',
-      isBusinessAccount: true,
-      gear: ["La Marzocco Linea Mini", "Mahlkönig E65S GbW", "Acaia Lunar Scale"],
-      gearWishlist: ["La Marzocco GS3", "Victoria Arduino Eagle One", "Loring S15 Falcon"]
-    },
-    'user3': {
-      id: 'user3',
-      userName: 'Carlos Hernández',
-      userHandle: 'CodingCarlos',
-      userAvatar: require('../../assets/users/carlos-hernandez.jpg'),
-      email: 'carlos.hernandez@example.com',
-      location: 'Madrid, Spain',
-      isBusinessAccount: false,
-      gear: ["AeroPress", "Comandante C40", "Fellow Stagg EKG"]
-    },
-    'user5': {
-      id: 'user5',
-      userName: 'Emma Garcia',
-      userHandle: 'emmathebarista',
-      userAvatar: 'https://randomuser.me/api/portraits/women/33.jpg',
-      email: 'emma.garcia@example.com',
-      location: 'Austin, TX',
-      isBusinessAccount: false,
-      gear: ["Rancilio Silvia", "Eureka Mignon", "Acaia Pearl Scale"],
-      gearWishlist: ["Mahlkönig EK43", "Synesso S200", "Saint Anthony Industries Phoenix"]
-    }
+  // Default user data for when we don't have loaded data yet (minimal fallback)
+  const defaultUser = {
+    id: currentAccount || 'unknown',
+    userName: 'User',
+    userHandle: 'user',
+    userAvatar: null,
+    email: '',
+    location: '',
+    isBusinessAccount: false,
+    gear: [],
+    gearWishlist: []
   };
-  
-  // Use account-specific defaults when user data isn't available
-  const defaultUser = defaultUsers[currentAccount] || defaultUsers['user1'];
 
   // Selected account data - prefer user data from context, fall back to defaults
   const [currentUserData, setCurrentUserData] = useState(defaultUser);
@@ -214,17 +168,13 @@ export default function ProfileScreen() {
     // Otherwise fall back to our local state
     currentUserData;
     
-  // Make sure we have access to accounts data
-  const accountsData = accounts && accounts.length > 0 ? accounts : [
-    { id: 'user1', userName: 'Ivo Vilches', userAvatar: require('../../assets/users/ivo-vilches.jpg'), email: 'ivo.vilches@example.com' },
-    { id: 'user2', userName: 'Vértigo y Calambre', userAvatar: require('../../assets/businesses/vertigo-logo.jpg'), email: 'contacto@vertigoycalambre.com' },
-    { id: 'user3', userName: 'Carlos Hernández', userAvatar: require('../../assets/users/carlos-hernandez.jpg'), email: 'carlos.hernandez@example.com' }
-  ];
+  // With real authentication, we only have the current user account
+  const accountsData = user ? [user] : [];
   
   const displayName = userData?.userName || userData?.name || 'Guest';
   const userHandle = userData?.userHandle || displayName.toLowerCase().replace(/\s+/g, '_');
-  const avatarUrl = userData?.userAvatar || userData?.avatar || require('../../assets/users/ivo-vilches.jpg');
-  const location = userData?.location || defaultUser?.location || 'Unknown location';
+  const avatarUrl = userData?.userAvatar || userData?.avatar || null;
+  const location = (userData?.location || defaultUser?.location || '').trim();
   const isBusinessAccount = userData?.isBusinessAccount || false;
   const userGear = userData?.gear || defaultUser?.gear || [];
   console.log('USER GEAR:', userGear);
@@ -239,8 +189,20 @@ export default function ProfileScreen() {
     setIsInitialLoad(true);
     
     // Just set default data immediately without triggering refresh
-    const defaultAccountData = defaultUsers[currentAccount] || defaultUsers['user1'];
-    setCurrentUserData(defaultAccountData);
+    if (currentAccount) {
+      const minimalUserData = {
+        id: currentAccount,
+        userName: 'Loading...',
+        userHandle: 'loading',
+        userAvatar: null,
+        email: '',
+        location: '',
+        isBusinessAccount: false,
+        gear: [],
+        gearWishlist: []
+      };
+      setCurrentUserData(minimalUserData);
+    }
     
     // Enable refresh control immediately but don't auto-refresh
     setTimeout(() => {
@@ -265,8 +227,20 @@ export default function ProfileScreen() {
       // Don't reset scroll position automatically - let user maintain their position
       
       // Make sure we have default data immediately
-      const defaultAccountData = defaultUsers[accountId] || defaultUsers['user1'];
-      setCurrentUserData(defaultAccountData);
+      if (accountId) {
+        const minimalUserData = {
+          id: accountId,
+          userName: 'Loading...',
+          userHandle: 'loading',
+          userAvatar: null,
+          email: '',
+          location: '',
+          isBusinessAccount: false,
+          gear: [],
+          gearWishlist: []
+        };
+        setCurrentUserData(minimalUserData);
+      }
       
       // Use loadData function from context - only if it's not the initial load
       // Initial loading will be handled by the CoffeeContext itself
@@ -402,11 +376,11 @@ export default function ProfileScreen() {
       const timeSinceLastUpdate = now - lastUpdate;
       
       // Check if we have updated user data from EditProfileScreen
-      const route = navigation.getState().routes.find(route => route.name === 'Profile');
-      const hasUpdatedUserData = route?.params?.updatedUserData;
+      const route = navigation.getState().routes.find(route => route.name === 'Root');
+      const hasUpdatedUserData = route?.params?.params?.updatedUserData;
       
       if (hasUpdatedUserData) {
-        const updatedUserData = route.params.updatedUserData;
+        const updatedUserData = route.params.params.updatedUserData;
         console.log('Received updated user data:', updatedUserData);
         
         // Check if there are actual changes before showing the toast
@@ -462,7 +436,7 @@ export default function ProfileScreen() {
             console.log('User data updated in UI - not forcing refresh to prevent scroll movement');
             
             // Clear the updatedUserData param to avoid re-processing
-            navigation.setParams({ updatedUserData: null });
+            navigation.setParams({ params: { updatedUserData: null } });
             
             // Update the lastUpdate timestamp to prevent immediate refresh
             setLastUpdate(now);
@@ -494,18 +468,14 @@ export default function ProfileScreen() {
     }, [currentAccount, navigation, lastUpdate, isInitialLoad])
   );
 
-  // Add the long press handler to the profile tab
+  // Set up header without account switching
   useEffect(() => {
     navigation.setOptions({
       headerTitle: '',
       headerLeft: () => (
-        <TouchableOpacity 
-          style={[styles.usernameContainer, { marginLeft: 16 }]}
-          onPress={() => setModalVisible(true)}
-        >
+        <View style={[styles.usernameContainer, { marginLeft: 16 }]}>
           <Text style={[styles.usernameText, { color: theme.primaryText }]}>@{userHandle}</Text>
-          <Ionicons name="chevron-down" size={16} color={theme.primaryText} />
-        </TouchableOpacity>
+        </View>
       ),
       headerRight: () => (
         <View style={[styles.headerRightContainer, { marginRight: 16 }]}>
@@ -528,48 +498,26 @@ export default function ProfileScreen() {
     });
   }, [navigation, userHandle, handleOptionsPress, theme, theme.primaryText]);
 
-  // Listen for tab long press events
-  useEffect(() => {
-    const handleLongPress = () => {
-      setModalVisible(true);
-    };
-    
-    eventEmitter.addListener('profileTabLongPress', handleLongPress);
-    
-    return () => {
-      eventEmitter.removeListener('profileTabLongPress', handleLongPress);
-    };
-  }, []);
+  // Remove tab long press events since account switching is disabled
 
-  // Handle account switching
+  // Handle account switching - with real auth, this just refreshes the current user's data
   const handleSwitchAccount = (accountId) => {
     try {
-      console.log('==== ACCOUNT SWITCH DEBUGGING ====');
-      console.log(`Attempting to switch from ${currentAccount} to ${accountId}`);
+      console.log('Refreshing account data for:', accountId);
       
       // Close modal first
       setModalVisible(false);
 
-      // Check if we're trying to switch to the same account
-      if (currentAccount === accountId) {
-        console.log('Already on this account, no switch needed');
+      // Check if we're trying to "switch" to the same account (which is the only one available)
+      if (currentAccount !== accountId) {
+        console.log('Cannot switch to different account with real authentication');
         return;
       }
 
-      // Show loading state and prevent any other actions
+      // Show loading state and refresh the user's data
       setRefreshing(true);
       
-      // First update the local account ID to maintain state
-      setLocalCurrentAccount(accountId);
-      
-      // Immediately set default user data for smoother transition
-      const defaultAccountData = defaultUsers[accountId];
-      if (defaultAccountData) {
-        console.log('Setting default account data:', defaultAccountData);
-        setCurrentUserData(defaultAccountData);
-      }
-
-      // Use the switchAccount function from CoffeeContext, but handle the case where it might not be a promise
+      // Use the switchAccount function from CoffeeContext to refresh data
       if (switchAccount) {
         try {
           const result = switchAccount(accountId);
@@ -578,54 +526,29 @@ export default function ProfileScreen() {
           if (result && typeof result.then === 'function') {
             result
               .then(() => {
-                console.log('Account switched successfully');
-                
-                // After loading, ensure we still have the gear data
-                if (!user || !user.gear) {
-                  console.log('Gear data missing from loaded user, using default gear');
-                  const updatedUserData = {
-                    ...user || {},
-                    ...defaultAccountData,
-                    gear: defaultAccountData?.gear || []
-                  };
-                  setCurrentUserData(updatedUserData);
-                }
+                console.log('Account data refreshed successfully');
               })
               .catch(error => {
-                console.error('Error switching account:', error);
-                setLocalError(error.message || 'Failed to switch account');
+                console.error('Error refreshing account:', error);
+                setLocalError(error.message || 'Failed to refresh account');
               })
               .finally(() => {
                 setRefreshing(false);
               });
           } else {
             // Handle synchronous switchAccount (non-Promise)
-            console.log('Account switch completed synchronously');
-            
-            // Force refresh data to update UI
-            setTimeout(() => {
-              loadData(accountId);
-              setRefreshing(false);
-            }, 500);
+            console.log('Account refresh completed synchronously');
+            setRefreshing(false);
           }
         } catch (switchError) {
-          console.error('Error during switchAccount execution:', switchError);
-          setLocalError(switchError.message || 'Failed to switch account');
+          console.error('Error during account refresh:', switchError);
+          setLocalError(switchError.message || 'Failed to refresh account');
           setRefreshing(false);
         }
       } else {
         console.error('switchAccount function not available');
-        setLocalError('Switch account functionality not available');
+        setLocalError('Account refresh functionality not available');
         setRefreshing(false);
-        
-        // Try fallback to loadData directly if switchAccount is not available
-        if (loadData) {
-          console.log('Trying fallback with loadData directly');
-          loadData(accountId)
-            .then(() => console.log('Fallback loading successful'))
-            .catch(err => console.error('Fallback loading failed:', err))
-            .finally(() => setRefreshing(false));
-        }
       }
     } catch (error) {
       console.error('Error in handleSwitchAccount:', error);
@@ -977,7 +900,7 @@ export default function ProfileScreen() {
           onUserPress={() => handleUserPress(enhancedItem)}
           onOptionsPress={handleCoffeeOptionsPress}
           onLikePress={handleCoffeeLikePress}
-          currentUserId={currentAccount}
+          currentUserId={user?.id || currentAccount}
         />
       </View>
     );
@@ -1183,16 +1106,29 @@ export default function ProfileScreen() {
       >
         {/* Profile Header - Avatar, name, stats */}
         <View style={[styles.profileHeader, { backgroundColor: theme.background }]}>
-          <Image 
-            source={typeof avatarUrl === 'string' ? { uri: avatarUrl } : avatarUrl} 
-            style={[
+          {avatarUrl ? (
+            <Image 
+              source={typeof avatarUrl === 'string' ? { uri: avatarUrl } : avatarUrl} 
+              style={[
+                styles.avatar,
+                isBusinessAccount ? styles.businessAvatar : styles.userAvatar
+              ]} 
+            />
+          ) : (
+            <View style={[
               styles.avatar,
-              isBusinessAccount ? styles.businessAvatar : styles.userAvatar
-            ]} 
-          />
+              styles.placeholderAvatar,
+              isBusinessAccount ? styles.businessAvatar : styles.userAvatar,
+              { backgroundColor: theme.cardBackground }
+            ]}>
+              <Ionicons name="person" size={40} color={theme.secondaryText} />
+            </View>
+          )}
           <View style={styles.profileInfo}>
             <Text style={[styles.name, { color: theme.primaryText }]}>{displayName}</Text>
-            <Text style={[styles.location, { color: theme.secondaryText }]}>{location}</Text>
+            {location ? (
+              <Text style={[styles.location, { color: theme.secondaryText }]}>{location}</Text>
+            ) : null}
           </View>
         </View>
 
@@ -1483,7 +1419,7 @@ export default function ProfileScreen() {
     // Create a complete userData object with all required fields
     const completeUserData = {
       ...userData,
-      location: userData.location || defaultUser?.location || 'Murcia, Spain',
+      location: userData.location || defaultUser?.location || '',
     };
     
     if (Platform.OS === 'ios') {
@@ -1595,70 +1531,7 @@ export default function ProfileScreen() {
     });
   };
 
-  // Render account modal - with added "Create Account" option
-  const renderAccountModal = () => (
-    <Modal
-      animationType="slide"
-      transparent={true}
-      visible={modalVisible}
-      onRequestClose={() => setModalVisible(false)}
-    >
-      <View style={styles.modalContainer}>
-        <View style={[
-          styles.modalContent,
-          { paddingBottom: insets.bottom + 12, backgroundColor: theme.cardBackground }
-        ]}>
-          <View style={[styles.modalHeader, { borderBottomColor: theme.divider }]}>
-            <Text style={[styles.modalTitle, { color: theme.primaryText }]}>Select Account</Text>
-            <TouchableOpacity 
-              style={styles.closeButton}
-              onPress={() => setModalVisible(false)}
-            >
-              <Ionicons name="close" size={24} color={theme.primaryText} />
-            </TouchableOpacity>
-          </View>
-          <FlatList
-            data={accountsData || []}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={[styles.accountItem, { borderBottomColor: theme.divider }]}
-                onPress={() => handleSwitchAccount(item.id)}
-              >
-                <Image
-                  source={typeof item.userAvatar === 'string' ? { uri: item.userAvatar } : item.userAvatar}
-                  style={[styles.accountAvatar, defaultUsers[item.id]?.isBusinessAccount && styles.businessAvatar]}
-                />
-                <View style={styles.accountInfo}>
-                  <Text style={[styles.accountName, { color: theme.primaryText }]}>{item.userName || item.name}</Text>
-                  <Text style={[styles.accountEmail, { color: theme.secondaryText }]}>{item.email}</Text>
-                </View>
-                {currentAccount === item.id && (
-                  <Ionicons name="checkmark-circle" size={24} color="#34C759" />
-                )}
-              </TouchableOpacity>
-            )}
-            ListFooterComponent={
-              <TouchableOpacity
-                style={styles.createAccountItem}
-                onPress={() => {
-                  setModalVisible(false);
-                  Alert.alert('Coming Soon', 'Create Account functionality will be available soon.', [], {
-                    userInterfaceStyle: isDarkMode ? 'dark' : 'light'
-                  });
-                }}
-              >
-                <View style={[styles.createAccountCircle, { backgroundColor: theme.primaryText }]}>
-                  <Ionicons name="add" size={24} color={theme.background} />
-                </View>
-                <Text style={[styles.createAccountText, { color: theme.primaryText }]}>Create Account</Text>
-              </TouchableOpacity>
-            }
-          />
-        </View>
-      </View>
-    </Modal>
-  );
+  // Account modal no longer needed with real authentication
 
   // Render the gear module
   const renderGearModule = () => {
@@ -1736,7 +1609,7 @@ export default function ProfileScreen() {
             })
           ) : (
             <Text style={[styles.emptyGearText, { color: theme.secondaryText }]}>
-              No gear added yet
+              Edit your profile to add gear
             </Text>
           )}
         </ScrollView>
@@ -1748,49 +1621,10 @@ export default function ProfileScreen() {
   useEffect(() => {
     console.log('User data changed:', user);
     if (user) {
-      // If user data is loaded but missing gear, merge with default user gear
-      const defaultUserForAccount = defaultUsers[currentAccount];
-      if (!user.gear && defaultUserForAccount && defaultUserForAccount.gear) {
-        console.log('User data loaded but missing gear, using default gear');
-        const mergedUserData = {
-          ...user,
-          ...defaultUserForAccount,
-          userName: user.userName || defaultUserForAccount.userName,
-          userAvatar: user.userAvatar || defaultUserForAccount.userAvatar,
-          userHandle: user.userHandle || defaultUserForAccount.userHandle,
-          location: user.location || defaultUserForAccount.location,
-          gear: defaultUserForAccount.gear,
-          gearWishlist: defaultUserForAccount.gearWishlist
-        };
-        setCurrentUserData(mergedUserData);
-      } else {
-        setCurrentUserData(user);
-      }
-    } else if (currentAccount && accounts && accounts.length > 0) {
-      // If user is null but we have an account ID, find the account data and merge with defaults
-      const accountData = accounts.find(acc => acc.id === currentAccount);
-      const defaultUserForAccount = defaultUsers[currentAccount];
-      
-      if (accountData && defaultUserForAccount) {
-        console.log('Found account data:', accountData);
-        
-        // Merge account data with default data, with account data taking precedence
-        const mergedAccountData = {
-          ...defaultUserForAccount, 
-          ...accountData,
-          // Ensure these critical fields are present
-          gear: accountData.gear || defaultUserForAccount.gear || [],
-          gearWishlist: accountData.gearWishlist || defaultUserForAccount.gearWishlist || [],
-          userHandle: accountData.userHandle || defaultUserForAccount.userHandle,
-          location: accountData.location || defaultUserForAccount.location
-        };
-        setCurrentUserData(mergedAccountData);
-      } else if (defaultUserForAccount) {
-        // If we only have default data, use that
-        setCurrentUserData(defaultUserForAccount);
-      }
+      // With real authentication, just use the user data from Supabase
+      setCurrentUserData(user);
     }
-  }, [user, currentAccount, accounts]);
+  }, [user]);
 
   // Handle coffee options
   const handleCoffeeOptionsPress = (event, action) => {
@@ -1838,13 +1672,20 @@ export default function ProfileScreen() {
       console.log('Received profile update event:', data);
       
       if (data.user) {
-        // Update the current user data - ensure we preserve the userHandle
+        // Update the current user data with all fields
         const updatedUserData = {
+          ...currentUserData,
           ...data.user,
           // Make sure we keep the original userHandle if not explicitly changed
-          userHandle: data.user.userHandle || currentUserData.userHandle
+          userHandle: data.user.userHandle || currentUserData.userHandle,
+          // Ensure we have gear data
+          gear: data.user.gear || currentUserData.gear || [],
+          gearWishlist: data.user.gearWishlist || currentUserData.gearWishlist || []
         };
         
+        console.log('Setting updated user data:', updatedUserData);
+        
+        // Update local state immediately for smooth UI update
         setCurrentUserData(updatedUserData);
         
         // Show success toast if a message is provided
@@ -1852,7 +1693,28 @@ export default function ProfileScreen() {
           showToast(data.message);
         }
         
-        // Don't force refresh to avoid unwanted scrolling - the state update above is sufficient
+        // Update the CoffeeContext data if we have accounts
+        if (accounts && accounts.length > 0) {
+          const updatedAccounts = [...accounts];
+          const accountIndex = updatedAccounts.findIndex(acc => acc.id === currentAccount);
+          
+          if (accountIndex !== -1) {
+            // Update the account data
+            updatedAccounts[accountIndex] = {
+              ...updatedAccounts[accountIndex],
+              ...updatedUserData
+            };
+          }
+        }
+        
+        // Force a data refresh after a short delay to ensure all updates are applied
+        setTimeout(() => {
+          if (loadData) {
+            loadData(currentAccount).catch(error => {
+              console.error('Error refreshing data after profile update:', error);
+            });
+          }
+        }, 100);
       }
     };
     
@@ -1861,7 +1723,7 @@ export default function ProfileScreen() {
     return () => {
       eventEmitter.removeListener('profileUpdated', handleProfileUpdate);
     };
-  }, [currentAccount]);
+  }, [currentAccount, currentUserData, accounts, loadData]);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -2002,8 +1864,6 @@ export default function ProfileScreen() {
         </View>
       </Modal>
       
-      {renderAccountModal()}
-      
       {/* Custom Toast for iOS */}
       {Platform.OS === 'ios' && (
         <Toast 
@@ -2048,6 +1908,10 @@ const styles = StyleSheet.create({
   },
   businessAvatar: {
     borderRadius: 12,
+  },
+  placeholderAvatar: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   usernameContainer: {
     flexDirection: 'row',
@@ -2373,7 +2237,6 @@ const styles = StyleSheet.create({
   emptyGearText: {
     fontSize: 14,
     color: '#666666',
-    fontStyle: 'italic',
     paddingVertical: 8,
   },
   collectionSection: {

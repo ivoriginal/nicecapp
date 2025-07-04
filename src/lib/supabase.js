@@ -5,26 +5,96 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // IMPORTANT: Update this URL with your new ngrok URL when it changes
 const NGROK_URL = 'https://ca27-95-22-36-105.ngrok-free.app';
 
-const supabaseUrl = 'https://ryfqzshdgfrrkizlpnqg.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ5ZnF6c2hkZ2ZycmtpemxwbnFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ0MDk4OTgsImV4cCI6MjA1OTk4NTg5OH0.by26_52LXWqzDUYkYA7zNUbqMdgU_QffVTi-GOhxCMM';
+const supabaseUrl = 'https://wzawsiaanhriocxrabft.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6YXdzaWFhbmhyaW9jeHJhYmZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE0NjI1MjEsImV4cCI6MjA2NzAzODUyMX0.oO6QH-0ZTwyRUOJTJ5KS7LbUG5dYbUnrJsI73bbOg1Q';
 
-// For development: Set this to true to skip authentication
-const SKIP_AUTH = true;
+// For development: Set this to false to enable authentication
+const SKIP_AUTH = false;
 
-export const supabase = createClient(
-  supabaseUrl,
-  supabaseAnonKey,
-  {
-    auth: {
-      storage: AsyncStorage,
-      autoRefreshToken: true,
-      persistSession: true,
-      detectSessionInUrl: false,
-      flowType: 'pkce',
-      redirectTo: `${NGROK_URL}/auth/callback`,
-    },
+// Initialize Supabase client
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    storage: AsyncStorage,
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: false,
+  },
+});
+
+// User Authentication Functions
+export const signUp = async ({ email, password, userData }) => {
+  try {
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email,
+      password,
+    });
+
+    if (authError) throw authError;
+
+    if (authData?.user) {
+      // Create user profile in the profiles table
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert([
+          {
+            id: authData.user.id,
+            email: email,
+            ...userData,
+          },
+        ]);
+
+      if (profileError) throw profileError;
+    }
+
+    return { data: authData, error: null };
+  } catch (error) {
+    return { data: null, error };
   }
-);
+};
+
+export const signIn = async ({ email, password }) => {
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    return { data, error };
+  } catch (error) {
+    return { data: null, error };
+  }
+};
+
+export const signOut = async () => {
+  try {
+    const { error } = await supabase.auth.signOut();
+    return { error };
+  } catch (error) {
+    return { error };
+  }
+};
+
+export const getCurrentUser = async () => {
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser();
+    if (error) throw error;
+    
+    if (user) {
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+        
+      if (profileError) throw profileError;
+      
+      return { data: { ...user, profile }, error: null };
+    }
+    
+    return { data: null, error: null };
+  } catch (error) {
+    return { data: null, error };
+  }
+};
 
 // Helper function to save a coffee event
 export const saveCoffeeEvent = async (event) => {
@@ -47,23 +117,26 @@ export const saveCoffeeEvent = async (event) => {
     
     // Create a database event object with lowercase column names to match the schema
     const dbEvent = {
-      coffeename: event.coffeename || event.coffeeName,
-      username: user.email,
+      user_id: user.id,
+      coffee_id: event.coffeeId,
+      coffee_name: event.coffeename || event.coffeeName,
+      roaster: event.roaster || null,
       method: event.method || null,
       amount: event.amount || null,
-      grindsize: event.grindsize || event.grindSize || null,
-      watervolume: event.watervolume || event.waterVolume || null,
-      "brewTime": event.brewTime || null,
+      grind_size: event.grindsize || event.grindSize || null,
+      water_volume: event.watervolume || event.waterVolume || null,
+      brew_time: event.brewTime || null,
       rating: event.rating || null,
       notes: event.notes || null,
-      ispublic: event.ispublic !== undefined ? event.ispublic : (event.isPublic !== undefined ? event.isPublic : true),
-      imageurl: event.imageurl || event.imageUrl || null,
-      bloomtime: event.bloomtime || event.bloomTime || null,
-      bloomwater: event.bloomwater || event.bloomWater || null,
-      pour2time: event.pour2time || event.pour2Time || null,
-      pour2water: event.pour2water || event.pour2Water || null,
-      pour3time: event.pour3time || event.pour3Time || null,
-      pour3water: event.pour3water || event.pour3Water || null
+      is_public: event.ispublic !== undefined ? event.ispublic : (event.isPublic !== undefined ? event.isPublic : true),
+      image_url: event.imageurl || event.imageUrl || null,
+      bloom_time: event.bloomtime || event.bloomTime || null,
+      bloom_water: event.bloomwater || event.bloomWater || null,
+      pour2_time: event.pour2time || event.pour2Time || null,
+      pour2_water: event.pour2water || event.pour2Water || null,
+      pour3_time: event.pour3time || event.pour3Time || null,
+      pour3_water: event.pour3water || event.pour3Water || null,
+      type: event.type || 'coffee_log'
     };
     
     console.log('Saving coffee event:', dbEvent);
@@ -111,8 +184,8 @@ export const getCoffeeEvents = async () => {
     const { data, error } = await supabase
       .from('coffee_events')
       .select('*')
-      .eq('username', user.email)
-      .order('timestamp', { ascending: false });
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
     
     if (error) {
       console.error('Error fetching coffee events:', error);

@@ -1,12 +1,68 @@
-import mockUsers from './mockUsers.json';
-import mockCoffees from './mockCoffees.json';
-import mockCafes from './mockCafes.json';
-import mockEvents from './mockEvents.json';
-import mockGear from './mockGear.json';
-import mockRecipes from './mockRecipes.json';
+const { supabase } = require('../lib/supabase');
+const mockUsers = require('./mockUsers.json');
+const mockCoffees = require('./mockCoffees.json');
+const mockCafes = require('./mockCafes.json');
+const mockEvents = require('./mockEvents.json');
+const mockGear = require('./mockGear.json');
+const mockRecipes = require('./mockRecipes.json');
 
 // Flag to toggle between mock and real data
-const MOCK_MODE = true;
+const MOCK_MODE = false;
+
+// Add connection check function
+const checkSupabaseConnection = async () => {
+  try {
+    const { data, error } = await supabase.from('profiles').select('count');
+    if (error) {
+      console.error('❌ Supabase connection error:', error.message);
+      return false;
+    }
+    console.log('✅ Supabase connected successfully');
+    return true;
+  } catch (err) {
+    console.error('❌ Supabase connection error:', err.message);
+    return false;
+  }
+};
+
+// Add logging to key functions
+const getUsers = async () => {
+  console.log(`🔍 getUsers called - Using ${MOCK_MODE ? 'mock' : 'Supabase'} data`);
+  if (MOCK_MODE) {
+    console.log('Returning mock users:', mockUsers.users.length);
+    return mockUsers.users;
+  }
+  
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*');
+    
+  if (error) {
+    console.error('❌ Supabase error:', error.message);
+    throw error;
+  }
+  console.log('✅ Fetched users from Supabase:', data?.length);
+  return data;
+};
+
+const getCoffees = async () => {
+  console.log(`🔍 getCoffees called - Using ${MOCK_MODE ? 'mock' : 'Supabase'} data`);
+  if (MOCK_MODE) {
+    console.log('Returning mock coffees:', mockCoffees.coffees.length);
+    return mockCoffees.coffees;
+  }
+  
+  const { data, error } = await supabase
+    .from('coffees')
+    .select('*');
+    
+  if (error) {
+    console.error('❌ Supabase error:', error.message);
+    throw error;
+  }
+  console.log('✅ Fetched coffees from Supabase:', data?.length);
+  return data;
+};
 
 // Types
 export type User = typeof mockUsers.users[0];
@@ -22,22 +78,20 @@ export type Gear = typeof mockGear.gear[0];
 export type Recipe = typeof mockRecipes.recipes[0];
 
 // User functions
-export const getUsers = async (): Promise<User[]> => {
-  if (MOCK_MODE) {
-    console.log("Mock getUsers called");
-    return mockUsers.users;
-  }
-  // Real API call would go here
-  throw new Error("Real API not implemented yet");
-};
-
 export const getUserById = async (userId: string): Promise<User | undefined> => {
   if (MOCK_MODE) {
     console.log("Mock getUserById called with:", userId);
     return mockUsers.users.find(user => user.id === userId);
   }
-  // Real API call would go here
-  throw new Error("Real API not implemented yet");
+  
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', userId)
+    .single();
+    
+  if (error) throw error;
+  return data;
 };
 
 export const getSuggestedUsers = async (): Promise<SuggestedUser[]> => {
@@ -45,27 +99,32 @@ export const getSuggestedUsers = async (): Promise<SuggestedUser[]> => {
     console.log("Mock getSuggestedUsers called");
     return mockUsers.suggestedUsers;
   }
-  // Real API call would go here
-  throw new Error("Real API not implemented yet");
+  
+  // For now, return random users as suggestions
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .limit(5);
+    
+  if (error) throw error;
+  return data;
 };
 
 // Coffee functions
-export const getCoffees = async (): Promise<Coffee[]> => {
-  if (MOCK_MODE) {
-    console.log("Mock getCoffees called");
-    return mockCoffees.coffees;
-  }
-  // Real API call would go here
-  throw new Error("Real API not implemented yet");
-};
-
 export const getCoffeeById = async (coffeeId: string): Promise<Coffee | undefined> => {
   if (MOCK_MODE) {
     console.log("Mock getCoffeeById called with:", coffeeId);
     return mockCoffees.coffees.find(coffee => coffee.id === coffeeId);
   }
-  // Real API call would go here
-  throw new Error("Real API not implemented yet");
+  
+  const { data, error } = await supabase
+    .from('coffees')
+    .select('*')
+    .eq('id', coffeeId)
+    .single();
+    
+  if (error) throw error;
+  return data;
 };
 
 export const getCoffeeSuggestions = async (): Promise<CoffeeSuggestion[]> => {
@@ -73,8 +132,15 @@ export const getCoffeeSuggestions = async (): Promise<CoffeeSuggestion[]> => {
     console.log("Mock getCoffeeSuggestions called");
     return mockCoffees.coffeeSuggestions;
   }
-  // Real API call would go here
-  throw new Error("Real API not implemented yet");
+  
+  // For now, return random coffees as suggestions
+  const { data, error } = await supabase
+    .from('coffees')
+    .select('*')
+    .limit(5);
+    
+  if (error) throw error;
+  return data;
 };
 
 export const getCoffeeSellers = async (coffeeId: string): Promise<Seller[]> => {
@@ -181,8 +247,13 @@ export const getGear = async (): Promise<Gear[]> => {
     console.log("Mock getGear called");
     return mockGear.gear;
   }
-  // Real API call would go here
-  throw new Error("Real API not implemented yet");
+  
+  const { data, error } = await supabase
+    .from('gear')
+    .select('*');
+    
+  if (error) throw error;
+  return data;
 };
 
 export const getGearById = async (gearId: string): Promise<Gear | undefined> => {
@@ -190,8 +261,15 @@ export const getGearById = async (gearId: string): Promise<Gear | undefined> => 
     console.log("Mock getGearById called with:", gearId);
     return mockGear.gear.find(item => item.id === gearId);
   }
-  // Real API call would go here
-  throw new Error("Real API not implemented yet");
+  
+  const { data, error } = await supabase
+    .from('gear')
+    .select('*')
+    .eq('id', gearId)
+    .single();
+    
+  if (error) throw error;
+  return data;
 };
 
 // Recipe functions
@@ -200,8 +278,17 @@ export const getRecipes = async (): Promise<Recipe[]> => {
     console.log("Mock getRecipes called");
     return mockRecipes.recipes;
   }
-  // Real API call would go here
-  throw new Error("Real API not implemented yet");
+  
+  const { data, error } = await supabase
+    .from('recipes')
+    .select(`
+      *,
+      author:profiles(id, full_name, avatar_url),
+      coffee:coffees(id, name, roaster)
+    `);
+    
+  if (error) throw error;
+  return data;
 };
 
 export const getRecipeById = async (recipeId: string): Promise<Recipe | undefined> => {
@@ -209,8 +296,19 @@ export const getRecipeById = async (recipeId: string): Promise<Recipe | undefine
     console.log("Mock getRecipeById called with:", recipeId);
     return mockRecipes.recipes.find(recipe => recipe.id === recipeId);
   }
-  // Real API call would go here
-  throw new Error("Real API not implemented yet");
+  
+  const { data, error } = await supabase
+    .from('recipes')
+    .select(`
+      *,
+      author:profiles(id, full_name, avatar_url),
+      coffee:coffees(id, name, roaster)
+    `)
+    .eq('id', recipeId)
+    .single();
+    
+  if (error) throw error;
+  return data;
 };
 
 export const getRecipesByCoffeeId = async (coffeeId: string): Promise<Recipe[]> => {
@@ -218,88 +316,138 @@ export const getRecipesByCoffeeId = async (coffeeId: string): Promise<Recipe[]> 
     console.log("Mock getRecipesByCoffeeId called with:", coffeeId);
     return mockRecipes.recipes.filter(recipe => recipe.coffeeId === coffeeId);
   }
-  // Real API call would go here
-  throw new Error("Real API not implemented yet");
+  
+  const { data, error } = await supabase
+    .from('recipes')
+    .select(`
+      *,
+      author:profiles(id, full_name, avatar_url),
+      coffee:coffees(id, name, roaster)
+    `)
+    .eq('coffee_id', coffeeId);
+    
+  if (error) throw error;
+  return data;
 };
 
 export const addRecipe = async (newRecipe: Omit<Recipe, "id" | "date" | "likes" | "saves" | "savedUsers">): Promise<Recipe> => {
   if (MOCK_MODE) {
     console.log("Mock addRecipe called with:", newRecipe);
-    // In a real app, this would add to the database
-    // For now, we just generate a mock ID and return the complete recipe
     const id = `recipe-${Date.now()}`;
-    const date = new Date().toISOString();
-    const createdRecipe = { 
-      ...newRecipe, 
+    return {
+      ...newRecipe,
       id,
-      date,
+      date: new Date().toISOString(),
       likes: 0,
       saves: 0,
-      savedUsers: [],
-      isTrending: false,
-      type: "recipe"
+      savedUsers: []
     } as Recipe;
-    
-    // Log the "write" action
-    console.log("Mock write - New recipe:", createdRecipe);
-    
-    return createdRecipe;
   }
-  // Real API call would go here
-  throw new Error("Real API not implemented yet");
+  
+  const { data, error } = await supabase
+    .from('recipes')
+    .insert({
+      ...newRecipe,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    })
+    .select(`
+      *,
+      author:profiles(id, full_name, avatar_url),
+      coffee:coffees(id, name, roaster)
+    `)
+    .single();
+    
+  if (error) throw error;
+  return data;
 };
 
 // Auth-related functions (placeholders for when you add Supabase Auth)
 export const getCurrentUser = async (): Promise<User | null> => {
   if (MOCK_MODE) {
     console.log("Mock getCurrentUser called");
-    // For mock purposes, return the currentUser from mockUsers
-    return mockUsers.users.find(user => user.id === "currentUser") || null;
+    return mockUsers.users[0];
   }
-  // Real Supabase Auth call would go here
-  throw new Error("Real API not implemented yet");
+  
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  if (userError) throw userError;
+  
+  if (!user) return null;
+  
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', user.id)
+    .single();
+    
+  if (profileError) throw profileError;
+  return profile;
 };
 
 export const signIn = async (email: string, password: string): Promise<User | null> => {
   if (MOCK_MODE) {
     console.log("Mock signIn called with:", email);
-    // For mock purposes, we'll just find a user with matching email
-    const user = mockUsers.users.find(u => u.email === email);
-    
-    if (user) {
-      console.log("Mock sign in successful");
-      return user;
-    }
-    
-    console.log("Mock sign in failed: user not found");
-    return null;
+    return mockUsers.users.find(user => user.email === email) || null;
   }
-  // Real Supabase Auth call would go here
-  throw new Error("Real API not implemented yet");
+  
+  const { data: { user }, error: signInError } = await supabase.auth.signInWithPassword({
+    email,
+    password
+  });
+  
+  if (signInError) throw signInError;
+  if (!user) return null;
+  
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', user.id)
+    .single();
+    
+  if (profileError) throw profileError;
+  return profile;
 };
 
 export const signOut = async (): Promise<void> => {
   if (MOCK_MODE) {
     console.log("Mock signOut called");
-    // Nothing to do in mock mode
     return;
   }
-  // Real Supabase Auth call would go here
-  throw new Error("Real API not implemented yet");
+  
+  const { error } = await supabase.auth.signOut();
+  if (error) throw error;
 };
 
 // Example of how to toggle mock mode if needed
 export const setMockMode = (enabled: boolean): void => {
-  // This would be used during development or testing
-  (MOCK_MODE as any) = enabled;
+  // This function is kept for testing purposes
+  console.log(`Setting mock mode to: ${enabled}`);
 };
 
 // Add or update the getMockUser function to load from mockUsers.json
 export const getMockUser = (userId: string) => {
-  console.log("Mock getMockUser called with:", userId);
-  if (!mockUsers || !mockUsers.users) {
-    console.warn('mockUsers data is not available');
-    return null;
-  }
+  // This function is kept for testing purposes
   return mockUsers.users.find(user => user.id === userId);
+};
+
+// Add connection check to exports
+module.exports = {
+  checkSupabaseConnection,
+  getUsers,
+  getUserById,
+  getSuggestedUsers,
+  getCoffees,
+  getCoffeeById,
+  getCoffeeSuggestions,
+  getGear,
+  getGearById,
+  getRecipes,
+  getRecipeById,
+  getRecipesByCoffeeId,
+  addRecipe,
+  getCurrentUser,
+  signIn,
+  signOut,
+  setMockMode,
+  getMockUser
 }; 

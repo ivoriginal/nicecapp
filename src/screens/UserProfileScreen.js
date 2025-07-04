@@ -1336,9 +1336,11 @@ export default function UserProfileScreen() {
                 <Text style={[styles.profileUsername, { color: theme.secondaryText }]}>
                   {(user.handle || user.userHandle || `@${user.userName?.toLowerCase().replace(/\s+/g, '') || 'user'}`)}
                 </Text>
-                <Text style={[styles.profileLocation, { color: theme.secondaryText }]}>
-                  {user.location || 'Location not specified'}
-                </Text>
+                {user.location && (
+                  <Text style={[styles.profileLocation, { color: theme.secondaryText }]}>
+                    {user.location}
+                  </Text>
+                )}
               </View>
             </View>
 
@@ -1787,35 +1789,36 @@ export default function UserProfileScreen() {
                 <View style={styles.coffeesContainer}>
                   {userLogs.length > 0 ? (
                     userLogs.map((log, index) => (
-                      <ThemeCoffeeLogCard 
-                        key={log.id} 
-                        event={log}
-                        onCoffeePress={(event) => navigation.navigate('CoffeeDetail', { coffeeId: event.coffeeId, skipAuth: true })}
-                        onRecipePress={(event) => navigation.navigate('RecipeDetail', { 
-                          recipeId: event.id,
-                          coffeeId: event.coffeeId,
-                          coffeeName: event.coffeeName,
-                          roaster: event.roaster || event.roasterName,
-                          imageUrl: event.imageUrl,
-                          recipe: event,
-                          userId: event.userId,
-                          userName: event.userName,
-                          userAvatar: event.userAvatar
-                        })}
-                        onUserPress={(event) => navigation.navigate('UserProfileScreen', { 
-                          userId: event.userId,
-                          userName: event.userName,
-                          userAvatar: event.userAvatar,
-                          isBusinessAccount: event.isBusinessAccount || false,
-                          skipAuth: true 
-                        })}
-                        onOptionsPress={handleOptionsPress}
-                        onLikePress={handleLikePress}
-                        currentUserId={currentAccount}
-                        containerStyle={{
-                          marginBottom: index === userLogs.length - 1 ? 0 : 8
-                        }}
-                      />
+                                          <ThemeCoffeeLogCard 
+                      key={log.id} 
+                      event={log}
+                      onCoffeePress={(event) => navigation.navigate('CoffeeDetail', { coffeeId: event.coffeeId, skipAuth: true })}
+                      onRecipePress={(event) => navigation.navigate('RecipeDetail', { 
+                        recipeId: event.id,
+                        coffeeId: event.coffeeId,
+                        coffeeName: event.coffeeName,
+                        roaster: event.roaster || event.roasterName,
+                        imageUrl: event.imageUrl,
+                        recipe: event,
+                        userId: event.userId,
+                        userName: event.userName,
+                        userAvatar: event.userAvatar
+                      })}
+                      onUserPress={(event) => navigation.navigate('UserProfileScreen', { 
+                        userId: event.userId,
+                        userName: event.userName,
+                        userAvatar: event.userAvatar,
+                        isBusinessAccount: event.isBusinessAccount || false,
+                        skipAuth: true 
+                      })}
+                      onOptionsPress={handleOptionsPress}
+                      onLikePress={handleLikePress}
+                      currentUserId={currentAccount}
+                      hideFollowButton={true}
+                      containerStyle={{
+                        marginBottom: index === userLogs.length - 1 ? 0 : 8
+                      }}
+                    />
                     ))
                   ) : (
                     <View style={[styles.emptyContainer, { backgroundColor: theme.background }]}>

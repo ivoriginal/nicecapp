@@ -38,6 +38,8 @@ import { useTheme } from '../context/ThemeContext';
 // Import the gearData from GearDetailScreen for consistency
 // This is the object used in GearDetailScreen.js to look up gear by name
 import { gearData } from './GearDetailScreen';
+// Supabase client
+import { supabase } from '../lib/supabase';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = width * 0.8;
@@ -740,7 +742,7 @@ const styles = StyleSheet.create({
 
 export default function SearchScreen() {
   const insets = useSafeAreaInsets();
-  const { currentAccount, coffeeCollection } = useCoffee();
+  const { currentAccount, coffeeCollection, user } = useCoffee();
   const { theme, isDarkMode } = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -943,214 +945,312 @@ export default function SearchScreen() {
   };
 
   const handleSearch = async (text) => {
+    // Ensure we remove extra whitespace at both ends to make search more forgiving
+    const trimmedText = text.trim();
     setSearchQuery(text);
     setIsSearching(true);
     
+    // If, after trimming, there is no text, reset results and exit early
+    if (trimmedText.length === 0) {
+      setSearchResults([]);
+      return;
+    }
+    
     // Simulate search results
-    if (text.length > 0) {
-      console.log('DEBUG: Searching for', text);
+    console.log('DEBUG: Searching for', trimmedText);
+    
+    // Create search results with proper IDs from split files (mockCoffees, mockRecipes, mockUsers, etc.)
+    let mockResults = [];
+    // Track names to avoid duplicates
+    const addedNames = new Set();
+    
+    // Clean search text - remove @ from handles for better matching and convert to lower case
+    const cleanSearchText = trimmedText.toLowerCase().replace('@', '');
+    
+    // First, search for users in Supabase
+    try {
+      console.log('Searching Supabase for users matching:', cleanSearchText);
+      const { data: supabaseUsers, error } = await supabase
+        .from('profiles')
+        .select('id, username, full_name, email, avatar_url, location, updated_at')
+        .or(`username.ilike.%${cleanSearchText}%,full_name.ilike.%${cleanSearchText}%,email.ilike.%${cleanSearchText}%`)
+        .order('updated_at', { ascending: false })
+        .limit(5);
       
-      // Create search results with proper IDs from split files (mockCoffees, mockRecipes, mockUsers, etc.)
-      let mockResults = [];
-      // Track names to avoid duplicates
-      const addedNames = new Set();
-      
-      // Clean search text - remove @ from handles for better matching
-      const cleanSearchText = text.toLowerCase().replace('@', '');
-      
-      // Add coffees
-      mockCoffees.coffees.forEach(coffee => {
-        if (coffee.name.toLowerCase().includes(cleanSearchText) || 
-            coffee.roaster.toLowerCase().includes(cleanSearchText)) {
+      if (error) {
+        console.error('Error searching Supabase users:', error);
+      } else if (supabaseUsers && supabaseUsers.length > 0) {
+        console.log('Found Supabase users:', supabaseUsers);
+        
+        supabaseUsers.forEach(user => {
+          // Skip if we already have this user (by username or full name)
+          const userFullName = user.full_name?.toLowerCase();
+          const userUsername = user.username?.toLowerCase();
           
-          // If ID doesn't already have 'coffee-' prefix, add it
-          const formattedId = coffee.id.startsWith('coffee-') ? coffee.id : `coffee-${coffee.id}`;
-          
-          mockResults.push({
-            id: formattedId,
-            coffeeId: coffee.id, // The original ID should be preserved as coffeeId
-            name: coffee.name,
-            roaster: coffee.roaster,
-            type: 'coffee',
-            image: coffee.image || coffee.imageUrl,
-            imageUrl: coffee.image || coffee.imageUrl
-          });
-          addedNames.add(coffee.name.toLowerCase());
-        }
-      });
-      
-      // Also check coffeeSuggestions
-      mockCoffees.coffeeSuggestions.forEach(coffee => {
-        if (!addedNames.has(coffee.name.toLowerCase()) && 
-            (coffee.name.toLowerCase().includes(cleanSearchText) || 
-            coffee.roaster.toLowerCase().includes(cleanSearchText))) {
-          
-          // If ID doesn't already have 'coffee-' prefix, add it
-          const formattedId = coffee.id.startsWith('coffee-') ? coffee.id : `coffee-${coffee.id}`;
-          
-          mockResults.push({
-            id: formattedId,
-            coffeeId: coffee.id, // The original ID should be preserved as coffeeId
-            name: coffee.name,
-            roaster: coffee.roaster,
-            type: 'coffee',
-            image: coffee.image || coffee.imageUrl,
-            imageUrl: coffee.image || coffee.imageUrl
-          });
-          addedNames.add(coffee.name.toLowerCase());
-        }
-      });
-      
-      // Add coffee gear with user avatars (NEW)
-      mockGear.gear.forEach(gear => {
-        if ((gear.name && gear.name.toLowerCase().includes(cleanSearchText)) || 
-            (gear.brand && gear.brand.toLowerCase().includes(cleanSearchText)) ||
-            (gear.type && gear.type.toLowerCase().includes(cleanSearchText))) {
-          
-          // Find detailed gear info if available
-          const detailedGear = Object.keys(gearDetails).find(
-            gearName => gearName.toLowerCase().includes(gear.name.toLowerCase())
-          );
-          
-          const gearDetail = detailedGear ? gearDetails[detailedGear] : null;
-          
-          mockResults.push({
-            id: gear.id,
-            gearId: gear.id, // Store the original ID as gearId
-            name: gear.name,
-            brand: gear.brand,
-            type: gear.type || "Gear",
-            price: gear.price,
-            imageUrl: gear.imageUrl || (gearDetail ? gearDetail.image : null) || gear.image,
-            rating: gear.rating,
-            reviewCount: gear.reviewCount,
-            description: gear.description,
-            type: 'gear',
-            usedBy: [] // Remove usedBy data for search screen
-          });
-          addedNames.add(gear.name.toLowerCase());
-        }
-      });
-      
-      // Add businesses/cafés/roasters - search through different sources
-      // First, roasters
-      if (mockCafes.roasters) {
-        mockCafes.roasters.forEach(roaster => {
-          if (roaster.name && !addedNames.has(roaster.name.toLowerCase()) && 
-              (roaster.name.toLowerCase().includes(cleanSearchText) || 
-              (roaster.location && roaster.location.toLowerCase().includes(cleanSearchText)))) {
-            
+          if ((!userFullName || !addedNames.has(userFullName)) && 
+              (!userUsername || !addedNames.has(userUsername))) {
             mockResults.push({
-              id: roaster.id,
-              name: roaster.name,
-              location: roaster.location || 'Unknown location',
-              type: 'roaster',
-              isRoaster: true,
-              logo: roaster.logo,
-              avatar: roaster.avatar,
-              imageUrl: roaster.avatar || roaster.logo || roaster.coverImage
+              id: user.id,
+              userId: user.id,
+              name: user.full_name || user.username,
+              userName: user.full_name || user.username,
+              username: user.username,
+              location: user.location,
+              type: 'user',
+              source: 'supabase',
+              userAvatar: user.avatar_url,
+              avatar: user.avatar_url,
+              imageUrl: user.avatar_url,
+              email: user.email // Include email for better matching
             });
-            addedNames.add(roaster.name.toLowerCase());
+            
+            if (userFullName) {
+              addedNames.add(userFullName);
+            }
+            if (userUsername) {
+              addedNames.add(userUsername);
+            }
           }
         });
       }
+    } catch (err) {
+      console.error('Error in Supabase user search:', err);
+    }
+    
+    // Then add current authenticated user if they match
+    if (currentAccount && user) {
+      console.log('Checking if current authenticated user matches search');
       
-      // Then through cafes
-      if (mockCafes.cafes) {
-        mockCafes.cafes.forEach(cafe => {
-          if (cafe.name && !addedNames.has(cafe.name.toLowerCase()) && 
-              (cafe.name.toLowerCase().includes(cleanSearchText) || 
-              (cafe.location && cafe.location.toLowerCase().includes(cleanSearchText)))) {
-            
-            const roaster = getRoasterForCafe(cafe);
-            
-            mockResults.push({
-              id: cafe.id,
-              name: cafe.name,
-              location: cafe.location || 'Unknown location',
-              type: 'cafe',
-              isRoaster: false,
-              roasterId: cafe.roasterId,
-              roasterName: roaster ? roaster.name : null,
-              logo: cafe.avatar,
-              avatar: cafe.avatar,
-              imageUrl: cafe.coverImage
-            });
-            addedNames.add(cafe.name.toLowerCase());
-          }
-        });
-      }
-
-      
-      // Add users
-      mockUsers.users.forEach(user => {
-        // Generate username (handle) for matching
-        const userHandle = user.userName?.toLowerCase().replace(/\s+/g, '');
-        
-        // Skip adding Vértigo y Calambre as a user since we'll add it as a café
-        if (user.userName === 'Vértigo y Calambre') {
-          return;
-        }
-        
-        if ((user.userName && !addedNames.has(user.userName.toLowerCase()) && 
-            (user.userName.toLowerCase().includes(cleanSearchText) || 
-            (user.location && user.location.toLowerCase().includes(cleanSearchText)))) ||
-            // Also search by username (handle)
-            (userHandle && userHandle.includes(cleanSearchText))) {
-          
-          // Important: user ID should not be prefixed with "user-" if it already contains "user"
-          const userId = user.id.startsWith('user') ? user.id : `user-${user.id}`;
-          
-          // Debug Emma Garcia
-          if (user.userName.toLowerCase().includes('emma garcia')) {
-            console.log('FOUND EMMA GARCIA IN handleSearch:', JSON.stringify(user, null, 2));
-            console.log('Emma avatar URL before adding to results:', user.userAvatar);
-          }
-          
-          mockResults.push({
-            id: userId,
-            userId: user.id, // Keep the original ID without prefix as a separate property
-            name: user.userName,
-            userName: user.userName, // Make sure userName is explicitly set
-            username: userHandle,
-            location: user.location,
-            type: 'user',
-            userAvatar: user.userAvatar,
-            avatar: user.userAvatar,  // Add this line to ensure avatar is set too
-            imageUrl: user.userAvatar // Add imageUrl as well for consistent access
-          });
-          
-          // Check Emma in mockResults
-          if (user.userName.toLowerCase().includes('emma garcia')) {
-            console.log('EMMA ADDED TO RESULTS:', JSON.stringify(mockResults[mockResults.length-1], null, 2));
-          }
-          
-          addedNames.add(user.userName.toLowerCase());
-        }
-      });
-      
-
-      
-      // Log the results for debugging
-      console.log('Search results:', mockResults.map(r => ({name: r.name, type: r.type})));
-      
-      // Force-fix Emma Garcia's avatar if she's in the results
-      const emmaIndex = mockResults.findIndex(r => 
-        r.name === 'Emma Garcia' || r.userName === 'Emma Garcia'
+      // Check if current user is already in results from Supabase
+      const currentUserAlreadyAdded = mockResults.some(result => 
+        result.id === user.id || result.userId === user.id
       );
       
-      if (emmaIndex >= 0) {
-        console.log('Forcing Emma Garcia avatar URL in search results');
-        mockResults[emmaIndex].userAvatar = 'https://randomuser.me/api/portraits/women/33.jpg';
-        mockResults[emmaIndex].avatar = 'https://randomuser.me/api/portraits/women/33.jpg';
-        mockResults[emmaIndex].imageUrl = 'https://randomuser.me/api/portraits/women/33.jpg';
-        console.log('Updated Emma:', JSON.stringify(mockResults[emmaIndex], null, 2));
+      if (!currentUserAlreadyAdded && 
+          ((user.userName && user.userName.toLowerCase().includes(cleanSearchText)) ||
+          (user.userHandle && user.userHandle.toLowerCase().includes(cleanSearchText)) ||
+          (user.email && user.email.toLowerCase().includes(cleanSearchText)))) {
+        
+        console.log('Adding current user to search results:', user.userName);
+        
+        mockResults.push({
+          id: user.id,
+          userId: user.id,
+          name: user.userName,
+          userName: user.userName,
+          username: user.userHandle,
+          location: user.location,
+          type: 'user',
+          source: 'current_user',
+          userAvatar: user.userAvatar,
+          avatar: user.userAvatar,
+          imageUrl: user.userAvatar
+        });
+        
+        addedNames.add(user.userName.toLowerCase());
+      }
+    }
+    
+    // Add coffees
+    mockCoffees.coffees.forEach(coffee => {
+      if (coffee.name.toLowerCase().includes(cleanSearchText) || 
+          coffee.roaster.toLowerCase().includes(cleanSearchText)) {
+        
+        // If ID doesn't already have 'coffee-' prefix, add it
+        const formattedId = coffee.id.startsWith('coffee-') ? coffee.id : `coffee-${coffee.id}`;
+        
+        mockResults.push({
+          id: formattedId,
+          coffeeId: coffee.id, // The original ID should be preserved as coffeeId
+          name: coffee.name,
+          roaster: coffee.roaster,
+          type: 'coffee',
+          image: coffee.image || coffee.imageUrl,
+          imageUrl: coffee.image || coffee.imageUrl
+        });
+        addedNames.add(coffee.name.toLowerCase());
+      }
+    });
+    
+    // Also check coffeeSuggestions
+    mockCoffees.coffeeSuggestions.forEach(coffee => {
+      if (!addedNames.has(coffee.name.toLowerCase()) && 
+          (coffee.name.toLowerCase().includes(cleanSearchText) || 
+          coffee.roaster.toLowerCase().includes(cleanSearchText))) {
+        
+        // If ID doesn't already have 'coffee-' prefix, add it
+        const formattedId = coffee.id.startsWith('coffee-') ? coffee.id : `coffee-${coffee.id}`;
+        
+        mockResults.push({
+          id: formattedId,
+          coffeeId: coffee.id, // The original ID should be preserved as coffeeId
+          name: coffee.name,
+          roaster: coffee.roaster,
+          type: 'coffee',
+          image: coffee.image || coffee.imageUrl,
+          imageUrl: coffee.image || coffee.imageUrl
+        });
+        addedNames.add(coffee.name.toLowerCase());
+      }
+    });
+    
+    // Add coffee gear with user avatars (NEW)
+    mockGear.gear.forEach(gear => {
+      if ((gear.name && gear.name.toLowerCase().includes(cleanSearchText)) || 
+          (gear.brand && gear.brand.toLowerCase().includes(cleanSearchText)) ||
+          (gear.type && gear.type.toLowerCase().includes(cleanSearchText))) {
+        
+        // Find detailed gear info if available
+        const detailedGear = Object.keys(gearDetails).find(
+          gearName => gearName.toLowerCase().includes(gear.name.toLowerCase())
+        );
+        
+        const gearDetail = detailedGear ? gearDetails[detailedGear] : null;
+        
+        mockResults.push({
+          id: gear.id,
+          gearId: gear.id, // Store the original ID as gearId
+          name: gear.name,
+          brand: gear.brand,
+          type: gear.type || "Gear",
+          price: gear.price,
+          imageUrl: gear.imageUrl || (gearDetail ? gearDetail.image : null) || gear.image,
+          rating: gear.rating,
+          reviewCount: gear.reviewCount,
+          description: gear.description,
+          type: 'gear',
+          usedBy: [] // Remove usedBy data for search screen
+        });
+        addedNames.add(gear.name.toLowerCase());
+      }
+    });
+    
+    // Add businesses/cafés/roasters - search through different sources
+    // First, roasters
+    if (mockCafes.roasters) {
+      mockCafes.roasters.forEach(roaster => {
+        if (roaster.name && !addedNames.has(roaster.name.toLowerCase()) && 
+            (roaster.name.toLowerCase().includes(cleanSearchText) || 
+            (roaster.location && roaster.location.toLowerCase().includes(cleanSearchText)))) {
+          
+          mockResults.push({
+            id: roaster.id,
+            name: roaster.name,
+            location: roaster.location || 'Unknown location',
+            type: 'roaster',
+            isRoaster: true,
+            logo: roaster.logo,
+            avatar: roaster.avatar,
+            imageUrl: roaster.avatar || roaster.logo || roaster.coverImage
+          });
+          addedNames.add(roaster.name.toLowerCase());
+        }
+      });
+    }
+    
+    // Then through cafes
+    if (mockCafes.cafes) {
+      mockCafes.cafes.forEach(cafe => {
+        if (cafe.name && !addedNames.has(cafe.name.toLowerCase()) && 
+            (cafe.name.toLowerCase().includes(cleanSearchText) || 
+            (cafe.location && cafe.location.toLowerCase().includes(cleanSearchText)))) {
+          
+          const roaster = getRoasterForCafe(cafe);
+          
+          mockResults.push({
+            id: cafe.id,
+            name: cafe.name,
+            location: cafe.location || 'Unknown location',
+            type: 'cafe',
+            isRoaster: false,
+            roasterId: cafe.roasterId,
+            roasterName: roaster ? roaster.name : null,
+            logo: cafe.avatar,
+            avatar: cafe.avatar,
+            imageUrl: cafe.coverImage
+          });
+          addedNames.add(cafe.name.toLowerCase());
+        }
+      });
+    }
+
+    
+    // Add users
+    mockUsers.users.forEach(user => {
+      // Generate username (handle) for matching
+      const userHandle = user.userName?.toLowerCase().replace(/\s+/g, '');
+      
+      // Skip adding Vértigo y Calambre as a user since we'll add it as a café
+      if (user.userName === 'Vértigo y Calambre') {
+        return;
       }
       
-      setSearchResults(mockResults);
-    } else {
-      setSearchResults([]);
+      // Check if this user is already in the results (by ID or name)
+      const isDuplicate = mockResults.some(result => 
+        result.id === user.id || 
+        result.userId === user.id || 
+        (result.userName && result.userName.toLowerCase() === user.userName.toLowerCase())
+      );
+      
+      // Skip adding mock users that are in Supabase (by checking if their ID is a UUID)
+      const isSupabaseUser = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(user.id);
+      if (isSupabaseUser) {
+        return;
+      }
+      
+      if (!isDuplicate && 
+          ((user.userName && !addedNames.has(user.userName.toLowerCase()) && 
+          (user.userName.toLowerCase().includes(cleanSearchText) || 
+          (user.location && user.location.toLowerCase().includes(cleanSearchText)))) ||
+          // Also search by username (handle)
+          (userHandle && userHandle.includes(cleanSearchText)))) {
+        
+        // Important: user ID should not be prefixed with "user-" if it already contains "user"
+        const userId = user.id.startsWith('user') ? user.id : `user-${user.id}`;
+        
+        mockResults.push({
+          id: userId,
+          userId: user.id, // Keep the original ID without prefix as a separate property
+          name: user.userName,
+          userName: user.userName, // Make sure userName is explicitly set
+          username: userHandle,
+          location: user.location,
+          type: 'user',
+          userAvatar: user.userAvatar,
+          avatar: user.userAvatar,  // Add this line to ensure avatar is set too
+          imageUrl: user.userAvatar // Add imageUrl as well for consistent access
+        });
+        
+        addedNames.add(user.userName.toLowerCase());
+      }
+    });
+    
+
+    
+    // Log the results for debugging
+    console.log('Search results:', mockResults.map(r => ({id: r.id, name: r.name, type: r.type, source: r.source})));
+    
+    // Check for duplicate IDs
+    const ids = mockResults.map(r => r.id);
+    const duplicateIds = ids.filter((id, index) => ids.indexOf(id) !== index);
+    if (duplicateIds.length > 0) {
+      console.warn('Duplicate IDs found in search results:', duplicateIds);
     }
+    
+    // Force-fix Emma Garcia's avatar if she's in the results
+    const emmaIndex = mockResults.findIndex(r => 
+      r.name === 'Emma Garcia' || r.userName === 'Emma Garcia'
+    );
+    
+    if (emmaIndex >= 0) {
+      console.log('Forcing Emma Garcia avatar URL in search results');
+      mockResults[emmaIndex].userAvatar = 'https://randomuser.me/api/portraits/women/33.jpg';
+      mockResults[emmaIndex].avatar = 'https://randomuser.me/api/portraits/women/33.jpg';
+      mockResults[emmaIndex].imageUrl = 'https://randomuser.me/api/portraits/women/33.jpg';
+      console.log('Updated Emma:', JSON.stringify(mockResults[emmaIndex], null, 2));
+    }
+    
+    setSearchResults(mockResults);
   };
 
   const handleSearchSubmit = () => {
@@ -1185,6 +1285,12 @@ export default function SearchScreen() {
     
     // DEBUG: Log the URL being processed
     console.log('Processing image URL:', url);
+    
+    // Handle Supabase storage URLs
+    if (url.includes('storage.googleapis.com') || url.includes('supabase.co/storage/v1/object/public/')) {
+      console.log('Using Supabase storage URL:', url);
+      return { uri: url };
+    }
     
     // If it's already a URL, use as is
     if (url.startsWith('http')) {
@@ -1305,6 +1411,10 @@ export default function SearchScreen() {
     
     // Check for gear items
     const isGearItem = item.type === 'gear' || (item.id && item.id.startsWith('gear'));
+    
+    // Detect Supabase-backed users (UUID IDs or explicitly flagged)
+    const supabaseUUIDRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    const isSupabaseUser = item.source === 'supabase' || (item.type === 'user' && supabaseUUIDRegex.test(item.id));
     
     // Check for CaféLab items - main business vs specific locations
     const isCafeLabItem = item.name && item.name.includes("CaféLab");
@@ -1513,6 +1623,18 @@ export default function SearchScreen() {
           isBusinessAccount: true,
           isRoaster: isRoasterLocation,
           skipAuth: true
+        });
+      } else if (isSupabaseUser) {
+        // Navigate directly to UserProfileScreen for Supabase users (those stored in DB)
+        const supabaseUserId = item.userId || item.id;
+        console.log(`Navigating to Supabase user profile for ${supabaseUserId}`);
+        console.log('Supabase user data:', item);
+        navigation.navigate('UserProfileScreen', {
+          userId: supabaseUserId,
+          userName: item.name || item.username,
+          userAvatar: item.userAvatar || item.avatar,
+          // Only set isCurrentUser if we have currentAccount and it matches the Supabase user ID
+          isCurrentUser: currentAccount?.id === supabaseUserId,
         });
       } else {
         // For users, use the userId property (without prefix) if available, otherwise use the id property
@@ -2109,7 +2231,7 @@ export default function SearchScreen() {
           <FlatList
             data={filteredResults}
             renderItem={renderSearchResult}
-            keyExtractor={item => item.id}
+            keyExtractor={(item, index) => `${item.type}-${item.id}-${index}`}
             contentContainerStyle={styles.resultsContainer}
             ListEmptyComponent={
               <View style={styles.emptyContainer}>

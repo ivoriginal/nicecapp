@@ -6,9 +6,10 @@ import { useCoffee } from '../context/CoffeeContext';
 import ThemeCoffeeLogCard from '../components/ThemeCoffeeLogCard';
 import Toast from '../components/Toast';
 import { useTheme } from '../context/ThemeContext';
+import { checkSupabaseConnection, getCoffees } from '../data/dataService';
 
 export default function HomeScreen({ navigation }) {
-  const { allEvents, isLoading, loadData, recipes, addRecipe, currentAccount, removeCoffeeEvent } = useCoffee();
+  const { allEvents, isLoading, loadData, recipes, addRecipe, currentAccount, removeCoffeeEvent, user } = useCoffee();
   const insets = useSafeAreaInsets();
   const [refreshing, setRefreshing] = useState(false);
   const [toastVisible, setToastVisible] = useState(false);
@@ -20,24 +21,47 @@ export default function HomeScreen({ navigation }) {
 
   // Load data once when the component mounts
   useEffect(() => {
-    if (!initialLoadDone && (!allEvents || allEvents.length === 0)) {
-      console.log('HomeScreen - Initial data load');
-      loadData();
+    if (!initialLoadDone && (!allEvents || allEvents.length === 0) && currentAccount) {
+      console.log('HomeScreen - Initial data load for account:', currentAccount);
+      loadData(currentAccount);
       setInitialLoadDone(true);
     }
-  }, [initialLoadDone, allEvents, loadData]);
+  }, [initialLoadDone, allEvents, loadData, currentAccount]);
+
+  useEffect(() => {
+    const testConnection = async () => {
+      // Test Supabase connection
+      const isConnected = await checkSupabaseConnection();
+      console.log('Connection test result:', isConnected);
+      
+      // Test data fetching
+      try {
+        const coffees = await getCoffees();
+        console.log('Fetched coffees:', coffees?.length);
+      } catch (err) {
+        console.error('Error fetching coffees:', err.message);
+      }
+    };
+    
+    testConnection();
+  }, []);
 
   const onRefresh = useCallback(async () => {
     console.log('HomeScreen refresh triggered');
+    if (!currentAccount) {
+      console.log('No current account, skipping refresh');
+      return;
+    }
+    
     setRefreshing(true);
     try {
-      await loadData();
+      await loadData(currentAccount);
     } catch (error) {
       console.error('Error refreshing data:', error);
     } finally {
       setRefreshing(false);
     }
-  }, [loadData]);
+  }, [loadData, currentAccount]);
 
   // Function to show toast messages
   const showToast = (message) => {
@@ -167,9 +191,9 @@ export default function HomeScreen({ navigation }) {
         removeCoffeeEvent(event.id);
         // Show delete success toast
         showToast('Post deleted');
-      } else {
+      } else if (currentAccount) {
         // Fallback if function isn't available: reload data
-        loadData();
+        loadData(currentAccount);
       }
     } else if (action === 'report') {
       // Handle report action
@@ -224,7 +248,7 @@ export default function HomeScreen({ navigation }) {
               onUserPress={handleUserPress}
               onOptionsPress={handleOptionsPress}
               onLikePress={handleLikePress}
-              currentUserId={currentAccount}
+              currentUserId={user?.id || currentAccount}
               showToast={showToast}
             />
           );
