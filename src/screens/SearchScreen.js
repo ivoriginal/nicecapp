@@ -423,9 +423,9 @@ export default function SearchScreen() {
             username: userHandle,
             location: user.location,
             type: 'user',
-            userAvatar: user.userAvatar,
-            avatar: user.userAvatar,  // Add this line to ensure avatar is set too
-            imageUrl: user.userAvatar // Add imageUrl as well for consistent access
+            userAvatar: user.userAvatar || user.avatar || user.avatar_url || user.imageUrl,
+            avatar: user.userAvatar || user.avatar || user.avatar_url || user.imageUrl,
+            imageUrl: user.userAvatar || user.avatar || user.avatar_url || user.imageUrl,
           });
           
           // Check Emma in mockResults
@@ -829,6 +829,7 @@ export default function SearchScreen() {
         navigation.navigate('UserProfileBridge', {
           userId: userId,
           userName: item.name,
+          userAvatar: item.userAvatar || item.avatar || item.imageUrl,
           skipAuth: true
         });
       }

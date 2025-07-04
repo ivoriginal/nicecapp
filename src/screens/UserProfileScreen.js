@@ -540,7 +540,7 @@ export default function UserProfileScreen() {
                   setUser({
                     id: userId,
                     userName: route.params?.userName || 'User',
-                    userAvatar: null,
+                    userAvatar: route.params?.userAvatar || null,
                     location: '',
                     bio: '',
                     isBusinessAccount: route.params?.isBusinessAccount || false,
@@ -662,7 +662,7 @@ export default function UserProfileScreen() {
                 setUser({
                   id: userId,
                   userName: route.params?.userName || 'User',
-                  userAvatar: null,
+                  userAvatar: route.params?.userAvatar || null,
                   location: '',
                   bio: '',
                   isBusinessAccount: route.params?.isBusinessAccount || false,

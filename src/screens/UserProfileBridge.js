@@ -231,6 +231,7 @@ export default function UserProfileBridge() {
       navigateToUserProfile({
         userId: userId || 'unknown',
         userName: userName || 'Unknown User',
+        userAvatar: route.params?.userAvatar,
         isBusinessAccount: isBusinessAccount,
         isRoaster: isRoaster,
         location: location,
