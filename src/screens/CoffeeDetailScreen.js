@@ -1304,7 +1304,7 @@ export default function CoffeeDetailScreen() {
                 <TouchableOpacity 
                   style={[styles.selectorButton, { backgroundColor: theme.altBackground, borderColor: theme.border }]}
                   onPress={() => {
-                    const methods = ['V60', 'Chemex', 'AeroPress', 'French Press', 'Espresso', 'Cold Brew', 'Pour Over'];
+                    const methods = ['V60', 'Chemex', 'AeroPress', 'French Press', 'Espresso'];
                     Alert.alert(
                       'Select Method',
                       '',
