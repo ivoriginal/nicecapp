@@ -2018,7 +2018,8 @@ export default function AddCoffeeScreen({ navigation, route }) {
       grindSize: 'Medium',
       waterVolume: '',
       brewTime: '',
-      notes: ''
+      notes: '',
+      orientation: 'Regular', // NEW – AeroPress orientation (Regular / Inverted)
     });
 
     // Initialize recipe data when remix recipe changes or when creating new recipe
@@ -2030,7 +2031,8 @@ export default function AddCoffeeScreen({ navigation, route }) {
           grindSize: recipeToRemix.grindSize || 'Medium',
           waterVolume: recipeToRemix.waterVolume || recipeToRemix.waterAmount || '',
           brewTime: recipeToRemix.brewTime || '',
-          notes: '' // Keep notes empty by default for remixes
+          notes: '', // Keep notes empty by default for remixes
+          orientation: recipeToRemix.orientation || 'Regular',
         });
       } else {
         setRecipeData({
@@ -2039,7 +2041,8 @@ export default function AddCoffeeScreen({ navigation, route }) {
           grindSize: 'Medium',
           waterVolume: '',
           brewTime: '',
-          notes: ''
+          notes: '',
+          orientation: 'Regular',
         });
       }
     }, [isRemixing, recipeToRemix]);
@@ -2063,6 +2066,7 @@ export default function AddCoffeeScreen({ navigation, route }) {
           waterVolume: recipeData.waterVolume,
           brewTime: recipeData.brewTime,
           notes: recipeData.notes,
+          orientation: recipeData.orientation, // NEW
           creatorId: currentAccount?.id || 'user-default',
           creatorName: currentAccount?.userName || 'You',
           creatorAvatar: currentAccount?.userAvatar,
@@ -2099,6 +2103,7 @@ export default function AddCoffeeScreen({ navigation, route }) {
           waterVolume: newRecipe.waterVolume,
           brewTime: newRecipe.brewTime,
           notes: newRecipe.notes,
+          orientation: newRecipe.orientation, // NEW
           // Add remix info if applicable
           ...(isRemixing && recipeToRemix ? {
             isRemix: true,
@@ -3779,5 +3784,29 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
   addCoffeeOptionSubtitle: {
     fontSize: 14,
     color: theme.secondaryText,
+  },
+  chipContainer: {
+    flexDirection: 'row',
+    marginTop: 8,
+  },
+  chip: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    backgroundColor: theme.altBackground || '#F2F2F7',
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: theme.border || '#E5E5EA',
+  },
+  chipSelected: {
+    backgroundColor: '#007AFF',
+    borderColor: '#007AFF',
+  },
+  chipText: {
+    fontSize: 14,
+    color: theme.primaryText,
+  },
+  chipTextSelected: {
+    color: '#FFFFFF',
   },
 });
