@@ -1096,8 +1096,14 @@ export default function RecipeDetailScreen() {
         transparent={true}
         onRequestClose={() => {}} // Non-dismissible
       >
-        <View style={styles.ratingModalOverlay}>
-          <View style={[styles.ratingModalContent, { backgroundColor: isDarkMode ? theme.altBackground : '#f4f4f4', paddingBottom: insets.bottom }]}>
+        <View style={styles.ratingModalOverlay} pointerEvents="box-none">
+          <View
+            style={[
+              styles.ratingModalContent,
+              { backgroundColor: isDarkMode ? theme.altBackground : '#f4f4f4', paddingBottom: insets.bottom },
+            ]}
+            pointerEvents="auto"
+          >
             <View style={[styles.ratingModalHeader, { backgroundColor: isDarkMode ? theme.altBackground : '#f4f4f4', borderBottomColor: theme.border }]}>
               <Text style={[styles.ratingModalTitle, { color: theme.primaryText }]}>How was this brew?</Text>
               <Text style={[styles.ratingModalSubtitle, { color: theme.secondaryText }]}>
