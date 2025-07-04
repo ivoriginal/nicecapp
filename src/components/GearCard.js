@@ -121,6 +121,12 @@ const GearCard = ({
           style={styles.image}
           placeholder="gear"
         />
+        {/* Wishlist chip */}
+        {isWishlist && (
+          <View style={[styles.wishlistChip, { backgroundColor: theme.cardBackground }]}>
+            <Text style={[styles.wishlistChipText, { color: theme.primaryText }]}>In Wishlist</Text>
+          </View>
+        )}
       </View>
 
       {/* Content */}
@@ -158,6 +164,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F5F5',
     justifyContent: 'center',
     alignItems: 'center',
+    position: 'relative',
   },
   image: {
     width: '100%',
@@ -244,6 +251,18 @@ const styles = StyleSheet.create({
   moreAvatarsText: {
     fontSize: 8,
     color: '#666',
+    fontWeight: '600',
+  },
+  wishlistChip: {
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  wishlistChipText: {
+    fontSize: 10,
     fontWeight: '600',
   },
 });
