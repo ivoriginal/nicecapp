@@ -61,6 +61,47 @@ const formatBrewTime = (value) => {
   return cleanedValue;
 };
 
+// New helper to extract recipe info from a free-text description
+const parseRecipeDescription = (text) => {
+  const result = {};
+  if (!text) return result;
+  const lower = text.toLowerCase();
+
+  // Detect method
+  const methods = ['v60', 'chemex', 'aeropress', 'french press', 'espresso', 'kalita', 'moka'];
+  const foundMethod = methods.find((m) => lower.includes(m));
+  if (foundMethod) result.method = foundMethod.replace(/\b\w/g, (c) => c.toUpperCase());
+
+  // Coffee amount (e.g. 18g)
+  const coffeeMatch = text.match(/(\d{1,3})\s?g\b/);
+  if (coffeeMatch) result.amount = coffeeMatch[1];
+
+  // Water volume (e.g. 300ml)
+  const waterMatch = text.match(/(\d{1,4})\s?ml\b/);
+  if (waterMatch) result.waterVolume = waterMatch[1];
+
+  // Brew time (e.g. 3:30 or 3m30s)
+  const timeMatchColon = text.match(/(\d{1,2}:\d{2})/);
+  const timeMatchWord = text.match(/(\d{1,2})\s?m(in)?[^\d]*(\d{1,2})?\s?s?/);
+  if (timeMatchColon) {
+    result.brewTime = timeMatchColon[1];
+  } else if (timeMatchWord) {
+    const min = timeMatchWord[1];
+    const sec = timeMatchWord[3] || '00';
+    result.brewTime = `${min}:${sec.padStart(2, '0')}`;
+  }
+
+  // Grind size
+  const grindSizes = ['extra fine', 'fine', 'medium-fine', 'medium', 'medium-coarse', 'coarse'];
+  const foundGrind = grindSizes.find((g) => lower.includes(g));
+  if (foundGrind) {
+    // Capitalise words
+    result.grindSize = foundGrind.split(' ').map((w)=>w.charAt(0).toUpperCase()+w.slice(1)).join(' ');
+  }
+
+  return result;
+};
+
 export default function AddCoffeeScreen({ navigation, route }) {
   const { addCoffeeEvent, currentAccount, addRecipe, getRecipesForCoffee, recipes } = useCoffee();
   const { theme, isDarkMode } = useTheme();
@@ -2127,6 +2168,16 @@ export default function AddCoffeeScreen({ navigation, route }) {
       }
     };
 
+    const [showDescribeInput, setShowDescribeInput] = useState(false);
+    const [describeText, setDescribeText] = useState('');
+
+    const handleDescribeSubmit = () => {
+      const parsed = parseRecipeDescription(describeText);
+      setRecipeData({ ...recipeData, ...parsed });
+      setShowDescribeInput(false);
+      setDescribeText('');
+    };
+
     return (
       <Modal
         visible={showCreateRecipe}
@@ -2287,6 +2338,44 @@ export default function AddCoffeeScreen({ navigation, route }) {
                  </TouchableOpacity>
                </View>
              </ScrollView>
+
+             {/* FAB to open describe input */}
+             <View style={styles.fabContainer} pointerEvents="box-none">
+               <TouchableOpacity
+                 style={styles.fabButton}
+                 onPress={() => setShowDescribeInput(true)}
+                 activeOpacity={0.9}
+               >
+                 <Text style={styles.fabText}>Describe</Text>
+               </TouchableOpacity>
+             </View>
+
+             {/* Overlay for description input */}
+             {showDescribeInput && (
+               <View style={styles.describeOverlay}>
+                 <View style={styles.describeInputContainer}>
+                   <Text style={styles.describePrompt}>Describe your brew</Text>
+                   <TextInput
+                     style={styles.describeInput}
+                     multiline
+                     numberOfLines={4}
+                     value={describeText}
+                     onChangeText={setDescribeText}
+                     placeholder="e.g. Brew 18g coffee with 300ml water using V60, medium grind, 3:30 minutes"
+                     placeholderTextColor={isDarkMode ? '#888' : '#999'}
+                     keyboardAppearance={isDarkMode ? 'dark' : 'light'}
+                   />
+                   <View style={styles.describeButtons}>
+                     <TouchableOpacity style={styles.describeButton} onPress={() => { setShowDescribeInput(false); setDescribeText(''); }}>
+                       <Text style={styles.describeButtonText}>Cancel</Text>
+                     </TouchableOpacity>
+                     <TouchableOpacity style={[styles.describeButton, styles.describeButtonPrimary]} onPress={handleDescribeSubmit}>
+                       <Text style={[styles.describeButtonText, styles.describeButtonPrimaryText]}>Apply</Text>
+                     </TouchableOpacity>
+                   </View>
+                 </View>
+               </View>
+             )}
            </View>
          </View>
        </Modal>
@@ -3779,5 +3868,87 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
   addCoffeeOptionSubtitle: {
     fontSize: 14,
     color: theme.secondaryText,
+  },
+  fabContainer: {
+    position: 'absolute',
+    bottom: 16,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  fabButton: {
+    borderRadius: 24,
+    backgroundColor: '#007AFF',
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  fabText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  describeOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  describeInputContainer: {
+    backgroundColor: theme.cardBackground || (isDarkMode ? '#2C2C2E' : '#FFFFFF'),
+    borderRadius: 12,
+    padding: 16,
+    width: '80%',
+    maxWidth: 400,
+  },
+  describePrompt: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: theme.primaryText,
+    marginBottom: 16,
+  },
+  describeInput: {
+    backgroundColor: theme.altBackground || '#F2F2F7',
+    borderRadius: 8,
+    padding: 12,
+    height: 100,
+    textAlignVertical: 'top',
+    fontSize: 16,
+    color: theme.primaryText,
+  },
+  describeButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 16,
+  },
+  describeButton: {
+    backgroundColor: '#CCCCCC',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    width: '48%',
+    alignItems: 'center',
+  },
+  describeButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: theme.primaryText,
+  },
+  describeButtonPrimary: {
+    backgroundColor: '#007AFF',
+  },
+  describeButtonPrimaryText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
   },
 });
