@@ -26,7 +26,7 @@ const gearDetails = {
     id: 'gear-chemex',
     brand: 'Chemex',
     type: 'Pour Over',
-    image: 'https://images.unsplash.com/photo-1544233726-9f1d2b27be8b',
+    image: 'https://ryfqzshdgfrrkizlpnqg.supabase.co/storage/v1/object/public/gear/chemex.jpg',
     usedBy: [
       { id: 'user1', name: 'Ivo Vilches', avatar: 'assets/users/ivo-vilches.jpg' },
       { id: 'user5', name: 'Emma Garcia', avatar: 'https://randomuser.me/api/portraits/women/33.jpg' }
@@ -37,7 +37,7 @@ const gearDetails = {
     id: 'gear-hario-slim',
     brand: 'Hario',
     type: 'Grinder',
-    image: 'https://images.unsplash.com/photo-1544713300-6b5a2817d25f',
+    image: 'https://ryfqzshdgfrrkizlpnqg.supabase.co/storage/v1/object/public/gear/hario-ceramic-slim.jpg',
     usedBy: [
       { id: 'user1', name: 'Ivo Vilches', avatar: 'assets/users/ivo-vilches.jpg' },
       { id: 'user3', name: 'Carlos Hernández', avatar: 'assets/users/carlos-hernandez.jpg' }
@@ -48,7 +48,7 @@ const gearDetails = {
     id: 'gear-hario-server',
     brand: 'Hario',
     type: 'Brewer',
-    image: 'https://images.unsplash.com/photo-1544713297-9acff35e418e',
+    image: 'https://ryfqzshdgfrrkizlpnqg.supabase.co/storage/v1/object/public/gear/hario-range-server.jpg',
     usedBy: [
       { id: 'user1', name: 'Ivo Vilches', avatar: 'assets/users/ivo-vilches.jpg' },
       { 
@@ -66,7 +66,7 @@ const gearDetails = {
     id: 'gear-comandante',
     brand: 'Comandante',
     type: 'Grinder',
-    image: 'https://images.unsplash.com/photo-1575441347544-11725ca18b26',
+    image: 'https://ryfqzshdgfrrkizlpnqg.supabase.co/storage/v1/object/public/gear/comandante-c40-mk4.jpg',
     usedBy: [
       { id: 'user2', name: 'Vértigo y Calambre', avatar: 'assets/businesses/vertigo-logo.jpg' },
       { id: 'user8', name: 'James Wilson', avatar: 'https://randomuser.me/api/portraits/men/22.jpg' }
@@ -122,7 +122,7 @@ const gearDetails = {
     id: 'gear-acaia-pearl',
     brand: 'Acaia',
     type: 'Scale',
-    image: 'https://images.unsplash.com/photo-1575441347548-0e745b37a5b8',
+    image: 'https://ryfqzshdgfrrkizlpnqg.supabase.co/storage/v1/object/public/gear/acaia-pearl.jpg',
     usedBy: [
       { id: 'user1', name: 'Ivo Vilches', avatar: 'assets/users/ivo-vilches.jpg' },
       { id: 'user3', name: 'Carlos Hernández', avatar: 'assets/users/carlos-hernandez.jpg' }

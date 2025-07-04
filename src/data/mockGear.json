@@ -61,7 +61,7 @@
       ],
       "rating": 4.9,
       "reviewCount": 850,
-      "imageUrl": "https://images.unsplash.com/photo-1575441347544-11725ca18b26",
+      "imageUrl": "https://ryfqzshdgfrrkizlpnqg.supabase.co/storage/v1/object/public/gear/comandante-c40-mk4.jpg",
       "relatedGear": [
         "gear2"
       ]
@@ -104,7 +104,7 @@
       ],
       "rating": 4.9,
       "reviewCount": 780,
-      "imageUrl": "https://images.unsplash.com/photo-1575441347548-0e745b37a5b8",
+      "imageUrl": "https://ryfqzshdgfrrkizlpnqg.supabase.co/storage/v1/object/public/gear/acaia-pearl.jpg",
       "relatedGear": [
         "gear1",
         "gear4"
@@ -148,7 +148,7 @@
       ],
       "rating": 4.7,
       "reviewCount": 3700,
-      "imageUrl": "https://images.unsplash.com/photo-1544233726-9f1d2b27be8b",
+      "imageUrl": "https://ryfqzshdgfrrkizlpnqg.supabase.co/storage/v1/object/public/gear/chemex.jpg",
       "relatedGear": [
         "gear1",
         "gear5"
@@ -170,7 +170,7 @@
       ],
       "rating": 4.5,
       "reviewCount": 2100,
-      "imageUrl": "https://images.unsplash.com/photo-1544713300-6b5a2817d25f",
+      "imageUrl": "https://ryfqzshdgfrrkizlpnqg.supabase.co/storage/v1/object/public/gear/hario-ceramic-slim.jpg",
       "relatedGear": [
         "gear2",
         "gear3"
@@ -192,7 +192,7 @@
       ],
       "rating": 4.6,
       "reviewCount": 1850,
-      "imageUrl": "https://images.unsplash.com/photo-1544713297-9acff35e418e",
+      "imageUrl": "https://ryfqzshdgfrrkizlpnqg.supabase.co/storage/v1/object/public/gear/hario-range-server.jpg",
       "relatedGear": [
         "gear4"
       ]
