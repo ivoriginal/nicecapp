@@ -98,6 +98,9 @@ export default function CoffeeDetailScreen() {
     notes: ''
   });
 
+  // Similar coffees suggestions
+  const [similarCoffees, setSimilarCoffees] = useState([]);
+
   useEffect(() => {
     // Always use mock data for development
     const fetchCoffee = () => {
@@ -367,7 +370,21 @@ export default function CoffeeDetailScreen() {
   // Only run this effect when coffee object changes, not on every render
   }, [coffee?.id, getRecipesForCoffee]);
 
+  // Compute similar coffees ("More like this") whenever the coffee changes
+  useEffect(() => {
+    if (coffee) {
+      // Basic heuristic: same origin, process, or roaster (excluding the current coffee)
+      const matches = mockCoffees.coffees.filter(c =>
+        c.id !== coffee.id && (
+          c.origin === coffee.origin ||
+          c.process === coffee.process ||
+          c.roaster === coffee.roaster
+        )
+      ).slice(0, 10); // limit to 10 suggestions
 
+      setSimilarCoffees(matches);
+    }
+  }, [coffee]);
 
   // Update favorite state whenever coffee or favorites change
   useEffect(() => {
@@ -866,7 +883,14 @@ export default function CoffeeDetailScreen() {
     );
   };
 
-
+  // Navigate to a similar coffee detail
+  const handleSimilarCoffeePress = (coffeeItem) => {
+    if (!coffeeItem) return;
+    navigation.push('CoffeeDetail', {
+      coffeeId: coffeeItem.id,
+      skipAuth: true,
+    });
+  };
 
   // Navigate to CoffeeDiscoveryScreen with specific filter
   const navigateWithFilter = (filterType, filterValue, filterLabel) => {
@@ -910,8 +934,6 @@ export default function CoffeeDetailScreen() {
       preselectedFilter: { categoryId, optionId }
     });
   };
-
-
 
   if (loading) {
     return (
@@ -1204,6 +1226,47 @@ export default function CoffeeDetailScreen() {
               keyExtractor={(item) => item.id}
               scrollEnabled={false}
             />
+          </View>
+        )}
+
+        {/* More Like This */}
+        {similarCoffees.length > 0 && (
+          <View style={[styles.section, { backgroundColor: theme.background, borderTopColor: theme.divider }]}> 
+            <Text style={[styles.sectionTitle, { color: theme.primaryText }]}>More Like This</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.similarCoffeesCarousel}
+            >
+              {similarCoffees.map((item, index) => (
+                <TouchableOpacity
+                  key={item.id}
+                  style={[
+                    styles.similarCoffeeCard,
+                    index === similarCoffees.length - 1 ? styles.lastSimilarCoffeeCard : null,
+                    isDarkMode 
+                      ? { backgroundColor: theme.cardBackground, borderColor: theme.border } 
+                      : { borderColor: theme.border }
+                  ]}
+                  onPress={() => handleSimilarCoffeePress(item)}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.similarCoffeeImageContainer}>
+                    <AppImage 
+                      source={item.image || item.imageUrl}
+                      style={styles.similarCoffeeImage}
+                      resizeMode="cover"
+                    />
+                  </View>
+                  <Text style={[styles.similarCoffeeName, { color: theme.primaryText }]} numberOfLines={1}>
+                    {item.name}
+                  </Text>
+                  <Text style={[styles.similarCoffeeRoaster, { color: theme.secondaryText }]} numberOfLines={1}>
+                    {item.roaster}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           </View>
         )}
 
@@ -1885,6 +1948,44 @@ const styles = StyleSheet.create({
     minHeight: 100,
     textAlignVertical: 'top',
   },
-
-
+  similarCoffeesCarousel: {
+    paddingVertical: 8,
+    paddingRight: 16,
+  },
+  similarCoffeeCard: {
+    borderRadius: 12,
+    marginRight: 12,
+    width: 124,
+    paddingBottom: 12,
+    borderWidth: 1,
+  },
+  lastSimilarCoffeeCard: {
+    marginRight: 0,
+  },
+  similarCoffeeImageContainer: {
+    width: 124,
+    height: 124,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    overflow: 'hidden',
+    marginBottom: 12,
+    backgroundColor: '#E5E5E5',
+  },
+  similarCoffeeImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  similarCoffeeName: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 4,
+    paddingHorizontal: 12,
+    lineHeight: 15,
+  },
+  similarCoffeeRoaster: {
+    fontSize: 12,
+    paddingHorizontal: 12,
+    lineHeight: 13,
+  },
 }); 
