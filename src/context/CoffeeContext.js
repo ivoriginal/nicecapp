@@ -10,7 +10,7 @@ import {
   getWishlist,
   saveFavorites,
   getFavorites
-} from '../lib/dataProvider';
+} from '../lib/supabase';
 import mockEvents from '../data/mockEvents.json';
 import mockUsers from '../data/mockUsers.json';
 import mockCoffees from '../data/mockCoffees.json';
@@ -253,8 +253,8 @@ export const CoffeeProvider = ({ children }) => {
         accountData[accountToLoad].coffeeCollection = combinedCollection;
       }
       
-      // Load saved recipes from mockUsers and mockRecipes (after setting initial data)
-      loadSavedRecipes();
+      // Load saved recipes and wishlist from Supabase
+      await loadSavedRecipes();
       
       // Set following and followers - for the social feed, everyone follows everyone
       const otherUsers = accounts.filter(acc => acc.id !== accountToLoad);
@@ -273,51 +273,35 @@ export const CoffeeProvider = ({ children }) => {
   }, [currentAccount, accounts, loading, initialized]);
 
   // Load saved recipes from mockUsers and mockRecipes
-  const loadSavedRecipes = () => {
+  const loadSavedRecipes = async () => {
     try {
-      console.log("=== Loading saved recipes ===");
-      console.log("Current account:", currentAccount);
-      // Get the current user's saved recipes
-      const currentUser = mockUsers.users.find(user => user.id === currentAccount);
-      if (!currentUser || !currentUser.savedRecipes) {
-        console.log(`No saved recipes found for ${currentAccount}`);
-        return;
+      console.log("=== Loading saved recipes & wishlist from Supabase ===");
+
+      // Fetch favorites (array of recipe IDs) from Supabase
+      const favoritesFromDb = await getFavorites();
+      console.log('Favorites from DB:', favoritesFromDb);
+
+      // Update favorites state
+      if (Array.isArray(favoritesFromDb)) {
+        setFavorites(favoritesFromDb);
       }
-      
-      console.log(`Found ${currentUser.savedRecipes.length} saved recipe IDs for ${currentAccount}:`, currentUser.savedRecipes);
-      
-      // Get the recipes that match the IDs in currentUser.savedRecipes
-      const userSavedRecipes = mockRecipes.recipes.filter(recipe => 
-        currentUser.savedRecipes.includes(recipe.id)
-      );
-      
-      console.log(`Found ${userSavedRecipes.length} matching recipes`);
-      
-      // Mark these recipes as saved
+
+      // Update recipes list with isSaved flag according to favorites array
       const updatedRecipes = [...mockRecipes.recipes];
       updatedRecipes.forEach(recipe => {
-        recipe.isSaved = currentUser.savedRecipes.includes(recipe.id);
+        recipe.isSaved = favoritesFromDb?.includes(recipe.id);
       });
-      
-      console.log("Setting recipes with isSaved flags:", updatedRecipes.filter(r => r.isSaved).map(r => ({id: r.id, name: r.name, isSaved: r.isSaved})));
       setRecipes(updatedRecipes);
-      
-      // Also update coffeeWishlist from user's saved coffees
-      if (currentUser.savedCoffees && Array.isArray(currentUser.savedCoffees)) {
-        // Check if savedCoffees contains objects or just IDs
-        const savedCoffees = currentUser.savedCoffees[0]?.id ? 
-          // If it contains objects, use them directly
-          currentUser.savedCoffees :
-          // If it contains IDs, filter from mockCoffees
-          mockCoffees.coffees.filter(coffee => 
-            currentUser.savedCoffees.includes(coffee.id)
-          );
-        
-        console.log(`Found ${savedCoffees.length} saved coffees for ${currentAccount}`);
-        setCoffeeWishlist(savedCoffees);
+
+      // Fetch wishlist items (array of coffee objects) from Supabase
+      const wishlistFromDb = await getWishlist();
+      console.log('Wishlist from DB:', wishlistFromDb);
+
+      if (Array.isArray(wishlistFromDb)) {
+        setCoffeeWishlist(wishlistFromDb);
       }
     } catch (error) {
-      console.error("Error loading saved recipes:", error);
+      console.error('Error loading saved data from Supabase:', error);
     }
   };
 
@@ -595,34 +579,25 @@ export const CoffeeProvider = ({ children }) => {
     const isInWishlist = coffeeWishlist.some(c => c.id === coffee.id);
     
     if (!isInWishlist) {
-      // Add to wishlist state
+      // Add to wishlist state first for instant UI feedback
       setCoffeeWishlist(prev => [...prev, coffeeItem]);
-      
-      // Update accountData if needed
-      if (accountData[currentAccount]) {
-        if (!accountData[currentAccount].coffeeWishlist) {
-          accountData[currentAccount].coffeeWishlist = [];
-        }
-        accountData[currentAccount].coffeeWishlist.push(coffeeItem);
-      }
+
+      // Persist in Supabase (fire-and-forget)
+      saveToWishlist(coffeeItem).catch(err => console.error('Failed to save to wishlist in Supabase:', err));
     }
     
     return coffeeItem;
   };
   
   // Remove from wishlist function
-  const removeFromWishlist = (coffeeId) => {
+  const removeFromWishlistFn = (coffeeId) => {
     console.log('Removing coffee from wishlist with ID:', coffeeId);
     
-    // Remove from wishlist state
+    // Remove from wishlist state for instant feedback
     setCoffeeWishlist(prev => prev.filter(coffee => coffee.id !== coffeeId));
-    
-    // Update accountData if needed
-    if (accountData[currentAccount] && accountData[currentAccount].coffeeWishlist) {
-      accountData[currentAccount].coffeeWishlist = accountData[currentAccount].coffeeWishlist.filter(
-        coffee => coffee.id !== coffeeId
-      );
-    }
+
+    // Persist removal in Supabase
+    removeFromWishlist(coffeeId).catch(err => console.error('Failed to remove from wishlist in Supabase:', err));
     
     return true;
   };
@@ -676,6 +651,9 @@ export const CoffeeProvider = ({ children }) => {
           };
           setRecipes(updatedRecipes);
         }
+
+        // Persist in Supabase (fire-and-forget)
+        saveFavorites(updatedFavorites).catch(err => console.error('Failed to save favorites in Supabase:', err));
       } else {
         // Add to favorites
         const updatedFavorites = [...favorites, recipeId];
@@ -692,6 +670,9 @@ export const CoffeeProvider = ({ children }) => {
           };
           setRecipes(updatedRecipes);
         }
+
+        // Persist in Supabase (fire-and-forget)
+        saveFavorites(updatedFavorites).catch(err => console.error('Failed to save favorites in Supabase:', err));
       }
     } catch (error) {
       console.error('Error toggling favorite status:', error);
@@ -849,7 +830,7 @@ export const CoffeeProvider = ({ children }) => {
     addToCollection,
     removeFromCollection,
     addToWishlist,
-    removeFromWishlist,
+    removeFromWishlist: removeFromWishlistFn,
     toggleFavorite,
     setCoffeeCollection: setCoffeeCollection,
     setCoffeeWishlist: setCoffeeWishlist,
@@ -885,7 +866,7 @@ export const CoffeeProvider = ({ children }) => {
     addToCollection,
     removeFromCollection,
     addToWishlist,
-    removeFromWishlist,
+    removeFromWishlistFn,
     toggleFavorite,
     loadData,
     getRecipesForCoffee,

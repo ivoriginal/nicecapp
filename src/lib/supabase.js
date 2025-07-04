@@ -9,7 +9,7 @@ const supabaseUrl = 'https://ryfqzshdgfrrkizlpnqg.supabase.co';
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ5ZnF6c2hkZ2ZycmtpemxwbnFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ0MDk4OTgsImV4cCI6MjA1OTk4NTg5OH0.by26_52LXWqzDUYkYA7zNUbqMdgU_QffVTi-GOhxCMM';
 
 // For development: Set this to true to skip authentication
-const SKIP_AUTH = true;
+const SKIP_AUTH = false;
 
 export const supabase = createClient(
   supabaseUrl,
@@ -261,6 +261,35 @@ export const getWishlist = async () => {
     return data;
   } catch (error) {
     console.error('Error in getWishlist:', error);
+    throw error;
+  }
+};
+
+// NEW: Remove a coffee from the wishlist for the current user
+export const removeFromWishlist = async (coffeeId) => {
+  try {
+    // Skip authentication check for development
+    if (SKIP_AUTH) {
+      console.log('Development mode: Skipping authentication check');
+      return;
+    }
+
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+
+    // Delete the wishlist entry that matches both the coffee ID and the current user
+    const { error } = await supabase
+      .from('wishlist')
+      .delete()
+      .eq('id', coffeeId)
+      .eq('username', user.email);
+
+    if (error) throw error;
+  } catch (error) {
+    console.error('Error in removeFromWishlist:', error);
     throw error;
   }
 };
