@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import mockCafes from '../data/mockCafes.json';
 import AppImage from '../components/common/AppImage';
 import { useTheme } from '../context/ThemeContext';
+import * as Location from 'expo-location';
 
 const CafesListScreen = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
@@ -65,19 +66,51 @@ const cafes = goodCafeIds.map(cafeId => {
     ])
   ].filter(Boolean);
   
-  // Mock user location (would be replaced with actual geolocation)
+  // User location state
   const [userLocation, setUserLocation] = useState(null);
-  
-  // Get user location (simulated)
+
+  // Helper to calculate the distance (in km) between two coordinates using the Haversine formula
+  const getDistanceFromLatLonInKm = (lat1, lon1, lat2, lon2) => {
+    const deg2rad = (deg) => deg * (Math.PI / 180);
+    const R = 6371; // Radius of the earth in km
+    const dLat = deg2rad(lat2 - lat1);
+    const dLon = deg2rad(lon2 - lon1);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(deg2rad(lat1)) *
+        Math.cos(deg2rad(lat2)) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c; // Distance in km
+  };
+
+  // Request location when nearby toggle is enabled
   useEffect(() => {
-    // This would be replaced with actual geolocation
-    // For now, we'll just simulate having the user's location
-    if (isNearbyEnabled) {
-      // Mock coordinates that would come from geolocation API
-      setUserLocation({ latitude: 37.7749, longitude: -122.4194 }); // San Francisco coordinates
-    } else {
-      setUserLocation(null);
-    }
+    const fetchLocation = async () => {
+      if (isNearbyEnabled) {
+        try {
+          const { status } = await Location.requestForegroundPermissionsAsync();
+          if (status !== 'granted') {
+            console.log('Permission to access location was denied');
+            setUserLocation(null);
+            return;
+          }
+          const locationResult = await Location.getCurrentPositionAsync({});
+          setUserLocation({
+            latitude: locationResult.coords.latitude,
+            longitude: locationResult.coords.longitude,
+          });
+        } catch (error) {
+          console.log('Error fetching location', error);
+          setUserLocation(null);
+        }
+      } else {
+        setUserLocation(null);
+      }
+    };
+
+    fetchLocation();
   }, [isNearbyEnabled]);
   
   // Check if a cafe is currently open
@@ -91,14 +124,21 @@ const cafes = goodCafeIds.map(cafeId => {
   const applyFilters = () => {
     let filtered = [...cafes];
     
-    // Apply nearby filter (would implement actual distance calculation)
+    // Apply nearby filter based on actual distance
     if (isNearbyEnabled && userLocation) {
-      // For now, we'll just pretend some cafes are nearby
-      // In a real app, you would calculate distance from user location
-      filtered = filtered.filter(cafe => 
-        // Simulating nearby filter by selecting random cafes
-        Math.random() > 0.5
-      );
+      filtered = filtered.filter((cafe) => {
+        if (!cafe.coordinates || !cafe.coordinates.lat || !cafe.coordinates.lng) {
+          return false;
+        }
+        const distance = getDistanceFromLatLonInKm(
+          userLocation.latitude,
+          userLocation.longitude,
+          cafe.coordinates.lat,
+          cafe.coordinates.lng
+        );
+        // Consider cafes within 10 km as "nearby"
+        return distance <= 10;
+      });
     }
     // Apply city filter (only if nearby is not enabled)
     else if (selectedCity !== 'All Cities') {
