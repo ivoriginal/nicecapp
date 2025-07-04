@@ -17,7 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import mockUsers from '../data/mockUsers.json';
 import mockGear from '../data/mockGear.json';
 import gearDetails from '../data/gearDetails';
-import { getGearWishlist, removeGearFromWishlist } from '../lib/supabase';
+import { getGearWishlist, removeGearFromWishlist, addGearToWishlist } from '../lib/supabase';
 import AppImage from '../components/common/AppImage';
 import GearCard from '../components/GearCard';
 import { useTheme } from '../context/ThemeContext';
@@ -192,6 +192,61 @@ const GearWishlistScreen = () => {
     }
   };
 
+  const handleAddGear = () => {
+    const gearOptions = mockGear.gear.map(g => g.name);
+
+    const addSelectedGear = async (gearName) => {
+      const gearItem = mockGear.gear.find(g => g.name === gearName);
+      if (!gearItem) return;
+
+      // Prevent duplicates
+      if (wishlistItems.some(item => item.id === gearItem.id)) {
+        console.log('Gear already in wishlist');
+        return;
+      }
+
+      // Optimistically update UI
+      setWishlistItems(prev => [...prev, gearItem]);
+
+      try {
+        await addGearToWishlist(gearItem);
+      } catch (error) {
+        console.error('Error adding gear to wishlist:', error);
+        // Revert optimistic update on error
+        setWishlistItems(prev => prev.filter(item => item.id !== gearItem.id));
+      }
+    };
+
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ['Cancel', ...gearOptions],
+          cancelButtonIndex: 0,
+          title: 'Add gear to wishlist',
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 0) return;
+          const selectedGearName = gearOptions[buttonIndex - 1];
+          addSelectedGear(selectedGearName);
+        }
+      );
+    } else {
+      // Android implementation using Alert
+      Alert.alert(
+        'Add gear to wishlist',
+        'Select an item to add',
+        [
+          ...gearOptions.map(name => ({
+            text: name,
+            onPress: () => addSelectedGear(name),
+          })),
+          { text: 'Cancel', style: 'cancel' },
+        ],
+        { cancelable: true }
+      );
+    }
+  };
+
   const renderWishlistItem = ({ item, index }) => (
     <View style={[
       styles.cardContainer,
@@ -267,7 +322,7 @@ const GearWishlistScreen = () => {
       
       {/* FAB (Floating Action Button) - Hide in edit mode or when viewing other user's wishlist */}
       {!isEditing && isCurrentUser && (
-        <TouchableOpacity style={styles.fab}>
+        <TouchableOpacity style={styles.fab} onPress={handleAddGear}>
           <Text style={styles.fabText}>Add gear</Text>
         </TouchableOpacity>
       )}
