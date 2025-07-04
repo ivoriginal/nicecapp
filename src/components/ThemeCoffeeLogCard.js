@@ -675,11 +675,19 @@ const ThemeCoffeeLogCard = ({
                 }}
                 activeOpacity={0.7}
               >
-                <AppImage 
-                  source={friend.avatar || friend.userAvatar} 
-                  style={styles.friendModalAvatar}
-                  placeholder="person" 
-                />
+                {(friend.avatar || friend.userAvatar) ? (
+                  <AppImage 
+                    source={friend.avatar || friend.userAvatar} 
+                    style={styles.friendModalAvatar}
+                    placeholder="person" 
+                  />
+                ) : (
+                  <View style={[styles.friendModalAvatar, styles.friendModalAvatarPlaceholder]}>
+                    <Text style={styles.friendModalAvatarText}>
+                      {(friend.name || friend.userName || '?').charAt(0).toUpperCase()}
+                    </Text>
+                  </View>
+                )}
                 <Text style={styles.friendModalName}>{friend.name || friend.userName}</Text>
                 <Ionicons name="chevron-forward" size={20} color={theme.secondaryText} />
               </TouchableOpacity>
@@ -1195,6 +1203,17 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
     marginRight: 12,
     borderWidth: 1,
     borderColor: theme.border,
+  },
+  // Placeholder avatar when user has no image
+  friendModalAvatarPlaceholder: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: isDarkMode ? '#2C2C2E' : '#E0E0E0',
+  },
+  friendModalAvatarText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.secondaryText,
   },
   friendModalName: {
     flex: 1,
