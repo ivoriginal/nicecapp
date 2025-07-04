@@ -410,7 +410,11 @@ function MainNavigator({ theme, handleRecipeOptions, handleCoffeeOptions }) {
       <Stack.Screen 
         name="UserProfileBridge" 
         component={UserProfileBridge} 
-        options={{ headerShown: false }} 
+        options={{ 
+          headerShown: true,
+          headerTransparent: true,
+          title: ''
+        }} 
       />
       <Stack.Screen 
         name="UserProfileScreen" 
