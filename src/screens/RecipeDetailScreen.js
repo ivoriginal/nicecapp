@@ -1437,12 +1437,12 @@ export default function RecipeDetailScreen() {
                       {userRating === 0 && mostPopularRating && (
                         <View style={[styles.popularRatingContainer, { backgroundColor: theme.background }]}>
                           <MaterialCommunityIcons 
-                            name={getRatingIcon(ratingPercentage)} 
+                            name={getRatingIcon(ratingPercentage > 0 ? ratingPercentage : 100)} 
                             size={16} 
                             color={theme.primaryText} 
                           />
-                          <Text style={[styles.popularRatingText, { color: theme.secondaryText }]}>
-                            {getRatingDescription(ratingPercentage)}
+                          <Text style={[styles.popularRatingText, { color: theme.secondaryText }]}> 
+                            {`${getRatingDescription(ratingPercentage > 0 ? ratingPercentage : 100)} · ${(ratingPercentage > 0 ? ratingPercentage : 100)}%`}
                           </Text>
                         </View>
                       )}
