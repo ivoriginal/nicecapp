@@ -211,29 +211,39 @@ const ThemeCoffeeLogCard = ({
 
   // Get event type label based on the event type
   const getEventTypeLabel = () => {
+    // 1. Recipe creation events first
     if (event.type === 'recipe_creation' || event.type === 'created_recipe') {
       if (event.isRemix) {
         return `remixed a recipe`;
       }
       return `created a recipe`;
     }
-    
+
+    // 2. Gear inventory events
     if (event.gearId) {
       return 'added to inventory';
     }
-    
-    if (event.hasRecipe || event.method || event.brewingMethod) {
-      if (event.locationId && event.locationId !== 'home') {
-        return 'ordered';
+
+    // 3. Any coffee-related event that happened at a café (i.e. not at home) should be labelled as an order
+    if (event.locationId && event.locationId !== 'home') {
+      // Special handling for business coffee announcements
+      if (event.type === 'coffee_announcement' && isBusinessAccount) {
+        return 'added to store';
       }
+      return 'ordered';
+    }
+
+    // 4. Home brewed events (default when we have recipe/method information)
+    if (event.hasRecipe || event.method || event.brewingMethod) {
       return 'brewed';
     }
-    
-    // Handle business coffee announcements
+
+    // 5. Business coffee announcements that did not match earlier rules
     if (event.type === 'coffee_announcement' && isBusinessAccount) {
       return 'added to store';
     }
-    
+
+    // 6. Fallback label
     return 'tried';
   };
 
@@ -615,6 +625,7 @@ const ThemeCoffeeLogCard = ({
                           userName: event.location,
                           userAvatar: event.locationAvatar,
                           isBusiness: true,
+                          isBusinessAccount: true,
                           type: 'cafe',
                           isCafe: true
                         });
