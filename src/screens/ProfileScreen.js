@@ -914,8 +914,12 @@ export default function ProfileScreen() {
       });
 
       if (!result.canceled) {
-        navigation.navigate('AddCoffeeFromCamera', { 
-          capturedImage: result.assets[0].uri 
+        navigation.navigate('ReviewCoffee', {
+          coffeeDraft: {
+            image: result.assets[0].uri,
+            name: '',
+            roaster: '',
+          },
         });
       }
     } catch (error) {
@@ -942,8 +946,12 @@ export default function ProfileScreen() {
       });
 
       if (!result.canceled) {
-        navigation.navigate('AddCoffeeFromGallery', { 
-          selectedImage: result.assets[0].uri 
+        navigation.navigate('ReviewCoffee', {
+          coffeeDraft: {
+            image: result.assets[0].uri,
+            name: '',
+            roaster: '',
+          },
         });
       }
     } catch (error) {

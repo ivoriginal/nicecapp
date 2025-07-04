@@ -28,6 +28,7 @@ import AddCoffeeFromURL from './src/screens/AddCoffeeFromURL';
 import AddCoffeeFromCamera from './src/screens/AddCoffeeFromCamera';
 import AddCoffeeFromGallery from './src/screens/AddCoffeeFromGallery';
 import AddCoffeeManually from './src/screens/AddCoffeeManually';
+import ReviewCoffeeScreen from './src/screens/ReviewCoffeeScreen';
 import { CoffeeProvider, useCoffee } from './src/context/CoffeeContext';
 import { NotificationsProvider } from './src/context/NotificationsContext';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
@@ -539,6 +540,14 @@ function MainNavigator({ theme, handleRecipeOptions, handleCoffeeOptions }) {
         component={AddCoffeeManually} 
         options={{ 
           title: 'Add Manually',
+          headerBackTitle: 'Back'
+        }} 
+      />
+      <Stack.Screen 
+        name="ReviewCoffee" 
+        component={ReviewCoffeeScreen} 
+        options={{ 
+          title: 'Review Coffee',
           headerBackTitle: 'Back'
         }} 
       />
