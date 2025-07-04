@@ -44,6 +44,7 @@ import RecipeCard from '../components/RecipeCard';
 import RecipeCard2 from '../components/RecipeCard2';
 import UserAvatar from '../components/UserAvatar';
 import CoffeeInfo from '../components/CoffeeInfo';
+import gearDetails from '../data/gearDetails';
 
 const { width, height } = Dimensions.get('window');
 
@@ -1564,19 +1565,15 @@ export default function RecipeDetailScreen() {
                           gearName: item.name 
                         })}
                       >
-                        <View style={[styles.equipmentIconContainer, { backgroundColor: theme.surface }]}>
-                          <Ionicons 
-                            name={
-                              item.type === 'Grinder' ? 'settings-outline' :
-                              item.type === 'Brewer' ? 'cafe-outline' :
-                              item.type === 'Scale' ? 'calculator-outline' :
-                              item.type === 'Kettle' ? 'flask-outline' :
-                              'cube-outline'
-                            } 
-                            size={24} 
-                            color={theme.primaryText} 
-                          />
-                        </View>
+                        {/* Avatar image for the piece of equipment */}
+                        <AppImage
+                          source={
+                            (gearDetails[item.name] && gearDetails[item.name].image) ||
+                            item.image ||
+                            'https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?auto=format&fit=crop&w=60&h=60&q=60'
+                          }
+                          style={[styles.equipmentIconImage, { borderColor: theme.border }]}
+                        />
                         <View style={[styles.equipmentInfo, { backgroundColor: theme.cardBackground }]}>
                           <Text style={[styles.equipmentName, { color: theme.primaryText }]}>{item.name}</Text>
                           <Text style={[styles.equipmentBrand, { color: theme.secondaryText }]}>{item.brand}</Text>
@@ -2678,6 +2675,14 @@ const styles = StyleSheet.create({
   },
   equipmentGrid: {
     gap: 12,
+    marginBottom: 16,
+  },
+  equipmentIconImage: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 1,
+    resizeMode: 'cover',
   },
   equipmentCard: {
     flexDirection: 'row',
@@ -2686,13 +2691,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     gap: 12,
-  },
-  equipmentIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   equipmentInfo: {
     flex: 1,
