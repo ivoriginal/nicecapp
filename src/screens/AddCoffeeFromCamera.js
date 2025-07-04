@@ -18,12 +18,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useCoffee } from '../context/CoffeeContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { saveCoffee } from '../lib/supabase';
 
 const { width } = Dimensions.get('window');
 
 export default function AddCoffeeFromCamera({ navigation, route }) {
   const { theme, isDarkMode } = useTheme();
-  const { addToCollection } = useCoffee();
+  const { addToCollection, addCoffeeEvent, addCoffeeToCatalog, currentAccount } = useCoffee();
   const insets = useSafeAreaInsets();
   
   const [capturedImage, setCapturedImage] = useState(route.params?.capturedImage || null);
@@ -176,36 +177,37 @@ export default function AddCoffeeFromCamera({ navigation, route }) {
       const newCoffee = {
         id: `coffee-${Date.now()}`,
         ...coffeeData,
-        addedAt: new Date().toISOString()
+        stats: null,
+        addedAt: new Date().toISOString(),
+        isUserAdded: true,
+        addedBy: currentAccount,
       };
 
-      // Add to collection if checkbox is checked
+      // 1. Save to Supabase (mockable)
+      await saveCoffee(newCoffee);
+
+      // 2. Add to global catalog
+      addCoffeeToCatalog(newCoffee);
+
+      // 3. Optionally add to user collection and create event
       if (addToUserCollection) {
-        if (addToCollection) {
-          await addToCollection(newCoffee);
-        }
-        Alert.alert(
-          'Success', 
-          'Coffee added to your collection and the database!', 
-          [{ text: 'OK', onPress: () => navigation.goBack() }],
-          { userInterfaceStyle: isDarkMode ? 'dark' : 'light' }
-        );
-      } else {
-        // Just add to the database
-        if (addToCollection) {
-          await addToCollection({
-            ...newCoffee,
-            addToCollectionOnly: false
-          });
-        }
-        Alert.alert(
-          'Success', 
-          'Coffee added to the database!', 
-          [{ text: 'OK', onPress: () => navigation.goBack() }],
-          { userInterfaceStyle: isDarkMode ? 'dark' : 'light' }
-        );
+        await addToCollection(newCoffee);
+        await addCoffeeEvent({
+          coffeeId: newCoffee.id,
+          coffeeName: newCoffee.name,
+          roaster: newCoffee.roaster,
+          imageUrl: newCoffee.image,
+          type: 'added_to_collection'
+        });
       }
-      
+
+      Alert.alert(
+        'Success',
+        `Coffee saved${addToUserCollection ? ' and added to your collection' : ''}!`,
+        [{ text: 'OK', onPress: () => navigation.goBack() }],
+        { userInterfaceStyle: isDarkMode ? 'dark' : 'light' }
+      );
+
     } catch (error) {
       Alert.alert('Error', 'Failed to add coffee', [], {
         userInterfaceStyle: isDarkMode ? 'dark' : 'light'
