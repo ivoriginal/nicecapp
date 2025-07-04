@@ -1,4 +1,4 @@
-import React, { useState, useLayoutEffect, useRef, useEffect } from 'react';
+import React, { useState, useLayoutEffect, useRef, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -2132,6 +2132,15 @@ export default function AddCoffeeScreen({ navigation, route }) {
       }
     };
 
+    // Suggested grind size chips for V60 (adaptive to grinder)
+    const v60GrindSuggestions = useMemo(() => {
+      const suggestions = ['Medium-Fine'];
+      if (recipeData.grinderUsed && recipeData.grinderUsed.toLowerCase().includes('comandante')) {
+        suggestions.push('20 clicks (C40)');
+      }
+      return suggestions;
+    }, [recipeData.grinderUsed]);
+
     return (
       <Modal
         visible={showCreateRecipe}
@@ -2290,13 +2299,55 @@ export default function AddCoffeeScreen({ navigation, route }) {
                      {isRemixing || remixRecipe ? 'Save Remix' : 'Save Recipe'}
                    </Text>
                  </TouchableOpacity>
-               </View>
-             </ScrollView>
-           </View>
-         </View>
-       </Modal>
-     );
-   };
+
+                {/* Orientation selector for AeroPress */}
+                {recipeData.method === 'AeroPress' && (
+                  <View style={styles.inputContainer}>
+                    <Text style={styles.label}>Orientation</Text>
+                    <View style={styles.segmentedControl}>
+                      <TouchableOpacity
+                        style={[styles.segment, recipeData.orientation === 'Regular' && styles.segmentActive]}
+                        onPress={() => setRecipeData({ ...recipeData, orientation: 'Regular' })}
+                      >
+                        <Text style={[styles.segmentText, recipeData.orientation === 'Regular' && styles.segmentTextActive]}>Regular</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.segment, recipeData.orientation === 'Inverted' && styles.segmentActive]}
+                        onPress={() => setRecipeData({ ...recipeData, orientation: 'Inverted' })}
+                      >
+                        <Text style={[styles.segmentText, recipeData.orientation === 'Inverted' && styles.segmentTextActive]}>Inverted</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                )}
+
+                {/* V60 grind size suggestion chips */}
+                {recipeData.method === 'V60' && (
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    style={styles.chipContainer}
+                  >
+                    {v60GrindSuggestions.map((suggestion) => (
+                      <TouchableOpacity
+                        key={suggestion}
+                        style={[styles.chip, recipeData.grindSize === suggestion && styles.chipSelected]}
+                        onPress={() => setRecipeData({ ...recipeData, grindSize: suggestion })}
+                      >
+                        <Text style={[styles.chipText, recipeData.grindSize === suggestion && styles.chipTextSelected]}>
+                          {suggestion}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                )}
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+    );
+  };
 
   const renderAddCoffeeModal = () => (
     <Modal
