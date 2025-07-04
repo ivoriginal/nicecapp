@@ -1163,7 +1163,7 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
     padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: theme.divider,
-    backgroundColor: theme.cardBackground,
+    backgroundColor: theme.background,
   },
   modalTitle: {
     fontSize: 18,
@@ -1176,13 +1176,13 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
   modalContent: {
     flex: 1,
     backgroundColor: theme.background,
+    paddingTop: 12,
   },
   friendModalItem: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.divider,
+    borderBottomWidth: 0,
     backgroundColor: theme.cardBackground,
     marginHorizontal: 16,
     marginTop: 8,
