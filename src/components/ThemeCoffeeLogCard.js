@@ -234,6 +234,10 @@ const ThemeCoffeeLogCard = ({
       return 'added to store';
     }
     
+    if (event.type === 'added_to_collection') {
+      return 'added to collection';
+    }
+    
     return 'tried';
   };
 

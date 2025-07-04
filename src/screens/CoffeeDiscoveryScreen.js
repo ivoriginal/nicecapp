@@ -13,7 +13,7 @@ import { useCoffee } from '../context/CoffeeContext';
 const CoffeeDiscoveryScreen = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
   const { theme, isDarkMode } = useTheme();
-  const { getAllAvailableCoffees } = useCoffee();
+  const { getAllAvailableCoffees, currentAccount } = useCoffee();
   const { preselectedFilter = null, sortBy = 'default' } = (route && route.params) || {};
   const [coffees, setCoffees] = useState([]);
   const [activeFilters, setActiveFilters] = useState({});
@@ -837,8 +837,15 @@ const CoffeeDiscoveryScreen = ({ navigation, route }) => {
     
     const countryFlag = getCountryFlag(item.origin);
     
+    const isNew = item.isUserAdded && item.addedBy && item.addedBy !== currentAccount;
+    
     return (
       <View style={[styles.coffeeCardContainer, { borderBottomColor: theme.divider }]}>
+        {isNew && (
+          <View style={styles.newBadge}>
+            <Text style={styles.newBadgeText}>NEW</Text>
+          </View>
+        )}
         <TouchableOpacity 
           style={[styles.coffeeCard, { backgroundColor: theme.background }]}
           onPress={() => navigation.navigate('CoffeeDetail', { coffeeId: item.id })}
@@ -1090,6 +1097,7 @@ const styles = StyleSheet.create({
   },
   coffeeCardContainer: {
     borderBottomWidth: 1,
+    position: 'relative',
   },
   coffeeCard: {
     flexDirection: 'row',
@@ -1226,6 +1234,20 @@ const styles = StyleSheet.create({
   addCoffeeOptionSubtitle: {
     fontSize: 14,
     color: '#666666',
+  },
+  newBadge: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    backgroundColor: '#FF0000',
+    padding: 4,
+    borderTopRightRadius: 8,
+    borderBottomLeftRadius: 8,
+  },
+  newBadgeText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
   },
 });
 

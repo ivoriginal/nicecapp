@@ -9,16 +9,18 @@ import {
   StatusBar,
   Alert,
   KeyboardAvoidingView,
-  Platform
+  Platform,
+  Switch
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useCoffee } from '../context/CoffeeContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { saveCoffee } from '../lib/supabase';
 
 export default function AddCoffeeManually({ navigation }) {
   const { theme, isDarkMode } = useTheme();
-  const { addToCollection } = useCoffee();
+  const { addToCollection, addCoffeeEvent, addCoffeeToCatalog, currentAccount } = useCoffee();
   const insets = useSafeAreaInsets();
   
   const [coffeeData, setCoffeeData] = useState({
@@ -46,6 +48,9 @@ export default function AddCoffeeManually({ navigation }) {
       complexity: ''
     }
   });
+  
+  // Whether the user wants to immediately add this coffee to their personal collection
+  const [addToCollectionChecked, setAddToCollectionChecked] = useState(true);
   
   // Configure navigation header
   useLayoutEffect(() => {
@@ -88,33 +93,49 @@ export default function AddCoffeeManually({ navigation }) {
     }
     
     try {
-      // Add to collection
-      if (addToCollection) {
-        const newCoffee = {
-          id: `coffee-${Date.now()}`,
-          ...coffeeData,
-          // Flatten cupping scores into stats for compatibility
-          stats: {
-            acidity: coffeeData.cupping.acidity ? parseInt(coffeeData.cupping.acidity) : null,
-            body: coffeeData.cupping.body ? parseInt(coffeeData.cupping.body) : null,
-            sweetness: coffeeData.cupping.sweetness ? parseInt(coffeeData.cupping.sweetness) : null,
-            complexity: coffeeData.cupping.complexity ? parseInt(coffeeData.cupping.complexity) : null,
-          },
-          addedAt: new Date().toISOString()
-        };
-        
+      // Build a standardized coffee object
+      const newCoffee = {
+        id: `coffee-${Date.now()}`,
+        ...coffeeData,
+        // Flatten cupping scores into stats for compatibility
+        stats: {
+          acidity: coffeeData.cupping.acidity ? parseInt(coffeeData.cupping.acidity) : null,
+          body: coffeeData.cupping.body ? parseInt(coffeeData.cupping.body) : null,
+          sweetness: coffeeData.cupping.sweetness ? parseInt(coffeeData.cupping.sweetness) : null,
+          complexity: coffeeData.cupping.complexity ? parseInt(coffeeData.cupping.complexity) : null,
+        },
+        addedAt: new Date().toISOString(),
+        isUserAdded: true,
+        addedBy: currentAccount,
+      };
+
+      // 1. Persist to Supabase (or mock)
+      await saveCoffee(newCoffee);
+
+      // 2. Make coffee available in global catalog for every user
+      addCoffeeToCatalog(newCoffee);
+
+      // 3. Optionally add to current user's collection and create an event
+      if (addToCollectionChecked) {
         await addToCollection(newCoffee);
+        await addCoffeeEvent({
+          coffeeId: newCoffee.id,
+          coffeeName: newCoffee.name,
+          roaster: newCoffee.roaster,
+          imageUrl: newCoffee.image,
+          type: 'added_to_collection'
+        });
       }
-      
+
       Alert.alert(
         'Success', 
-        'Coffee added to your collection!', 
+        `Coffee saved${addToCollectionChecked ? ' and added to your collection' : ''}!`, 
         [{ text: 'OK', onPress: () => navigation.goBack() }],
         { userInterfaceStyle: isDarkMode ? 'dark' : 'light' }
       );
       
     } catch (error) {
-      Alert.alert('Error', 'Failed to add coffee to collection', [], {
+      Alert.alert('Error', 'Failed to add coffee', [], {
         userInterfaceStyle: isDarkMode ? 'dark' : 'light'
       });
     }
@@ -166,6 +187,18 @@ export default function AddCoffeeManually({ navigation }) {
         maxLength={2}
       />
       <Text style={[styles.scaleText, { color: theme.secondaryText }]}>/10</Text>
+    </View>
+  );
+  
+  const renderAddToCollectionToggle = () => (
+    <View style={styles.toggleContainer}>
+      <Text style={[styles.fieldLabel, { color: theme.primaryText }]}>Add to my collection</Text>
+      <Switch
+        value={addToCollectionChecked}
+        onValueChange={setAddToCollectionChecked}
+        trackColor={{ false: theme.border, true: theme.primaryText }}
+        thumbColor={addToCollectionChecked ? theme.primaryText : theme.secondaryText}
+      />
     </View>
   );
   
@@ -242,6 +275,7 @@ export default function AddCoffeeManually({ navigation }) {
           </Text>
           
           {renderFormField('Description', 'description', 'Share your thoughts, brewing recommendations, or any other details about this coffee...', true)}
+          {renderAddToCollectionToggle()}
         </View>
         
         {/* Bottom padding for safe area */}
@@ -332,5 +366,11 @@ const styles = StyleSheet.create({
   saveButtonText: {
     fontSize: 16,
     fontWeight: '600',
+  },
+  toggleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 8,
   },
 }); 

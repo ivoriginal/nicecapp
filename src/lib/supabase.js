@@ -328,4 +328,68 @@ export const getUser = async () => {
   if (!session) throw new Error('Auth session missing!');
   return session.user;
   */
+};
+
+// Add coffee catalog operations
+export const saveCoffee = async (coffee) => {
+  try {
+    // Skip authentication check for development / offline mode
+    if (SKIP_AUTH) {
+      console.log('Development mode: Skipping authentication – mock saveCoffee');
+      return {
+        ...coffee,
+        id: coffee.id || `coffee-${Date.now()}`,
+        created_at: new Date().toISOString()
+      };
+    }
+
+    // Make sure we have an authenticated user (this also verifies the session)
+    const {
+      data: { user },
+      error: authError
+    } = await supabase.auth.getUser();
+
+    if (authError) throw authError;
+    if (!user) throw new Error('User not authenticated');
+
+    // Insert coffee row – adjust column names to match database schema
+    const { data, error } = await supabase
+      .from('coffees')
+      .insert([
+        {
+          id: coffee.id,
+          name: coffee.name,
+          roaster: coffee.roaster,
+          origin: coffee.origin,
+          region: coffee.region,
+          producer: coffee.producer,
+          altitude: coffee.altitude,
+          varietal: coffee.varietal,
+          process: coffee.process,
+          profile: coffee.profile || coffee.description,
+          price: coffee.price ? parseFloat(coffee.price) : null,
+          description: coffee.description,
+          image: coffee.image,
+          roast_level: coffee.roastLevel,
+          roast_date: coffee.roastDate,
+          bag_size: coffee.bagSize,
+          certifications: coffee.certifications,
+          stats: coffee.stats,
+          added_by: user.id,
+          added_at: new Date().toISOString()
+        }
+      ])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error saving coffee:', error);
+      throw new Error(`Failed to save coffee: ${error.message}`);
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error in saveCoffee:', error);
+    throw error;
+  }
 }; 
