@@ -1,29 +1,39 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, Image, ScrollView, TextInput, Switch, Modal } from 'react-native';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, Image, ScrollView, TextInput, Switch, Modal, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import mockCafes from '../data/mockCafes.json';
 import AppImage from '../components/common/AppImage';
 import { useTheme } from '../context/ThemeContext';
+import AddCafeScreen from './AddCafeScreen';
 
 const CafesListScreen = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
   const { theme, isDarkMode } = useTheme();
   const { title = 'Cafés Near You' } = route.params || {};
   
-  // Set the navigation title dynamically
+  // Set the navigation title dynamically & add "Add" button
   useEffect(() => {
     navigation.setOptions({
       title: title,
-      headerBackTitle: 'Back'
+      headerBackTitle: 'Back',
+      headerRight: () => (
+        <TouchableOpacity onPress={() => setAddModalVisible(true)} style={{ marginRight: 16 }}>
+          <Ionicons name="add-circle-outline" size={24} color={theme.primaryText} />
+        </TouchableOpacity>
+      ),
     });
-  }, [navigation, title]);
+  }, [navigation, title, theme]);
   
   // Get good cafes by resolving IDs to full cafe data
 const goodCafeIds = mockCafes.goodCafes || [];
 const cafes = goodCafeIds.map(cafeId => {
   return mockCafes.cafes.find(cafe => cafe.id === cafeId);
 }).filter(Boolean);
+  
+  // User-added cafés
+  const [addedCafes, setAddedCafes] = useState([]);
+  const [isAddModalVisible, setAddModalVisible] = useState(false);
   
   // Filter states
   const [activeLocationFilter, setActiveLocationFilter] = useState('all');
@@ -54,16 +64,18 @@ const cafes = goodCafeIds.map(cafeId => {
     "Granada"
   ];
   
-  // Extract unique cities for filters - Here we're extracting the city from "Neighborhood, City" format
-  const allCities = [
-    ...new Set([
-      ...cafes.map(cafe => {
-        const locationParts = cafe.location?.split(', ');
-        return locationParts && locationParts.length > 1 ? locationParts[1] : '';
-      }),
-      ...spanishCities
-    ])
-  ].filter(Boolean);
+  // Extract unique cities for filters (memoised to recompute when user adds cafés)
+  const allCities = useMemo(() => {
+    return [
+      ...new Set([
+        ...[...cafes, ...addedCafes].map(cafe => {
+          const locationParts = cafe.location?.split(', ');
+          return locationParts && locationParts.length > 1 ? locationParts[1] : '';
+        }),
+        ...spanishCities,
+      ]),
+    ].filter(Boolean);
+  }, [addedCafes]);
   
   // Mock user location (would be replaced with actual geolocation)
   const [userLocation, setUserLocation] = useState(null);
@@ -89,7 +101,7 @@ const cafes = goodCafeIds.map(cafeId => {
   
   // Apply filters based on city and nearby toggle
   const applyFilters = () => {
-    let filtered = [...cafes];
+    let filtered = [...cafes, ...addedCafes];
     
     // Apply nearby filter (would implement actual distance calculation)
     if (isNearbyEnabled && userLocation) {
@@ -118,7 +130,7 @@ const cafes = goodCafeIds.map(cafeId => {
   // Apply filters when relevant states change
   useEffect(() => {
     applyFilters();
-  }, [selectedCity, isNearbyEnabled, isOpenNowEnabled, userLocation]);
+  }, [selectedCity, isNearbyEnabled, isOpenNowEnabled, userLocation, addedCafes]);
   
   // Toggle nearby filter
   const toggleNearbySwitch = () => {
@@ -422,6 +434,12 @@ const cafes = goodCafeIds.map(cafeId => {
     );
   };
 
+  // Add new café callback
+  const handleSaveCafe = (newCafe) => {
+    setAddedCafes(prev => [...prev, newCafe]);
+    setAddModalVisible(false);
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: isDarkMode ? theme.background : '#FFFFFF' }]}>
       {renderFilterUI()}
@@ -438,6 +456,18 @@ const cafes = goodCafeIds.map(cafeId => {
           </View>
         }
       />
+
+      {/* -------- Add Café Modal -------- */}
+      <Modal
+        transparent={false}
+        visible={isAddModalVisible}
+        animationType="slide"
+        onRequestClose={() => setAddModalVisible(false)}
+      >
+        <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
+          <AddCafeScreen onSave={handleSaveCafe} onCancel={() => setAddModalVisible(false)} />
+        </SafeAreaView>
+      </Modal>
     </View>
   );
 };
