@@ -265,6 +265,89 @@ export const getWishlist = async () => {
   }
 };
 
+// === Gear Wishlist operations ===
+export const addGearToWishlist = async (gear) => {
+  try {
+    // Skip authentication check for development
+    if (SKIP_AUTH) {
+      console.log('Development mode: Skipping authentication check (addGearToWishlist)');
+      return gear;
+    }
+
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+
+    const { data, error } = await supabase
+      .from('gear_wishlist')
+      .insert([{ ...gear, username: user.email }])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error in addGearToWishlist:', error);
+    throw error;
+  }
+};
+
+export const getGearWishlist = async () => {
+  try {
+    // Skip authentication check for development
+    if (SKIP_AUTH) {
+      console.log('Development mode: Skipping authentication check (getGearWishlist)');
+      return [];
+    }
+
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+
+    const { data, error } = await supabase
+      .from('gear_wishlist')
+      .select('*')
+      .eq('username', user.email);
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error in getGearWishlist:', error);
+    throw error;
+  }
+};
+
+export const removeGearFromWishlist = async (gearId) => {
+  try {
+    // Skip authentication check for development
+    if (SKIP_AUTH) {
+      console.log('Development mode: Skipping authentication check (removeGearFromWishlist)');
+      return;
+    }
+
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+
+    const { error } = await supabase
+      .from('gear_wishlist')
+      .delete()
+      .eq('id', gearId)
+      .eq('username', user.email);
+
+    if (error) throw error;
+  } catch (error) {
+    console.error('Error in removeGearFromWishlist:', error);
+    throw error;
+  }
+};
+
 // Favorites operations
 export const saveFavorites = async (favorites) => {
   try {

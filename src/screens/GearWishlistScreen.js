@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import mockUsers from '../data/mockUsers.json';
 import mockGear from '../data/mockGear.json';
 import gearDetails from '../data/gearDetails';
+import { getGearWishlist, removeGearFromWishlist } from '../lib/supabase';
 import AppImage from '../components/common/AppImage';
 import GearCard from '../components/GearCard';
 import { useTheme } from '../context/ThemeContext';
@@ -71,6 +72,7 @@ const GearWishlistScreen = () => {
   const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
+    // Load wishlist whenever the component mounts or the userId changes
     loadWishlist();
   }, [userId]);
 
@@ -92,43 +94,61 @@ const GearWishlistScreen = () => {
     });
   }, [navigation, isEditing, styles]);
 
-  const loadWishlist = () => {
-    // Skip navigation bar setup in this screen as we're using the one from App.js
-    
-    // Get user data
-    const user = mockUsers.users.find(u => u.id === userId) || 
-                 mockUsers.users.find(u => u.id === 'user1'); // Default to user1 if not found
+  const loadWishlist = async () => {
+    try {
+      setLoading(true);
 
-    if (user && user.gearWishlist && user.gearWishlist.length > 0) {
-      // Map gear wishlist names to actual gear objects
-      const wishlistGear = user.gearWishlist.map(gearName => {
-        // Find the gear in mockGear.json
-        const foundGear = mockGear.gear.find(g => g.name === gearName);
-        
-        if (foundGear) {
-          return foundGear;
-        } else {
-          // Create a placeholder for gear not found in the database
+      // 1. Attempt to fetch wishlist from Supabase
+      const supabaseWishlist = await getGearWishlist();
+
+      if (supabaseWishlist && supabaseWishlist.length > 0) {
+        setWishlistItems(supabaseWishlist);
+        return;
+      }
+
+      // 2. Fallback to mock data for existing mock users (e.g. during development)
+      const user = mockUsers.users.find(u => u.id === userId);
+
+      if (user && user.gearWishlist && user.gearWishlist.length > 0) {
+        const wishlistGear = user.gearWishlist.map(gearName => {
+          const foundGear = mockGear.gear.find(g => g.name === gearName);
+
+          if (foundGear) {
+            return foundGear;
+          }
+
           return {
             id: `placeholder-${gearName}`,
             name: gearName,
             brand: 'Unknown Brand',
             price: '-',
-            imageUrl: null
+            imageUrl: null,
           };
-        }
-      });
-      
-      setWishlistItems(wishlistGear);
-    } else {
+        });
+
+        setWishlistItems(wishlistGear);
+      } else {
+        // 3. If no data, default to empty list
+        setWishlistItems([]);
+      }
+    } catch (error) {
+      console.error('Error loading gear wishlist:', error);
       setWishlistItems([]);
+    } finally {
+      setLoading(false);
     }
-    
-    setLoading(false);
   };
 
-  const handleDeleteItem = (itemId) => {
-    setWishlistItems(prev => prev.filter(item => item.id !== itemId));
+  const handleDeleteItem = async (itemId) => {
+    try {
+      // Optimistically update UI
+      setWishlistItems(prev => prev.filter(item => item.id !== itemId));
+
+      // Remove from Supabase
+      await removeGearFromWishlist(itemId);
+    } catch (error) {
+      console.error('Error removing item from wishlist:', error);
+    }
   };
 
   const handleShare = async () => {
