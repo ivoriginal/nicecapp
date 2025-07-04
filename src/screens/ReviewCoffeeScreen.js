@@ -9,7 +9,8 @@ import {
   StatusBar,
   Alert,
   KeyboardAvoidingView,
-  Platform
+  Platform,
+  Image
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
@@ -149,6 +150,13 @@ export default function ReviewCoffeeScreen({ navigation, route }) {
       <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Image preview */}
+        {coffeeData.image ? (
+          <View style={[styles.imagePreviewContainer, { backgroundColor: theme.cardBackground }]}>
+            <Image source={{ uri: coffeeData.image }} style={styles.previewImage} resizeMode="cover" />
+          </View>
+        ) : null}
+
         {/* Basic Information */}
         <View style={[styles.section, { backgroundColor: theme.cardBackground }]}>
           <Text style={[styles.sectionTitle, { color: theme.primaryText }]}>Basic Information</Text>
@@ -237,5 +245,15 @@ const styles = StyleSheet.create({
   saveButtonText: {
     fontSize: 16,
     fontWeight: '600',
+  },
+  imagePreviewContainer: {
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  previewImage: {
+    width: '100%',
+    height: 200,
+    borderRadius: 8,
   },
 });

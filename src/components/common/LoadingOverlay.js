@@ -2,7 +2,7 @@ import React from 'react';
 import { View, ActivityIndicator, Text, StyleSheet, Platform } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 
-export default function LoadingOverlay({ message = 'Processing…' }) {
+export default function LoadingOverlay({ message = 'Processing…', progress = null }) {
   const { theme, isDarkMode } = useTheme();
 
   return (
@@ -10,6 +10,9 @@ export default function LoadingOverlay({ message = 'Processing…' }) {
       <View style={[styles.card, { backgroundColor: theme.cardBackground }]}>
         <ActivityIndicator size="large" color={theme.primaryText} />
         {message && <Text style={[styles.message, { color: theme.primaryText }]}>{message}</Text>}
+        {typeof progress === 'number' && (
+          <Text style={[styles.progressText, { color: theme.secondaryText }]}>{`${Math.round(progress * 100)}%`}</Text>
+        )}
       </View>
     </View>
   );
@@ -37,6 +40,11 @@ const styles = StyleSheet.create({
     marginTop: 16,
     fontSize: 16,
     fontWeight: Platform.OS === 'ios' ? '600' : '500',
+    textAlign: 'center',
+  },
+  progressText: {
+    marginTop: 4,
+    fontSize: 14,
     textAlign: 'center',
   },
 });

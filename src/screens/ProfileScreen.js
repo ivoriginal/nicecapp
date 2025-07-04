@@ -151,6 +151,7 @@ export default function ProfileScreen() {
   // Add new states for coffee addition modal
   const [showAddCoffeeModal, setShowAddCoffeeModal] = useState(false);
   const [processing, setProcessing] = useState(false);
+  const [processingMessage, setProcessingMessage] = useState('');
   
   // Collection view and sorting states
   const [collectionViewMode, setCollectionViewMode] = useState('grid'); // 'grid' or 'list'
@@ -956,8 +957,10 @@ export default function ProfileScreen() {
   const processImage = async (imageUri) => {
     try {
       setProcessing(true);
+      setProcessingMessage('Preparing image…');
       // Convert to base64 (strip data URI prefix not needed for Vision)
       const base64 = await FileSystem.readAsStringAsync(imageUri, { encoding: FileSystem.EncodingType.Base64 });
+      setProcessingMessage('Analyzing coffee bag…');
 
       const BACKEND_URL = Constants?.expoConfig?.extra?.BACKEND_URL || 'https://YOUR_SUPABASE.functions.supabase.co';
 
@@ -968,10 +971,21 @@ export default function ProfileScreen() {
       });
 
       if (!res.ok) throw new Error('OCR request failed');
+      setProcessingMessage('Parsing result…');
       const data = await res.json();
 
       // Ensure image preserved
       const draft = { ...data, image: data.image || imageUri };
+
+      if (!draft.name || !draft.roaster) {
+        Alert.alert(
+          'Partial data',
+          'We could not detect all the details automatically. Please review and complete the form.',
+          [{ text: 'OK' }],
+          { userInterfaceStyle: isDarkMode ? 'dark' : 'light' },
+        );
+      }
+
       navigation.navigate('ReviewCoffee', { coffeeDraft: draft });
     } catch (err) {
       console.error('Image processing error', err);
@@ -979,6 +993,7 @@ export default function ProfileScreen() {
       navigation.navigate('ReviewCoffee', { coffeeDraft: { image: imageUri } });
     } finally {
       setProcessing(false);
+      setProcessingMessage('');
     }
   };
 
@@ -2043,7 +2058,7 @@ export default function ProfileScreen() {
         />
       )}
 
-      {processing && <LoadingOverlay message="Scanning coffee bag…" />}
+      {processing && <LoadingOverlay message={processingMessage} />}
     </View>
   );
 }
