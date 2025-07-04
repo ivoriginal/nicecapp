@@ -68,6 +68,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     minWidth: 100,
+    marginRight: SIZES.base,
   },
   notFollowingContainer: {
     backgroundColor: COLORS.primary,
@@ -79,6 +80,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     ...FONTS.body3,
+    fontWeight: '600',
   },
   notFollowingText: {
     color: COLORS.white,
