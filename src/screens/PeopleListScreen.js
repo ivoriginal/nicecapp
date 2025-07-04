@@ -163,25 +163,18 @@ const PeopleListScreen = () => {
   };
 
   const handleInvite = () => {
-    // Share app invitation
+    // Show coming soon alert for invitations
     Alert.alert(
-      'Invite Friends',
-      'Share the app with your friends',
+      'Invitations Coming Soon',
+      'Currently in private beta.',
       [
         {
-          text: 'Share',
-          onPress: () => {
-            // Here you would implement actual sharing functionality
-            Alert.alert('Share', 'Sharing app invitation...');
-          }
+          text: 'OK',
+          style: 'default',
         },
-        {
-          text: 'Cancel',
-          style: 'cancel'
-        }
       ],
       {
-        userInterfaceStyle: isDarkMode ? 'dark' : 'light'
+        userInterfaceStyle: isDarkMode ? 'dark' : 'light',
       }
     );
   };
