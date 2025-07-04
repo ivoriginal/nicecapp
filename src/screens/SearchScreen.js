@@ -1397,6 +1397,8 @@ export default function SearchScreen() {
               setSearchResults([]);
               setIsSearching(false);
               setIsInputFocused(false);
+              // Reset filter back to "All" so the next search starts unfiltered
+              setActiveFilter('all');
               searchInputRef.current?.blur();
             }}
           >
