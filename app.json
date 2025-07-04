@@ -22,7 +22,10 @@
       },
       "navigationBarColor": "#ffffff",
       "softwareKeyboardLayoutMode": "pan",
-      "navigationBarHidden": false
+      "navigationBarHidden": false,
+      "extra": {
+        "BACKEND_URL": "https://YOUR_PROJECT.functions.supabase.co"
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"
