@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { View, Text, FlatList, StyleSheet, TouchableOpacity, ScrollView, Modal, TouchableWithoutFeedback, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { MaterialIcons } from '@expo/vector-icons';
+import Swiper from 'react-native-deck-swiper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
@@ -13,7 +15,7 @@ import { useCoffee } from '../context/CoffeeContext';
 const CoffeeDiscoveryScreen = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
   const { theme, isDarkMode } = useTheme();
-  const { getAllAvailableCoffees } = useCoffee();
+  const { getAllAvailableCoffees, coffeeCollection, addToWishlist, addToCollection } = useCoffee();
   const { preselectedFilter = null, sortBy = 'default' } = (route && route.params) || {};
   const [coffees, setCoffees] = useState([]);
   const [activeFilters, setActiveFilters] = useState({});
@@ -27,6 +29,10 @@ const CoffeeDiscoveryScreen = ({ navigation, route }) => {
   
   // Check if any filters are active
   const hasActiveFilters = Object.values(activeFilters).some(filters => filters.length > 0);
+
+  // Swipe recommendations modal
+  const [showSwipeModal, setShowSwipeModal] = useState(false);
+  const [recommendedCoffees, setRecommendedCoffees] = useState([]);
 
   // Configure navigation header
   useLayoutEffect(() => {
@@ -447,6 +453,75 @@ const CoffeeDiscoveryScreen = ({ navigation, route }) => {
     
     setCoffees(filteredCoffees);
   }, [activeFilters, sortOrder, filterCategories, getAllAvailableCoffees]);
+
+  // Build recommended coffees list (based on user collection or random)
+  useEffect(() => {
+    const all = getAllAvailableCoffees();
+    let recs = [];
+    if (coffeeCollection && coffeeCollection.length > 0) {
+      const triedIds = coffeeCollection.map(c => c.id);
+      recs = all.filter(c => !triedIds.includes(c.id));
+    } else {
+      recs = all;
+    }
+    // Shuffle
+    recs = recs.sort(() => 0.5 - Math.random());
+    setRecommendedCoffees(recs.slice(0, 50));
+  }, [coffeeCollection, getAllAvailableCoffees]);
+
+  // Swipe handlers
+  const handleSwipeRight = (index) => {
+    const coffee = recommendedCoffees[index];
+    if (coffee && addToWishlist) {
+      addToWishlist(coffee);
+    }
+  };
+
+  const handleSwipeLeft = (index) => {
+    // Not interested – no action for now
+  };
+
+  const handleSwipeUp = (index) => {
+    const coffee = recommendedCoffees[index];
+    if (coffee && addToCollection) {
+      addToCollection(coffee);
+    }
+  };
+
+  // Render individual swipe card
+  const renderSwipeCard = (coffee) => {
+    if (!coffee) return null;
+    return (
+      <View style={[styles.swipeCard, { backgroundColor: theme.cardBackground }]}>
+        <AppImage
+          source={coffee.image || coffee.images?.[0]}
+          style={styles.swipeCardImage}
+          placeholder="cafe"
+        />
+        <View style={styles.swipeCardContent}>
+          <Text style={[styles.swipeCardName, { color: theme.primaryText }]}>{coffee.name}</Text>
+          <Text style={[styles.swipeCardRoaster, { color: theme.secondaryText }]}>{coffee.roaster}</Text>
+          <View style={styles.swipeCardChips}>
+            {coffee.origin && (
+              <View style={[styles.chip, { backgroundColor: isDarkMode ? '#444' : '#F2F2F7' }]}>
+                <Text style={[styles.chipText, { color: theme.primaryText }]}>{coffee.origin}</Text>
+              </View>
+            )}
+            {coffee.process && (
+              <View style={[styles.chip, { backgroundColor: isDarkMode ? '#444' : '#F2F2F7' }]}>
+                <Text style={[styles.chipText, { color: theme.primaryText }]}>{coffee.process}</Text>
+              </View>
+            )}
+            {coffee.roastLevel && (
+              <View style={[styles.chip, { backgroundColor: isDarkMode ? '#444' : '#F2F2F7' }]}>
+                <Text style={[styles.chipText, { color: theme.primaryText }]}>{coffee.roastLevel}</Text>
+              </View>
+            )}
+          </View>
+        </View>
+      </View>
+    );
+  };
 
   const openFilterModal = (category) => {
     setSelectedCategory(category);
@@ -905,6 +980,53 @@ const CoffeeDiscoveryScreen = ({ navigation, route }) => {
         </TouchableOpacity>
       )}
 
+      {/* Web Stories FAB */}
+      {!hasActiveFilters && (
+        <TouchableOpacity
+          style={[
+            styles.webStoriesFab,
+            {
+              bottom: insets.bottom + 16,
+              backgroundColor: isDarkMode ? '#FFFFFF' : '#000000'
+            }
+          ]}
+          onPress={() => setShowSwipeModal(true)}
+        >
+          <MaterialIcons name="web-stories" size={28} color={isDarkMode ? '#000000' : '#FFFFFF'} />
+        </TouchableOpacity>
+      )}
+
+      {/* Swipe Recommendations Modal */}
+      <Modal
+        animationType="slide"
+        transparent={false}
+        visible={showSwipeModal}
+        onRequestClose={() => setShowSwipeModal(false)}
+      >
+        <View style={[styles.swipeModalContainer, { backgroundColor: theme.background }]}>
+          <TouchableOpacity
+            style={[styles.swipeModalClose, { top: insets.top + 16 }]}
+            onPress={() => setShowSwipeModal(false)}
+          >
+            <Ionicons name="close" size={32} color={theme.primaryText} />
+          </TouchableOpacity>
+
+          <View style={styles.swiperWrapper}>
+            <Swiper
+              cards={recommendedCoffees}
+              renderCard={renderSwipeCard}
+              onSwipedRight={handleSwipeRight}
+              onSwipedLeft={handleSwipeLeft}
+              onSwipedTop={handleSwipeUp}
+              stackSize={3}
+              backgroundColor="transparent"
+              cardVerticalMargin={60}
+              disableBottomSwipe
+            />
+          </View>
+        </View>
+      </Modal>
+
       {/* Add Coffee Modal */}
       <Modal
         animationType="slide"
@@ -1226,6 +1348,65 @@ const styles = StyleSheet.create({
   addCoffeeOptionSubtitle: {
     fontSize: 14,
     color: '#666666',
+  },
+
+  /* --- Web Stories FAB & Swipe Modal Styles --- */
+  webStoriesFab: {
+    position: 'absolute',
+    right: 16,
+    borderRadius: 28,
+    padding: 16,
+    zIndex: 20,
+  },
+  swipeModalContainer: {
+    flex: 1,
+  },
+  swipeModalClose: {
+    position: 'absolute',
+    right: 16,
+    zIndex: 30,
+  },
+  swiperWrapper: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  swipeCard: {
+    width: '90%',
+    borderRadius: 16,
+    overflow: 'hidden',
+    alignSelf: 'center',
+  },
+  swipeCardImage: {
+    width: '100%',
+    height: 300,
+    resizeMode: 'cover',
+  },
+  swipeCardContent: {
+    padding: 16,
+  },
+  swipeCardName: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  swipeCardRoaster: {
+    fontSize: 14,
+    marginBottom: 8,
+  },
+  swipeCardChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  chip: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginRight: 6,
+    marginBottom: 6,
+  },
+  chipText: {
+    fontSize: 12,
   },
 });
 
