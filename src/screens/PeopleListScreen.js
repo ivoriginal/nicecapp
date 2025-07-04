@@ -163,10 +163,10 @@ const PeopleListScreen = () => {
   };
 
   const handleInvite = () => {
-    // Show coming soon alert for invitations
+    // Show invitations coming soon alert
     Alert.alert(
-      'Invitations Coming Soon',
-      'Currently in private beta.',
+      'invitations coming soon',
+      'currently in private beta',
       [
         {
           text: 'OK',
