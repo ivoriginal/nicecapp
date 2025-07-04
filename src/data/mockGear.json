@@ -283,6 +283,546 @@
       "relatedGear": [
         "gear6"
       ]
+    },
+    {
+      "id": "gear14",
+      "name": "1Zpresso JX-Pro",
+      "type": "Grinder",
+      "brand": "1Zpresso",
+      "price": 159.99,
+      "description": "High-precision manual grinder with 48 mm stainless burrs for fast, consistent grinding.",
+      "features": [
+        "48 mm stainless steel burrs",
+        "12.5 µm per click micrometric adjustment",
+        "30 – 35 g capacity",
+        "Fold-away handle"
+      ],
+      "rating": 4.8,
+      "reviewCount": 950,
+      "imageUrl": "https://ryfqzshdgfrrkizlpnqg.supabase.co/storage/v1/object/public/gear/1zpresso-jx-pro.jpg",
+      "relatedGear": ["gear3", "gear8"]
+    },
+    {
+      "id": "gear15",
+      "name": "Acaia Lunar",
+      "type": "Scale",
+      "brand": "Acaia",
+      "price": 250.00,
+      "description": "Professional espresso scale with rapid response, water resistance, and flow-rate indicator.",
+      "features": [
+        "0.01 g precision",
+        "Water-resistant housing",
+        "USB-C rechargeable",
+        "Built-in timer"
+      ],
+      "rating": 4.9,
+      "reviewCount": 2100,
+      "imageUrl": "https://ryfqzshdgfrrkizlpnqg.supabase.co/storage/v1/object/public/gear/acaia-lunar.jpg",
+      "relatedGear": ["gear5"]
+    },
+    {
+      "id": "gear16",
+      "name": "Bonavita Variable-Temp Kettle",
+      "type": "Kettle",
+      "brand": "Bonavita",
+      "price": 59.99,
+      "description": "Electric gooseneck kettle with 6 preset temperatures and hold function for precise brewing.",
+      "features": [
+        "1000 W quick-heat element",
+        "Gooseneck spout",
+        "Hold temp for 60 min",
+        "Auto shut-off"
+      ],
+      "rating": 4.6,
+      "reviewCount": 3100,
+      "imageUrl": "https://ryfqzshdgfrrkizlpnqg.supabase.co/storage/v1/object/public/gear/bonavita-kettle.jpg",
+      "relatedGear": ["gear1"]
+    },
+    {
+      "id": "gear17",
+      "name": "Baratza Forté AP",
+      "type": "Grinder",
+      "brand": "Baratza",
+      "price": 899.00,
+      "description": "Commercial-grade flat-burr grinder for all-purpose brewing from espresso to cold brew.",
+      "features": [
+        "54 mm ceramic flat burrs",
+        "Weight-based dosing",
+        "Programmable presets",
+        "Built-in touchscreen"
+      ],
+      "rating": 4.8,
+      "reviewCount": 520,
+      "imageUrl": "https://ryfqzshdgfrrkizlpnqg.supabase.co/storage/v1/object/public/gear/baratza-forte-ap.jpg",
+      "relatedGear": ["gear2"]
+    },
+    {
+      "id": "gear18",
+      "name": "Baratza Vario",
+      "type": "Grinder",
+      "brand": "Baratza",
+      "price": 479.00,
+      "description": "Versatile flat-burr grinder with macro/micro adjustment for fine control across brew methods.",
+      "features": [
+        "54 mm ceramic flat burrs",
+        "230 grind settings",
+        "Programmable doses",
+        "Digital timer"
+      ],
+      "rating": 4.7,
+      "reviewCount": 1850,
+      "imageUrl": "https://ryfqzshdgfrrkizlpnqg.supabase.co/storage/v1/object/public/gear/baratza-vario.jpg",
+      "relatedGear": ["gear2"]
+    },
+    {
+      "id": "gear19",
+      "name": "Comandante C40 MK3",
+      "type": "Grinder",
+      "brand": "Comandante",
+      "price": 259.00,
+      "description": "Iconic hand grinder featuring Nitro Blade burrs for exceptional grind consistency.",
+      "features": [
+        "Nitro Blade stainless burrs",
+        "Stepless click adjustment",
+        "Wood veneer finish",
+        "Glass catch jar"
+      ],
+      "rating": 4.9,
+      "reviewCount": 1400,
+      "imageUrl": "https://ryfqzshdgfrrkizlpnqg.supabase.co/storage/v1/object/public/gear/comandante-c40-mk3.jpg",
+      "relatedGear": ["gear3"]
+    },
+    {
+      "id": "gear20",
+      "name": "Eureka Mignon Specialità",
+      "type": "Grinder",
+      "brand": "Eureka",
+      "price": 699.00,
+      "description": "Silent, stepless espresso grinder with 55 mm flat burrs and touch-screen dosing.",
+      "features": [
+        "55 mm hardened steel burrs",
+        "Silent Technology",
+        "ACE anti-clump system",
+        "Touch display"
+      ],
+      "rating": 4.7,
+      "reviewCount": 630,
+      "imageUrl": "https://ryfqzshdgfrrkizlpnqg.supabase.co/storage/v1/object/public/gear/eureka-mignon.jpg",
+      "relatedGear": ["gear2"]
+    },
+    {
+      "id": "gear21",
+      "name": "Fellow Stagg X Dripper",
+      "type": "Pour Over",
+      "brand": "Fellow",
+      "price": 59.00,
+      "description": "Flat-bottom stainless steel dripper engineered for optimal extraction and heat retention.",
+      "features": [
+        "Vacuum-insulated walls",
+        "Ratio-aid dots",
+        "Brews 1–2 cups",
+        "Dish-washer safe"
+      ],
+      "rating": 4.6,
+      "reviewCount": 420,
+      "imageUrl": "https://ryfqzshdgfrrkizlpnqg.supabase.co/storage/v1/object/public/gear/fellow-stagg-x.jpg",
+      "relatedGear": ["gear4"]
+    },
+    {
+      "id": "gear22",
+      "name": "GrowlerWerks uKeg Nitro",
+      "type": "Accessories",
+      "brand": "GrowlerWerks",
+      "price": 199.00,
+      "description": "Stainless steel mini-keg system for nitro cold brew at home with cascading pour.",
+      "features": [
+        "64 oz capacity",
+        "Nitro tap",
+        "Double-wall vacuum insulation",
+        "Pressure gauge"
+      ],
+      "rating": 4.5,
+      "reviewCount": 310,
+      "imageUrl": "https://ryfqzshdgfrrkizlpnqg.supabase.co/storage/v1/object/public/gear/ukeg-nitro.jpg",
+      "relatedGear": []
+    },
+    {
+      "id": "gear23",
+      "name": "Ikawa Pro V3 Sample Roaster",
+      "type": "Roaster",
+      "brand": "Ikawa",
+      "price": 4200.00,
+      "description": "Precision sample roaster with digital recipe control and Bluetooth connectivity.",
+      "features": [
+        "100 g batch size",
+        "App-controlled profiles",
+        "Inlet & exhaust temp probes",
+        "Portable design"
+      ],
+      "rating": 4.9,
+      "reviewCount": 120,
+      "imageUrl": "https://ryfqzshdgfrrkizlpnqg.supabase.co/storage/v1/object/public/gear/ikawa-pro-v3.jpg",
+      "relatedGear": []
+    },
+    {
+      "id": "gear24",
+      "name": "Kalita Wave 185",
+      "type": "Pour Over",
+      "brand": "Kalita",
+      "price": 25.00,
+      "description": "Flat-bottom stainless dripper with 3-hole design for even extraction.",
+      "features": [
+        "Wave filter design",
+        "Brews 2–4 cups",
+        "Stainless steel body",
+        "Dishwasher safe"
+      ],
+      "rating": 4.8,
+      "reviewCount": 2500,
+      "imageUrl": "https://ryfqzshdgfrrkizlpnqg.supabase.co/storage/v1/object/public/gear/kalita-wave.jpg",
+      "relatedGear": ["gear4"]
+    },
+    {
+      "id": "gear25",
+      "name": "KitchenAid Pro Line Grinder",
+      "type": "Grinder",
+      "brand": "KitchenAid",
+      "price": 299.00,
+      "description": "Glass-hopper burr grinder delivering low-static dosing for home brewers.",
+      "features": [
+        "Flat burrs",
+        "15 grind settings",
+        "Glass bean hopper",
+        "Die-cast metal housing"
+      ],
+      "rating": 4.3,
+      "reviewCount": 680,
+      "imageUrl": "https://ryfqzshdgfrrkizlpnqg.supabase.co/storage/v1/object/public/gear/kitchenaid-pro-line.jpg",
+      "relatedGear": []
+    },
+    {
+      "id": "gear26",
+      "name": "Kees van der Westen Speedster",
+      "type": "Espresso Machine",
+      "brand": "Kees van der Westen",
+      "price": 9500.00,
+      "description": "High-performance single-group espresso machine with PID and enormous steam capacity.",
+      "features": [
+        "Dual boilers",
+        "Saturated brew group",
+        "Programmable pre-infusion",
+        "Hand-crafted in Netherlands"
+      ],
+      "rating": 4.9,
+      "reviewCount": 45,
+      "imageUrl": "https://ryfqzshdgfrrkizlpnqg.supabase.co/storage/v1/object/public/gear/speedster.jpg",
+      "relatedGear": []
+    },
+    {
+      "id": "gear27",
+      "name": "La Marzocco GS3",
+      "type": "Espresso Machine",
+      "brand": "La Marzocco",
+      "price": 7000.00,
+      "description": "Commercial-grade paddle espresso machine scaled for the home barista.",
+      "features": [
+        "Dual PID boilers",
+        "Manual paddle control",
+        "Integrated brew chronometer",
+        "Insulated steam wand"
+      ],
+      "rating": 4.9,
+      "reviewCount": 380,
+      "imageUrl": "https://ryfqzshdgfrrkizlpnqg.supabase.co/storage/v1/object/public/gear/gs3.jpg",
+      "relatedGear": []
+    },
+    {
+      "id": "gear28",
+      "name": "La Marzocco Linea Mini",
+      "type": "Espresso Machine",
+      "brand": "La Marzocco",
+      "price": 5600.00,
+      "description": "Cafe-iconic Linea heritage packed into a compact dual-boiler home machine.",
+      "features": [
+        "Dual boilers",
+        "Integrated brew paddle",
+        "Barista lights",
+        "Bluetooth app support"
+      ],
+      "rating": 4.8,
+      "reviewCount": 600,
+      "imageUrl": "https://ryfqzshdgfrrkizlpnqg.supabase.co/storage/v1/object/public/gear/linea-mini.jpg",
+      "relatedGear": []
+    },
+    {
+      "id": "gear29",
+      "name": "Loring S15 Falcon Roaster",
+      "type": "Roaster",
+      "brand": "Loring",
+      "price": 35000.00,
+      "description": "Energy-efficient 15 kg shop roaster with recirculating thermal technology.",
+      "features": [
+        "15 kg capacity",
+        "Single-burner design",
+        "Touchscreen profile control",
+        "Reduced emissions"
+      ],
+      "rating": 5.0,
+      "reviewCount": 12,
+      "imageUrl": "https://ryfqzshdgfrrkizlpnqg.supabase.co/storage/v1/object/public/gear/loring-s15.jpg",
+      "relatedGear": []
+    },
+    {
+      "id": "gear30",
+      "name": "Mahlkönig EK43",
+      "type": "Grinder",
+      "brand": "Mahlkönig",
+      "price": 2700.00,
+      "description": "Industry-standard shop grinder renowned for unmatched particle consistency.",
+      "features": [
+        "98 mm cast steel burrs",
+        "Powerful 1300 W motor",
+        "Stepless adjustment",
+        "Bag clamp"
+      ],
+      "rating": 4.9,
+      "reviewCount": 540,
+      "imageUrl": "https://ryfqzshdgfrrkizlpnqg.supabase.co/storage/v1/object/public/gear/ek43.jpg",
+      "relatedGear": []
+    },
+    {
+      "id": "gear31",
+      "name": "Moccamaster KBGV Select",
+      "type": "Brewer",
+      "brand": "Technivorm",
+      "price": 349.00,
+      "description": "SCA-certified automatic drip brewer with copper boiling element.",
+      "features": [
+        "1.25 L capacity",
+        "Brew-volume selector",
+        "Copper heating system",
+        "Hotplate with auto-shutoff"
+      ],
+      "rating": 4.8,
+      "reviewCount": 2900,
+      "imageUrl": "https://ryfqzshdgfrrkizlpnqg.supabase.co/storage/v1/object/public/gear/moccamaster-kbgv.jpg",
+      "relatedGear": []
+    },
+    {
+      "id": "gear32",
+      "name": "Origami Dripper",
+      "type": "Pour Over",
+      "brand": "Origami",
+      "price": 24.99,
+      "description": "Colourful porcelain dripper with 20 ribs encouraging optimal flow and bloom.",
+      "features": [
+        "Fits Hario V60 & Kalita filters",
+        "Brews 1–2 cups",
+        "Multiple colours",
+        "Made in Japan"
+      ],
+      "rating": 4.7,
+      "reviewCount": 760,
+      "imageUrl": "https://ryfqzshdgfrrkizlpnqg.supabase.co/storage/v1/object/public/gear/origami-dripper.jpg",
+      "relatedGear": ["gear4"]
+    },
+    {
+      "id": "gear33",
+      "name": "Profitec Pro 700",
+      "type": "Espresso Machine",
+      "brand": "Profitec",
+      "price": 1799.00,
+      "description": "German-engineered dual-boiler E61 machine with PID temperature control.",
+      "features": [
+        "Stainless steel boilers",
+        "PID & shot timer",
+        "Rotary pump",
+        "Plumb-in capable"
+      ],
+      "rating": 4.8,
+      "reviewCount": 340,
+      "imageUrl": "https://ryfqzshdgfrrkizlpnqg.supabase.co/storage/v1/object/public/gear/pro-700.jpg",
+      "relatedGear": []
+    },
+    {
+      "id": "gear34",
+      "name": "Rocket Appartamento",
+      "type": "Espresso Machine",
+      "brand": "Rocket Espresso",
+      "price": 1650.00,
+      "description": "Compact heat-exchanger espresso machine featuring distinctive circular side panels.",
+      "features": [
+        "E61 brew group",
+        "Heat exchanger boiler",
+        "Vibratory pump",
+        "Compact footprint"
+      ],
+      "rating": 4.7,
+      "reviewCount": 410,
+      "imageUrl": "https://ryfqzshdgfrrkizlpnqg.supabase.co/storage/v1/object/public/gear/rocket-appartamento.jpg",
+      "relatedGear": []
+    },
+    {
+      "id": "gear35",
+      "name": "Rancilio Silvia",
+      "type": "Espresso Machine",
+      "brand": "Rancilio",
+      "price": 830.00,
+      "description": "Legendary single-boiler espresso workhorse trusted by home baristas for two decades.",
+      "features": [
+        "58 mm commercial portafilter",
+        "Brass boiler",
+        "Movement steam wand",
+        "Full stainless housing"
+      ],
+      "rating": 4.6,
+      "reviewCount": 2200,
+      "imageUrl": "https://ryfqzshdgfrrkizlpnqg.supabase.co/storage/v1/object/public/gear/rancilio-silvia.jpg",
+      "relatedGear": []
+    },
+    {
+      "id": "gear36",
+      "name": "SAI Phoenix Brewer",
+      "type": "Pour Over",
+      "brand": "Saint Anthony Industries",
+      "price": 39.00,
+      "description": "Minimalist open-frame dripper that suspends filter for even 360° extraction.",
+      "features": [
+        "Reduces bypass",
+        "Works with Kalita filters",
+        "Anodized aluminium",
+        "Made in USA"
+      ],
+      "rating": 4.4,
+      "reviewCount": 180,
+      "imageUrl": "https://ryfqzshdgfrrkizlpnqg.supabase.co/storage/v1/object/public/gear/phoenix-brewer.jpg",
+      "relatedGear": []
+    },
+    {
+      "id": "gear37",
+      "name": "Slayer Espresso Single Group",
+      "type": "Espresso Machine",
+      "brand": "Slayer Espresso",
+      "price": 9250.00,
+      "description": "Hand-crafted machine with patented needle-valve flow control for flavour profiling.",
+      "features": [
+        "Independent brew & steam boilers",
+        "Needle-valve pre-brew",
+        "Shot mirror",
+        "Custom wood accents"
+      ],
+      "rating": 4.9,
+      "reviewCount": 70,
+      "imageUrl": "https://ryfqzshdgfrrkizlpnqg.supabase.co/storage/v1/object/public/gear/slayer-sg.jpg",
+      "relatedGear": []
+    },
+    {
+      "id": "gear38",
+      "name": "Synesso S200 2-Group",
+      "type": "Espresso Machine",
+      "brand": "Synesso",
+      "price": 8500.00,
+      "description": "Cafe-ready workhorse delivering volumetric consistency and flexible workflow.",
+      "features": [
+        "Programmable Volumetrics",
+        "Individual brew boilers",
+        "Cool-touch steam wands",
+        "Low-profile design"
+      ],
+      "rating": 4.8,
+      "reviewCount": 55,
+      "imageUrl": "https://ryfqzshdgfrrkizlpnqg.supabase.co/storage/v1/object/public/gear/synesso-s200.jpg",
+      "relatedGear": []
+    },
+    {
+      "id": "gear39",
+      "name": "Toddy Cold Brew System",
+      "type": "Brewer",
+      "brand": "Toddy",
+      "price": 34.99,
+      "description": "Immersion cold-brew maker producing smooth concentrate with 67% less acidity.",
+      "features": [
+        "1.6 L brewing capacity",
+        "Reusable felt filter",
+        "Glass decanter",
+        "Easy clean-up"
+      ],
+      "rating": 4.7,
+      "reviewCount": 3100,
+      "imageUrl": "https://ryfqzshdgfrrkizlpnqg.supabase.co/storage/v1/object/public/gear/toddy.jpg",
+      "relatedGear": []
+    },
+    {
+      "id": "gear40",
+      "name": "Victoria Arduino Eagle One",
+      "type": "Espresso Machine",
+      "brand": "Victoria Arduino",
+      "price": 9800.00,
+      "description": "Sustainable energy-saving espresso machine with NEO boiler technology.",
+      "features": [
+        "T3 Genius temperature control",
+        "Easycream steam",
+        "Touch display",
+        "Re-harvested materials"
+      ],
+      "rating": 4.8,
+      "reviewCount": 48,
+      "imageUrl": "https://ryfqzshdgfrrkizlpnqg.supabase.co/storage/v1/object/public/gear/eagle-one.jpg",
+      "relatedGear": []
+    },
+    {
+      "id": "gear41",
+      "name": "Weber Workshops Key Grinder",
+      "type": "Grinder",
+      "brand": "Weber Workshops",
+      "price": 1499.00,
+      "description": "Single-dose electric grinder with 83 mm blind burrs and auto-return swing arm.",
+      "features": [
+        "Variable RPM",
+        "Magnetic alignment",
+        "Low retention design",
+        "Premium build"
+     ],
+      "rating": 4.9,
+      "reviewCount": 95,
+      "imageUrl": "https://ryfqzshdgfrrkizlpnqg.supabase.co/storage/v1/object/public/gear/key-grinder.jpg",
+      "relatedGear": []
+    },
+    {
+      "id": "gear42",
+      "name": "Yama Glass Cold Brew Tower",
+      "type": "Brewer",
+      "brand": "Yama",
+      "price": 290.00,
+      "description": "Elegant slow-drip tower for Japanese-style ice-filter coffee extraction.",
+      "features": [
+        "25 cup capacity",
+        "Hand-blown borosilicate glass",
+        "Adjustable drip valve",
+        "Wooden frame"
+      ],
+      "rating": 4.6,
+      "reviewCount": 130,
+      "imageUrl": "https://ryfqzshdgfrrkizlpnqg.supabase.co/storage/v1/object/public/gear/yama-tower.jpg",
+      "relatedGear": []
+    },
+    {
+      "id": "gear43",
+      "name": "Nitro Cold Brew Kegerator",
+      "type": "Accessories",
+      "brand": "Generic",
+      "price": 499.00,
+      "description": "Full-size refrigerator converted for dispensing nitro cold brew on tap.",
+      "features": [
+        "Stainless steel draft tower",
+        "Cornelius keg compatible",
+        "Included nitrogen regulator",
+        "Temperature control 32-50 °F"
+      ],
+      "rating": 4.2,
+      "reviewCount": 60,
+      "imageUrl": "https://ryfqzshdgfrrkizlpnqg.supabase.co/storage/v1/object/public/gear/kegerator.jpg",
+      "relatedGear": []
     }
   ]
 } 
