@@ -22,6 +22,8 @@ import { useCoffee } from '../context/CoffeeContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect, CommonActions } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
+import Constants from 'expo-constants';
 import ThemeCoffeeLogCard from '../components/ThemeCoffeeLogCard';
 import eventEmitter from '../utils/EventEmitter';
 import mockGear from '../data/mockGear.json';
@@ -34,6 +36,7 @@ import AppImage from '../components/common/AppImage';
 import RecipeCard from '../components/RecipeCard';
 import { useTheme } from '../context/ThemeContext';
 import { mockFollowersData } from '../data/mockFollowers';
+import LoadingOverlay from '../components/common/LoadingOverlay';
 
 // Loading and error components with safe default insets
 const LoadingView = ({ insets }) => {
@@ -147,6 +150,7 @@ export default function ProfileScreen() {
   
   // Add new states for coffee addition modal
   const [showAddCoffeeModal, setShowAddCoffeeModal] = useState(false);
+  const [processing, setProcessing] = useState(false);
   
   // Collection view and sorting states
   const [collectionViewMode, setCollectionViewMode] = useState('grid'); // 'grid' or 'list'
@@ -914,13 +918,7 @@ export default function ProfileScreen() {
       });
 
       if (!result.canceled) {
-        navigation.navigate('ReviewCoffee', {
-          coffeeDraft: {
-            image: result.assets[0].uri,
-            name: '',
-            roaster: '',
-          },
-        });
+        await processImage(result.assets[0].uri);
       }
     } catch (error) {
       console.error('Error taking photo:', error);
@@ -946,17 +944,41 @@ export default function ProfileScreen() {
       });
 
       if (!result.canceled) {
-        navigation.navigate('ReviewCoffee', {
-          coffeeDraft: {
-            image: result.assets[0].uri,
-            name: '',
-            roaster: '',
-          },
-        });
+        await processImage(result.assets[0].uri);
       }
     } catch (error) {
       console.error('Error selecting image:', error);
       Alert.alert('Error', 'Failed to select image. Please try again.');
+    }
+  };
+
+  // Helper to process image with backend OCR
+  const processImage = async (imageUri) => {
+    try {
+      setProcessing(true);
+      // Convert to base64 (strip data URI prefix not needed for Vision)
+      const base64 = await FileSystem.readAsStringAsync(imageUri, { encoding: FileSystem.EncodingType.Base64 });
+
+      const BACKEND_URL = Constants?.expoConfig?.extra?.BACKEND_URL || 'https://YOUR_SUPABASE.functions.supabase.co';
+
+      const res = await fetch(`${BACKEND_URL}/parse-coffee`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: base64 }),
+      });
+
+      if (!res.ok) throw new Error('OCR request failed');
+      const data = await res.json();
+
+      // Ensure image preserved
+      const draft = { ...data, image: data.image || imageUri };
+      navigation.navigate('ReviewCoffee', { coffeeDraft: draft });
+    } catch (err) {
+      console.error('Image processing error', err);
+      Alert.alert('Error', 'Could not analyse the image. You can fill details manually.');
+      navigation.navigate('ReviewCoffee', { coffeeDraft: { image: imageUri } });
+    } finally {
+      setProcessing(false);
     }
   };
 
@@ -2020,6 +2042,8 @@ export default function ProfileScreen() {
           duration={2000}
         />
       )}
+
+      {processing && <LoadingOverlay message="Scanning coffee bag…" />}
     </View>
   );
 }
