@@ -14,7 +14,8 @@ import {
   ImageBackground,
   Modal,
   KeyboardAvoidingView,
-  Platform
+  Platform,
+  ActionSheetIOS
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useCoffee } from '../context/CoffeeContext';
@@ -462,6 +463,11 @@ export default function CoffeeDetailScreen() {
           borderBottomColor: theme.divider,
         },
         headerTintColor: theme.primaryText, // Set back button color
+        headerRight: () => (
+          <TouchableOpacity onPress={showActionSheet} style={{ paddingHorizontal: 8 }}>
+            <Ionicons name="ellipsis-horizontal" size={24} color={theme.primaryText} />
+          </TouchableOpacity>
+        ),
       });
     }
   }, [navigation, coffee, theme, isDarkMode, scrollY, showCoffeeNameInHeader, animatedDefaultTitleStyle, animatedCoffeeTitleStyle]);
@@ -515,7 +521,11 @@ export default function CoffeeDetailScreen() {
           borderBottomColor: theme.divider,
         },
         headerTintColor: theme.primaryText,
-        headerRight: undefined, // Clear any right buttons from previous screens
+        headerRight: () => (
+          <TouchableOpacity onPress={showActionSheet} style={{ paddingHorizontal: 8 }}>
+            <Ionicons name="ellipsis-horizontal" size={24} color={theme.primaryText} />
+          </TouchableOpacity>
+        ),
       });
     }
   }, [isFocused, coffee, theme, isDarkMode, scrollY, showCoffeeNameInHeader, animatedDefaultTitleStyle, animatedCoffeeTitleStyle]);
@@ -911,7 +921,39 @@ export default function CoffeeDetailScreen() {
     });
   };
 
+  // Show action sheet with additional option to log this coffee
+  const showActionSheet = () => {
+    if (!coffee) return; // Safety check
 
+    const options = ['Log coffee', 'Cancel'];
+    const cancelButtonIndex = 1;
+
+    ActionSheetIOS.showActionSheetWithOptions(
+      {
+        options,
+        cancelButtonIndex,
+        userInterfaceStyle: isDarkMode ? 'dark' : 'light',
+      },
+      (buttonIndex) => {
+        if (buttonIndex === 0) {
+          // Navigate to AddCoffee screen with this coffee pre-selected
+          navigation.navigate('AddCoffee', {
+            isModalVisible: true,
+            autoSelectCoffee: {
+              id: coffee.id,
+              name: coffee.name,
+              image: coffee.image,
+              roaster: coffee.roaster,
+            },
+            coffeeId: coffee.id,
+            coffeeName: coffee.name,
+            roaster: coffee.roaster,
+            coffeeImage: coffee.image,
+          });
+        }
+      }
+    );
+  };
 
   if (loading) {
     return (
