@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, ScrollView, Modal, TouchableWithoutFeedback, Alert } from 'react-native';
+import React, { useState, useEffect, useRef, useLayoutEffect, useMemo } from 'react';
+import { View, Text, FlatList, SectionList, StyleSheet, TouchableOpacity, ScrollView, Modal, TouchableWithoutFeedback, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -229,14 +229,59 @@ const CoffeeDiscoveryScreen = ({ navigation, route }) => {
     { id: 'popularity', label: 'Popular' },
     { id: 'alphabetical', label: 'A-Z' },
     { id: 'price-low', label: 'Price (Low to High)' },
-    { id: 'price-high', label: 'Price (High to Low)' }
+    { id: 'price-high', label: 'Price (High to Low)' },
+    { id: 'producer', label: 'Producer' },
+    { id: 'roaster', label: 'Roaster' },
+    { id: 'origin', label: 'Origin' },
+    { id: 'process', label: 'Process' },
+    { id: 'varietal', label: 'Varietal' },
+    { id: 'altitude', label: 'Altitude' }
   ];
+
+  // Which sort orders should show section headers
+  const sectionHeadersEnabled = ['alphabetical', 'roaster', 'producer'];
 
   // Get the current sort label to display
   const getCurrentSortLabel = () => {
     const option = sortOptions.find(opt => opt.id === sortOrder);
     return option ? option.label : 'Sort';
   };
+
+  // Section data for SectionList (only used when section headers are enabled)
+  const sectionData = useMemo(() => {
+    if (!sectionHeadersEnabled.includes(sortOrder)) return [];
+
+    const groups = {};
+
+    if (sortOrder === 'alphabetical') {
+      coffees.forEach(coffee => {
+        const firstLetter = (coffee.name || '').charAt(0).toUpperCase();
+        if (!groups[firstLetter]) groups[firstLetter] = [];
+        groups[firstLetter].push(coffee);
+      });
+    } else if (sortOrder === 'roaster') {
+      coffees.forEach(coffee => {
+        const key = coffee.roaster || 'Unknown';
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(coffee);
+      });
+    } else if (sortOrder === 'producer') {
+      coffees.forEach(coffee => {
+        const key = coffee.producer || 'Unknown';
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(coffee);
+      });
+    }
+
+    const sortedKeys = Object.keys(groups).sort((a, b) => a.localeCompare(b));
+    return sortedKeys.map(title => ({ title, data: groups[title] }));
+  }, [coffees, sortOrder]);
+
+  const renderSectionHeader = ({ section }) => (
+    <View style={[styles.sectionHeaderContainer, { backgroundColor: theme.background }]}>
+      <Text style={[styles.sectionHeaderText, { color: theme.secondaryText }]}>{section.title}</Text>
+    </View>
+  );
 
   // Initialize filters from preselected filter
   useEffect(() => {
@@ -443,6 +488,24 @@ const CoffeeDiscoveryScreen = ({ navigation, route }) => {
       filteredCoffees = filteredCoffees.sort((a, b) => a.price - b.price);
     } else if (sortOrder === 'price-high') {
       filteredCoffees = filteredCoffees.sort((a, b) => b.price - a.price);
+    } else if (sortOrder === 'producer') {
+      filteredCoffees = filteredCoffees.sort((a, b) => (a.producer || '').localeCompare(b.producer || ''));
+    } else if (sortOrder === 'roaster') {
+      filteredCoffees = filteredCoffees.sort((a, b) => (a.roaster || '').localeCompare(b.roaster || ''));
+    } else if (sortOrder === 'origin') {
+      filteredCoffees = filteredCoffees.sort((a, b) => (a.origin || '').localeCompare(b.origin || ''));
+    } else if (sortOrder === 'process') {
+      filteredCoffees = filteredCoffees.sort((a, b) => (a.process || '').localeCompare(b.process || ''));
+    } else if (sortOrder === 'varietal') {
+      filteredCoffees = filteredCoffees.sort((a, b) => (a.varietal || '').localeCompare(b.varietal || ''));
+    } else if (sortOrder === 'altitude') {
+      const parseAltitude = (text) => {
+        if (!text) return 0;
+        const nums = text.match(/\d+/g);
+        if (!nums) return 0;
+        return nums.reduce((sum, n) => sum + parseInt(n, 10), 0) / nums.length;
+      };
+      filteredCoffees = filteredCoffees.sort((a, b) => parseAltitude(a.altitude) - parseAltitude(b.altitude));
     }
     
     setCoffees(filteredCoffees);
@@ -873,18 +936,34 @@ const CoffeeDiscoveryScreen = ({ navigation, route }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <FlatList
-        data={coffees}
-        renderItem={renderCoffeeItem}
-        keyExtractor={item => item.id}
-        contentContainerStyle={styles.coffeeList}
-        ListHeaderComponent={renderFilterBar()}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={[styles.emptyText, { color: theme.secondaryText }]}>No coffees found</Text>
-          </View>
-        }
-      />
+      {sectionHeadersEnabled.includes(sortOrder) ? (
+        <SectionList
+          sections={sectionData}
+          renderItem={renderCoffeeItem}
+          renderSectionHeader={renderSectionHeader}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.coffeeList}
+          ListHeaderComponent={renderFilterBar()}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={[styles.emptyText, { color: theme.secondaryText }]}>No coffees found</Text>
+            </View>
+          }
+        />
+      ) : (
+        <FlatList
+          data={coffees}
+          renderItem={renderCoffeeItem}
+          keyExtractor={item => item.id}
+          contentContainerStyle={styles.coffeeList}
+          ListHeaderComponent={renderFilterBar()}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={[styles.emptyText, { color: theme.secondaryText }]}>No coffees found</Text>
+            </View>
+          }
+        />
+      )}
       
       {renderFilterModal()}
       {renderSortModal()}
@@ -1226,6 +1305,14 @@ const styles = StyleSheet.create({
   addCoffeeOptionSubtitle: {
     fontSize: 14,
     color: '#666666',
+  },
+  sectionHeaderContainer: {
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+  },
+  sectionHeaderText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
 
