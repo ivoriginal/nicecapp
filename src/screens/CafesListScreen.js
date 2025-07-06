@@ -1,10 +1,16 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, Image, ScrollView, TextInput, Switch, Modal } from 'react-native';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform, Dimensions, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import MapView, { Marker } from 'react-native-maps';
+import * as Location from 'expo-location';
+import BottomSheet, { BottomSheetView, BottomSheetScrollView } from '@gorhom/bottom-sheet';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import mockCafes from '../data/mockCafes.json';
 import AppImage from '../components/common/AppImage';
 import { useTheme } from '../context/ThemeContext';
+
+const { width, height } = Dimensions.get('window');
 
 const CafesListScreen = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
@@ -20,88 +26,93 @@ const CafesListScreen = ({ navigation, route }) => {
   }, [navigation, title]);
   
   // Get good cafes by resolving IDs to full cafe data
-const goodCafeIds = mockCafes.goodCafes || [];
-const cafes = goodCafeIds.map(cafeId => {
-  return mockCafes.cafes.find(cafe => cafe.id === cafeId);
-}).filter(Boolean);
+  const goodCafeIds = mockCafes.goodCafes || [];
+  const cafes = goodCafeIds.map(cafeId => {
+    return mockCafes.cafes.find(cafe => cafe.id === cafeId);
+  }).filter(Boolean);
   
-  // Filter states
-  const [activeLocationFilter, setActiveLocationFilter] = useState('all');
-  const [filteredCafes, setFilteredCafes] = useState(cafes);
-  const [isNearbyEnabled, setIsNearbyEnabled] = useState(false);
-  const [isOpenNowEnabled, setIsOpenNowEnabled] = useState(false);
+  // State management
+  const [userLocation, setUserLocation] = useState(null);
+  const [hasLocationPermission, setHasLocationPermission] = useState(false);
   const [selectedCity, setSelectedCity] = useState('All Cities');
-  const [citySheetVisible, setCitySheetVisible] = useState(false);
-  const [citySearchQuery, setCitySearchQuery] = useState('');
+  const [isOpenNowEnabled, setIsOpenNowEnabled] = useState(false);
+  const [filteredCafes, setFilteredCafes] = useState(cafes);
+  const [selectedCafe, setSelectedCafe] = useState(null);
+  const [mapRegion, setMapRegion] = useState({
+    latitude: 37.9922, // Default to Murcia
+    longitude: -1.1307,
+    latitudeDelta: 0.0922,
+    longitudeDelta: 0.0421,
+  });
   
-  // Add Spanish cities
+  // Refs
+  const mapRef = useRef(null);
+  const bottomSheetRef = useRef(null);
+  const snapPoints = ['25%', '50%', '90%'];
+  
+  // Spanish cities for filtering
   const spanishCities = [
-    "Madrid",
-    "Barcelona",
-    "Valencia",
-    "Seville",
-    "Zaragoza",
-    "Málaga",
-    "Murcia",
-    "Palma",
-    "Las Palmas",
-    "Bilbao",
-    "Alicante",
-    "Córdoba",
-    "Valladolid",
-    "Vigo",
-    "Gijón",
-    "Granada"
+    "Madrid", "Barcelona", "Valencia", "Seville", "Zaragoza", "Málaga", 
+    "Murcia", "Palma", "Las Palmas", "Bilbao", "Alicante", "Córdoba", 
+    "Valladolid", "Vigo", "Gijón", "Granada"
   ];
   
-  // Extract unique cities for filters - Here we're extracting the city from "Neighborhood, City" format
-  const allCities = [
-    ...new Set([
-      ...cafes.map(cafe => {
-        const locationParts = cafe.location?.split(', ');
-        return locationParts && locationParts.length > 1 ? locationParts[1] : '';
-      }),
-      ...spanishCities
-    ])
-  ].filter(Boolean);
-  
-  // Mock user location (would be replaced with actual geolocation)
-  const [userLocation, setUserLocation] = useState(null);
-  
-  // Get user location (simulated)
-  useEffect(() => {
-    // This would be replaced with actual geolocation
-    // For now, we'll just simulate having the user's location
-    if (isNearbyEnabled) {
-      // Mock coordinates that would come from geolocation API
-      setUserLocation({ latitude: 37.7749, longitude: -122.4194 }); // San Francisco coordinates
-    } else {
-      setUserLocation(null);
+  // Request location permission and get user location
+  const requestLocationPermission = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          'Location Permission',
+          'Location access is needed to show nearby cafés. We\'ll show cafés in Murcia instead.',
+          [{ text: 'OK', onPress: () => {} }]
+        );
+        setHasLocationPermission(false);
+        return false;
+      }
+      
+      setHasLocationPermission(true);
+      const location = await Location.getCurrentPositionAsync({});
+      const userCoords = {
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+      };
+      setUserLocation(userCoords);
+      
+      // Update map region to user location
+      setMapRegion({
+        latitude: userCoords.latitude,
+        longitude: userCoords.longitude,
+        latitudeDelta: 0.0922,
+        longitudeDelta: 0.0421,
+      });
+      
+      return true;
+    } catch (error) {
+      console.error('Error requesting location permission:', error);
+      Alert.alert('Error', 'Failed to get location. Showing cafés in Murcia instead.');
+      setHasLocationPermission(false);
+      return false;
     }
-  }, [isNearbyEnabled]);
+  };
+  
+  // Request location on screen mount
+  useEffect(() => {
+    requestLocationPermission();
+  }, []);
   
   // Check if a cafe is currently open
   const isCafeOpen = (cafe) => {
-    // In a real app, you would check opening hours against current time
-    // For now, we'll just simulate with a random value for demonstration
+    // Simple mock implementation - in real app would check actual opening hours
     return Math.random() > 0.3; // 70% chance a cafe is "open"
   };
   
-  // Apply filters based on city and nearby toggle
-  const applyFilters = () => {
+  // Apply filters
+  const applyFilters = useCallback(() => {
     let filtered = [...cafes];
     
-    // Apply nearby filter (would implement actual distance calculation)
-    if (isNearbyEnabled && userLocation) {
-      // For now, we'll just pretend some cafes are nearby
-      // In a real app, you would calculate distance from user location
-      filtered = filtered.filter(cafe => 
-        // Simulating nearby filter by selecting random cafes
-        Math.random() > 0.5
-      );
-    }
-    // Apply city filter (only if nearby is not enabled)
-    else if (selectedCity !== 'All Cities') {
+    // Apply city filter
+    if (selectedCity !== 'All Cities') {
       filtered = filtered.filter(cafe => 
         cafe.location?.includes(selectedCity)
       );
@@ -113,271 +124,166 @@ const cafes = goodCafeIds.map(cafeId => {
     }
     
     setFilteredCafes(filtered);
-  };
+  }, [selectedCity, isOpenNowEnabled, cafes]);
   
   // Apply filters when relevant states change
   useEffect(() => {
     applyFilters();
-  }, [selectedCity, isNearbyEnabled, isOpenNowEnabled, userLocation]);
+  }, [applyFilters]);
   
-  // Toggle nearby filter
-  const toggleNearbySwitch = () => {
-    setIsNearbyEnabled(previousState => !previousState);
-    
-    // If user turns on nearby but hasn't allowed location access
-    if (!isNearbyEnabled && !userLocation) {
-      // In a real app, you would request location permissions here
-      console.log("Would request location permissions");
-    }
-  };
-  
-  // Toggle open now filter
-  const toggleOpenNow = () => {
-    setIsOpenNowEnabled(prev => !prev);
-  };
-  
-  // Filter cities based on search query
-  const filteredCities = citySearchQuery 
-    ? allCities.filter(city => 
-        city.toLowerCase().includes(citySearchQuery.toLowerCase())
-      )
-    : allCities;
-  
-  // Select a city from the bottom sheet
-  const handleCitySelect = (city) => {
-    if (city === 'Nearby') {
-      setIsNearbyEnabled(true);
-      setSelectedCity('Nearby');
+  // Handle locate me button press
+  const handleLocateMe = async () => {
+    if (hasLocationPermission && userLocation) {
+      mapRef.current?.animateToRegion({
+        latitude: userLocation.latitude,
+        longitude: userLocation.longitude,
+        latitudeDelta: 0.0922,
+        longitudeDelta: 0.0421,
+      }, 1000);
     } else {
-      setIsNearbyEnabled(false);
-      setSelectedCity(city);
+      const success = await requestLocationPermission();
+      if (success && userLocation) {
+        mapRef.current?.animateToRegion({
+          latitude: userLocation.latitude,
+          longitude: userLocation.longitude,
+          latitudeDelta: 0.0922,
+          longitudeDelta: 0.0421,
+        }, 1000);
+      }
     }
-    setCitySheetVisible(false);
   };
   
-  // Reset to show all cities
-  const handleResetCity = () => {
-    setSelectedCity('All Cities');
-    setIsNearbyEnabled(false);
+  // Handle marker press
+  const handleMarkerPress = (cafe) => {
+    setSelectedCafe(cafe);
+    bottomSheetRef.current?.snapToIndex(1);
   };
   
-  // Get the display text for the city selector
-  const getLocationDisplayText = () => {
-    if (isNearbyEnabled) {
-      return 'Nearby';
+  // Handle city selection
+  const handleCitySelect = (city) => {
+    setSelectedCity(city);
+    
+    // If a specific city is selected, animate map to that city
+    if (city !== 'All Cities') {
+      const cityCoords = getCityCoordinates(city);
+      if (cityCoords) {
+        mapRef.current?.animateToRegion({
+          ...cityCoords,
+          latitudeDelta: 0.0922,
+          longitudeDelta: 0.0421,
+        }, 1000);
+      }
     }
-    return selectedCity;
   };
   
-  // Render filter UI
-  const renderFilterUI = () => {
+  // Get coordinates for a city (simple implementation)
+  const getCityCoordinates = (city) => {
+    const cityCoords = {
+      'Madrid': { latitude: 40.4168, longitude: -3.7038 },
+      'Barcelona': { latitude: 41.3851, longitude: 2.1734 },
+      'Valencia': { latitude: 39.4699, longitude: -0.3763 },
+      'Seville': { latitude: 37.3891, longitude: -5.9845 },
+      'Málaga': { latitude: 36.7213, longitude: -4.4214 },
+      'Murcia': { latitude: 37.9922, longitude: -1.1307 },
+      'Bilbao': { latitude: 43.2627, longitude: -2.9253 },
+      'Alicante': { latitude: 38.3452, longitude: -0.4810 },
+    };
+    return cityCoords[city] || null;
+  };
+  
+  // Render bottom sheet content
+  const renderBottomSheetContent = () => {
     return (
-      <View style={[styles.filterContainer, { backgroundColor: theme.background }]}>
-        <View style={styles.filterRow}>
+      <BottomSheetView style={[styles.bottomSheetContent, { backgroundColor: theme.background }]}>
+        {/* Handle bar */}
+        <View style={[styles.handleBar, { backgroundColor: theme.secondaryText }]} />
+        
+        {/* Header */}
+        <View style={styles.sheetHeader}>
+          <Text style={[styles.sheetTitle, { color: theme.primaryText }]}>
+            {filteredCafes.length} Cafés Found
+          </Text>
+        </View>
+        
+        {/* Filters */}
+        <View style={styles.filtersContainer}>
           <TouchableOpacity 
-            style={[styles.citySelector, { backgroundColor: theme.cardBackground }]}
-            onPress={() => setCitySheetVisible(true)}
+            style={[styles.filterButton, { backgroundColor: theme.cardBackground }]}
+            onPress={() => {
+              // Simple city cycle for demo - in real app would show city selector
+              const cities = ['All Cities', 'Madrid', 'Murcia', 'Barcelona', 'Málaga'];
+              const currentIndex = cities.indexOf(selectedCity);
+              const nextIndex = (currentIndex + 1) % cities.length;
+              handleCitySelect(cities[nextIndex]);
+            }}
           >
-            <Ionicons 
-              name={isNearbyEnabled ? "locate" : "location-outline"} 
-              size={20} 
-              color={theme.primaryText} 
-            />
-            <Text style={[styles.cityText, { color: theme.primaryText }]}>{getLocationDisplayText()}</Text>
+            <Ionicons name="location-outline" size={20} color={theme.primaryText} />
+            <Text style={[styles.filterText, { color: theme.primaryText }]}>{selectedCity}</Text>
             <Ionicons name="chevron-down" size={16} color={theme.primaryText} />
           </TouchableOpacity>
           
           <TouchableOpacity 
             style={[
-              styles.filterChip,
+              styles.filterButton,
               { backgroundColor: theme.cardBackground },
-              isOpenNowEnabled && [styles.activeFilterChip, { backgroundColor: theme.primaryText }]
+              isOpenNowEnabled && { backgroundColor: theme.primaryText }
             ]}
-            onPress={toggleOpenNow}
+            onPress={() => setIsOpenNowEnabled(!isOpenNowEnabled)}
           >
-            <Text 
-              style={[
-                styles.chipText,
-                { color: theme.primaryText },
-                isOpenNowEnabled && [styles.activeChipText, { color: theme.background }]
-              ]}
-            >
+            <Text style={[
+              styles.filterText,
+              { color: theme.primaryText },
+              isOpenNowEnabled && { color: theme.background }
+            ]}>
               Open Now
             </Text>
           </TouchableOpacity>
         </View>
-      </View>
+        
+        {/* Cafe List */}
+        <BottomSheetScrollView 
+          style={styles.cafesList}
+          showsVerticalScrollIndicator={false}
+        >
+          {filteredCafes.map((cafe) => renderCafeItem(cafe))}
+        </BottomSheetScrollView>
+      </BottomSheetView>
     );
   };
   
-  // City selection bottom sheet
-  const renderCitySheet = () => {
-    return (
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={citySheetVisible}
-        onRequestClose={() => setCitySheetVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.bottomSheet, { paddingBottom: insets.bottom, backgroundColor: theme.cardBackground }]}>
-            <View style={[styles.sheetHeader, { borderBottomColor: theme.divider }]}>
-              <TouchableOpacity 
-                style={styles.closeButton}
-                onPress={() => setCitySheetVisible(false)}
-              >
-                <Ionicons name="close" size={24} color={theme.primaryText} />
-              </TouchableOpacity>
-              <Text style={[styles.sheetTitle, { color: theme.primaryText }]}>Select Location</Text>
-              <View style={{ width: 40 }}><Text></Text></View>
-            </View>
-            
-            <View style={[styles.searchContainer, { backgroundColor: theme.secondaryBackground }]}>
-              <Ionicons name="search" size={20} color={theme.secondaryText} style={styles.searchIcon} />
-              <TextInput
-                style={[styles.searchInput, { color: theme.primaryText }]}
-                placeholder="Search cities"
-                placeholderTextColor={theme.secondaryText}
-                value={citySearchQuery}
-                onChangeText={setCitySearchQuery}
-                clearButtonMode="while-editing"
-              />
-            </View>
-            
-            <ScrollView style={styles.citiesList} contentContainerStyle={styles.citiesListContent}>
-              {/* Nearby option */}
-              <TouchableOpacity 
-                style={[styles.cityItem, { borderBottomColor: theme.divider }]}
-                onPress={() => handleCitySelect('Nearby')}
-              >
-                <View style={styles.cityItemLeftContent}>
-                  <Ionicons name="locate" size={20} color="#007AFF" style={styles.cityItemIcon} />
-                  <Text style={[
-                    styles.cityItemText, 
-                    { color: theme.primaryText },
-                    isNearbyEnabled && styles.selectedCityText
-                  ]}>
-                    Nearby
-                  </Text>
-                </View>
-                {isNearbyEnabled && (
-                  <Ionicons name="checkmark" size={20} color={theme.primaryText} />
-                )}
-              </TouchableOpacity>
-              
-              {/* All Cities option */}
-              <TouchableOpacity 
-                style={[styles.cityItem, { borderBottomColor: theme.divider }]}
-                onPress={() => handleCitySelect('All Cities')}
-              >
-                <View style={styles.cityItemLeftContent}>
-                  <Ionicons name="earth" size={20} color={theme.primaryText} style={styles.cityItemIcon} />
-                  <Text style={[
-                    styles.cityItemText, 
-                    { color: theme.primaryText },
-                    selectedCity === 'All Cities' && !isNearbyEnabled && styles.selectedCityText
-                  ]}>
-                    All Cities
-                  </Text>
-                </View>
-                {selectedCity === 'All Cities' && !isNearbyEnabled && (
-                  <Ionicons name="checkmark" size={20} color={theme.primaryText} />
-                )}
-              </TouchableOpacity>
-              
-              {/* Group cities by country/region */}
-              <View style={styles.cityGroup}>
-                <Text style={[styles.cityGroupHeader, { backgroundColor: theme.secondaryBackground, color: theme.secondaryText }]}>Spanish Cities</Text>
-                {filteredCities
-                  .filter(city => spanishCities.includes(city))
-                  .map((city, index) => (
-                    <TouchableOpacity 
-                      key={`spanish-${index}`}
-                      style={[styles.cityItem, { borderBottomColor: theme.divider }]}
-                      onPress={() => handleCitySelect(city)}
-                    >
-                      <View style={styles.cityItemLeftContent}>
-                        <Ionicons name="location-outline" size={20} color={theme.primaryText} style={styles.cityItemIcon} />
-                        <Text style={[
-                          styles.cityItemText, 
-                          { color: theme.primaryText },
-                          selectedCity === city && !isNearbyEnabled && styles.selectedCityText
-                        ]}>
-                          {city}
-                        </Text>
-                      </View>
-                      {selectedCity === city && !isNearbyEnabled && (
-                        <Ionicons name="checkmark" size={20} color={theme.primaryText} />
-                      )}
-                    </TouchableOpacity>
-                  ))
-                }
-              </View>
-              
-              <View style={styles.cityGroup}>
-                <Text style={[styles.cityGroupHeader, { backgroundColor: theme.secondaryBackground, color: theme.secondaryText }]}>Other Cities</Text>
-                {filteredCities
-                  .filter(city => !spanishCities.includes(city) && city !== 'All Cities' && city !== 'Spain')
-                  .map((city, index) => (
-                    <TouchableOpacity 
-                      key={`other-${index}`}
-                      style={[styles.cityItem, { borderBottomColor: theme.divider }]}
-                      onPress={() => handleCitySelect(city)}
-                    >
-                      <View style={styles.cityItemLeftContent}>
-                        <Ionicons name="location-outline" size={20} color={theme.primaryText} style={styles.cityItemIcon} />
-                        <Text style={[
-                          styles.cityItemText, 
-                          { color: theme.primaryText },
-                          selectedCity === city && !isNearbyEnabled && styles.selectedCityText
-                        ]}>
-                          {city}
-                        </Text>
-                      </View>
-                      {selectedCity === city && !isNearbyEnabled && (
-                        <Ionicons name="checkmark" size={20} color={theme.primaryText} />
-                      )}
-                    </TouchableOpacity>
-                  ))
-                }
-              </View>
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
-    );
-  };
-  
-  const renderCafeItem = ({ item }) => {
-    const isOpen = isCafeOpen(item);
+  // Render individual cafe item
+  const renderCafeItem = (cafe) => {
+    const isOpen = isCafeOpen(cafe);
+    const isSelected = selectedCafe?.id === cafe.id;
     
-    // Special handling for The Fix
-    let coverImageSource;
-    let logoImageSource;
+    // Handle special case for The Fix
+    let coverImageSource = cafe.coverImage || cafe.imageUrl;
+    let logoImageSource = cafe.avatar || cafe.logo;
     
-    if (item.name === 'The Fix' || item.id === 'thefix-madrid' || item.businessId === 'business-thefix') {
-      // Use string paths instead of require() - AppImage will handle these properly
+    if (cafe.name === 'The Fix' || cafe.id === 'thefix-madrid' || cafe.businessId === 'business-thefix') {
       coverImageSource = 'assets/businesses/thefix-cover.jpg';
       logoImageSource = 'assets/businesses/thefix-logo.jpg';
-    } else {
-      coverImageSource = item.coverImage || item.imageUrl;
-      logoImageSource = item.avatar || item.logo;
     }
     
     return (
       <TouchableOpacity 
+        key={cafe.id}
         style={[
-          styles.cafeCard, 
-          isDarkMode 
-            ? { backgroundColor: theme.cardBackground, borderWidth: 0 }
-            : { backgroundColor: 'transparent', borderColor: theme.border }
+          styles.cafeCard,
+          { backgroundColor: theme.cardBackground, borderColor: theme.border },
+          isSelected && { borderColor: theme.primaryText, borderWidth: 2 }
         ]}
         onPress={() => {
-          navigation.navigate('UserProfileBridge', { 
-            userId: item.id, 
-            userName: item.name,
-            skipAuth: true 
-          });
+          setSelectedCafe(cafe);
+          // Center map on selected cafe
+          if (cafe.coordinates) {
+            mapRef.current?.animateToRegion({
+              latitude: cafe.coordinates.lat,
+              longitude: cafe.coordinates.lng,
+              latitudeDelta: 0.0922,
+              longitudeDelta: 0.0421,
+            }, 1000);
+          }
         }}
       >
         <AppImage 
@@ -393,28 +299,24 @@ const cafes = goodCafeIds.map(cafeId => {
               resizeMode="cover"
             />
             <View style={styles.cafeTitleContainer}>
-              <Text style={[styles.cafeName, { color: theme.primaryText }]}>{item.name}</Text>
-              <Text style={[styles.cafeLocation, { color: theme.secondaryText }]}>{item.location}</Text>
+              <Text style={[styles.cafeName, { color: theme.primaryText }]}>{cafe.name}</Text>
+              <Text style={[styles.cafeLocation, { color: theme.secondaryText }]}>{cafe.location}</Text>
             </View>
             
-            {/* Open/Closed status indicator */}
             <View style={[styles.statusIndicator, isOpen ? styles.openStatus : styles.closedStatus]}>
               <Text style={styles.statusText}>{isOpen ? 'Open' : 'Closed'}</Text>
             </View>
           </View>
           
-          <Text 
-            style={[styles.cafeDescription, { color: theme.secondaryText }]} 
-            numberOfLines={2}
-          >
-            {item.description || 'Specialty coffee shop offering a variety of brews and pastries in a cozy atmosphere.'}
-          </Text>
-          
           <View style={styles.cafeStats}>
             <View style={styles.ratingContainer}>
               <Ionicons name="star" size={16} color="#FFD700" />
-              <Text style={[styles.ratingText, { color: theme.primaryText }]}>{item.rating ? item.rating.toFixed(1) : '4.5'}</Text>
-              <Text style={[styles.reviewCount, { color: theme.secondaryText }]}>({item.reviewCount || '0'} reviews)</Text>
+              <Text style={[styles.ratingText, { color: theme.primaryText }]}>
+                {cafe.rating ? cafe.rating.toFixed(1) : '4.5'}
+              </Text>
+              <Text style={[styles.reviewCount, { color: theme.secondaryText }]}>
+                ({cafe.reviewCount || '0'} reviews)
+              </Text>
             </View>
           </View>
         </View>
@@ -423,22 +325,76 @@ const cafes = goodCafeIds.map(cafeId => {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: isDarkMode ? theme.background : '#FFFFFF' }]}>
-      {renderFilterUI()}
-      {renderCitySheet()}
-
-      <FlatList
-        data={filteredCafes}
-        renderItem={renderCafeItem}
-        keyExtractor={item => item.id}
-        contentContainerStyle={styles.cafesList}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={[styles.emptyText, { color: theme.secondaryText }]}>No cafés found</Text>
-          </View>
-        }
-      />
-    </View>
+    <GestureHandlerRootView style={styles.container}>
+      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
+      
+      {/* Map View */}
+      <MapView
+        ref={mapRef}
+        style={styles.map}
+        region={mapRegion}
+        onRegionChangeComplete={setMapRegion}
+        showsUserLocation={hasLocationPermission}
+        showsMyLocationButton={false}
+        userInterfaceStyle={isDarkMode ? 'dark' : 'light'}
+      >
+        {filteredCafes.map((cafe) => {
+          if (!cafe.coordinates) return null;
+          
+          return (
+            <Marker
+              key={cafe.id}
+              coordinate={{
+                latitude: cafe.coordinates.lat,
+                longitude: cafe.coordinates.lng,
+              }}
+              title={cafe.name}
+              description={cafe.location}
+              onPress={() => handleMarkerPress(cafe)}
+            >
+              <View style={[
+                styles.markerContainer,
+                selectedCafe?.id === cafe.id && styles.selectedMarker
+              ]}>
+                <View style={[styles.marker, { backgroundColor: theme.primaryText }]}>
+                  <Ionicons name="cafe" size={20} color={theme.background} />
+                </View>
+              </View>
+            </Marker>
+          );
+        })}
+      </MapView>
+      
+      {/* Locate Me FAB */}
+      <TouchableOpacity 
+        style={[
+          styles.locateMeButton,
+          { 
+            backgroundColor: theme.background,
+            borderColor: theme.border,
+            bottom: insets.bottom + 200 // 16px above bottom sheet when collapsed
+          }
+        ]}
+        onPress={handleLocateMe}
+      >
+        <Ionicons 
+          name="locate" 
+          size={24} 
+          color={hasLocationPermission ? theme.primaryText : theme.secondaryText} 
+        />
+      </TouchableOpacity>
+      
+      {/* Bottom Sheet */}
+      <BottomSheet
+        ref={bottomSheetRef}
+        index={0}
+        snapPoints={snapPoints}
+        backgroundStyle={{ backgroundColor: theme.background }}
+        handleIndicatorStyle={{ backgroundColor: theme.secondaryText }}
+      >
+        {renderBottomSheetContent()}
+      </BottomSheet>
+    </GestureHandlerRootView>
   );
 };
 
@@ -446,132 +402,77 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  filterContainer: {
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    marginBottom: 0,
-  },
-  filterRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  citySelector: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 50,
-    flex: 1,
-    marginRight: 10,
-  },
-  cityText: {
-    fontSize: 16,
-    marginLeft: 8,
-    marginRight: 4,
+  map: {
     flex: 1,
   },
-  filterChip: {
-    flexDirection: 'row',
+  markerContainer: {
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 50,
   },
-  activeFilterChip: {
-    backgroundColor: '#000000',
+  marker: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
   },
-  chipIcon: {
-    marginRight: 6,
+  selectedMarker: {
+    transform: [{ scale: 1.2 }],
   },
-  chipText: {
-    fontSize: 16,
-    fontWeight: '500',
+  locateMeButton: {
+    position: 'absolute',
+    right: 16,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
-  activeChipText: {
-    color: '#FFFFFF',
-  },
-  modalOverlay: {
+  bottomSheetContent: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
+    paddingHorizontal: 16,
   },
-  bottomSheet: {
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
-    minHeight: '80%',
-    maxHeight: '80%',
+  handleBar: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginTop: 8,
+    marginBottom: 16,
   },
   sheetHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-  },
-  closeButton: {
-    padding: 4,
+    marginBottom: 16,
   },
   sheetTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '600',
   },
-  searchContainer: {
+  filtersContainer: {
+    flexDirection: 'row',
+    marginBottom: 16,
+    gap: 12,
+  },
+  filterButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    margin: 16,
     paddingHorizontal: 12,
-    borderRadius: 8,
-    height: 40,
-  },
-  searchIcon: {
-    marginRight: 8,
-  },
-  searchInput: {
-    flex: 1,
-    height: '100%',
-    fontSize: 16,
-  },
-  citiesList: {
-    flex: 1,
-  },
-  citiesListContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-  },
-  cityItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-  },
-  cityItemLeftContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  cityItemIcon: {
-    marginRight: 12,
-  },
-  cityItemText: {
-    fontSize: 16,
-  },
-  selectedCityText: {
-    fontWeight: '600',
-  },
-  cityGroup: {
-    marginTop: 12,
-  },
-  cityGroupHeader: {
-    fontSize: 14,
-    fontWeight: '600',
     paddingVertical: 8,
-    paddingHorizontal: 16,
-    marginHorizontal: -16,
+    borderRadius: 20,
+    gap: 4,
+  },
+  filterText: {
+    fontSize: 14,
+    fontWeight: '500',
   },
   cafesList: {
-    paddingHorizontal: 16,
-    paddingBottom: 32,
+    flex: 1,
   },
   cafeCard: {
     borderRadius: 12,
@@ -581,19 +482,19 @@ const styles = StyleSheet.create({
   },
   cafeImage: {
     width: '100%',
-    height: 160,
+    height: 120,
   },
   cafeContent: {
-    padding: 16,
+    padding: 12,
   },
   cafeHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   cafeLogo: {
-    width: 50,
-    height: 50,
+    width: 40,
+    height: 40,
     borderRadius: 4,
     marginRight: 12,
     borderWidth: 1,
@@ -602,17 +503,17 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   cafeName: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   cafeLocation: {
-    fontSize: 14,
+    fontSize: 12,
   },
   statusIndicator: {
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 50,
+    borderRadius: 12,
     marginLeft: 8,
   },
   openStatus: {
@@ -622,14 +523,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#FEECEA',
   },
   statusText: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: '600',
     color: '#000000',
-  },
-  cafeDescription: {
-    fontSize: 14,
-    marginBottom: 12,
-    lineHeight: 20,
   },
   cafeStats: {
     flexDirection: 'row',
@@ -641,21 +537,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   ratingText: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '600',
     marginLeft: 4,
   },
   reviewCount: {
-    fontSize: 14,
+    fontSize: 12,
     marginLeft: 4,
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 24,
-  },
-  emptyText: {
-    fontSize: 16,
   },
 });
 
