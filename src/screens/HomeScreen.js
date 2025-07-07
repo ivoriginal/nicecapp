@@ -254,7 +254,11 @@ export default function HomeScreen({ navigation }) {
           );
         }}
         keyExtractor={item => `${item.id}-${item.timestamp || Date.now()}`}
-        contentContainerStyle={[styles.listContainer, { backgroundColor: theme.background }]}
+        contentContainerStyle={[
+          styles.listContainer,
+          { backgroundColor: theme.background },
+          allEvents?.length === 0 && { flex: 1 }
+        ]}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
