@@ -1,21 +1,38 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform, Dimensions, StatusBar } from 'react-native';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  TouchableOpacity, 
+  FlatList,
+  Animated, 
+  PanResponder,
+  Dimensions,
+  StatusBar,
+  Alert
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import MapView, { Marker } from 'react-native-maps';
-import * as Location from 'expo-location';
-import BottomSheet, { BottomSheetView, BottomSheetScrollView } from '@gorhom/bottom-sheet';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import mockCafes from '../data/mockCafes.json';
 import AppImage from '../components/common/AppImage';
 import { useTheme } from '../context/ThemeContext';
 
 const { width, height } = Dimensions.get('window');
+const BOTTOM_SHEET_MIN_HEIGHT = height * 0.25;
+const BOTTOM_SHEET_MID_HEIGHT = height * 0.5;
+const BOTTOM_SHEET_MAX_HEIGHT = height * 0.9;
+
+// Spanish cities for filtering - moved outside component to prevent recreating on each render
+const spanishCities = [
+  "Madrid", "Barcelona", "Valencia", "Seville", "Zaragoza", "Málaga", 
+  "Murcia", "Palma", "Las Palmas", "Bilbao", "Alicante", "Córdoba", 
+  "Valladolid", "Vigo", "Gijón", "Granada"
+];
 
 const CafesListScreen = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
   const { theme, isDarkMode } = useTheme();
-  const { title = 'Cafés Near You' } = route.params || {};
+  const { title = 'Good Cafés' } = route.params || {};
   
   // Set the navigation title dynamically
   useEffect(() => {
@@ -25,11 +42,13 @@ const CafesListScreen = ({ navigation, route }) => {
     });
   }, [navigation, title]);
   
-  // Get good cafes by resolving IDs to full cafe data
-  const goodCafeIds = mockCafes.goodCafes || [];
-  const cafes = goodCafeIds.map(cafeId => {
-    return mockCafes.cafes.find(cafe => cafe.id === cafeId);
-  }).filter(Boolean);
+  // Get good cafes by resolving IDs to full cafe data - use useMemo to prevent recalculation on every render
+  const cafes = useMemo(() => {
+    const goodCafeIds = mockCafes.goodCafes || [];
+    return goodCafeIds
+      .map(cafeId => mockCafes.cafes.find(cafe => cafe.id === cafeId))
+      .filter(Boolean);
+  }, []);
   
   // State management
   const [userLocation, setUserLocation] = useState(null);
@@ -38,74 +57,113 @@ const CafesListScreen = ({ navigation, route }) => {
   const [isOpenNowEnabled, setIsOpenNowEnabled] = useState(false);
   const [filteredCafes, setFilteredCafes] = useState(cafes);
   const [selectedCafe, setSelectedCafe] = useState(null);
-  const [mapRegion, setMapRegion] = useState({
-    latitude: 37.9922, // Default to Murcia
-    longitude: -1.1307,
-    latitudeDelta: 0.0922,
-    longitudeDelta: 0.0421,
-  });
   
-  // Refs
-  const mapRef = useRef(null);
-  const bottomSheetRef = useRef(null);
-  const snapPoints = ['25%', '50%', '90%'];
+  // Animation values
+  const bottomSheetHeight = useRef(new Animated.Value(BOTTOM_SHEET_MIN_HEIGHT)).current;
+  const mapOpacity = useRef(new Animated.Value(1)).current;
   
-  // Spanish cities for filtering
-  const spanishCities = [
-    "Madrid", "Barcelona", "Valencia", "Seville", "Zaragoza", "Málaga", 
-    "Murcia", "Palma", "Las Palmas", "Bilbao", "Alicante", "Córdoba", 
-    "Valladolid", "Vigo", "Gijón", "Granada"
-  ];
+  // Helper to get current sheet height
+  const getCurrentSheetHeight = useCallback(() => {
+    return bottomSheetHeight.__getValue();
+  }, [bottomSheetHeight]);
   
-  // Request location permission and get user location
-  const requestLocationPermission = async () => {
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert(
-          'Location Permission',
-          'Location access is needed to show nearby cafés. We\'ll show cafés in Murcia instead.',
-          [{ text: 'OK', onPress: () => {} }]
-        );
-        setHasLocationPermission(false);
-        return false;
-      }
-      
-      setHasLocationPermission(true);
-      const location = await Location.getCurrentPositionAsync({});
-      const userCoords = {
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-      };
-      setUserLocation(userCoords);
-      
-      // Update map region to user location
-      setMapRegion({
-        latitude: userCoords.latitude,
-        longitude: userCoords.longitude,
-        latitudeDelta: 0.0922,
-        longitudeDelta: 0.0421,
-      });
-      
-      return true;
-    } catch (error) {
-      console.error('Error requesting location permission:', error);
-      Alert.alert('Error', 'Failed to get location. Showing cafés in Murcia instead.');
-      setHasLocationPermission(false);
-      return false;
-    }
-  };
-  
-  // Request location on screen mount
-  useEffect(() => {
-    requestLocationPermission();
+  // Check if a cafe is currently open - use a deterministic approach
+  const isCafeOpen = useCallback((cafe) => {
+    // Use cafe.id as a stable seed for the random function
+    // This ensures the same cafe always gets the same open/closed status
+    const seed = cafe.id.charCodeAt(0) + cafe.id.charCodeAt(cafe.id.length - 1);
+    return (seed % 10) > 3; // 70% chance a cafe is "open" but deterministic
   }, []);
   
-  // Check if a cafe is currently open
-  const isCafeOpen = (cafe) => {
-    // Simple mock implementation - in real app would check actual opening hours
-    return Math.random() > 0.3; // 70% chance a cafe is "open"
-  };
+  // Snap sheet to specific position
+  const snapSheetTo = useCallback((position) => {
+    let snapHeight;
+    switch (position) {
+      case 'min':
+        snapHeight = BOTTOM_SHEET_MIN_HEIGHT;
+        break;
+      case 'mid':
+        snapHeight = BOTTOM_SHEET_MID_HEIGHT;
+        break;
+      case 'max':
+        snapHeight = BOTTOM_SHEET_MAX_HEIGHT;
+        break;
+      default:
+        snapHeight = BOTTOM_SHEET_MIN_HEIGHT;
+    }
+    
+    Animated.spring(bottomSheetHeight, {
+      toValue: snapHeight,
+      useNativeDriver: false,
+      bounciness: 4,
+    }).start();
+    
+    // Update map opacity
+    const mapOpacityValue = Math.max(0.3, 1 - (snapHeight - BOTTOM_SHEET_MIN_HEIGHT) / (BOTTOM_SHEET_MAX_HEIGHT - BOTTOM_SHEET_MIN_HEIGHT));
+    Animated.spring(mapOpacity, {
+      toValue: mapOpacityValue,
+      useNativeDriver: false,
+    }).start();
+  }, [bottomSheetHeight, mapOpacity]);
+  
+  // Simulate requesting location permission
+  const requestLocationPermission = useCallback(() => {
+    // In a real implementation, we would use expo-location's requestForegroundPermissionsAsync
+    // For now, we'll use Alert to simulate the system permission dialog
+    Alert.alert(
+      '"Nicecapp" Would Like to Access Your Location',
+      'Your location is used to show nearby cafés and provide directions.',
+      [
+        {
+          text: 'Don\'t Allow',
+          style: 'cancel',
+          onPress: () => {
+            setHasLocationPermission(false);
+            // Default to Murcia
+            setUserLocation({ 
+              latitude: 37.9922, 
+              longitude: -1.1307 
+            });
+          }
+        },
+        {
+          text: 'Allow',
+          onPress: () => {
+            setHasLocationPermission(true);
+            // Simulate getting user location (Murcia coordinates)
+            setUserLocation({ 
+              latitude: 37.9922, 
+              longitude: -1.1307 
+            });
+          }
+        }
+      ],
+      { cancelable: false }
+    );
+  }, []);
+  
+  // Handle locate me button press
+  const handleLocateMe = useCallback(() => {
+    if (hasLocationPermission) {
+      // Already have permission, just center the map
+      // In a real app with real maps, we would animate to user location
+      console.log('Would center map on user location');
+    } else {
+      // Request location permission
+      requestLocationPermission();
+    }
+  }, [hasLocationPermission, requestLocationPermission]);
+  
+  // Handle marker press (simulated)
+  const handleCafeSelect = useCallback((cafe) => {
+    setSelectedCafe(cafe);
+    snapSheetTo('mid');
+  }, [snapSheetTo]);
+  
+  // Handle city selection
+  const handleCitySelect = useCallback((city) => {
+    setSelectedCity(city);
+  }, []);
   
   // Apply filters
   const applyFilters = useCallback(() => {
@@ -124,135 +182,74 @@ const CafesListScreen = ({ navigation, route }) => {
     }
     
     setFilteredCafes(filtered);
-  }, [selectedCity, isOpenNowEnabled, cafes]);
+  }, [selectedCity, isOpenNowEnabled, cafes, isCafeOpen]);
   
   // Apply filters when relevant states change
   useEffect(() => {
     applyFilters();
   }, [applyFilters]);
   
-  // Handle locate me button press
-  const handleLocateMe = async () => {
-    if (hasLocationPermission && userLocation) {
-      mapRef.current?.animateToRegion({
-        latitude: userLocation.latitude,
-        longitude: userLocation.longitude,
-        latitudeDelta: 0.0922,
-        longitudeDelta: 0.0421,
-      }, 1000);
-    } else {
-      const success = await requestLocationPermission();
-      if (success && userLocation) {
-        mapRef.current?.animateToRegion({
-          latitude: userLocation.latitude,
-          longitude: userLocation.longitude,
-          latitudeDelta: 0.0922,
-          longitudeDelta: 0.0421,
-        }, 1000);
-      }
-    }
-  };
-  
-  // Handle marker press
-  const handleMarkerPress = (cafe) => {
-    setSelectedCafe(cafe);
-    bottomSheetRef.current?.snapToIndex(1);
-  };
-  
-  // Handle city selection
-  const handleCitySelect = (city) => {
-    setSelectedCity(city);
-    
-    // If a specific city is selected, animate map to that city
-    if (city !== 'All Cities') {
-      const cityCoords = getCityCoordinates(city);
-      if (cityCoords) {
-        mapRef.current?.animateToRegion({
-          ...cityCoords,
-          latitudeDelta: 0.0922,
-          longitudeDelta: 0.0421,
-        }, 1000);
-      }
-    }
-  };
-  
-  // Get coordinates for a city (simple implementation)
-  const getCityCoordinates = (city) => {
-    const cityCoords = {
-      'Madrid': { latitude: 40.4168, longitude: -3.7038 },
-      'Barcelona': { latitude: 41.3851, longitude: 2.1734 },
-      'Valencia': { latitude: 39.4699, longitude: -0.3763 },
-      'Seville': { latitude: 37.3891, longitude: -5.9845 },
-      'Málaga': { latitude: 36.7213, longitude: -4.4214 },
-      'Murcia': { latitude: 37.9922, longitude: -1.1307 },
-      'Bilbao': { latitude: 43.2627, longitude: -2.9253 },
-      'Alicante': { latitude: 38.3452, longitude: -0.4810 },
-    };
-    return cityCoords[city] || null;
-  };
-  
-  // Render bottom sheet content
-  const renderBottomSheetContent = () => {
-    return (
-      <BottomSheetView style={[styles.bottomSheetContent, { backgroundColor: theme.background }]}>
-        {/* Handle bar */}
-        <View style={[styles.handleBar, { backgroundColor: theme.secondaryText }]} />
+  // Pan responder for bottom sheet - use useMemo to prevent recreation on every render
+  const panResponder = useMemo(() => {
+    return PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onPanResponderMove: (_, gestureState) => {
+        const { dy } = gestureState;
+        const newHeight = Math.max(
+          BOTTOM_SHEET_MIN_HEIGHT,
+          Math.min(BOTTOM_SHEET_MAX_HEIGHT, getCurrentSheetHeight() - dy)
+        );
+        bottomSheetHeight.setValue(newHeight);
         
-        {/* Header */}
-        <View style={styles.sheetHeader}>
-          <Text style={[styles.sheetTitle, { color: theme.primaryText }]}>
-            {filteredCafes.length} Cafés Found
-          </Text>
-        </View>
+        // Fade map as sheet rises
+        const mapOpacityValue = Math.max(0.3, 1 - (newHeight - BOTTOM_SHEET_MIN_HEIGHT) / (BOTTOM_SHEET_MAX_HEIGHT - BOTTOM_SHEET_MIN_HEIGHT));
+        mapOpacity.setValue(mapOpacityValue);
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        const { dy, vy } = gestureState;
+        const currentHeight = getCurrentSheetHeight();
         
-        {/* Filters */}
-        <View style={styles.filtersContainer}>
-          <TouchableOpacity 
-            style={[styles.filterButton, { backgroundColor: theme.cardBackground }]}
-            onPress={() => {
-              // Simple city cycle for demo - in real app would show city selector
-              const cities = ['All Cities', 'Madrid', 'Murcia', 'Barcelona', 'Málaga'];
-              const currentIndex = cities.indexOf(selectedCity);
-              const nextIndex = (currentIndex + 1) % cities.length;
-              handleCitySelect(cities[nextIndex]);
-            }}
-          >
-            <Ionicons name="location-outline" size={20} color={theme.primaryText} />
-            <Text style={[styles.filterText, { color: theme.primaryText }]}>{selectedCity}</Text>
-            <Ionicons name="chevron-down" size={16} color={theme.primaryText} />
-          </TouchableOpacity>
+        // Determine which height to snap to based on velocity and position
+        let snapHeight;
+        if (Math.abs(vy) > 0.5) {
+          // If velocity is significant, use it to determine direction
+          snapHeight = vy > 0 
+            ? (currentHeight < BOTTOM_SHEET_MID_HEIGHT ? BOTTOM_SHEET_MIN_HEIGHT : BOTTOM_SHEET_MID_HEIGHT)
+            : (currentHeight > BOTTOM_SHEET_MID_HEIGHT ? BOTTOM_SHEET_MAX_HEIGHT : BOTTOM_SHEET_MID_HEIGHT);
+        } else {
+          // Otherwise snap to nearest point
+          const distToMin = Math.abs(currentHeight - BOTTOM_SHEET_MIN_HEIGHT);
+          const distToMid = Math.abs(currentHeight - BOTTOM_SHEET_MID_HEIGHT);
+          const distToMax = Math.abs(currentHeight - BOTTOM_SHEET_MAX_HEIGHT);
           
-          <TouchableOpacity 
-            style={[
-              styles.filterButton,
-              { backgroundColor: theme.cardBackground },
-              isOpenNowEnabled && { backgroundColor: theme.primaryText }
-            ]}
-            onPress={() => setIsOpenNowEnabled(!isOpenNowEnabled)}
-          >
-            <Text style={[
-              styles.filterText,
-              { color: theme.primaryText },
-              isOpenNowEnabled && { color: theme.background }
-            ]}>
-              Open Now
-            </Text>
-          </TouchableOpacity>
-        </View>
+          if (distToMin <= distToMid && distToMin <= distToMax) {
+            snapHeight = BOTTOM_SHEET_MIN_HEIGHT;
+          } else if (distToMid <= distToMax) {
+            snapHeight = BOTTOM_SHEET_MID_HEIGHT;
+          } else {
+            snapHeight = BOTTOM_SHEET_MAX_HEIGHT;
+          }
+        }
         
-        {/* Cafe List */}
-        <BottomSheetScrollView 
-          style={styles.cafesList}
-          showsVerticalScrollIndicator={false}
-        >
-          {filteredCafes.map((cafe) => renderCafeItem(cafe))}
-        </BottomSheetScrollView>
-      </BottomSheetView>
-    );
-  };
+        // Animate to snap position
+        Animated.spring(bottomSheetHeight, {
+          toValue: snapHeight,
+          useNativeDriver: false,
+          bounciness: 4,
+        }).start();
+        
+        // Update map opacity
+        const mapOpacityValue = Math.max(0.3, 1 - (snapHeight - BOTTOM_SHEET_MIN_HEIGHT) / (BOTTOM_SHEET_MAX_HEIGHT - BOTTOM_SHEET_MIN_HEIGHT));
+        Animated.spring(mapOpacity, {
+          toValue: mapOpacityValue,
+          useNativeDriver: false,
+        }).start();
+      },
+    });
+  }, [bottomSheetHeight, mapOpacity, getCurrentSheetHeight]);
   
-  // Render individual cafe item
-  const renderCafeItem = (cafe) => {
+  // Render individual cafe item - memoize to prevent recreation on every render
+  const renderCafeItem = useCallback(({ item: cafe }) => {
     const isOpen = isCafeOpen(cafe);
     const isSelected = selectedCafe?.id === cafe.id;
     
@@ -267,24 +264,14 @@ const CafesListScreen = ({ navigation, route }) => {
     
     return (
       <TouchableOpacity 
-        key={cafe.id}
         style={[
           styles.cafeCard,
-          { backgroundColor: theme.cardBackground, borderColor: theme.border },
+          isDarkMode 
+            ? { backgroundColor: theme.cardBackground, borderWidth: 0 }
+            : { backgroundColor: theme.background, borderColor: theme.border, borderWidth: 1 },
           isSelected && { borderColor: theme.primaryText, borderWidth: 2 }
         ]}
-        onPress={() => {
-          setSelectedCafe(cafe);
-          // Center map on selected cafe
-          if (cafe.coordinates) {
-            mapRef.current?.animateToRegion({
-              latitude: cafe.coordinates.lat,
-              longitude: cafe.coordinates.lng,
-              latitudeDelta: 0.0922,
-              longitudeDelta: 0.0421,
-            }, 1000);
-          }
-        }}
+        onPress={() => handleCafeSelect(cafe)}
       >
         <AppImage 
           source={coverImageSource} 
@@ -322,48 +309,179 @@ const CafesListScreen = ({ navigation, route }) => {
         </View>
       </TouchableOpacity>
     );
-  };
+  }, [handleCafeSelect, isCafeOpen, selectedCafe, theme, isDarkMode]);
+
+  // Render map markers (simulated)
+  const renderMapMarkers = useCallback(() => {
+    return filteredCafes.map(cafe => {
+      if (!cafe.coordinates) return null;
+      
+      const isSelected = selectedCafe?.id === cafe.id;
+      
+      return (
+        <TouchableOpacity
+          key={cafe.id}
+          style={[
+            styles.mapMarker,
+            {
+              left: `${Math.random() * 70 + 15}%`, // Random horizontal position
+              top: `${Math.random() * 70 + 10}%`,  // Random vertical position
+            },
+            isSelected && styles.selectedMapMarker
+          ]}
+          onPress={() => handleCafeSelect(cafe)}
+        >
+          <View style={[styles.markerInner, { backgroundColor: theme.primaryText }]}>
+            <Ionicons name="cafe" size={16} color={theme.background} />
+          </View>
+        </TouchableOpacity>
+      );
+    });
+  }, [filteredCafes, handleCafeSelect, selectedCafe, theme]);
 
   return (
-    <GestureHandlerRootView style={styles.container}>
+    <View style={[styles.container, { backgroundColor: isDarkMode ? theme.background : '#FFFFFF' }]}>
       <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
       
-      {/* Map View */}
-      <MapView
-        ref={mapRef}
-        style={styles.map}
-        region={mapRegion}
-        onRegionChangeComplete={setMapRegion}
-        showsUserLocation={hasLocationPermission}
-        showsMyLocationButton={false}
-        userInterfaceStyle={isDarkMode ? 'dark' : 'light'}
-      >
-        {filteredCafes.map((cafe) => {
-          if (!cafe.coordinates) return null;
-          
-          return (
-            <Marker
-              key={cafe.id}
-              coordinate={{
-                latitude: cafe.coordinates.lat,
-                longitude: cafe.coordinates.lng,
-              }}
-              title={cafe.name}
-              description={cafe.location}
-              onPress={() => handleMarkerPress(cafe)}
-            >
-              <View style={[
-                styles.markerContainer,
-                selectedCafe?.id === cafe.id && styles.selectedMarker
-              ]}>
-                <View style={[styles.marker, { backgroundColor: theme.primaryText }]}>
-                  <Ionicons name="cafe" size={20} color={theme.background} />
-                </View>
+      {/* Simulated Map View */}
+      <Animated.View style={[styles.mapContainer, { opacity: mapOpacity }]}>
+        <View 
+          style={[
+            styles.mapImage, 
+            { 
+              backgroundColor: isDarkMode ? '#1a1a1a' : '#e0e0e0',
+              borderWidth: 1,
+              borderColor: isDarkMode ? '#333333' : '#cccccc'
+            }
+          ]} 
+        >
+          {/* Map grid lines to make it look more like a map */}
+          <View style={styles.mapGridContainer}>
+            {/* Horizontal grid lines */}
+            {Array(5).fill(0).map((_, i) => (
+              <View 
+                key={`h-${i}`} 
+                style={[
+                  styles.mapGridLineH, 
+                  { 
+                    backgroundColor: isDarkMode ? '#333333' : '#cccccc',
+                    top: `${(i + 1) * 20}%`
+                  }
+                ]} 
+              />
+            ))}
+            
+            {/* Vertical grid lines */}
+            {Array(5).fill(0).map((_, i) => (
+              <View 
+                key={`v-${i}`} 
+                style={[
+                  styles.mapGridLineV, 
+                  { 
+                    backgroundColor: isDarkMode ? '#333333' : '#cccccc',
+                    left: `${(i + 1) * 20}%`
+                  }
+                ]} 
+              />
+            ))}
+            
+            {/* Main roads */}
+            <View style={[styles.mapRoad, { 
+              top: '30%', 
+              left: '10%', 
+              width: '80%', 
+              height: 8,
+              backgroundColor: isDarkMode ? '#444444' : '#bbbbbb'
+            }]} />
+            <View style={[styles.mapRoad, { 
+              top: '10%', 
+              left: '50%', 
+              width: 8, 
+              height: '80%',
+              backgroundColor: isDarkMode ? '#444444' : '#bbbbbb'
+            }]} />
+            
+            {/* Secondary roads */}
+            <View style={[styles.mapRoad, { 
+              top: '60%', 
+              left: '20%', 
+              width: '60%', 
+              height: 4,
+              backgroundColor: isDarkMode ? '#3a3a3a' : '#cccccc'
+            }]} />
+            <View style={[styles.mapRoad, { 
+              top: '20%', 
+              left: '25%', 
+              width: 4, 
+              height: '40%',
+              backgroundColor: isDarkMode ? '#3a3a3a' : '#cccccc'
+            }]} />
+            <View style={[styles.mapRoad, { 
+              top: '70%', 
+              left: '70%', 
+              width: 4, 
+              height: '20%',
+              backgroundColor: isDarkMode ? '#3a3a3a' : '#cccccc'
+            }]} />
+            
+            {/* Parks/Green areas */}
+            <View style={[styles.mapPark, { 
+              top: '15%', 
+              left: '15%', 
+              width: '20%', 
+              height: '15%',
+              backgroundColor: isDarkMode ? '#2d3b2d' : '#c8e6c9'
+            }]} />
+            <View style={[styles.mapPark, { 
+              top: '65%', 
+              left: '75%', 
+              width: '15%', 
+              height: '15%',
+              backgroundColor: isDarkMode ? '#2d3b2d' : '#c8e6c9'
+            }]} />
+            
+            {/* Water */}
+            <View style={[styles.mapWater, { 
+              top: '40%', 
+              left: '70%', 
+              width: '25%', 
+              height: '20%',
+              backgroundColor: isDarkMode ? '#1a3045' : '#bbdefb'
+            }]} />
+            
+            {/* City labels */}
+            <View style={[styles.mapCityLabel, { top: '25%', left: '30%' }]}>
+              <Text style={[styles.mapCityText, { color: isDarkMode ? '#ffffff' : '#000000' }]}>
+                Murcia
+              </Text>
+            </View>
+            <View style={[styles.mapCityLabel, { top: '45%', left: '60%' }]}>
+              <Text style={[styles.mapCityText, { color: isDarkMode ? '#ffffff' : '#000000' }]}>
+                Cartagena
+              </Text>
+            </View>
+            <View style={[styles.mapCityLabel, { top: '15%', left: '70%' }]}>
+              <Text style={[styles.mapCityText, { color: isDarkMode ? '#ffffff' : '#000000' }]}>
+                Alicante
+              </Text>
+            </View>
+            <View style={[styles.mapCityLabel, { top: '75%', left: '40%' }]}>
+              <Text style={[styles.mapCityText, { color: isDarkMode ? '#ffffff' : '#000000' }]}>
+                Almería
+              </Text>
+            </View>
+            
+            {/* User location */}
+            {hasLocationPermission && (
+              <View style={[styles.userLocationMarker, { top: '25%', left: '30%' }]}>
+                <View style={styles.userLocationDot} />
+                <View style={styles.userLocationRing} />
               </View>
-            </Marker>
-          );
-        })}
-      </MapView>
+            )}
+          </View>
+        </View>
+        {renderMapMarkers()}
+      </Animated.View>
       
       {/* Locate Me FAB */}
       <TouchableOpacity 
@@ -384,17 +502,81 @@ const CafesListScreen = ({ navigation, route }) => {
         />
       </TouchableOpacity>
       
-      {/* Bottom Sheet */}
-      <BottomSheet
-        ref={bottomSheetRef}
-        index={0}
-        snapPoints={snapPoints}
-        backgroundStyle={{ backgroundColor: theme.background }}
-        handleIndicatorStyle={{ backgroundColor: theme.secondaryText }}
+      {/* Custom Bottom Sheet */}
+      <Animated.View 
+        style={[
+          styles.bottomSheet, 
+          { 
+            height: bottomSheetHeight,
+            backgroundColor: theme.background,
+            paddingBottom: insets.bottom
+          }
+        ]}
       >
-        {renderBottomSheetContent()}
-      </BottomSheet>
-    </GestureHandlerRootView>
+        {/* Handle bar for dragging */}
+        <View 
+          {...panResponder.panHandlers}
+          style={styles.handleBarContainer}
+        >
+          <View style={[styles.handleBar, { backgroundColor: theme.secondaryText }]} />
+        </View>
+        
+        {/* Content */}
+        <View style={styles.bottomSheetContent}>
+          {/* Header */}
+          <View style={styles.sheetHeader}>
+            <Text style={[styles.sheetTitle, { color: theme.primaryText }]}>
+              {filteredCafes.length} Cafés Found
+            </Text>
+          </View>
+          
+          {/* Filters */}
+          <View style={styles.filtersContainer}>
+            <TouchableOpacity 
+              style={[styles.filterButton, { backgroundColor: theme.cardBackground }]}
+              onPress={() => {
+                // Simple city cycle for demo
+                const cities = ['All Cities', 'Madrid', 'Murcia', 'Barcelona', 'Málaga'];
+                const currentIndex = cities.indexOf(selectedCity);
+                const nextIndex = (currentIndex + 1) % cities.length;
+                handleCitySelect(cities[nextIndex]);
+              }}
+            >
+              <Ionicons name="location-outline" size={20} color={theme.primaryText} />
+              <Text style={[styles.filterText, { color: theme.primaryText }]}>{selectedCity}</Text>
+              <Ionicons name="chevron-down" size={16} color={theme.primaryText} />
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[
+                styles.filterButton,
+                { backgroundColor: theme.cardBackground },
+                isOpenNowEnabled && { backgroundColor: theme.primaryText }
+              ]}
+              onPress={() => setIsOpenNowEnabled(!isOpenNowEnabled)}
+            >
+              <Text style={[
+                styles.filterText,
+                { color: theme.primaryText },
+                isOpenNowEnabled && { color: theme.background }
+              ]}>
+                Open Now
+              </Text>
+            </TouchableOpacity>
+          </View>
+          
+          {/* Cafe List */}
+          <FlatList
+            data={filteredCafes}
+            renderItem={renderCafeItem}
+            keyExtractor={item => item.id}
+            showsVerticalScrollIndicator={false}
+            style={styles.cafesList}
+            contentContainerStyle={styles.cafesListContent}
+          />
+        </View>
+      </Animated.View>
+    </View>
   );
 };
 
@@ -402,23 +584,37 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  map: {
+  mapContainer: {
     flex: 1,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
-  markerContainer: {
+  mapImage: {
+    width: '100%',
+    height: '100%',
+  },
+  mapMarker: {
+    position: 'absolute',
+    width: 32,
+    height: 32,
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  marker: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  markerInner: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
     borderColor: '#FFFFFF',
   },
-  selectedMarker: {
+  selectedMapMarker: {
     transform: [{ scale: 1.2 }],
+    zIndex: 10,
   },
   locateMeButton: {
     position: 'absolute',
@@ -434,18 +630,35 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
+    zIndex: 10,
   },
-  bottomSheetContent: {
-    flex: 1,
-    paddingHorizontal: 16,
+  bottomSheet: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.27,
+    shadowRadius: 4.65,
+    elevation: 6,
+    zIndex: 10,
+  },
+  handleBarContainer: {
+    height: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   handleBar: {
     width: 40,
     height: 4,
     borderRadius: 2,
-    alignSelf: 'center',
-    marginTop: 8,
-    marginBottom: 16,
+  },
+  bottomSheetContent: {
+    flex: 1,
+    paddingHorizontal: 16,
   },
   sheetHeader: {
     marginBottom: 16,
@@ -474,11 +687,13 @@ const styles = StyleSheet.create({
   cafesList: {
     flex: 1,
   },
+  cafesListContent: {
+    paddingBottom: 20,
+  },
   cafeCard: {
     borderRadius: 12,
     marginBottom: 16,
     overflow: 'hidden',
-    borderWidth: 1,
   },
   cafeImage: {
     width: '100%',
@@ -544,6 +759,70 @@ const styles = StyleSheet.create({
   reviewCount: {
     fontSize: 12,
     marginLeft: 4,
+  },
+  mapGridContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  mapGridLineH: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    height: 1,
+    opacity: 0.3,
+  },
+  mapGridLineV: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    width: 1,
+    opacity: 0.3,
+  },
+  mapRoad: {
+    position: 'absolute',
+    borderRadius: 2,
+  },
+  mapPark: {
+    position: 'absolute',
+    borderRadius: 8,
+  },
+  mapWater: {
+    position: 'absolute',
+    borderRadius: 12,
+  },
+  mapCityLabel: {
+    position: 'absolute',
+    backgroundColor: 'transparent',
+    padding: 2,
+  },
+  mapCityText: {
+    fontSize: 10,
+    fontWeight: '500',
+  },
+  userLocationMarker: {
+    position: 'absolute',
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  userLocationDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#4285F4',
+  },
+  userLocationRing: {
+    position: 'absolute',
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#4285F4',
+    opacity: 0.5,
   },
 });
 
