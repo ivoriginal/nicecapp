@@ -585,14 +585,16 @@ export default function RecipeDetailScreen() {
          (event.coffeeName === recipe.coffeeName && event.brewingMethod === recipe.method))
       );
       
-      // Check if user has already rated this recipe
-      const userHasRated = recipe.userRatings && recipe.userRatings[currentUserId];
-      const userRatedInModal = userRating > 0;
+      // Show the rating buttons if the user has logged the recipe. They should not disappear after rating.
+      setShowHowWasItRating(userLoggedThisRecipe);
       
-      // Show "How was it?" UI if user logged but hasn't rated
-      setShowHowWasItRating(userLoggedThisRecipe && !userHasRated && !userRatedInModal);
+      // If the user has rated this recipe before, pre-fill their rating
+      const userHasRated = recipe.userRatings && recipe.userRatings[currentUserId];
+      if (userHasRated) {
+        setUserRating(userHasRated.rating);
+      }
     }
-  }, [recipe, currentUserId, userRating]);
+  }, [recipe, currentUserId]);
 
   // Show rating modal when coming from a rating reminder notification
   useEffect(() => {
@@ -868,16 +870,20 @@ export default function RecipeDetailScreen() {
 
 
 
-  const handleRatingSubmit = () => {
-    if (userRating === 0) return;
+  const handleRatingSubmit = async () => {
+    // If userRating is 0, it means we're deselecting the current rating
+    const newRating = userRating === 0 ? 0 : userRating;
+
+    const previousRatingData = recipe.userRatings?.[currentUserId];
+    const previousRatingValue = previousRatingData?.rating;
     
     // Update the recipe with the user's rating
     const updatedRecipe = {
       ...recipe,
       userRatings: {
         ...recipe.userRatings,
-        [currentUserId]: {
-          rating: userRating,
+        [currentUserId]: newRating === 0 ? null : {
+          rating: newRating,
           notes: userNotes,
           timestamp: new Date().toISOString()
         }
@@ -885,23 +891,30 @@ export default function RecipeDetailScreen() {
     };
     
     if (updateRecipe) {
-      updateRecipe(updatedRecipe);
-      setRecipe(updatedRecipe);
+      try {
+        await updateRecipe(updatedRecipe);
+        setRecipe(updatedRecipe);
+        
+        // Recalculate most popular rating
+        if (previousRatingValue) {
+          // User is changing their rating
+          const newTotalRating = (averageRating * ratingCount) - previousRatingValue + newRating;
+          const newAverageRating = ratingCount > 0 ? newTotalRating / ratingCount : 0;
+          setAverageRating(newAverageRating);
+        } else if (newRating > 0) {
+          // User is rating for the first time
+          const newRatingCount = ratingCount + 1;
+          const newTotalRating = (averageRating * ratingCount) + newRating;
+          const newAverageRating = newRatingCount > 0 ? newTotalRating / newRatingCount : 0;
+          setAverageRating(newAverageRating);
+          setRatingCount(newRatingCount);
+        }
+      } catch (error) {
+        console.error('Error updating recipe rating:', error);
+        // Revert the rating if the update failed
+        setUserRating(previousRatingValue || 0);
+      }
     }
-    
-    // Recalculate most popular rating
-    const newRatingCount = ratingCount + 1;
-    const newTotalRating = (averageRating * ratingCount) + userRating;
-    const newAverageRating = newTotalRating / newRatingCount;
-    
-    setAverageRating(newAverageRating);
-    setRatingCount(newRatingCount);
-    
-    // Reset form
-    setUserNotes('');
-    
-    // Show success toast
-    showToast('Rating submitted successfully');
   };
 
   const navigateToOriginalRecipe = () => {
@@ -1104,7 +1117,12 @@ export default function RecipeDetailScreen() {
         onRequestClose={() => {}} // Non-dismissible
       >
         <View style={styles.ratingModalOverlay}>
-          <View style={[styles.ratingModalContent, { backgroundColor: isDarkMode ? theme.altBackground : '#f4f4f4', paddingBottom: insets.bottom }]}>
+          <View
+            style={[
+              styles.ratingModalContent,
+              { backgroundColor: isDarkMode ? theme.altBackground : '#f4f4f4', paddingBottom: insets.bottom },
+            ]}
+          >
             <View style={[styles.ratingModalHeader, { backgroundColor: isDarkMode ? theme.altBackground : '#f4f4f4', borderBottomColor: theme.border }]}>
               <Text style={[styles.ratingModalTitle, { color: theme.primaryText }]}>How was this brew?</Text>
               <Text style={[styles.ratingModalSubtitle, { color: theme.secondaryText }]}>
@@ -1118,23 +1136,32 @@ export default function RecipeDetailScreen() {
                   style={[
                     styles.brewRatingButton, 
                     userRating === 3 && styles.brewRatingButtonSelected,
-                    { backgroundColor: isDarkMode ? theme.cardBackground : theme.background, borderColor: userRating === 3 ? "#4CAF50" : "transparent" }
+                    { 
+                      backgroundColor: isDarkMode ? theme.cardBackground : theme.background, 
+                      borderColor: userRating === 3 ? theme.primaryText : "transparent" 
+                    }
                   ]}
                   onPress={() => {
-                    setUserRating(3);
-                    setTimeout(() => {
+                    const newRating = userRating === 3 ? 0 : 3;
+                    setUserRating(newRating);
+                    if (newRating > 0) {
                       handleRatingSubmit();
                       setShowRatingModal(false);
-                      // Remove any existing rate reminders for this recipe
                       removeRateReminder(recipe?.id, 'user1');
-                    }, 100);
+                    }
                   }}
                 >
-                  <MaterialCommunityIcons name={userRating === 3 ? "thumb-up" : "thumb-up-outline"} size={24} color={userRating === 3 ? "#4CAF50" : theme.secondaryText} />
+                  <MaterialCommunityIcons 
+                    name={userRating === 3 ? "thumb-up" : "thumb-up-outline"} 
+                    size={24} 
+                    color={userRating === 3 ? theme.primaryText : theme.secondaryText} 
+                  />
                   <Text style={[
                     styles.brewRatingText,
-                    userRating === 3 && { color: "#4CAF50", fontWeight: '600' },
-                    { color: userRating === 3 ? "#4CAF50" : theme.secondaryText }
+                    { 
+                      color: userRating === 3 ? theme.primaryText : theme.secondaryText,
+                      fontWeight: userRating === 3 ? '600' : '400'
+                    }
                   ]}>Good</Text>
                 </TouchableOpacity>
                 
@@ -1142,23 +1169,32 @@ export default function RecipeDetailScreen() {
                   style={[
                     styles.brewRatingButton,
                     userRating === 2 && styles.brewRatingButtonSelected,
-                    { backgroundColor: isDarkMode ? theme.cardBackground : theme.background, borderColor: userRating === 2 ? "#FF9800" : "transparent" }
+                    { 
+                      backgroundColor: isDarkMode ? theme.cardBackground : theme.background, 
+                      borderColor: userRating === 2 ? theme.primaryText : "transparent" 
+                    }
                   ]}
                   onPress={() => {
-                    setUserRating(2);
-                    setTimeout(() => {
+                    const newRating = userRating === 2 ? 0 : 2;
+                    setUserRating(newRating);
+                    if (newRating > 0) {
                       handleRatingSubmit();
                       setShowRatingModal(false);
-                      // Remove any existing rate reminders for this recipe
                       removeRateReminder(recipe?.id, 'user1');
-                    }, 100);
+                    }
                   }}
                 >
-                  <MaterialCommunityIcons name={userRating === 2 ? "emoticon-neutral" : "emoticon-neutral-outline"} size={24} color={userRating === 2 ? "#FF9800" : theme.secondaryText} />
+                  <MaterialCommunityIcons 
+                    name={userRating === 2 ? "emoticon-neutral" : "emoticon-neutral-outline"} 
+                    size={24} 
+                    color={userRating === 2 ? theme.primaryText : theme.secondaryText} 
+                  />
                   <Text style={[
                     styles.brewRatingText,
-                    userRating === 2 && { color: "#FF9800", fontWeight: '600' },
-                    { color: userRating === 2 ? "#FF9800" : theme.secondaryText }
+                    { 
+                      color: userRating === 2 ? theme.primaryText : theme.secondaryText,
+                      fontWeight: userRating === 2 ? '600' : '400'
+                    }
                   ]}>Meh</Text>
                 </TouchableOpacity>
                 
@@ -1166,23 +1202,32 @@ export default function RecipeDetailScreen() {
                   style={[
                     styles.brewRatingButton,
                     userRating === 1 && styles.brewRatingButtonSelected,
-                    { backgroundColor: isDarkMode ? theme.cardBackground : theme.background, borderColor: userRating === 1 ? "#F44336" : "transparent" }
+                    { 
+                      backgroundColor: isDarkMode ? theme.cardBackground : theme.background, 
+                      borderColor: userRating === 1 ? theme.primaryText : "transparent" 
+                    }
                   ]}
                   onPress={() => {
-                    setUserRating(1);
-                    setTimeout(() => {
+                    const newRating = userRating === 1 ? 0 : 1;
+                    setUserRating(newRating);
+                    if (newRating > 0) {
                       handleRatingSubmit();
                       setShowRatingModal(false);
-                      // Remove any existing rate reminders for this recipe
                       removeRateReminder(recipe?.id, 'user1');
-                    }, 100);
+                    }
                   }}
                 >
-                  <MaterialCommunityIcons name={userRating === 1 ? "thumb-down" : "thumb-down-outline"} size={24} color={userRating === 1 ? "#F44336" : theme.secondaryText} />
+                  <MaterialCommunityIcons 
+                    name={userRating === 1 ? "thumb-down" : "thumb-down-outline"} 
+                    size={24} 
+                    color={userRating === 1 ? theme.primaryText : theme.secondaryText} 
+                  />
                   <Text style={[
                     styles.brewRatingText,
-                    userRating === 1 && { color: "#F44336", fontWeight: '600' },
-                    { color: userRating === 1 ? "#F44336" : theme.secondaryText }
+                    { 
+                      color: userRating === 1 ? theme.primaryText : theme.secondaryText,
+                      fontWeight: userRating === 1 ? '600' : '400'
+                    }
                   ]}>Bad</Text>
                 </TouchableOpacity>
               </View>
@@ -1390,136 +1435,167 @@ export default function RecipeDetailScreen() {
                 </TouchableOpacity>
                           </View>
 
-            {/* Who tried it section - moved outside the container */}
+                          {/* Who tried it section - moved outside the container */}
             <View style={[
               styles.whoTriedOuterContainer,
               { backgroundColor: theme.background, marginTop: 16 }
             ]}>
               <View style={[styles.whoTriedContainer, { backgroundColor: theme.background }]}>
-                {(logCount > 0 || (recipe.loggedUsers && recipe.loggedUsers.length > 0)) ? (
-                  <>
-                    {/* Left side - Avatars and logs count */}
-                    <View style={[styles.whoTriedGroup, { backgroundColor: theme.background }]}>
-                      <View style={[styles.avatarRow, { backgroundColor: theme.background }]}>
-                        {/* Render up to 3 sample avatars - in real app, these would come from the API */}
+                {/* Always show the logs section, even if there are no logs yet */}
+                <>
+                  {/* Left side - Avatars and logs count */}
+                  <View style={[styles.whoTriedGroup, { backgroundColor: theme.background }]}>
+                    <View style={[styles.avatarRow, { backgroundColor: theme.background }]}>
+                      {/* Render up to 3 sample avatars - in real app, these would come from the API */}
+                      {(logCount > 0 || (recipe.loggedUsers && recipe.loggedUsers.length > 0)) && (
                         <View style={[styles.triedAvatar, { zIndex: 5, backgroundColor: theme.background }]}>
                           <AppImage 
                             source="https://randomuser.me/api/portraits/women/33.jpg" 
                             style={[styles.triedAvatarImage, { borderColor: theme.border }]} 
                           />
                         </View>
-                        {(logCount >= 2 || (recipe.loggedUsers && recipe.loggedUsers.length >= 2)) && (
-                          <View style={[styles.triedAvatar, { zIndex: 4, marginLeft: -10, backgroundColor: theme.background }]}>
-                            <AppImage 
-                              source="https://randomuser.me/api/portraits/men/45.jpg" 
-                              style={[styles.triedAvatarImage, { borderColor: theme.border }]} 
-                            />
-                          </View>
-                        )}
-                        {(logCount >= 3 || (recipe.loggedUsers && recipe.loggedUsers.length >= 3)) && (
-                          <View style={[styles.triedAvatar, { zIndex: 3, marginLeft: -10, backgroundColor: theme.background }]}>
-                            <AppImage 
-                              source="https://randomuser.me/api/portraits/women/68.jpg" 
-                              style={[styles.triedAvatarImage, { borderColor: theme.border }]} 
-                            />
-                          </View>
-                        )}
+                      )}
+                      {(logCount >= 2 || (recipe.loggedUsers && recipe.loggedUsers.length >= 2)) && (
+                        <View style={[styles.triedAvatar, { zIndex: 4, marginLeft: -10, backgroundColor: theme.background }]}>
+                          <AppImage 
+                            source="https://randomuser.me/api/portraits/men/45.jpg" 
+                            style={[styles.triedAvatarImage, { borderColor: theme.border }]} 
+                          />
+                        </View>
+                      )}
+                      {(logCount >= 3 || (recipe.loggedUsers && recipe.loggedUsers.length >= 3)) && (
+                        <View style={[styles.triedAvatar, { zIndex: 3, marginLeft: -10, backgroundColor: theme.background }]}>
+                          <AppImage 
+                            source="https://randomuser.me/api/portraits/women/68.jpg" 
+                            style={[styles.triedAvatarImage, { borderColor: theme.border }]} 
+                          />
+                        </View>
+                      )}
+                    </View>
+                    <Text style={[styles.whoTriedText, { color: theme.primaryText }]}>
+                      {logCount === 0 && (!recipe.loggedUsers || recipe.loggedUsers.length === 0) ? 
+                        "No logs" :
+                        (logCount === 1 || (recipe.loggedUsers && recipe.loggedUsers.length === 1)) ? 
+                        "1 log" : 
+                        `${safeRender(logCount || recipe.loggedUsers?.length)} logs`}
+                    </Text>
+                  </View>
+                  
+                  {/* Right side - Rating */}
+                  <View style={[styles.ratingRightContainer, { backgroundColor: theme.background }]}>
+                    {/* Show user's rating after they've rated */}
+                    {userRating > 0 && (
+                      <View style={[styles.popularRatingContainer, { backgroundColor: theme.background }]}>
+                        <MaterialCommunityIcons 
+                          name={getRatingIcon(userRating * 33.33)} 
+                          size={16} 
+                          color={theme.primaryText} 
+                        />
+                        <Text style={[styles.popularRatingText, { color: theme.secondaryText }]}>
+                          {`${getRatingDescription(userRating * 33.33)} · ${Math.round(userRating * 33.33)}%`}
+                        </Text>
                       </View>
-                      <Text style={[styles.whoTriedText, { color: theme.primaryText }]}>
-                        {logCount === 0 && (!recipe.loggedUsers || recipe.loggedUsers.length === 0) ? 
-                          "No logs" :
-                          (logCount === 1 || (recipe.loggedUsers && recipe.loggedUsers.length === 1)) ? 
-                          "1 log" : 
-                          `${safeRender(logCount || recipe.loggedUsers?.length)} logs`}
-                      </Text>
-                    </View>
-                    
-                    {/* Right side - Rating */}
-                    <View style={[styles.ratingRightContainer, { backgroundColor: theme.background }]}>
-                      {/* Show user's rating after they've rated */}
-                      {userRating > 0 && (
-                        <View style={[styles.popularRatingContainer, { backgroundColor: theme.background }]}>
-                          <MaterialCommunityIcons 
-                            name={getRatingIcon(100)} 
-                            size={16} 
-                            color={theme.primaryText} 
-                          />
-                          <Text style={[styles.popularRatingText, { color: theme.secondaryText }]}>
-                            {getRatingDescription(100)}
-                          </Text>
-                        </View>
-                      )}
-                      {/* Show most popular rating from existing data if user hasn't rated */}
-                      {userRating === 0 && mostPopularRating && (
-                        <View style={[styles.popularRatingContainer, { backgroundColor: theme.background }]}>
-                          <MaterialCommunityIcons 
-                            name={getRatingIcon(ratingPercentage)} 
-                            size={16} 
-                            color={theme.primaryText} 
-                          />
-                          <Text style={[styles.popularRatingText, { color: theme.secondaryText }]}>
-                            {getRatingDescription(ratingPercentage)}
-                          </Text>
-                        </View>
-                      )}
-                      {/* Show "No ratings yet" when there are no ratings */}
-                      {userRating === 0 && !mostPopularRating && (
-                        <View style={[styles.popularRatingContainer, { backgroundColor: theme.background }]}>
-                          <Text style={[styles.popularRatingText, { color: theme.secondaryText }]}>
-                            No ratings yet
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-                  </>
-                ) : null}
+                    )}
+                    {/* Show most popular rating from existing data if user hasn't rated */}
+                    {userRating === 0 && mostPopularRating && (
+                      <View style={[styles.popularRatingContainer, { backgroundColor: theme.background }]}>
+                        <MaterialCommunityIcons 
+                          name={getRatingIcon(ratingPercentage > 0 ? ratingPercentage : 100)} 
+                          size={16} 
+                          color={theme.primaryText} 
+                        />
+                        <Text style={[styles.popularRatingText, { color: theme.secondaryText }]}> 
+                          {`${getRatingDescription(ratingPercentage > 0 ? ratingPercentage : 100)} · ${(ratingPercentage > 0 ? ratingPercentage : 100)}%`}
+                        </Text>
+                      </View>
+                    )}
+                    {/* Show "No ratings yet" when there are no ratings */}
+                    {userRating === 0 && !mostPopularRating && (
+                      <View style={[styles.popularRatingContainer, { backgroundColor: theme.background }]}>
+                        <Text style={[styles.popularRatingText, { color: theme.secondaryText }]}>
+                          No ratings yet
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                </>
               </View>
               
-              {/* How was it? Rating UI - show when user has logged but not rated */}
+              {/* How was it? Rating UI - always show for logged recipes that haven't been rated */}
               {showHowWasItRating && (
                 <View style={[styles.howWasItContainer, { backgroundColor: theme.cardBackground, borderRadius: 50 }]}>
                   <View style={[styles.howWasItRatingRow, { backgroundColor: theme.cardBackground }]}>
                     <TouchableOpacity
-                      style={[styles.howWasItRatingButton, { backgroundColor: theme.cardBackground }]}
-                      onPress={() => {
-                        setUserRating(3);
-                        handleRatingSubmit();
-                        setShowHowWasItRating(false);
-                        // Remove any existing rate reminders for this recipe
-                        removeRateReminder(recipe?.id, 'user1');
+                      style={[
+                        styles.howWasItRatingButton, 
+                        { backgroundColor: theme.cardBackground }
+                      ]}
+                      onPress={async () => {
+                        const newRating = userRating === 3 ? 0 : 3;
+                        setUserRating(newRating);
+                        try {
+                          await handleRatingSubmit();
+                        } catch (error) {
+                          console.error('Failed to update rating:', error);
+                          // Rating will be reverted in handleRatingSubmit if it fails
+                        }
                       }}
                     >
-                      <MaterialCommunityIcons name="thumb-up-outline" size={24} color={theme.primaryText} />
+                      <MaterialCommunityIcons 
+                        name={userRating === 3 ? "thumb-up" : "thumb-up-outline"} 
+                        size={24} 
+                        color={userRating === 3 ? theme.primaryText : theme.secondaryText} 
+                      />
                     </TouchableOpacity>
                     
                     <View style={[styles.howWasItDivider, { backgroundColor: theme.border }]} />
                     
                     <TouchableOpacity
-                      style={[styles.howWasItRatingButton, { backgroundColor: theme.cardBackground }]}
-                      onPress={() => {
-                        setUserRating(2);
-                        handleRatingSubmit();
-                        setShowHowWasItRating(false);
-                        // Remove any existing rate reminders for this recipe
-                        removeRateReminder(recipe?.id, 'user1');
+                      style={[
+                        styles.howWasItRatingButton, 
+                        { backgroundColor: theme.cardBackground }
+                      ]}
+                      onPress={async () => {
+                        const newRating = userRating === 2 ? 0 : 2;
+                        setUserRating(newRating);
+                        try {
+                          await handleRatingSubmit();
+                        } catch (error) {
+                          console.error('Failed to update rating:', error);
+                          // Rating will be reverted in handleRatingSubmit if it fails
+                        }
                       }}
                     >
-                      <MaterialCommunityIcons name="emoticon-neutral-outline" size={24} color={theme.primaryText} />
+                      <MaterialCommunityIcons 
+                        name={userRating === 2 ? "emoticon-neutral" : "emoticon-neutral-outline"} 
+                        size={24} 
+                        color={userRating === 2 ? theme.primaryText : theme.secondaryText} 
+                      />
                     </TouchableOpacity>
                     
                     <View style={[styles.howWasItDivider, { backgroundColor: theme.border }]} />
                     
                     <TouchableOpacity
-                      style={[styles.howWasItRatingButton, { backgroundColor: theme.cardBackground }]}
-                      onPress={() => {
-                        setUserRating(1);
-                        handleRatingSubmit();
-                        setShowHowWasItRating(false);
-                        // Remove any existing rate reminders for this recipe
-                        removeRateReminder(recipe?.id, 'user1');
+                      style={[
+                        styles.howWasItRatingButton, 
+                        { backgroundColor: theme.cardBackground }
+                      ]}
+                      onPress={async () => {
+                        const newRating = userRating === 1 ? 0 : 1;
+                        setUserRating(newRating);
+                        try {
+                          await handleRatingSubmit();
+                        } catch (error) {
+                          console.error('Failed to update rating:', error);
+                          // Rating will be reverted in handleRatingSubmit if it fails
+                        }
                       }}
                     >
-                      <MaterialCommunityIcons name="thumb-down-outline" size={24} color={theme.primaryText} />
+                      <MaterialCommunityIcons 
+                        name={userRating === 1 ? "thumb-down" : "thumb-down-outline"} 
+                        size={24} 
+                        color={userRating === 1 ? theme.primaryText : theme.secondaryText} 
+                      />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -1881,6 +1957,7 @@ const styles = StyleSheet.create({
 
   recipeHeader: {
     paddingVertical: 16,
+    paddingHorizontal: 16,
     backgroundColor: '#FFFFFF',
   },
 
@@ -2563,11 +2640,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.3)',
     justifyContent: 'flex-end',
+    pointerEvents: 'box-none',
   },
   ratingModalContent: {
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     // minHeight: 280,
+    pointerEvents: 'auto',
   },
   ratingModalHeader: {
     borderTopLeftRadius: 20,
@@ -2603,6 +2682,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
     borderRadius: 12,
     borderWidth: 2,
+    pointerEvents: 'auto',
   },
   brewRatingButtonSelected: {
     borderWidth: 2,
@@ -2645,6 +2725,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     // marginTop: 12,
     borderWidth: 1,
+    pointerEvents: 'auto',
   },
   remindLaterButtonText: {
     fontSize: 16,
