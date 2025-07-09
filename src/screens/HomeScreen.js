@@ -171,10 +171,17 @@ export default function HomeScreen({ navigation }) {
       navigation.navigate('Profile');
       return;
     }
+
+    // Try to find a matching user ID format if the event uses a different format
+    let userId = event.userId;
+    if (event.userName) {
+      // If we have a userName, use it as a fallback
+      userId = event.userId || event.userName;
+    }
     
     // For other users, navigate directly to UserProfileScreen instead of UserProfileBridge
     navigation.navigate('UserProfileScreen', { 
-      userId: event.userId,
+      userId: userId,
       userName: event.userName,
       userAvatar: event.userAvatar,
       isBusinessAccount: event.isBusinessAccount || false,
