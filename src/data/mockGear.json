@@ -1,28 +1,52 @@
 {
   "gear": [
     {
-      "id": "gear1",
-      "name": "Fellow Stagg EKG",
-      "type": "Kettle",
-      "brand": "Fellow",
-      "price": 170,
-      "description": "Electric pour-over kettle with variable temperature control, 1200 watt quick-heating element, and a precision pour spout. Perfect for pour-over coffee brewing.",
-      "features": [
-        "Variable temperature control (40-100°C)",
-        "1200 watt heating element",
-        "Hold mode keeps water at your set temperature for 60 minutes",
-        "LCD display",
-        "Precision pour spout",
-        "Swan neck for controlled pouring",
-        "Elegant design with matte black finish"
-      ],
+      "id": "aeropress",
+      "type": "Brewer",
+      "name": "AeroPress",
+      "brand": "AeroPress",
+      "category": "Brewers",
+      "price": 29.99,
+      "imageUrl": "https://m.media-amazon.com/images/I/71pxZkT0rVL.jpg",
+      "description": "The original AeroPress coffee maker - Makes delicious coffee without bitterness",
       "rating": 4.8,
-      "reviewCount": 1245,
-      "imageUrl": "https://hola.coffee/cdn/shop/files/FELLOW-STAGG_1024x1024@2x.jpg?v=1732719228",
-      "relatedGear": [
-        "gear4",
-        "gear5"
-      ]
+      "reviewCount": 2345
+    },
+    {
+      "id": "chemex",
+      "type": "Brewer",
+      "name": "Chemex",
+      "brand": "Chemex",
+      "category": "Brewers",
+      "price": 44.99,
+      "imageUrl": "https://static.fnac-static.com/multimedia/Images/ES/NR/ac/87/6d/7178156/1541-1.jpg",
+      "description": "Classic 6-cup Chemex coffee maker - Elegant design and pure flavor",
+      "rating": 4.7,
+      "reviewCount": 1876
+    },
+    {
+      "id": "hario-v60",
+      "type": "Brewer",
+      "name": "Hario V60",
+      "brand": "Hario",
+      "category": "Brewers",
+      "price": 24.99,
+      "imageUrl": "https://m.media-amazon.com/images/I/61qKb8xxTdL.jpg",
+      "description": "Ceramic coffee dripper that produces clean, flavorful coffee",
+      "rating": 4.6,
+      "reviewCount": 2103
+    },
+    {
+      "id": "fellow-stagg",
+      "type": "Kettle",
+      "name": "Fellow Stagg EKG",
+      "brand": "Fellow",
+      "category": "Kettles",
+      "price": 159.99,
+      "imageUrl": "https://m.media-amazon.com/images/I/71Iw1eak-ZL.jpg",
+      "description": "Electric pour-over kettle with variable temperature control",
+      "rating": 4.9,
+      "reviewCount": 1543
     },
     {
       "id": "gear2",
