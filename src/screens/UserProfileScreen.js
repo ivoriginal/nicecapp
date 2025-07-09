@@ -67,7 +67,32 @@ const getMockUserFallback = (userId) => {
     console.warn('mockUsersData is not available');
     return null;
   }
-  return mockUsersData.users.find(u => u.id === userId);
+
+  // First try exact match
+  let user = mockUsersData.users.find(u => u.id === userId);
+  
+  if (!user) {
+    // Try matching by userName (some events might pass the name instead of ID)
+    user = mockUsersData.users.find(u => 
+      u.userName === userId || 
+      u.userName.toLowerCase() === userId.toLowerCase()
+    );
+  }
+
+  if (!user) {
+    // Try matching by handle without @ symbol
+    user = mockUsersData.users.find(u => 
+      u.handle === userId ||
+      u.handle.replace('@', '') === userId.replace('@', '')
+    );
+  }
+
+  if (!user) {
+    console.warn(`User not found in mock data. Searched for ID: ${userId}`);
+    return null;
+  }
+
+  return user;
 };
 
 // After imports, add a helper function for gear images
@@ -797,8 +822,9 @@ export default function UserProfileScreen() {
       onOptionsPress={handleOptionsPress}
       onLikePress={handleLikePress}
       currentUserId={currentAccount}
+      hideFollowButton={true}
       containerStyle={{
-        marginBottom: index === userCoffees.length - 1 ? 0 : 8
+        // marginBottom: index === userLogs.length - 1 ? 0 : 8
       }}
     />
   );
@@ -1816,7 +1842,7 @@ export default function UserProfileScreen() {
                       currentUserId={currentAccount}
                       hideFollowButton={true}
                       containerStyle={{
-                        marginBottom: index === userLogs.length - 1 ? 0 : 8
+                        // marginBottom: index === userLogs.length - 1 ? 0 : 8
                       }}
                     />
                     ))
