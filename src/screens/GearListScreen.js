@@ -15,8 +15,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
-import mockGear from '../data/mockGear.json';
-import gearDetails from '../data/gearDetails';
+import { supabase } from '../lib/supabase';
+
 import GearCard from '../components/GearCard';
 import AppImage from '../components/common/AppImage';
 
@@ -69,51 +69,52 @@ const GearListScreen = ({ navigation, route }) => {
   }, [filters, navigation]);
   
   useEffect(() => {
-    loadGear();
+    const fetchGear = async () => {
+      await loadGear();
+    };
+    fetchGear();
   }, [sortBy, filters]);
   
-  const loadGear = () => {
+  const loadGear = async () => {
     setLoading(true);
     
-    // Get gear from mock data
-    let gear = [...mockGear.gear];
-    
-    // Enhance gear with usedBy data from gearDetails
-    gear = gear.map(item => {
-      const detailedItem = gearDetails[item.name];
-      if (detailedItem) {
-        // More detailed debug info
-        console.log(`Enhanced gear for ${item.name}:`, {
-          hasUsedBy: !!detailedItem.usedBy,
-          usedByCount: detailedItem.usedBy ? detailedItem.usedBy.length : 0,
-          usedBySample: detailedItem.usedBy ? detailedItem.usedBy.slice(0, 1) : []
-        });
-        
-        return {
-          ...item,
-          ...detailedItem,
-          // Ensure we keep the original image if detailed item doesn't have one
-          imageUrl: detailedItem.image || item.imageUrl,
-          usedBy: detailedItem.usedBy || []
-        };
+    // Get gear from Supabase
+    let transformedGear = [];
+    try {
+      const { data: gear, error } = await supabase
+        .from('gear')
+        .select('*');
+
+      if (error) {
+        console.error('Error fetching gear:', error);
+        setGearList([]);
+        return;
       }
-      return {
+
+      // Transform the data to match our expected format
+      transformedGear = gear.map(item => ({
         ...item,
-        usedBy: []
-      };
-    });
+        type: 'gear',
+        imageUrl: item.image_url, // Map image_url to imageUrl for consistency
+        usedBy: [] // We'll implement the usedBy feature later
+      }));
+    } catch (error) {
+      console.error('Error loading gear:', error);
+      setGearList([]);
+      return;
+    }
     
     // Apply filters
     if (filters.category.length > 0) {
-      gear = gear.filter(item => filters.category.includes(item.type));
+      transformedGear = transformedGear.filter(item => filters.category.includes(item.category));
     }
     
     if (filters.brand.length > 0) {
-      gear = gear.filter(item => filters.brand.includes(item.brand));
+      transformedGear = transformedGear.filter(item => filters.brand.includes(item.brand));
     }
     
     if (filters.priceRange.length > 0) {
-      gear = gear.filter(item => {
+      transformedGear = transformedGear.filter(item => {
         return filters.priceRange.some(range => {
           if (range === 'Under €50' && item.price < 50) return true;
           if (range === '€50-€100' && item.price >= 50 && item.price < 100) return true;
@@ -126,17 +127,17 @@ const GearListScreen = ({ navigation, route }) => {
     
     // Sort gear
     if (sortBy === 'price-low') {
-      gear.sort((a, b) => a.price - b.price);
+      transformedGear.sort((a, b) => a.price - b.price);
     } else if (sortBy === 'price-high') {
-      gear.sort((a, b) => b.price - a.price);
+      transformedGear.sort((a, b) => b.price - a.price);
     } else if (sortBy === 'rating') {
-      gear.sort((a, b) => b.rating - a.rating);
+      transformedGear.sort((a, b) => (b.rating || 0) - (a.rating || 0));
     } else {
       // Default sort by popularity (review count as a proxy for popularity)
-      gear.sort((a, b) => b.reviewCount - a.reviewCount);
+      transformedGear.sort((a, b) => (b.review_count || 0) - (a.review_count || 0));
     }
     
-    setGearList(gear);
+    setGearList(transformedGear);
     setLoading(false);
   };
   
