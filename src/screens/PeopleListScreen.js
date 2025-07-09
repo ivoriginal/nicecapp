@@ -90,31 +90,53 @@ const PeopleListScreen = () => {
   // Fetch people data
   const fetchPeople = () => {
     try {
-      // Get all users from mockUsers
-      const allUsers = mockUsers.users;
-      
-      // Filter out users we already follow
-      const unfollowedUsers = allUsers.filter(user => !isFollowing(user.id));
-      
-      // Store all unfollowed users for filtering
-      setAllUnfollowedUsers(unfollowedUsers);
-      
-      // Split into new and other users
-      const now = new Date();
-      const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      
-      const newUsersList = unfollowedUsers.filter(user => {
-        const joinDate = new Date(user.joinDate || '2024-01-01');
-        return joinDate > oneWeekAgo;
-      });
-      
-      const otherUsersList = unfollowedUsers.filter(user => {
-        const joinDate = new Date(user.joinDate || '2024-01-01');
-        return joinDate <= oneWeekAgo;
-      });
+      // If we have suggestedUsers from SearchScreen, use those
+      if (route.params?.suggestedUsers) {
+        const suggestedUsers = route.params.suggestedUsers;
+        // Split into new and other users based on join date
+        const now = new Date();
+        const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        
+        const newUsersList = suggestedUsers.filter(user => {
+          const joinDate = new Date(user.created_at || '2024-01-01');
+          return joinDate > oneWeekAgo;
+        });
+        
+        const otherUsersList = suggestedUsers.filter(user => {
+          const joinDate = new Date(user.created_at || '2024-01-01');
+          return joinDate <= oneWeekAgo;
+        });
 
-      setNewUsers(newUsersList);
-      setOtherUsers(otherUsersList);
+        setNewUsers(newUsersList);
+        setOtherUsers(otherUsersList);
+        setAllUnfollowedUsers(suggestedUsers);
+      } else {
+        // Get all users from mockUsers
+        const allUsers = mockUsers.users;
+        
+        // Filter out users we already follow
+        const unfollowedUsers = allUsers.filter(user => !isFollowing(user.id));
+        
+        // Store all unfollowed users for filtering
+        setAllUnfollowedUsers(unfollowedUsers);
+        
+        // Split into new and other users
+        const now = new Date();
+        const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        
+        const newUsersList = unfollowedUsers.filter(user => {
+          const joinDate = new Date(user.joinDate || '2024-01-01');
+          return joinDate > oneWeekAgo;
+        });
+        
+        const otherUsersList = unfollowedUsers.filter(user => {
+          const joinDate = new Date(user.joinDate || '2024-01-01');
+          return joinDate <= oneWeekAgo;
+        });
+
+        setNewUsers(newUsersList);
+        setOtherUsers(otherUsersList);
+      }
     } catch (error) {
       console.error('Error fetching people:', error);
     } finally {
@@ -125,15 +147,15 @@ const PeopleListScreen = () => {
   // Load data when component mounts or following list changes
   useEffect(() => {
     fetchPeople();
-  }, [following]);
+  }, [following, route.params?.suggestedUsers]);
   
   // Filter people based on search query
   useEffect(() => {
     if (searchQuery) {
       const filtered = allUnfollowedUsers.filter(person => 
-        person.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        person.fullName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        person.handle?.toLowerCase().includes(searchQuery.toLowerCase())
+        person.userName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        person.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        person.username?.toLowerCase().includes(searchQuery.toLowerCase())
       );
       setNewUsers([]);
       setOtherUsers(filtered);
