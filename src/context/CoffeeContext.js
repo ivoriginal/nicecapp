@@ -17,6 +17,7 @@ import mockUsers from '../data/mockUsers.json';
 import mockCoffees from '../data/mockCoffees.json';
 import mockCoffeesData from '../data/mockCoffees.json';
 import mockRecipes from '../data/mockRecipes.json';
+import dataService from '../services/dataService';
 
 // Helper function to map Supabase profile format to app format
 const mapSupabaseProfileToAppFormat = (supabaseProfile) => {
@@ -948,7 +949,7 @@ export const CoffeeProvider = ({ children }) => {
   };
 
   // Add or update a recipe
-  const updateRecipe = (updatedRecipe) => {
+  const updateRecipe = async (updatedRecipe) => {
     try {
       console.log('Updating recipe:', updatedRecipe.id);
       // Find the recipe index
@@ -961,14 +962,23 @@ export const CoffeeProvider = ({ children }) => {
         
         // Update the recipes state
         setRecipes(updatedRecipes);
-        console.log('Recipe updated successfully');
-      } else {
-        // If the recipe doesn't exist, add it
-        console.log('Recipe not found, adding as new');
-        addRecipe(updatedRecipe);
+        
+        // Persist to Supabase
+        try {
+          await dataService.updateRecipeInDb(updatedRecipe.id, updatedRecipe);
+          console.log('Recipe updated in Supabase successfully');
+        } catch (error) {
+          console.error('Error updating recipe in Supabase:', error);
+          // Revert the state if the update fails
+          const revertedRecipes = [...recipes];
+          revertedRecipes[recipeIndex] = recipes[recipeIndex];
+          setRecipes(revertedRecipes);
+          throw error;
+        }
       }
     } catch (error) {
       console.error('Error updating recipe:', error);
+      throw error;
     }
   };
   
