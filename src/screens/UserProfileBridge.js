@@ -1,6 +1,7 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useLayoutEffect } from 'react';
 import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { useTheme } from '../context/ThemeContext';
 import mockCafes from '../data/mockCafes.json';
 import mockUsers from '../data/mockUsers.json';
 import mockGear from '../data/mockGear.json';
@@ -10,6 +11,7 @@ import UserProfileScreen from './UserProfileScreen';
 export default function UserProfileBridge() {
   const navigation = useNavigation();
   const route = useRoute();
+  const { theme } = useTheme();
   const { 
     userId, 
     userName, 
@@ -23,6 +25,21 @@ export default function UserProfileBridge() {
   
   const [error, setError] = useState(null);
   const hasNavigatedRef = useRef(false);
+
+  // Ensure header is maintained during bridge navigation
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerShown: true,
+      headerStyle: {
+        backgroundColor: theme.background,
+        elevation: 0,
+        shadowOpacity: 0,
+        borderBottomWidth: 1,
+        borderBottomColor: theme.divider,
+      },
+      headerTintColor: theme.primaryText,
+    });
+  }, [navigation, theme]);
 
   useEffect(() => {
     // Reset navigation state
@@ -243,8 +260,12 @@ export default function UserProfileBridge() {
       hasNavigatedRef.current = true;
       console.log('UserProfileBridge: Navigating with params:', params);
       
-      // Replace the current screen instead of pushing to avoid navigation stack issues
-      navigation.replace('UserProfileScreen', params);
+      // Navigate to UserProfileScreen while preserving the navigation stack
+      navigation.navigate('UserProfileScreen', {
+        ...params,
+        // Ensure we preserve the navigation stack by not using replace
+        ensureHeaderShown: true // Signal to UserProfileScreen to maintain header
+      });
     };
 
     // Execute navigation immediately without timeout
