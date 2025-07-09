@@ -362,6 +362,30 @@ export const addRecipe = async (newRecipe: Omit<Recipe, "id" | "date" | "likes" 
   return data;
 };
 
+export const updateRecipeInDb = async (recipeId: string, updates: Partial<Recipe>): Promise<Recipe> => {
+  if (MOCK_MODE) {
+    console.log("Mock updateRecipeInDb called with:", { recipeId, updates });
+    return { ...updates, id: recipeId } as Recipe;
+  }
+  
+  const { data, error } = await supabase
+    .from('recipes')
+    .update({
+      ...updates,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', recipeId)
+    .select(`
+      *,
+      author:profiles(id, full_name, avatar_url),
+      coffee:coffees(id, name, roaster)
+    `)
+    .single();
+    
+  if (error) throw error;
+  return data;
+};
+
 // Auth-related functions (placeholders for when you add Supabase Auth)
 export const getCurrentUser = async (): Promise<User | null> => {
   if (MOCK_MODE) {
@@ -449,5 +473,6 @@ module.exports = {
   signIn,
   signOut,
   setMockMode,
-  getMockUser
+  getMockUser,
+  updateRecipeInDb
 }; 
