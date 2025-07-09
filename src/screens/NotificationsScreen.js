@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useLayoutEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNotifications } from '../context/NotificationsContext';
@@ -133,11 +133,43 @@ const NotificationsScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [screenFocused, setScreenFocused] = useState(false);
 
-  // Mark notifications as read when navigating away
+  // Ensure header configuration is maintained
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerShown: true,
+      title: 'Notifications',
+      headerBackTitle: 'Back',
+      headerStyle: {
+        backgroundColor: theme.background,
+        elevation: 0,
+        shadowOpacity: 0,
+        borderBottomWidth: 1,
+        borderBottomColor: theme.divider,
+      },
+      headerTintColor: theme.primaryText,
+    });
+  }, [navigation, theme]);
+
+  // Mark notifications as read when navigating away and restore header when focusing
   useFocusEffect(
     React.useCallback(() => {
       // When screen comes into focus
       setScreenFocused(true);
+      
+      // Force header to be shown and reset any conflicting options
+      navigation.setOptions({
+        headerShown: true,
+        title: 'Notifications',
+        headerBackTitle: 'Back',
+        headerStyle: {
+          backgroundColor: theme.background,
+          elevation: 0,
+          shadowOpacity: 0,
+          borderBottomWidth: 1,
+          borderBottomColor: theme.divider,
+        },
+        headerTintColor: theme.primaryText,
+      });
       
       return () => {
         // When screen loses focus (navigating away)
@@ -146,7 +178,7 @@ const NotificationsScreen = ({ navigation }) => {
         // Mark all notifications as read when navigating away
         markAllAsRead();
       };
-    }, [markAllAsRead])
+    }, [navigation, theme, markAllAsRead])
   );
 
   useEffect(() => {
