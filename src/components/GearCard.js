@@ -120,6 +120,7 @@ const GearCard = ({
           source={imageUrl}
           style={styles.image}
           placeholder="gear"
+          resizeMode="cover"
         />
       </View>
 
@@ -158,6 +159,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F5F5',
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
   },
   image: {
     width: '100%',
