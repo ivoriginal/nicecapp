@@ -57,6 +57,20 @@ const localAssets = {
   'thefix-logo.jpg': require('../../../assets/businesses/thefix-logo.jpg'),
   'assets/businesses/thefix-cover.jpg': require('../../../assets/businesses/thefix-cover.jpg'),
   'thefix-cover.jpg': require('../../../assets/businesses/thefix-cover.jpg'),
+
+  // Default gear images
+  'assets/gear/aeropress.jpg': 'https://m.media-amazon.com/images/I/71pxZkT0rVL.jpg',
+  'assets/gear/chemex.jpg': 'https://static.fnac-static.com/multimedia/Images/ES/NR/ac/87/6d/7178156/1541-1.jpg',
+  'assets/gear/hario-v60.jpg': 'https://m.media-amazon.com/images/I/61qKb8xxTdL.jpg',
+  'assets/gear/fellow-stagg.jpg': 'https://m.media-amazon.com/images/I/71Iw1eak-ZL.jpg',
+  'assets/gear/baratza-encore.jpg': 'https://ecafe.es/tienda/2089-large_default/baratza-encore-esp.jpg',
+  'assets/gear/comandante-c40.jpg': 'https://images.unsplash.com/photo-1575441347544-11725ca18b26',
+  'assets/gear/hario-range-server.jpg': 'https://images.unsplash.com/photo-1544713297-9acff35e418e',
+  'assets/gear/9barista.jpg': 'https://9barista.com/cdn/shop/products/9Barista-unboxed2_1296x.jpg?v=1710943847',
+  'assets/gear/fellow-opus.jpg': 'https://fellowproducts.com/cdn/shop/products/FellowProducts_OpusConicalBurrGrinder_MatteBlack_01.png',
+  'assets/gear/hario-v60-filters.jpg': 'https://www.hario.co.uk/cdn/shop/products/VARIO_1200x1200.jpg?v=1609933351',
+  'assets/gear/aeropress-filters.jpg': 'https://aeropress.com/cdn/shop/products/AeroPress_Microfilters_1024x1024.jpg?v=1551222076',
+  'assets/gear/default.jpg': 'https://images.unsplash.com/photo-1510017803434-a899398421b3?q=80&w=2940&auto=format&fit=crop'
 };
 
 const AppImage = ({ 
@@ -188,25 +202,29 @@ const AppImage = ({
       
       // First try exact match
       if (localAssets[source]) {
-        // console.log('[AppImage] Found exact match for local asset:', source);
-        imageSource = localAssets[source];
+        // If it's a URL string in localAssets, convert to uri object
+        if (typeof localAssets[source] === 'string' && localAssets[source].startsWith('http')) {
+          imageSource = { uri: localAssets[source] };
+        } else {
+          imageSource = localAssets[source];
+        }
       }
       // Then try just the filename
       else if (fileName && localAssets[fileName]) {
-        // console.log('[AppImage] Found match for local asset by filename:', fileName);
-        imageSource = localAssets[fileName];
+        if (typeof localAssets[fileName] === 'string' && localAssets[fileName].startsWith('http')) {
+          imageSource = { uri: localAssets[fileName] };
+        } else {
+          imageSource = localAssets[fileName];
+        }
       }
       // Then check for URL
       else if (source.startsWith('http')) {
-        // console.log('[AppImage] Using URL:', source);
         imageSource = { uri: source };
       }
       // Check for Instagram URLs and substitute
       else if (source && (
         source.includes('instagram.') || 
         source.includes('fbcdn.net'))) {
-        // console.log('[AppImage] Instagram URL detected');
-        
         // For Toma Café Instagram, use our local asset
         if (source.includes('1442763115778809')) {
           imageSource = localAssets['toma-logo.jpg'];
@@ -214,9 +232,12 @@ const AppImage = ({
           imageSource = { uri: source };
         }
       }
-      // Last resort - just use as URI
+      // Last resort - use default gear image for gear placeholder
+      else if (placeholder === 'gear') {
+        imageSource = { uri: localAssets['assets/gear/default.jpg'] };
+      }
+      // Otherwise use as URI
       else {
-        // console.log('[AppImage] Using string as URI:', source);
         imageSource = { uri: source };
       }
     }
