@@ -228,10 +228,13 @@ const ThemeCoffeeLogCard = ({
       return 'added to inventory';
     }
     
+    // Check for location first - if there's a location and it's not home, it's an order
+    if (event.location && event.location !== 'Home' && event.locationId && event.locationId !== 'home') {
+      return 'ordered';
+    }
+    
+    // Then check for recipe/method/brewing related events
     if (event.hasRecipe || event.method || event.brewingMethod) {
-      if (event.locationId && event.locationId !== 'home') {
-        return 'ordered';
-      }
       return 'brewed';
     }
     
