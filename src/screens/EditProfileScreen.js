@@ -471,11 +471,8 @@ export default function EditProfileScreen() {
           message: 'Profile updated'
         });
         
-        // Go back to Profile screen with updated data
-        navigation.navigate('Root', {
-          screen: 'Profile',
-          params: { updatedUserData }
-        });
+        // Simply navigate back after saving
+        navigation.goBack();
       } catch (supabaseError) {
         console.error('Supabase update error:', supabaseError);
         Alert.alert('Error', 'Failed to save profile to database: ' + supabaseError.message);
