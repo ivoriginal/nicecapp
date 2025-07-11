@@ -1,4 +1,5 @@
 import React, { createContext, useState, useContext, useEffect, useCallback, useMemo } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { 
   saveCoffeeEvent, 
   getCoffeeEvents, 
@@ -11,11 +12,10 @@ import {
   saveFavorites,
   getFavorites
 } from '../lib/dataProvider';
-import { supabase, saveToCollection as saveToCollectionDB } from '../lib/supabase';
+import { supabase, saveToCollection as saveToCollectionDB, getCollection as getCollectionDB, removeFromCollection as removeFromCollectionDB, forceSessionRefresh, hasValidSession, getSessionWithFallback } from '../lib/supabase';
 import mockEvents from '../data/mockEvents.json';
 import mockUsers from '../data/mockUsers.json';
 import mockCoffees from '../data/mockCoffees.json';
-import mockCoffeesData from '../data/mockCoffees.json';
 import mockRecipes from '../data/mockRecipes.json';
 import dataService from '../services/dataService';
 
@@ -64,6 +64,7 @@ const CoffeeContext = createContext({
   isEventHidden: () => false,
   addToCollection: () => {},
   removeFromCollection: () => {},
+  removeFromCollectionImmediate: () => {},
   addToWishlist: () => {},
   removeFromWishlist: () => {},
   toggleFavorite: () => {},
@@ -110,24 +111,45 @@ export const CoffeeProvider = ({ children }) => {
     console.log('Initial authentication state:', isAuthenticated);
     console.log('Initial current account:', currentAccount);
     
+    // Add session debugging
+    const logSessionInfo = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        console.log('Session on mount:', session ? 'exists' : 'none');
+        if (session) {
+          console.log('Session user ID:', session.user?.id);
+          console.log('Session expires at:', session.expires_at);
+        }
+        
+        // Also check AsyncStorage directly
+        const storageKey = 'sb-nicecapp-auth-token';
+        const storedData = await AsyncStorage.getItem(storageKey);
+        console.log('Stored auth data:', storedData ? 'exists' : 'none');
+        
+        // Check all AsyncStorage keys for debugging
+        const allKeys = await AsyncStorage.getAllKeys();
+        console.log('All AsyncStorage keys:', allKeys.filter(key => key.includes('auth') || key.includes('sb')));
+      } catch (error) {
+        console.error('Error getting session info:', error);
+      }
+    };
+    logSessionInfo();
+    
     // Check for existing session on initialization
     const checkExistingSession = async () => {
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
+        console.log('Checking for existing session...');
         
-        if (error) {
-          console.error('Error getting session:', error);
-          setLoading(false);
-          return;
-        }
-
+        // Use the new robust session checking
+        const session = await getSessionWithFallback();
+        
         if (session?.user?.id) {
           console.log('Found existing session for user:', session.user.id);
           setCurrentAccount(session.user.id);
           setIsAuthenticated(true);
           await loadData(session.user.id);
         } else {
-          console.log('No existing session found');
+          console.log('No existing session found after all attempts');
           setLoading(false);
         }
       } catch (error) {
@@ -190,6 +212,55 @@ export const CoffeeProvider = ({ children }) => {
       subscription?.unsubscribe();
     };
   }, []); // Empty dependency array to run only once on mount
+
+  // Load saved recipes from mockUsers and mockRecipes
+  const loadSavedRecipes = useCallback(() => {
+    try {
+      console.log("=== Loading saved recipes ===");
+      console.log("Current account:", currentAccount);
+      // Get the current user's saved recipes
+      const currentUser = mockUsers.users.find(user => user.id === currentAccount);
+      if (!currentUser || !currentUser.savedRecipes) {
+        console.log(`No saved recipes found for ${currentAccount}`);
+        return;
+      }
+      
+      console.log(`Found ${currentUser.savedRecipes.length} saved recipe IDs for ${currentAccount}:`, currentUser.savedRecipes);
+      
+      // Get the recipes that match the IDs in currentUser.savedRecipes
+      const userSavedRecipes = mockRecipes.recipes.filter(recipe => 
+        currentUser.savedRecipes.includes(recipe.id)
+      );
+      
+      console.log(`Found ${userSavedRecipes.length} matching recipes`);
+      
+      // Mark these recipes as saved
+      const updatedRecipes = [...mockRecipes.recipes];
+      updatedRecipes.forEach(recipe => {
+        recipe.isSaved = currentUser.savedRecipes.includes(recipe.id);
+      });
+      
+      console.log("Setting recipes with isSaved flags:", updatedRecipes.filter(r => r.isSaved).map(r => ({id: r.id, name: r.name, isSaved: r.isSaved})));
+      setRecipes(updatedRecipes);
+      
+      // Also update coffeeWishlist from user's saved coffees
+      if (currentUser.savedCoffees && Array.isArray(currentUser.savedCoffees)) {
+        // Check if savedCoffees contains objects or just IDs
+        const savedCoffees = currentUser.savedCoffees[0]?.id ? 
+          // If it contains objects, use them directly
+          currentUser.savedCoffees :
+          // If it contains IDs, filter from mockCoffees
+          (mockCoffees?.coffees || []).filter(coffee => 
+            currentUser.savedCoffees.includes(coffee.id)
+          );
+        
+        console.log(`Found ${savedCoffees.length} saved coffees for ${currentAccount}`);
+        setCoffeeWishlist(savedCoffees);
+      }
+    } catch (error) {
+      console.error("Error loading saved recipes:", error);
+    }
+  }, [currentAccount]);
 
   // Load data for a specific account - memoized to prevent re-renders
   const loadData = useCallback(async (accountToLoad) => {
@@ -410,13 +481,15 @@ export const CoffeeProvider = ({ children }) => {
         // === Fallback: load public events for new users with no posts ===
         if (transformedEvents.length === 0) {
           try {
+            console.log('User has no events, loading discovery feed...');
+            
             // Fetch recent public events from Supabase for discovery feed
             const { data: publicEvents, error: publicEventsError } = await supabase
               .from('coffee_events')
               .select('*')
               .eq('is_public', true)
               .order('created_at', { ascending: false })
-              .limit(20);
+              .limit(30); // Get more events to have variety
 
             if (!publicEventsError && publicEvents && publicEvents.length > 0) {
               // Get unique author IDs
@@ -465,34 +538,133 @@ export const CoffeeProvider = ({ children }) => {
                 };
               });
 
+              // Shuffle the events to provide variety
+              const shuffledEvents = fallbackEvents.sort(() => 0.5 - Math.random());
+              
+              // Add a random coffee recommendation event at the top
+              const randomCoffeeRecommendation = await createRandomCoffeeRecommendation();
+              if (randomCoffeeRecommendation) {
+                shuffledEvents.unshift(randomCoffeeRecommendation);
+              }
+
               // Show discovery feed on Home only – don't mix into user's personal timeline
-              setAllEvents(fallbackEvents);
+              setAllEvents(shuffledEvents.slice(0, 20)); // Limit to 20 events
+              console.log(`Loaded ${shuffledEvents.length} discovery events for new user`);
             } else if (publicEventsError) {
               console.error('Error fetching fallback events:', publicEventsError);
+              // If Supabase fails, create a basic recommendation event
+              const basicRecommendation = await createRandomCoffeeRecommendation();
+              if (basicRecommendation) {
+                setAllEvents([basicRecommendation]);
+              }
             }
           } catch (fallbackErr) {
             console.error('Unexpected error fetching fallback events:', fallbackErr);
+            // If everything fails, create a basic recommendation event
+            const basicRecommendation = await createRandomCoffeeRecommendation();
+            if (basicRecommendation) {
+              setAllEvents([basicRecommendation]);
+            }
           }
         }
       }
 
-      // Initialize empty collections for new users
-      setCoffeeCollection([]);
+      // Load collection data from Supabase
+      console.log('Loading collection data from Supabase...');
+      try {
+        const { data: collectionData, error: collectionError } = await supabase
+          .from('saved_coffees')
+          .select(`
+            id,
+            created_at,
+            coffees (
+              id,
+              name,
+              roaster,
+              origin,
+              process,
+              roast_level,
+              tasting_notes,
+              description,
+              price,
+              image_url
+            )
+          `)
+          .eq('user_id', accountToLoad)
+          .order('created_at', { ascending: false });
+
+        if (collectionError) {
+          console.error('Error loading collection:', collectionError);
+          setCoffeeCollection([]);
+        } else {
+          console.log(`Loaded ${collectionData?.length || 0} coffees from collection`);
+          
+          // Transform the data to match the expected format
+          const transformedCollection = (collectionData || []).map(item => ({
+            id: item.coffees.id,
+            name: item.coffees.name,
+            roaster: item.coffees.roaster,
+            origin: item.coffees.origin,
+            process: item.coffees.process,
+            roastLevel: item.coffees.roast_level,
+            profile: item.coffees.tasting_notes,
+            description: item.coffees.description,
+            price: item.coffees.price,
+            image: item.coffees.image_url,
+            timestamp: item.created_at,
+            userId: accountToLoad
+          }));
+          
+          setCoffeeCollection(transformedCollection);
+        }
+      } catch (error) {
+        console.error('Error loading collection data:', error);
+        setCoffeeCollection([]);
+      }
+      
+      // Initialize empty wishlist and other collections for now
       setCoffeeWishlist([]);
       setFavorites([]);
-      setRecipes([]);
       
-      // Get all other users for following/followers
-      const { data: otherProfiles, error: otherProfilesError } = await supabase
-        .from('profiles')
-        .select('*')
-        .neq('id', accountToLoad);
+      // Load saved recipes for the user
+      loadSavedRecipes();
+      
+      // Load follow relationships from database
+      console.log('Loading follow relationships...');
+      try {
+        // Get users that the current user follows
+        const { data: followingData, error: followingError } = await supabase
+          .from('follows')
+          .select('following_id')
+          .eq('follower_id', accountToLoad);
 
-      if (otherProfilesError) {
-        console.error('Error fetching other profiles:', otherProfilesError);
-      } else {
-        setFollowing(otherProfiles || []);
-        setFollowers(otherProfiles || []);
+        if (followingError) {
+          console.error('Error loading following relationships:', followingError);
+          setFollowing([]);
+        } else {
+          const followingIds = (followingData || []).map(f => f.following_id);
+          console.log(`User ${accountToLoad} is following:`, followingIds);
+          setFollowing(followingIds);
+        }
+
+        // Get users that follow the current user
+        const { data: followersData, error: followersError } = await supabase
+          .from('follows')
+          .select('follower_id')
+          .eq('following_id', accountToLoad);
+
+        if (followersError) {
+          console.error('Error loading followers relationships:', followersError);
+          setFollowers([]);
+        } else {
+          const followerIds = (followersData || []).map(f => f.follower_id);
+          console.log(`User ${accountToLoad} has followers:`, followerIds);
+          setFollowers(followerIds);
+        }
+      } catch (error) {
+        console.error('Error loading follow relationships:', error);
+        setFollowing([]);
+        setFollowers([]);
       }
 
       setInitialized(true);
@@ -507,79 +679,36 @@ export const CoffeeProvider = ({ children }) => {
     }
   }, [loading]);
 
-  // Load saved recipes from mockUsers and mockRecipes
-  const loadSavedRecipes = () => {
-    try {
-      console.log("=== Loading saved recipes ===");
-      console.log("Current account:", currentAccount);
-      // Get the current user's saved recipes
-      const currentUser = mockUsers.users.find(user => user.id === currentAccount);
-      if (!currentUser || !currentUser.savedRecipes) {
-        console.log(`No saved recipes found for ${currentAccount}`);
-        return;
-      }
-      
-      console.log(`Found ${currentUser.savedRecipes.length} saved recipe IDs for ${currentAccount}:`, currentUser.savedRecipes);
-      
-      // Get the recipes that match the IDs in currentUser.savedRecipes
-      const userSavedRecipes = mockRecipes.recipes.filter(recipe => 
-        currentUser.savedRecipes.includes(recipe.id)
-      );
-      
-      console.log(`Found ${userSavedRecipes.length} matching recipes`);
-      
-      // Mark these recipes as saved
-      const updatedRecipes = [...mockRecipes.recipes];
-      updatedRecipes.forEach(recipe => {
-        recipe.isSaved = currentUser.savedRecipes.includes(recipe.id);
-      });
-      
-      console.log("Setting recipes with isSaved flags:", updatedRecipes.filter(r => r.isSaved).map(r => ({id: r.id, name: r.name, isSaved: r.isSaved})));
-      setRecipes(updatedRecipes);
-      
-      // Also update coffeeWishlist from user's saved coffees
-      if (currentUser.savedCoffees && Array.isArray(currentUser.savedCoffees)) {
-        // Check if savedCoffees contains objects or just IDs
-        const savedCoffees = currentUser.savedCoffees[0]?.id ? 
-          // If it contains objects, use them directly
-          currentUser.savedCoffees :
-          // If it contains IDs, filter from mockCoffees
-          mockCoffees.coffees.filter(coffee => 
-            currentUser.savedCoffees.includes(coffee.id)
-          );
-        
-        console.log(`Found ${savedCoffees.length} saved coffees for ${currentAccount}`);
-        setCoffeeWishlist(savedCoffees);
-      }
-    } catch (error) {
-      console.error("Error loading saved recipes:", error);
-    }
-  };
+
 
   // Generate mock coffee events - now using mockCoffees.json as the source
   const generateMockEvents = (userId, count = 5) => {
     // Extract the coffees from mockCoffees
-    const coffees = mockCoffees.coffees;
+    const coffees = mockCoffees?.coffees || [];
     
     // Set up brewing methods and grind sizes
     const methods = ['Pour Over', 'Espresso', 'French Press', 'AeroPress', 'Cold Brew'];
     const grindSizes = ['Fine', 'Medium', 'Coarse'];
     
     // Generate events using coffees from mockCoffees
+    if (coffees.length === 0) {
+      return []; // Return empty array if no coffees available
+    }
+    
     return Array(count).fill(null).map((_, index) => {
       const coffeeIndex = index % coffees.length;
       const coffee = coffees[coffeeIndex];
       return {
         id: `event-${userId}-${index}`,
-        coffeeId: coffee.id,
-        coffeeName: coffee.name,
-        roaster: coffee.roaster,
-        imageUrl: coffee.image || 'https://images.unsplash.com/photo-1447933601403-0c6688de566e',
+        coffeeId: coffee?.id || 'default-coffee',
+        coffeeName: coffee?.name || 'Default Coffee',
+        roaster: coffee?.roaster || 'Default Roaster',
+        imageUrl: coffee?.image || 'https://images.unsplash.com/photo-1447933601403-0c6688de566e',
         rating: Math.floor(Math.random() * 5) + 1,
         date: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
         brewingMethod: methods[Math.floor(Math.random() * methods.length)],
         grindSize: grindSizes[Math.floor(Math.random() * grindSizes.length)],
-        notes: coffee.description || 'A delicious cup of coffee with notes of chocolate and caramel.',
+        notes: coffee?.description || 'A delicious cup of coffee with notes of chocolate and caramel.',
         userId: userId
       };
     });
@@ -591,15 +720,15 @@ export const CoffeeProvider = ({ children }) => {
       coffeeEvents: [
         {
           id: 'event-user1-0',
-          coffeeId: mockCoffees.coffees[0].id,
-          coffeeName: mockCoffees.coffees[0].name,
-          roaster: mockCoffees.coffees[0].roaster,
-          imageUrl: mockCoffees.coffees[0].image || 'https://images.unsplash.com/photo-1447933601403-0c6688de566e',
+          coffeeId: mockCoffees?.coffees?.[0]?.id || 'default-coffee',
+          coffeeName: mockCoffees?.coffees?.[0]?.name || 'Default Coffee',
+          roaster: mockCoffees?.coffees?.[0]?.roaster || 'Default Roaster',
+          imageUrl: mockCoffees?.coffees?.[0]?.image || 'https://images.unsplash.com/photo-1447933601403-0c6688de566e',
           rating: 4,
           date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
           brewingMethod: 'Pour Over',
           grindSize: 'Medium',
-          notes: mockCoffees.coffees[0].description || 'Bright acidity with floral notes. Very clean cup.',
+          notes: mockCoffees?.coffees?.[0]?.description || 'Bright acidity with floral notes. Very clean cup.',
           userId: 'user1',
           userName: 'Ivo Vilches',
           userAvatar: require('../../assets/users/ivo-vilches.jpg')
@@ -859,6 +988,11 @@ export const CoffeeProvider = ({ children }) => {
         console.log('Saved coffee to Supabase collection');
       } catch (error) {
         console.error('Error saving coffee to Supabase:', error);
+        console.error('Error message:', error?.message);
+        console.error('Error details:', JSON.stringify(error, null, 2));
+        
+        // Don't throw the error here - we want the UI to still work even if Supabase fails
+        // The coffee will still be added to the local state
       }
 
       // Create an event indicating the user added this coffee to their collection
@@ -878,9 +1012,29 @@ export const CoffeeProvider = ({ children }) => {
     return coffeeItem;
   };
   
-  // Remove from collection function
-  const removeFromCollection = (coffeeId) => {
-    console.log('Removing coffee from collection with ID:', coffeeId);
+  // Remove from collection function - now only handles database removal
+  // UI components should handle optimistic updates
+  const removeFromCollection = async (coffeeId) => {
+    console.log('Permanently removing coffee from collection with ID:', coffeeId);
+    
+    // Remove from Supabase
+    try {
+      await removeFromCollectionDB(coffeeId);
+      console.log('Successfully removed coffee from Supabase collection');
+    } catch (error) {
+      console.error('Error removing coffee from collection:', error);
+      throw error; // Re-throw so UI can handle the error
+    }
+    
+    return true;
+  };
+
+  // Remove from collection with UI state update (for immediate removal without undo)
+  const removeFromCollectionImmediate = async (coffeeId) => {
+    console.log('Immediately removing coffee from collection with ID:', coffeeId);
+    
+    // Get the coffee before removing it (for potential revert)
+    const coffeeToRemove = coffeeCollection.find(coffee => coffee.id === coffeeId);
     
     // Remove from collection state
     setCoffeeCollection(prev => prev.filter(coffee => coffee.id !== coffeeId));
@@ -890,6 +1044,19 @@ export const CoffeeProvider = ({ children }) => {
       accountData[currentAccount].coffeeCollection = accountData[currentAccount].coffeeCollection.filter(
         coffee => coffee.id !== coffeeId
       );
+    }
+    
+    // Remove from Supabase
+    try {
+      await removeFromCollectionDB(coffeeId);
+      console.log('Successfully removed coffee from Supabase collection');
+    } catch (error) {
+      console.error('Error removing coffee from collection:', error);
+      // Revert state on error
+      if (coffeeToRemove) {
+        setCoffeeCollection(prev => [...prev, coffeeToRemove]);
+      }
+      throw error;
     }
     
     return true;
@@ -1252,6 +1419,7 @@ export const CoffeeProvider = ({ children }) => {
     isEventHidden: () => false,
     addToCollection,
     removeFromCollection,
+    removeFromCollectionImmediate,
     addToWishlist,
     removeFromWishlist,
     toggleFavorite,
@@ -1291,6 +1459,7 @@ export const CoffeeProvider = ({ children }) => {
     removeCoffeeEvent,
     addToCollection,
     removeFromCollection,
+    removeFromCollectionImmediate,
     addToWishlist,
     removeFromWishlist,
     toggleFavorite,
