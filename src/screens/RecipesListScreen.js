@@ -223,22 +223,25 @@ const RecipesListScreen = () => {
     return (
       <RecipeCard
         recipe={item}
-        onPress={() => navigation.navigate('RecipeDetail', { 
-          recipeId: item.id || '',
-          coffeeName: item.coffeeName,
-          roaster: item.roaster,
-          imageUrl: item.imageUrl || item.image || null,
-          userId: item.creatorId || item.userId || '',
-          userName: item.userName || item.creatorName,
-          userAvatar: item.creatorAvatar || item.userAvatar || null,
-          recipe: item,
-          ...(isRemix && route.params?.recipeId ? {
-            basedOnRecipe: {
-              id: route.params.recipeId,
-              name: allRecipes.find(r => r.id === route.params.recipeId)?.name || 'Original Recipe'
-            }
-          } : {}),
-          skipAuth: true
+        onPress={() => navigation.getParent()?.navigate('MainTabs', { 
+          screen: 'RecipeDetail',
+          params: { 
+            recipeId: item.id || '',
+            coffeeName: item.coffeeName,
+            roaster: item.roaster,
+            imageUrl: item.imageUrl || item.image || null,
+            userId: item.creatorId || item.userId || '',
+            userName: item.userName || item.creatorName,
+            userAvatar: item.creatorAvatar || item.userAvatar || null,
+            recipe: item,
+            ...(isRemix && route.params?.recipeId ? {
+              basedOnRecipe: {
+                id: route.params.recipeId,
+                name: allRecipes.find(r => r.id === route.params.recipeId)?.name || 'Original Recipe'
+              }
+            } : {}),
+            skipAuth: true
+          }
         })}
         onUserPress={() => navigation.navigate('UserProfileBridge', { 
           userId: item.creatorId || item.userId, 

@@ -571,24 +571,30 @@ export default function ProfileScreen() {
     // If item is a reference to a coffee in mockCoffees.json (has coffeeId but no id)
     const coffeeId = item.coffeeId || item.id;
     
-    navigation.navigate('CoffeeDetail', {
-      coffeeId: coffeeId,
-      skipAuth: true
+    navigation.getParent()?.navigate('MainTabs', {
+      screen: 'CoffeeDetail',
+      params: {
+        coffeeId: coffeeId,
+        skipAuth: true
+      }
     });
   };
 
   // Handle recipe press
   const handleRecipePress = (item) => {
-    navigation.navigate('RecipeDetail', {
-      recipeId: item.id,
-      coffeeId: item.coffeeId,
-      coffeeName: item.coffeeName || item.name,
-      roaster: item.roaster || item.roasterName,
-      imageUrl: item.imageUrl,
-      recipe: item,
-      userId: item.userId,
-      userName: item.userName,
-      userAvatar: item.userAvatar
+    navigation.getParent()?.navigate('MainTabs', {
+      screen: 'RecipeDetail',
+      params: {
+        recipeId: item.id,
+        coffeeId: item.coffeeId,
+        coffeeName: item.coffeeName || item.name,
+        roaster: item.roaster || item.roasterName,
+        imageUrl: item.imageUrl,
+        recipe: item,
+        userId: item.userId,
+        userName: item.userName,
+        userAvatar: item.userAvatar
+      }
     });
   };
 

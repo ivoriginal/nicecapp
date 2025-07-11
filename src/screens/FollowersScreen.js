@@ -93,10 +93,13 @@ export default function FollowersScreen() {
   }, [userId, type]);
 
   const handleUserPress = (user) => {
-    navigation.navigate('UserProfileScreen', {
-      userId: user.id,
-      userName: user.userName,
-      skipAuth: true
+    navigation.getParent()?.navigate('MainTabs', {
+      screen: 'UserProfile',
+      params: {
+        userId: user.id,
+        userName: user.userName,
+        skipAuth: true
+      }
     });
   };
 

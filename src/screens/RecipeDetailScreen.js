@@ -647,9 +647,13 @@ export default function RecipeDetailScreen() {
   const navigateToCoffeeDetail = () => {
     if (coffee) {
       // Don't try to filter recipes here, just use what we have
-      navigation.navigate('CoffeeDetail', { 
-        coffeeId: coffee.id,
-        skipAuth: true
+      // Use the parent navigation to navigate to the tab
+      navigation.getParent()?.navigate('MainTabs', {
+        screen: 'CoffeeDetail',
+        params: { 
+          coffeeId: coffee.id,
+          skipAuth: true
+        }
       });
     }
   };

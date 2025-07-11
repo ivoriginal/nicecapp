@@ -391,58 +391,9 @@ function MainNavigator({ theme, handleRecipeOptions, handleCoffeeOptions, header
         }} 
       />
       <Stack.Screen 
-        name="CoffeeDetail" 
-        component={CoffeeDetailScreen} 
-        options={({ navigation, route }) => ({ 
-          title: 'Coffee Details',
-          headerBackTitle: 'Back',
-          headerRight: () => (
-            <TouchableOpacity 
-              onPress={() => handleCoffeeOptions(navigation, route.params?.coffee)}
-              style={{ marginRight: 16 }}
-            >
-              <Ionicons 
-                name="ellipsis-horizontal" 
-                size={24} 
-                color={theme.primaryText}
-              />
-            </TouchableOpacity>
-          )
-        })} 
-      />
-      <Stack.Screen 
-        name="RecipeDetail" 
-        component={RecipeDetailScreen} 
-        options={({ navigation, route }) => ({ 
-          title: 'Recipe Details',
-          headerBackTitle: 'Back',
-          headerRight: () => (
-            <TouchableOpacity 
-              onPress={() => handleRecipeOptions(navigation, route.params?.recipe)}
-              style={{ marginRight: 16 }}
-            >
-              <Ionicons 
-                name="ellipsis-horizontal" 
-                size={24} 
-                color={theme.primaryText}
-              />
-            </TouchableOpacity>
-          )
-        })} 
-      />
-      <Stack.Screen 
         name="UserProfileBridge" 
         component={UserProfileBridge} 
         options={{ headerShown: false }} 
-      />
-      <Stack.Screen 
-        name="UserProfileScreen" 
-        component={UserProfileScreen} 
-        options={() => ({ 
-          title: '',
-          headerBackTitle: 'Back',
-          headerTransparent: false,
-        })} 
       />
       <Stack.Screen 
         name="EditProfile" 

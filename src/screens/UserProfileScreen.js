@@ -800,24 +800,30 @@ export default function UserProfileScreen() {
     return (
     <ThemeCoffeeLogCard
       event={enhancedItem}
-      onCoffeePress={() => navigation.navigate('CoffeeDetail', { coffeeId: enhancedItem.coffeeId, skipAuth: true })}
-      onRecipePress={() => navigation.navigate('RecipeDetail', { 
-        recipeId: enhancedItem.id,
-        coffeeId: enhancedItem.coffeeId,
-        coffeeName: enhancedItem.coffeeName,
-        roaster: enhancedItem.roaster || enhancedItem.roasterName,
-        imageUrl: enhancedItem.imageUrl,
-        recipe: enhancedItem,
-        userId: enhancedItem.userId,
-        userName: enhancedItem.userName,
-        userAvatar: enhancedItem.userAvatar
+                      onCoffeePress={() => navigation.getParent()?.navigate('MainTabs', { screen: 'CoffeeDetail', params: { coffeeId: enhancedItem.coffeeId, skipAuth: true } })}
+      onRecipePress={() => navigation.getParent()?.navigate('MainTabs', { 
+        screen: 'RecipeDetail',
+        params: { 
+          recipeId: enhancedItem.id,
+          coffeeId: enhancedItem.coffeeId,
+          coffeeName: enhancedItem.coffeeName,
+          roaster: enhancedItem.roaster || enhancedItem.roasterName,
+          imageUrl: enhancedItem.imageUrl,
+          recipe: enhancedItem,
+          userId: enhancedItem.userId,
+          userName: enhancedItem.userName,
+          userAvatar: enhancedItem.userAvatar
+        }
       })}
-      onUserPress={(event) => navigation.navigate('UserProfileScreen', { 
-        userId: event.userId,
-        userName: event.userName,
-        userAvatar: event.userAvatar,
-        isBusinessAccount: event.isBusinessAccount || false,
-        skipAuth: true 
+      onUserPress={(event) => navigation.getParent()?.navigate('MainTabs', { 
+        screen: 'UserProfile',
+        params: { 
+          userId: event.userId,
+          userName: event.userName,
+          userAvatar: event.userAvatar,
+          isBusinessAccount: event.isBusinessAccount || false,
+          skipAuth: true 
+        }
       })}
       onOptionsPress={handleOptionsPress}
       onLikePress={handleLikePress}
@@ -861,9 +867,12 @@ export default function UserProfileScreen() {
             ? { backgroundColor: theme.cardBackground, borderWidth: 0 }
             : { backgroundColor: 'transparent', borderColor: theme.border, borderWidth: 1 }
         ]}
-        onPress={() => navigation.navigate('CoffeeDetail', { 
-          coffeeId: coffeeData.id,
-          skipAuth: true 
+        onPress={() => navigation.getParent()?.navigate('MainTabs', { 
+          screen: 'CoffeeDetail', 
+          params: { 
+            coffeeId: coffeeData.id,
+            skipAuth: true 
+          }
         })}
       >
         <AppImage 
@@ -1070,17 +1079,20 @@ export default function UserProfileScreen() {
   }, [user, activeTab, roasterCoffees.length]);
 
   const handleRecipePress = (item) => {
-    navigation.navigate('RecipeDetail', { 
-      recipeId: item.id,
-      coffeeId: item.coffeeId,
-      coffeeName: item.coffeeName,
-      roaster: item.roaster,
-      imageUrl: item.imageUrl,
-      recipe: item,
-      userId: item.creatorId,
-      userName: item.creatorName || user?.userName,
-      userAvatar: item.creatorAvatar || user?.userAvatar,
-      isBusinessAccount: user?.isBusinessAccount
+    navigation.getParent()?.navigate('MainTabs', { 
+      screen: 'RecipeDetail',
+      params: { 
+        recipeId: item.id,
+        coffeeId: item.coffeeId,
+        coffeeName: item.coffeeName,
+        roaster: item.roaster,
+        imageUrl: item.imageUrl,
+        recipe: item,
+        userId: item.creatorId,
+        userName: item.creatorName || user?.userName,
+        userAvatar: item.creatorAvatar || user?.userAvatar,
+        isBusinessAccount: user?.isBusinessAccount
+      }
     });
   };
 
@@ -1818,24 +1830,30 @@ export default function UserProfileScreen() {
                                           <ThemeCoffeeLogCard 
                       key={log.id} 
                       event={log}
-                      onCoffeePress={(event) => navigation.navigate('CoffeeDetail', { coffeeId: event.coffeeId, skipAuth: true })}
-                      onRecipePress={(event) => navigation.navigate('RecipeDetail', { 
-                        recipeId: event.id,
-                        coffeeId: event.coffeeId,
-                        coffeeName: event.coffeeName,
-                        roaster: event.roaster || event.roasterName,
-                        imageUrl: event.imageUrl,
-                        recipe: event,
-                        userId: event.userId,
-                        userName: event.userName,
-                        userAvatar: event.userAvatar
+                      onCoffeePress={(event) => navigation.getParent()?.navigate('MainTabs', { screen: 'CoffeeDetail', params: { coffeeId: event.coffeeId, skipAuth: true } })}
+                      onRecipePress={(event) => navigation.getParent()?.navigate('MainTabs', { 
+                        screen: 'RecipeDetail',
+                        params: { 
+                          recipeId: event.id,
+                          coffeeId: event.coffeeId,
+                          coffeeName: event.coffeeName,
+                          roaster: event.roaster || event.roasterName,
+                          imageUrl: event.imageUrl,
+                          recipe: event,
+                          userId: event.userId,
+                          userName: event.userName,
+                          userAvatar: event.userAvatar
+                        }
                       })}
-                      onUserPress={(event) => navigation.navigate('UserProfileScreen', { 
-                        userId: event.userId,
-                        userName: event.userName,
-                        userAvatar: event.userAvatar,
-                        isBusinessAccount: event.isBusinessAccount || false,
-                        skipAuth: true 
+                      onUserPress={(event) => navigation.getParent()?.navigate('MainTabs', { 
+                        screen: 'UserProfile',
+                        params: { 
+                          userId: event.userId,
+                          userName: event.userName,
+                          userAvatar: event.userAvatar,
+                          isBusinessAccount: event.isBusinessAccount || false,
+                          skipAuth: true 
+                        }
                       })}
                       onOptionsPress={handleOptionsPress}
                       onLikePress={handleLikePress}
@@ -1868,7 +1886,7 @@ export default function UserProfileScreen() {
                               ? { backgroundColor: theme.cardBackground, borderWidth: 0 }
                               : { backgroundColor: 'transparent', borderColor: theme.border, borderWidth: 1 }
                           ]}
-                          onPress={() => navigation.navigate('CoffeeDetail', { coffeeId: item.id, skipAuth: true })}
+                          onPress={() => navigation.getParent()?.navigate('MainTabs', { screen: 'CoffeeDetail', params: { coffeeId: item.id, skipAuth: true } })}
                         >
                           <View style={[styles.collectionCardImagePlaceholder, { backgroundColor: theme.placeholder }]}>
                             <AppImage

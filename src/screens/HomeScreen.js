@@ -87,37 +87,43 @@ export default function HomeScreen({ navigation }) {
     
     // For coffee recommendations, directly use the properties
     if (event.type === 'coffee_recommendation' || event.type === 'similar_coffee_recommendation') {
-      navigation.navigate('CoffeeDetail', { 
-        coffeeId: event.coffeeId || event.id,
-        skipAuth: true,
-        // Use the coffee properties directly rather than nesting
-        coffee: {
-          id: event.coffeeId || event.id,
-          name: event.name,
-          roaster: event.roaster,
-          image: event.image || event.imageUrl,
-          origin: event.origin,
-          process: event.process,
-          description: event.description
+      navigation.getParent()?.navigate('MainTabs', {
+        screen: 'CoffeeDetail',
+        params: { 
+          coffeeId: event.coffeeId || event.id,
+          skipAuth: true,
+          // Use the coffee properties directly rather than nesting
+          coffee: {
+            id: event.coffeeId || event.id,
+            name: event.name,
+            roaster: event.roaster,
+            image: event.image || event.imageUrl,
+            origin: event.origin,
+            process: event.process,
+            description: event.description
+          }
         }
       });
       return;
     }
     
     // Standard navigation with just the ID
-    navigation.navigate('CoffeeDetail', { 
-      coffeeId: event.coffeeId || event.id,
-      skipAuth: true,
-      // If the event has coffee properties, pass them directly
-      coffee: event.name ? {
-        id: event.coffeeId || event.id,
-        name: event.name || event.coffeeName,
-        roaster: event.roaster || event.roasterName,
-        image: event.image || event.imageUrl,
-        description: event.description,
-        origin: event.origin,
-        process: event.process
-      } : undefined
+    navigation.getParent()?.navigate('MainTabs', {
+      screen: 'CoffeeDetail',
+      params: { 
+        coffeeId: event.coffeeId || event.id,
+        skipAuth: true,
+        // If the event has coffee properties, pass them directly
+        coffee: event.name ? {
+          id: event.coffeeId || event.id,
+          name: event.name || event.coffeeName,
+          roaster: event.roaster || event.roasterName,
+          image: event.image || event.imageUrl,
+          description: event.description,
+          origin: event.origin,
+          process: event.process
+        } : undefined
+      }
     });
   };
 
@@ -129,37 +135,40 @@ export default function HomeScreen({ navigation }) {
     }
 
     // Navigate to the RecipeDetail screen with the original event as the recipe
-    navigation.navigate('RecipeDetail', { 
-      recipeId: event.id,
-      coffeeId: event.coffeeId,
-      coffeeName: event.coffeeName,
-      roaster: event.roaster || event.roasterName,
-      recipe: {
-        ...event,
-        // Only generate steps if they don't already exist
-        steps: event.steps || [
-          { time: '0:00', action: 'Rinse filter and warm vessel', water: 0 },
-          { time: '0:00', action: `Add ${event.amount || 18}g coffee (${event.grindSize || 'Medium'} grind)`, water: 0 },
-          { time: '0:00', action: `Add ${Math.round((event.amount || 18) * 2)}g water for bloom`, water: Math.round((event.amount || 18) * 2) },
-          { time: '0:30', action: 'Gently stir bloom', water: 0 },
-          { time: '0:45', action: `Add water to ${Math.round((event.waterVolume || 300) * 0.3)}g`, water: Math.round((event.waterVolume || 300) * 0.3) },
-          { time: '1:15', action: `Add water to ${Math.round((event.waterVolume || 300) * 0.5)}g`, water: Math.round((event.waterVolume || 300) * 0.5) },
-          { time: '1:45', action: `Add water to ${Math.round((event.waterVolume || 300) * 0.7)}g`, water: Math.round((event.waterVolume || 300) * 0.7) },
-          { time: '2:15', action: `Add water to ${event.waterVolume || 300}g`, water: (event.waterVolume || 300) },
-          { time: event.brewTime || '3:00', action: 'Drawdown complete', water: 0 }
-        ],
-        // Only add tips if they don't already exist
-        tips: event.tips || [
-          'Use filtered water for the best results',
-          'Grind your coffee just before brewing',
-          'Keep your equipment clean for consistent results',
-          'Use a scale to measure your coffee and water precisely',
-          'Maintain a consistent water temperature throughout the brew'
-        ],
-        // Ensure method is properly set
-        method: event.method || event.brewingMethod || 'Pour Over'
-      },
-      imageUrl: event.imageUrl
+    navigation.getParent()?.navigate('MainTabs', {
+      screen: 'RecipeDetail',
+      params: { 
+        recipeId: event.id,
+        coffeeId: event.coffeeId,
+        coffeeName: event.coffeeName,
+        roaster: event.roaster || event.roasterName,
+        recipe: {
+          ...event,
+          // Only generate steps if they don't already exist
+          steps: event.steps || [
+            { time: '0:00', action: 'Rinse filter and warm vessel', water: 0 },
+            { time: '0:00', action: `Add ${event.amount || 18}g coffee (${event.grindSize || 'Medium'} grind)`, water: 0 },
+            { time: '0:00', action: `Add ${Math.round((event.amount || 18) * 2)}g water for bloom`, water: Math.round((event.amount || 18) * 2) },
+            { time: '0:30', action: 'Gently stir bloom', water: 0 },
+            { time: '0:45', action: `Add water to ${Math.round((event.waterVolume || 300) * 0.3)}g`, water: Math.round((event.waterVolume || 300) * 0.3) },
+            { time: '1:15', action: `Add water to ${Math.round((event.waterVolume || 300) * 0.5)}g`, water: Math.round((event.waterVolume || 300) * 0.5) },
+            { time: '1:45', action: `Add water to ${Math.round((event.waterVolume || 300) * 0.7)}g`, water: Math.round((event.waterVolume || 300) * 0.7) },
+            { time: '2:15', action: `Add water to ${event.waterVolume || 300}g`, water: (event.waterVolume || 300) },
+            { time: event.brewTime || '3:00', action: 'Drawdown complete', water: 0 }
+          ],
+          // Only add tips if they don't already exist
+          tips: event.tips || [
+            'Use filtered water for the best results',
+            'Grind your coffee just before brewing',
+            'Keep your equipment clean for consistent results',
+            'Use a scale to measure your coffee and water precisely',
+            'Maintain a consistent water temperature throughout the brew'
+          ],
+          // Ensure method is properly set
+          method: event.method || event.brewingMethod || 'Pour Over'
+        },
+        imageUrl: event.imageUrl
+      }
     });
   };
 
@@ -179,13 +188,16 @@ export default function HomeScreen({ navigation }) {
       userId = event.userId || event.userName;
     }
     
-    // For other users, navigate directly to UserProfileScreen instead of UserProfileBridge
-    navigation.navigate('UserProfileScreen', { 
-      userId: userId,
-      userName: event.userName,
-      userAvatar: event.userAvatar,
-      isBusinessAccount: event.isBusinessAccount || false,
-      skipAuth: true
+    // For other users, navigate through the bottom tab navigator to UserProfile
+    navigation.getParent()?.navigate('MainTabs', {
+      screen: 'UserProfile',
+      params: { 
+        userId: userId,
+        userName: event.userName,
+        userAvatar: event.userAvatar,
+        isBusinessAccount: event.isBusinessAccount || false,
+        skipAuth: true
+      }
     });
   };
 

@@ -1248,22 +1248,28 @@ export default function SearchScreen() {
 
     // Handle navigation based on item type
     if (item.type === 'coffee') {
-      navigation.navigate('CoffeeDetail', {
-        coffeeId: item.id,
-        name: item.name,
-        roaster: item.roaster,
-        imageUrl: item.imageUrl
+      navigation.getParent()?.navigate('MainTabs', {
+        screen: 'CoffeeDetail',
+        params: {
+          coffeeId: item.id,
+          name: item.name,
+          roaster: item.roaster,
+          imageUrl: item.imageUrl
+        }
       });
     } else if (item.type === 'recipe') {
-      navigation.navigate('RecipeDetail', {
-        recipeId: item.id,
-        title: item.name,
-        method: item.method,
-        creatorName: item.creatorName,
-        creatorAvatar: item.creatorAvatar,
-        coffeeName: item.coffeeName,
-        roaster: item.roaster,
-        imageUrl: item.imageUrl
+      navigation.getParent()?.navigate('MainTabs', {
+        screen: 'RecipeDetail',
+        params: {
+          recipeId: item.id,
+          title: item.name,
+          method: item.method,
+          creatorName: item.creatorName,
+          creatorAvatar: item.creatorAvatar,
+          coffeeName: item.coffeeName,
+          roaster: item.roaster,
+          imageUrl: item.imageUrl
+        }
       });
     } else if (item.type === 'gear') {
       navigation.navigate('GearDetail', {
@@ -1389,7 +1395,7 @@ export default function SearchScreen() {
                   backgroundColor: isDarkMode ? theme.cardBackground : 'transparent' 
                 }
               ]}
-              onPress={() => navigation.navigate('CoffeeDetail', { coffeeId: item.id })}
+              onPress={() => navigation.getParent()?.navigate('MainTabs', { screen: 'CoffeeDetail', params: { coffeeId: item.id } })}
             >
               <Image 
                 source={{ uri: item.imageUrl }} 

@@ -147,20 +147,26 @@ export default function SavedScreen() {
   };
 
   const handleCoffeePress = (item) => {
-    navigation.navigate('CoffeeDetail', {
-      coffeeId: item.coffeeId || item.id,
-      skipAuth: true
+    navigation.getParent()?.navigate('MainTabs', {
+      screen: 'CoffeeDetail',
+      params: {
+        coffeeId: item.coffeeId || item.id,
+        skipAuth: true
+      }
     });
   };
 
   const handleRecipePress = (recipeId) => {
     const recipe = savedRecipes.find(r => r.id === recipeId);
     if (recipe) {
-      navigation.navigate('RecipeDetail', {
-        recipeId: recipe.id,
-        coffeeId: recipe.coffeeId,
-        coffeeName: recipe.coffeeName,
-        recipe: recipe
+      navigation.getParent()?.navigate('MainTabs', {
+        screen: 'RecipeDetail',
+        params: {
+          recipeId: recipe.id,
+          coffeeId: recipe.coffeeId,
+          coffeeName: recipe.coffeeName,
+          recipe: recipe
+        }
       });
     }
   };

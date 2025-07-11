@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Ionicons } from "@expo/vector-icons";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { useColorScheme, Button, Modal, View, Text, StyleSheet, Alert, Keyboard, TouchableOpacity, Platform, Image, FlatList, SafeAreaView } from "react-native";
@@ -11,6 +11,9 @@ import SearchScreen from '../screens/SearchScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import AddCoffeeScreen from '../screens/AddCoffeeScreen';
+import CoffeeDetailScreen from '../screens/CoffeeDetailScreen';
+import RecipeDetailScreen from '../screens/RecipeDetailScreen';
+import UserProfileScreen from '../screens/UserProfileScreen';
 import { useNotifications } from '../context/NotificationsContext';
 import { useCoffee } from '../context/CoffeeContext';
 import eventEmitter from '../utils/EventEmitter';
@@ -187,6 +190,12 @@ export default function BottomTabNavigator({ navigation: mainNavigation }) {
               iconName = focused ? 'search' : 'search-outline';
             } else if (route.name === 'Profile') {
               iconName = focused ? 'person' : 'person-outline';
+            } else if (route.name === 'CoffeeDetail') {
+              iconName = focused ? 'cafe' : 'cafe-outline';
+            } else if (route.name === 'RecipeDetail') {
+              iconName = focused ? 'book' : 'book-outline';
+            } else if (route.name === 'UserProfile') {
+              iconName = focused ? 'person-circle' : 'person-circle-outline';
             }
 
             return <Ionicons name={iconName} size={size} color={color} />;
@@ -302,6 +311,30 @@ export default function BottomTabNavigator({ navigation: mainNavigation }) {
           initialParams={{ skipAuth: true }}
           listeners={{
             tabLongPress: handleProfileLongPress,
+          }}
+        />
+        <BottomTab.Screen
+          name="CoffeeDetail"
+          component={CoffeeDetailScreen}
+          options={{
+            headerShown: false,
+            tabBarButton: () => null, // Hide the tab bar button for this screen
+          }}
+        />
+        <BottomTab.Screen
+          name="RecipeDetail"
+          component={RecipeDetailScreen}
+          options={{
+            headerShown: false,
+            tabBarButton: () => null, // Hide the tab bar button for this screen
+          }}
+        />
+        <BottomTab.Screen
+          name="UserProfile"
+          component={UserProfileScreen}
+          options={{
+            headerShown: false,
+            tabBarButton: () => null, // Hide the tab bar button for this screen
           }}
         />
       </BottomTab.Navigator>

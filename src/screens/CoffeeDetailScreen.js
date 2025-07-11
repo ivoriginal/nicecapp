@@ -656,14 +656,18 @@ export default function CoffeeDetailScreen() {
     const recipe = relatedRecipes.find(r => r.id === recipeId);
     if (recipe) {
       console.log(`Navigating to recipe detail for: ${recipe.name}`);
-      navigation.navigate('RecipeDetail', {
-        recipeId: recipe.id,
-        coffeeId: coffee.id,
-        coffeeName: coffee.name,
-        recipeName: recipe.name,
-        coffeeImage: coffee.image,
-        roaster: coffee.roaster,
-        recipe: recipe // Pass the full recipe for immediate rendering
+      // Use the parent navigation to navigate to the tab
+      navigation.getParent()?.navigate('MainTabs', {
+        screen: 'RecipeDetail',
+        params: {
+          recipeId: recipe.id,
+          coffeeId: coffee.id,
+          coffeeName: coffee.name,
+          recipeName: recipe.name,
+          coffeeImage: coffee.image,
+          roaster: coffee.roaster,
+          recipe: recipe // Pass the full recipe for immediate rendering
+        }
       });
     } else {
       console.warn(`Recipe with ID ${recipeId} not found`);

@@ -862,7 +862,7 @@ const CoffeeDiscoveryScreen = ({ navigation, route }) => {
       <View style={[styles.coffeeCardContainer, { borderBottomColor: theme.divider }]}>
         <TouchableOpacity 
           style={[styles.coffeeCard, { backgroundColor: theme.background }]}
-          onPress={() => navigation.navigate('CoffeeDetail', { coffeeId: item.id })}
+          onPress={() => navigation.getParent()?.navigate('MainTabs', { screen: 'CoffeeDetail', params: { coffeeId: item.id } })}
         >
           <View style={[styles.coffeeImageContainer, { backgroundColor: theme.placeholder }]}>
             <AppImage 

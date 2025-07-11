@@ -80,11 +80,11 @@ export default function TabOneScreen() {
   };
   
   const handleCoffeePress = (coffee) => {
-    navigation.navigate('CoffeeDetailScreen', { coffeeId: coffee.id });
+    navigation.getParent()?.navigate('MainTabs', { screen: 'CoffeeDetail', params: { coffeeId: coffee.id } });
   };
   
   const handleRecipePress = (recipe) => {
-    navigation.navigate('RecipeDetailScreen', { recipeId: recipe.id });
+    navigation.getParent()?.navigate('MainTabs', { screen: 'RecipeDetail', params: { recipeId: recipe.id } });
   };
   
   const handleEventPress = (event) => {

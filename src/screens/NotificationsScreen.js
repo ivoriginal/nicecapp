@@ -218,17 +218,20 @@ const NotificationsScreen = ({ navigation }) => {
     switch (notification.type) {
       case 'saved_recipe':
         // Always navigate to RecipeDetail, even if recipe not found
-        navigation.navigate('RecipeDetail', { 
-          recipeId: notification.recipeId,
-          recipe: recipeData || {
-            id: notification.recipeId,
-            name: notification.recipeName || 'Deleted Recipe',
-            deleted: true
-          },
-          userId: userData?.id,
-          userName: userData?.name || notification.userName,
-          userAvatar: userData?.avatar || notification.userAvatar,
-          skipAuth: true
+        navigation.getParent()?.navigate('MainTabs', { 
+          screen: 'RecipeDetail',
+          params: { 
+            recipeId: notification.recipeId,
+            recipe: recipeData || {
+              id: notification.recipeId,
+              name: notification.recipeName || 'Deleted Recipe',
+              deleted: true
+            },
+            userId: userData?.id,
+            userName: userData?.name || notification.userName,
+            userAvatar: userData?.avatar || notification.userAvatar,
+            skipAuth: true
+          }
         });
         break;
         
@@ -250,34 +253,40 @@ const NotificationsScreen = ({ navigation }) => {
         
       case 'remixed_recipe':
         // Always navigate, showing fallback recipe if needed
-        navigation.navigate('RecipeDetail', { 
-          recipeId: recipeData?.recipe?.id || notification.newRecipeId,
-          recipe: recipeData?.recipe || {
-            id: notification.newRecipeId,
-            name: notification.newRecipeName || 'Deleted Recipe',
-            deleted: true
-          },
-          basedOnRecipe: recipeData?.basedOnRecipe,
-          userId: userData?.id || notification.userId,
-          userName: userData?.name || notification.userName,
-          userAvatar: userData?.avatar || notification.userAvatar,
-          skipAuth: true
+        navigation.getParent()?.navigate('MainTabs', { 
+          screen: 'RecipeDetail',
+          params: { 
+            recipeId: recipeData?.recipe?.id || notification.newRecipeId,
+            recipe: recipeData?.recipe || {
+              id: notification.newRecipeId,
+              name: notification.newRecipeName || 'Deleted Recipe',
+              deleted: true
+            },
+            basedOnRecipe: recipeData?.basedOnRecipe,
+            userId: userData?.id || notification.userId,
+            userName: userData?.name || notification.userName,
+            userAvatar: userData?.avatar || notification.userAvatar,
+            skipAuth: true
+          }
         });
         break;
         
       case 'rate_recipe_reminder':
         // Navigate to recipe detail screen with rating prompt
         const recipe = recipeData || require('../data/mockRecipes.json').recipes.find(r => r.id === notification.recipeId);
-        navigation.navigate('RecipeDetail', { 
-          recipeId: notification.recipeId,
-          recipe: recipe || {
-            id: notification.recipeId,
-            name: notification.recipeName || 'Recipe',
-            deleted: !recipe
-          },
-          coffeeName: notification.coffeeName,
-          showRatingPrompt: true, // Signal to show rating modal
-          skipAuth: true
+        navigation.getParent()?.navigate('MainTabs', { 
+          screen: 'RecipeDetail',
+          params: { 
+            recipeId: notification.recipeId,
+            recipe: recipe || {
+              id: notification.recipeId,
+              name: notification.recipeName || 'Recipe',
+              deleted: !recipe
+            },
+            coffeeName: notification.coffeeName,
+            showRatingPrompt: true, // Signal to show rating modal
+            skipAuth: true
+          }
         });
         break;
         
@@ -285,21 +294,24 @@ const NotificationsScreen = ({ navigation }) => {
         // Handle custom notification types with message field
         if (notification.message && notification.message.includes("recipe based on your")) {
           // Always navigate to recipe detail
-          navigation.navigate('RecipeDetail', { 
-            recipeId: recipeData?.recipe?.id || 'recipe-not-found',
-            recipe: recipeData?.recipe || {
-              id: 'recipe-not-found',
-              name: `${notification.userName}'s Recipe`,
-              deleted: true,
-              userId: notification.userId,
-              userName: notification.userName,
-              userAvatar: notification.userAvatar
-            },
-            basedOnRecipe: recipeData?.basedOnRecipe,
-            userId: userData?.id || notification.userId,
-            userName: userData?.name || notification.userName,
-            userAvatar: userData?.avatar || notification.userAvatar,
-            skipAuth: true
+          navigation.getParent()?.navigate('MainTabs', { 
+            screen: 'RecipeDetail',
+            params: { 
+              recipeId: recipeData?.recipe?.id || 'recipe-not-found',
+              recipe: recipeData?.recipe || {
+                id: 'recipe-not-found',
+                name: `${notification.userName}'s Recipe`,
+                deleted: true,
+                userId: notification.userId,
+                userName: notification.userName,
+                userAvatar: notification.userAvatar
+              },
+              basedOnRecipe: recipeData?.basedOnRecipe,
+              userId: userData?.id || notification.userId,
+              userName: userData?.name || notification.userName,
+              userAvatar: userData?.avatar || notification.userAvatar,
+              skipAuth: true
+            }
           });
         } else if (notification.recipeId) {
           // Use mockRecipes directly without redundant require
@@ -307,20 +319,23 @@ const NotificationsScreen = ({ navigation }) => {
           const recipe = mockRecipes.find(r => r.id === notification.recipeId);
           
           // Always navigate to recipe screen
-          navigation.navigate('RecipeDetail', { 
-            recipeId: notification.recipeId,
-            recipe: recipe || {
-              id: notification.recipeId,
-              name: 'Deleted Recipe',
-              deleted: true,
+          navigation.getParent()?.navigate('MainTabs', { 
+            screen: 'RecipeDetail',
+            params: { 
+              recipeId: notification.recipeId,
+              recipe: recipe || {
+                id: notification.recipeId,
+                name: 'Deleted Recipe',
+                deleted: true,
+                userId: notification.userId,
+                userName: notification.userName,
+                userAvatar: notification.userAvatar
+              },
               userId: notification.userId,
               userName: notification.userName,
-              userAvatar: notification.userAvatar
-            },
-            userId: notification.userId,
-            userName: notification.userName,
-            userAvatar: notification.userAvatar,
-            skipAuth: true
+              userAvatar: notification.userAvatar,
+              skipAuth: true
+            }
           });
         } else if (notification.userId) {
           // Navigate to user profile as fallback

@@ -260,11 +260,14 @@ export default function UserProfileBridge() {
       hasNavigatedRef.current = true;
       console.log('UserProfileBridge: Navigating with params:', params);
       
-      // Navigate to UserProfileScreen while preserving the navigation stack
-      navigation.navigate('UserProfileScreen', {
-        ...params,
-        // Ensure we preserve the navigation stack by not using replace
-        ensureHeaderShown: true // Signal to UserProfileScreen to maintain header
+      // Navigate through the bottom tab navigator to UserProfile
+      navigation.getParent()?.navigate('MainTabs', {
+        screen: 'UserProfile',
+        params: {
+          ...params,
+          // Ensure we preserve the navigation stack by not using replace
+          ensureHeaderShown: true // Signal to UserProfileScreen to maintain header
+        }
       });
     };
 
