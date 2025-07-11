@@ -72,17 +72,7 @@ export default function AddGearScreen({ navigation, route }) {
     };
   }, []);
 
-  // Set up navigation header
-  useEffect(() => {
-    navigation.setOptions({
-      title: 'Add Gear',
-      headerLeft: () => (
-        <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginLeft: 16 }}>
-          <Ionicons name="close" size={24} color={theme.primaryText} />
-        </TouchableOpacity>
-      ),
-    });
-  }, [navigation, theme]);
+
 
   const searchGearDatabase = async (query) => {
     if (!query.trim()) {
