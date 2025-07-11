@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "scheme": "nicecapp",
     "splash": {
@@ -26,7 +26,6 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "navigationBarColor": "#ffffff",
       "softwareKeyboardLayoutMode": "pan",
       "navigationBarHidden": false,
       "permissions": [
