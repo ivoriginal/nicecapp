@@ -15,6 +15,7 @@ import CoffeeDiscoveryScreen from './src/screens/CoffeeDiscoveryScreen';
 import RecipesListScreen from './src/screens/RecipesListScreen';
 import PeopleListScreen from './src/screens/PeopleListScreen';
 import CafesListScreen from './src/screens/CafesListScreen';
+import RoastersListScreen from './src/screens/RoastersListScreen';
 import SavedScreen from './src/screens/SavedScreen';
 import NotificationsScreen from './src/screens/NotificationsScreen';
 import AddCoffeeScreen from './src/screens/AddCoffeeScreen';
@@ -30,6 +31,7 @@ import AddCoffeeFromCamera from './src/screens/AddCoffeeFromCamera';
 import AddCoffeeFromGallery from './src/screens/AddCoffeeFromGallery';
 import AddCoffeeManually from './src/screens/AddCoffeeManually';
 import AddGearScreen from './src/screens/AddGearScreen';
+import AddGearManually from './src/screens/AddGearManually';
 import { CoffeeProvider, useCoffee } from './src/context/CoffeeContext';
 import { NotificationsProvider } from './src/context/NotificationsContext';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
@@ -66,7 +68,7 @@ function AppContent() {
   
   useEffect(() => {
     // Configure the navigation bar with theme-aware background and buttons
-    configureNavigationBar(theme.cardBackground, isDarkMode ? 'light' : 'dark');
+    configureNavigationBar(theme.background, isDarkMode ? 'light' : 'dark');
   }, [isDarkMode, theme]);
 
   // Function to handle action sheet for recipe options
@@ -466,7 +468,7 @@ function MainNavigator({ theme, handleRecipeOptions, handleCoffeeOptions, header
         component={GearWishlistScreen} 
         options={({ route }) => ({ 
           headerShown: true, 
-          title: route.params?.isCurrentUser ? 'My Gear Wishlist' : `${route.params?.userName}'s Gear Wishlist`,
+          title: route.params?.isCurrentUser ? 'My Gear Wishlist' : `${route.params?.userName || 'User'}'s Gear Wishlist`,
           headerBackTitle: 'Back'
         })} 
       />
@@ -502,6 +504,11 @@ function MainNavigator({ theme, handleRecipeOptions, handleCoffeeOptions, header
         name="CafesList" 
         component={CafesListScreen} 
         options={{ headerShown: true, title: 'Cafés Near You', headerBackTitle: 'Back' }} 
+      />
+      <Stack.Screen 
+        name="RoastersList" 
+        component={RoastersListScreen} 
+        options={{ headerShown: true, title: 'Roasters', headerBackTitle: 'Back' }}
       />
       <Stack.Screen 
         name="Saved" 
@@ -571,6 +578,14 @@ function MainNavigator({ theme, handleRecipeOptions, handleCoffeeOptions, header
         component={AddCoffeeManually} 
         options={{ 
           title: 'Add Manually',
+          headerBackTitle: 'Back'
+        }} 
+      />
+      <Stack.Screen 
+        name="AddGearManually" 
+        component={AddGearManually} 
+        options={{ 
+          title: 'Add Gear Manually',
           headerBackTitle: 'Back'
         }} 
       />
