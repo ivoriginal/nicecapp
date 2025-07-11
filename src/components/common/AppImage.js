@@ -58,6 +58,12 @@ const localAssets = {
   'assets/businesses/thefix-cover.jpg': require('../../../assets/businesses/thefix-cover.jpg'),
   'thefix-cover.jpg': require('../../../assets/businesses/thefix-cover.jpg'),
 
+  // Nomad Coffee - using their actual logo from their website
+  'nomad-logo.jpg': 'https://nomadcoffee.es/cdn/shop/files/NOMAD_LOGO_NEGRO.png',
+  'nomad-coffee-logo.jpg': 'https://nomadcoffee.es/cdn/shop/files/NOMAD_LOGO_NEGRO.png',
+  'nomad-coffee-roasters-logo.jpg': 'https://nomadcoffee.es/cdn/shop/files/NOMAD_LOGO_NEGRO.png',
+  'assets/businesses/nomad-logo.jpg': 'https://nomadcoffee.es/cdn/shop/files/NOMAD_LOGO_NEGRO.png',
+
   // Default gear images
   'assets/gear/aeropress.jpg': 'https://m.media-amazon.com/images/I/71pxZkT0rVL.jpg',
   'assets/gear/chemex.jpg': 'https://static.fnac-static.com/multimedia/Images/ES/NR/ac/87/6d/7178156/1541-1.jpg',
@@ -116,7 +122,6 @@ const AppImage = ({
   }, [source]);
 
   const handleError = (e) => {
-    // console.log('[AppImage] Error loading image:', typeof source === 'string' ? source : 'non-string-source');
     setHasError(true);
     setIsLoadingImage(false);
     if (onError) onError(e);
@@ -128,9 +133,26 @@ const AppImage = ({
 
   // If there's an error or no source, show placeholder
   if (hasError || !source) {
+    let placeholderIcon;
+    switch (placeholder) {
+      case 'person':
+        placeholderIcon = 'person-outline';
+        break;
+      case 'business':
+        placeholderIcon = 'business-outline';
+        break;
+      case 'gear':
+        placeholderIcon = 'cafe-outline';
+        break;
+      case 'cafe':
+      default:
+        placeholderIcon = 'cafe-outline';
+        break;
+    }
+    
     return (
       <View style={[styles.placeholder, style]}>
-        <Ionicons name={placeholder} size={24} color="#666" />
+        <Ionicons name={placeholderIcon} size={24} color="#666" />
       </View>
     );
   }
@@ -178,6 +200,24 @@ const AppImage = ({
       }
     }
     
+    // Check for Vértigo images
+    if (cleanPath.includes('vertigo') || src.includes('Vértigo') || src.includes('vertigo')) {
+      if (cleanPath.includes('cover') || src.includes('cover')) {
+        console.log('[AppImage] Using Vértigo cover image');
+        return require('../../../assets/businesses/vertigo-cover.jpg');
+      } else {
+        console.log('[AppImage] Using Vértigo logo');
+        return require('../../../assets/businesses/vertigo-logo.jpg');
+      }
+    }
+    
+    // Check for Nomad Coffee images - but only if it's not already a Supabase URL
+    if ((cleanPath.includes('nomad') || src.includes('Nomad') || src.includes('NOMAD') || src.includes('nomad_avatar')) && 
+        !src.includes('supabase.co')) {
+      console.log('[AppImage] Using Nomad Coffee logo for source:', src);
+      return { uri: 'https://nomadcoffee.es/cdn/shop/files/NOMAD_LOGO_NEGRO.png' };
+    }
+    
     return src;
   };
   
@@ -202,6 +242,7 @@ const AppImage = ({
       
       // First try exact match
       if (localAssets[source]) {
+        // console.log('[AppImage] Found exact match in localAssets for:', source);
         // If it's a URL string in localAssets, convert to uri object
         if (typeof localAssets[source] === 'string' && localAssets[source].startsWith('http')) {
           imageSource = { uri: localAssets[source] };
@@ -211,6 +252,7 @@ const AppImage = ({
       }
       // Then try just the filename
       else if (fileName && localAssets[fileName]) {
+        // console.log('[AppImage] Found filename match in localAssets for:', fileName);
         if (typeof localAssets[fileName] === 'string' && localAssets[fileName].startsWith('http')) {
           imageSource = { uri: localAssets[fileName] };
         } else {
@@ -229,15 +271,22 @@ const AppImage = ({
         if (source.includes('1442763115778809')) {
           imageSource = localAssets['toma-logo.jpg'];
         } else {
+          // For other Instagram URLs, try to use them but have fallback
+          console.log('[AppImage] Loading Instagram URL:', source);
           imageSource = { uri: source };
         }
       }
+      // Check for the old Nomad Coffee Unsplash URL and replace with proper logo
+      else if (source && source.includes('https://images.unsplash.com/photo-1447933601403-0c6688de566e')) {
+        imageSource = { uri: 'https://nomadcoffee.es/cdn/shop/files/NOMAD_LOGO_NEGRO.png' };
+      }
       // Last resort - use default gear image for gear placeholder
       else if (placeholder === 'gear') {
-        imageSource = { uri: localAssets['assets/gear/default.jpg'] };
+        imageSource = { uri: 'https://images.unsplash.com/photo-1510017803434-a899398421b3?q=80&w=2940&auto=format&fit=crop' };
       }
       // Otherwise use as URI
       else {
+        // console.log('[AppImage] No match found, using as URI:', source);
         imageSource = { uri: source };
       }
     }
