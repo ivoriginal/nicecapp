@@ -45,6 +45,8 @@ import RecipeCard2 from '../components/RecipeCard2';
 import UserAvatar from '../components/UserAvatar';
 import CoffeeInfo from '../components/CoffeeInfo';
 import gearDetails from '../data/gearDetails';
+import { supabase } from '../lib/supabase';
+import mockGear from '../data/mockGear.json';
 
 const { width, height } = Dimensions.get('window');
 
@@ -106,6 +108,8 @@ export default function RecipeDetailScreen() {
   const [showHowWasItRating, setShowHowWasItRating] = useState(false);
   const [showAddCoffeeModal, setShowAddCoffeeModal] = useState(false);
   const [nearMeEnabled, setNearMeEnabled] = useState(false);
+  const [equipmentData, setEquipmentData] = useState([]);
+  const [loadingEquipment, setLoadingEquipment] = useState(false);
   
   const toggleNearMe = () => {
     setNearMeEnabled(!nearMeEnabled);
@@ -120,6 +124,129 @@ export default function RecipeDetailScreen() {
   
   // Mock the current user id for demo purposes
   const currentUserId = 'user1';
+
+  // Function to fetch equipment data from Supabase
+  const fetchEquipmentData = async (equipmentArray) => {
+    if (!equipmentArray || equipmentArray.length === 0) {
+      setEquipmentData([]);
+      return;
+    }
+    
+    setLoadingEquipment(true);
+    try {
+      console.log('Fetching equipment data for:', equipmentArray);
+      
+      // Extract equipment IDs from the array
+      const equipmentIds = equipmentArray.map(item => 
+        typeof item === 'string' ? item : item.id
+      ).filter(Boolean);
+      
+      if (equipmentIds.length === 0) {
+        setEquipmentData([]);
+        setLoadingEquipment(false);
+        return;
+      }
+      
+      const { data: gearData, error } = await supabase
+        .from('gear')
+        .select('*')
+        .in('id', equipmentIds);
+      
+      if (error) {
+        console.error('Error fetching equipment data:', error);
+        setEquipmentData([]);
+        return;
+      }
+      
+      console.log('Fetched gear data:', gearData);
+      
+      // Transform Supabase data to match the expected format
+      const transformedEquipment = [];
+      
+      // Process each equipment item from the recipe
+      for (const equipmentItem of equipmentArray) {
+        const itemId = typeof equipmentItem === 'string' ? equipmentItem : equipmentItem.id;
+        const supabaseItem = gearData.find(item => item.id === itemId);
+        
+        if (supabaseItem) {
+          // Found in Supabase, use Supabase data with original properties
+          transformedEquipment.push({
+            id: supabaseItem.id,
+            name: supabaseItem.name,
+            brand: supabaseItem.brand,
+            category: supabaseItem.category,
+            type: supabaseItem.category, // Use category as type for consistency
+            image: supabaseItem.image_url,
+            description: supabaseItem.description,
+            price: supabaseItem.price,
+            // Keep any additional settings from the original recipe equipment
+            ...(typeof equipmentItem === 'object' ? equipmentItem : {})
+          });
+        } else {
+          // Not found in Supabase, try to find in mock data as fallback
+          console.warn(`Equipment ${itemId} not found in Supabase, searching in mock data`);
+          
+          // Create a simple mapping for common gear items that might be missing from Supabase
+          // Using singular categories to match current Supabase schema
+          const gearMapping = {
+            'gear1': { name: 'Fellow Stagg EKG', brand: 'Fellow', category: 'Kettle', type: 'Kettle', image: 'https://hola.coffee/cdn/shop/files/FELLOW-STAGG_1024x1024@2x.jpg?v=1732719228' },
+            'gear2': { name: 'Baratza Encore', brand: 'Baratza', category: 'Grinder', type: 'Grinder', image: 'https://ecafe.es/tienda/2089-large_default/baratza-encore-esp.jpg' },
+            'gear3': { name: 'Comandante C40 MK4', brand: 'Comandante', category: 'Grinder', type: 'Grinder', image: 'https://images.unsplash.com/photo-1575441347544-11725ca18b26' },
+            'gear4': { name: 'Hario V60', brand: 'Hario', category: 'Brewer', type: 'Pour Over', image: 'https://www.hario-europe.com/cdn/shop/files/VDC-01R_web.png?v=1683548122&width=1400' },
+            'gear5': { name: 'Acaia Pearl', brand: 'Acaia', category: 'Scale', type: 'Scale', image: 'https://images.unsplash.com/photo-1575441347548-0e745b37a5b8' },
+            'gear6': { name: 'AeroPress', brand: 'Aerobie', category: 'Brewer', type: 'Brewer', image: 'https://aeropress.com/cdn/shop/files/Hero_Original_87a4958c-7df9-43b6-af92-0edc12c126cf_900x.png?v=1744683381' },
+            'gear7': { name: 'Chemex', brand: 'Chemex', category: 'Brewer', type: 'Pour Over', image: 'https://images.unsplash.com/photo-1544233726-9f1d2b27be8b' },
+            'gear8': { name: 'Hario Ceramic Slim', brand: 'Hario', category: 'Grinder', type: 'Grinder', image: 'https://images.unsplash.com/photo-1544713300-6b5a2817d25f' },
+            'gear10': { name: '9Barista Espresso Machine Mk.1', brand: '9Barista', category: 'Espresso Machine', type: 'Espresso Machine', image: 'https://9barista.com/cdn/shop/products/9Barista-unboxed2_1296x.jpg?v=1710943847' },
+            'gear11': { name: 'Fellow Opus', brand: 'Fellow', category: 'Grinder', type: 'Grinder', image: 'https://fellowproducts.com/cdn/shop/products/FellowProducts_OpusConicalBurrGrinder_MatteBlack_01.png' },
+            'gear12': { name: 'Hario V60 Paper Filters', brand: 'Hario', category: 'Accessory', type: 'Accessories', image: 'https://www.hario.co.uk/cdn/shop/products/VARIO_1200x1200.jpg?v=1609933351' },
+            'gear13': { name: 'AeroPress Paper Filters', brand: 'Aerobie', category: 'Accessory', type: 'Accessories', image: 'https://aeropress.com/cdn/shop/files/Hero_Original_87a4958c-7df9-43b6-af92-0edc12c126cf_900x.png?v=1744683381' }
+          };
+          
+          // Try the gear mapping first
+          let mockItem = gearMapping[itemId];
+          
+          // If not found in mapping, try mockGear.json
+          if (!mockItem) {
+            mockItem = mockGear.gear?.find(item => item.id === itemId);
+          }
+          
+          if (mockItem) {
+            console.log(`Found equipment ${itemId} in mock data:`, mockItem.name);
+            transformedEquipment.push({
+              id: itemId,
+              name: mockItem.name,
+              brand: mockItem.brand,
+              category: mockItem.category || mockItem.type,
+              type: mockItem.type,
+              image: mockItem.imageUrl || mockItem.image,
+              description: mockItem.description,
+              price: mockItem.price,
+              // Keep any additional settings from the original recipe equipment
+              ...(typeof equipmentItem === 'object' ? equipmentItem : {})
+            });
+          } else if (typeof equipmentItem === 'object') {
+            // Use original data as final fallback
+            console.warn(`Equipment ${itemId} not found anywhere, using original data`);
+            transformedEquipment.push({
+              ...equipmentItem,
+              // Add fallback image if not present
+              image: equipmentItem.image || 
+                     (gearDetails[equipmentItem.name] && gearDetails[equipmentItem.name].image) ||
+                     'https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?auto=format&fit=crop&w=60&h=60&q=60'
+            });
+          }
+        }
+      }
+      
+      setEquipmentData(transformedEquipment);
+    } catch (error) {
+      console.error('Error fetching equipment data:', error);
+      setEquipmentData([]);
+    } finally {
+      setLoadingEquipment(false);
+    }
+  };
 
   // Sample remixes data
   const sampleRemixes = [
@@ -575,6 +702,15 @@ export default function RecipeDetailScreen() {
       setSaved(isSavedInFavorites);
     }
   }, [recipe, favorites]);
+
+  // Fetch equipment data when recipe changes
+  useEffect(() => {
+    if (recipe && recipe.equipment && Array.isArray(recipe.equipment)) {
+      fetchEquipmentData(recipe.equipment);
+    } else {
+      setEquipmentData([]);
+    }
+  }, [recipe]);
 
   // Check if user has logged this recipe but hasn't rated it
   useEffect(() => {
@@ -1640,15 +1776,19 @@ export default function RecipeDetailScreen() {
             </View>
 
             {/* Equipment Section - only show if recipe has equipment */}
-            {recipe && (
-              console.log('Recipe equipment check:', recipe.equipment, 'Array?', Array.isArray(recipe.equipment), 'Length:', recipe.equipment?.length),
-              recipe.equipment && Array.isArray(recipe.equipment) && recipe.equipment.length > 0 && (
-                <View style={[styles.section, { backgroundColor: theme.background, borderTopColor: theme.divider }]}>
-                  <View style={[styles.sectionHeader, { backgroundColor: theme.background }]}>
-                    <Text style={[styles.sectionTitle, styles.sectionTitleInHeader, { color: theme.primaryText }]}>Equipment</Text>
+            {recipe && recipe.equipment && Array.isArray(recipe.equipment) && recipe.equipment.length > 0 && (
+              <View style={[styles.section, { backgroundColor: theme.background, borderTopColor: theme.divider }]}>
+                <View style={[styles.sectionHeader, { backgroundColor: theme.background }]}>
+                  <Text style={[styles.sectionTitle, styles.sectionTitleInHeader, { color: theme.primaryText }]}>Equipment</Text>
+                </View>
+                {loadingEquipment ? (
+                  <View style={[styles.loadingEquipmentContainer, { backgroundColor: theme.background }]}>
+                    <ActivityIndicator size="small" color={theme.primaryText} />
+                    <Text style={[styles.loadingEquipmentText, { color: theme.secondaryText }]}>Loading equipment...</Text>
                   </View>
+                ) : equipmentData.length > 0 ? (
                   <View style={[styles.equipmentGrid, { backgroundColor: theme.background }]}>
-                    {recipe.equipment.map((item, index) => (
+                    {equipmentData.map((item, index) => (
                       <TouchableOpacity
                         key={index}
                         style={[styles.equipmentCard, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
@@ -1657,11 +1797,11 @@ export default function RecipeDetailScreen() {
                           gearName: item.name 
                         })}
                       >
-                        {/* Avatar image for the piece of equipment */}
+                        {/* Squared avatar image for the piece of equipment */}
                         <AppImage
                           source={
-                            (gearDetails[item.name] && gearDetails[item.name].image) ||
                             item.image ||
+                            (gearDetails[item.name] && gearDetails[item.name].image) ||
                             'https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?auto=format&fit=crop&w=60&h=60&q=60'
                           }
                           style={[styles.equipmentIconImage, { borderColor: theme.border }]}
@@ -1669,16 +1809,25 @@ export default function RecipeDetailScreen() {
                         <View style={[styles.equipmentInfo, { backgroundColor: theme.cardBackground }]}>
                           <Text style={[styles.equipmentName, { color: theme.primaryText }]}>{item.name}</Text>
                           <Text style={[styles.equipmentBrand, { color: theme.secondaryText }]}>{item.brand}</Text>
-                          {item.grinderSettings && (
-                            <Text style={[styles.equipmentSettings, { color: "#007AFF" }]}>{item.grinderSettings}</Text>
+                          {item.category && (
+                            <View style={[styles.equipmentCategoryRow, { backgroundColor: theme.cardBackground }]}>
+                              <Text style={[styles.equipmentCategory, { color: theme.secondaryText }]}>{item.category}</Text>
+                              {item.grinderSettings && (
+                                <Text style={[styles.equipmentSettings, { color: "#007AFF" }]}> • {item.grinderSettings}</Text>
+                              )}
+                            </View>
                           )}
                         </View>
                         <Ionicons name="chevron-forward" size={16} color={theme.secondaryText} />
                       </TouchableOpacity>
                     ))}
                   </View>
-                </View>
-              )
+                ) : (
+                  <View style={[styles.loadingEquipmentContainer, { backgroundColor: theme.background }]}>
+                    <Text style={[styles.loadingEquipmentText, { color: theme.secondaryText }]}>Equipment not available</Text>
+                  </View>
+                )}
+              </View>
             )}
 
 
@@ -2052,7 +2201,7 @@ const styles = StyleSheet.create({
   basedOnContainer: {
     // paddingTop: 16,
     // backgroundColor: '#FFFFFF',
-    // marginTop: 4,
+    marginTop: 4,
     // marginBottom: -8,
   },
   basedOnRow: {
@@ -2778,7 +2927,7 @@ const styles = StyleSheet.create({
   equipmentIconImage: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: 8, // Squared corners instead of circular
     borderWidth: 1,
     resizeMode: 'cover',
   },
@@ -2802,9 +2951,27 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginBottom: 2,
   },
+  equipmentCategoryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
+  equipmentCategory: {
+    fontSize: 12,
+  },
   equipmentSettings: {
     fontSize: 12,
     fontWeight: '500',
+  },
+  loadingEquipmentContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 24,
+  },
+  loadingEquipmentText: {
+    marginLeft: 8,
+    fontSize: 14,
   },
   actionsOuterContainer: {
     backgroundColor: '#FFFFFF',
