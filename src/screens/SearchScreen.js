@@ -16,7 +16,7 @@ import {
   Pressable
 } from 'react-native';
 import { Ionicons, MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -30,9 +30,7 @@ import { useTheme } from '../context/ThemeContext';
 import { supabase } from '../lib/supabase';
 import FollowButton from '../components/FollowButton';
 
-// Import the gearData from GearDetailScreen for consistency
-// This is the object used in GearDetailScreen.js to look up gear by name
-import { gearData } from './GearDetailScreen';
+// gearData is no longer exported from GearDetailScreen since it now fetches from Supabase
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = width * 0.8;
@@ -549,7 +547,6 @@ const styles = StyleSheet.create({
     width: 170,
     padding: 16,
     borderRadius: 12,
-    marginRight: 12,
     alignItems: 'center',
   },
   suggestedUserAvatar: {
@@ -576,12 +573,12 @@ const styles = StyleSheet.create({
   cafeListCard: {
     borderRadius: 12,
     marginRight: 12,
-    width: 280,
+    width: 300,
     overflow: 'hidden',
   },
   cafeListImage: {
     width: '100%',
-    height: 120,
+    height: 156,
     resizeMode: 'cover',
   },
   cafeListContent: {
@@ -756,12 +753,22 @@ export default function SearchScreen() {
   const [popularGear, setPopularGear] = useState([]);
   const [popularCoffees, setPopularCoffees] = useState([]);
   const [goodCafes, setGoodCafes] = useState([]);
+  const [roasters, setRoasters] = useState([]);
 
   // Load data from Supabase
   useEffect(() => {
     loadInitialData();
     loadRecentSearches();
   }, []);
+
+  // Add focus effect to refresh data when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('SearchScreen focused - refreshing data to show updated avatars');
+      // Refresh data when screen comes into focus to show updated avatars
+      loadInitialData();
+    }, [])
+  );
 
   const loadInitialData = async () => {
     try {
@@ -773,67 +780,100 @@ export default function SearchScreen() {
         .limit(5);
       
       if (coffeesError) throw coffeesError;
-      setPopularCoffees(coffees.map(coffee => ({
-        ...coffee,
-        type: 'coffee',
-        imageUrl: coffee.image_url
-      })));
+      
+      let popularCoffeesList = [];
+      
+      // Add Supabase coffees if available
+      if (coffees && coffees.length > 0) {
+        popularCoffeesList = coffees.map(coffee => ({
+          ...coffee,
+          type: 'coffee',
+          imageUrl: coffee.image_url,
+          roast_level: coffee.roast_level
+        }));
+      }
+      
+      // If no coffees from Supabase, add some mock coffees as fallback
+      if (popularCoffeesList.length === 0) {
+        const mockCoffees = require('../data/mockCoffees.json');
+        popularCoffeesList = mockCoffees.coffees.slice(0, 5).map(coffee => ({
+          ...coffee,
+          type: 'coffee',
+          imageUrl: coffee.image || coffee.imageUrl,
+          roast_level: coffee.roastLevel
+        }));
+      }
+      
+      setPopularCoffees(popularCoffeesList);
 
-      // Load good cafes
+      // Load good cafes from Supabase
       const { data: cafes, error: cafesError } = await supabase
         .from('profiles')
         .select('*')
-        .in('account_type', ['cafe', 'roaster'])
+        .eq('account_type', 'cafe')
         .order('created_at', { ascending: false })
         .limit(5);
 
       if (cafesError) throw cafesError;
       console.log('Raw cafes data:', cafes);
 
-      if (!cafes || cafes.length === 0) {
-        console.log('Using mock cafe data');
-        const mockCafes = [
-          {
-            id: 'vertigo-cafe',
-            type: 'cafe',
-            name: 'Vértigo y Calambre',
-            full_name: 'Vértigo y Calambre',
-            location: 'Murcia',
-            avatar_url: require('../../assets/businesses/vertigo-logo.jpg'),
-            cover_url: require('../../assets/businesses/vertigo-cover.jpg'),
-            rating: 4.8,
-            review_count: 42,
-            is_open: true,
-            account_type: 'cafe'
-          },
-          {
-            id: 'cafelab-cafe',
-            type: 'cafe',
-            name: 'CaféLab Murcia',
-            full_name: 'CaféLab Murcia',
-            location: 'Murcia',
-            avatar_url: require('../../assets/businesses/cafelab-logo.png'),
-            cover_url: require('../../assets/businesses/cafelab-murcia-cover.png'),
-            rating: 4.7,
-            review_count: 38,
-            is_open: true,
-            account_type: 'cafe'
+      // Use Supabase cafe data and add cover images based on the cafe name
+      let goodCafesList = [];
+      
+      if (cafes && cafes.length > 0) {
+        goodCafesList = cafes.map(cafe => {
+          // Use cover_url from database if available, otherwise determine based on cafe name/username
+          let cover_url = cafe.cover_url;
+          
+          if (!cover_url) {
+            if (cafe.full_name.includes('Vértigo') || cafe.username.includes('vertigo')) {
+              cover_url = 'assets/businesses/vertigo-cover.jpg';
+            } else if (cafe.full_name.includes('CaféLab') && cafe.location.includes('Murcia')) {
+              cover_url = 'assets/businesses/cafelab-murcia-cover.png';
+            } else if (cafe.full_name.includes('CaféLab') && cafe.location.includes('Cartagena')) {
+              cover_url = 'assets/businesses/cafelab-cartagena-cover.png';
+            } else if (cafe.full_name.includes('Toma Café 1')) {
+              cover_url = 'assets/businesses/toma-1-cover.jpg';
+            } else if (cafe.full_name.includes('Toma Café 2')) {
+              cover_url = 'assets/businesses/toma-2-cover.jpg';
+            } else if (cafe.full_name.includes('Toma Café 3')) {
+              cover_url = 'assets/businesses/toma-3-cover.jpg';
+            } else if (cafe.full_name.includes('The Fix')) {
+              cover_url = 'assets/businesses/thefix-cover.jpg';
+            }
           }
-        ];
-        setGoodCafes(mockCafes);
-      } else {
-        setGoodCafes(cafes.map(cafe => ({
-          ...cafe,
-          type: 'cafe',
-          name: cafe.full_name,
-          imageUrl: cafe.avatar_url,
-          logo_url: cafe.avatar_url,
-          cover_url: cafe.cover_url || cafe.avatar_url,
-          rating: cafe.rating || 4.5,
-          review_count: cafe.review_count || 0,
-          is_open: true
-        })));
+          
+          // Use rating and review_count from database fields if available, otherwise extract from bio
+          let rating = cafe.rating || 4.5;
+          let review_count = cafe.review_count || 0;
+          
+          // Fallback to bio parsing only if database fields are not available
+          if (!cafe.rating && cafe.bio) {
+            const ratingMatch = cafe.bio.match(/Rating: ([\d.]+)\/5/);
+            if (ratingMatch) rating = parseFloat(ratingMatch[1]);
+          }
+          
+          if (!cafe.review_count && cafe.bio) {
+            const reviewMatch = cafe.bio.match(/\((\d+) reviews\)/);
+            if (reviewMatch) review_count = parseInt(reviewMatch[1]);
+          }
+          
+          return {
+            ...cafe,
+            type: 'cafe',
+            name: cafe.full_name,
+            imageUrl: cafe.avatar_url,
+            logo_url: cafe.avatar_url,
+            avatar_url: cafe.avatar_url,
+            cover_url: cover_url,
+            rating: rating,
+            review_count: review_count,
+            is_open: true
+          };
+        });
       }
+      
+      setGoodCafes(goodCafesList);
 
       // Load popular gear from Supabase
       try {
@@ -849,33 +889,114 @@ export default function SearchScreen() {
         }
 
         console.log('Loaded gear from Supabase:', gear);
+        console.log('Gear count before filtering:', gear ? gear.length : 0);
         
         // Map gear data and ensure all required fields are present
-        setPopularGear(gear ? gear.map(item => {
+        // Filter out accessories like paper filters - only show coffee makers
+        const filteredGear = gear ? gear.filter(item => {
+          const category = item.category?.toLowerCase() || '';
+          const type = item.type?.toLowerCase() || '';
+          const name = item.name?.toLowerCase() || '';
+          
+          // Exclude only obvious accessories like paper filters
+          return !name.includes('filter') &&
+                 !name.includes('paper') &&
+                 !category.includes('filter');
+        }) : [];
+        
+        console.log('Gear count after filtering:', filteredGear.length);
+        
+        setPopularGear(filteredGear.map(item => {
           // Log each item's image URL for debugging
           console.log(`Processing gear item ${item.id}, image_url:`, item.image_url);
           
-          // Get the public URL for the image
-          const { data: { publicUrl } } = supabase.storage
-            .from('gear')
-            .getPublicUrl(`${item.id}.jpg`);
+          // Add mock usedBy data based on gear type/name for demonstration
+          let usedBy = [];
+          const gearName = item.name?.toLowerCase() || '';
+          
+          // Add relevant users based on gear type
+          if (gearName.includes('v60') || gearName.includes('pour') || gearName.includes('dripper')) {
+            usedBy = [
+              { id: 'user1', name: 'Ivo Vilches', avatar: 'assets/users/ivo-vilches.jpg' },
+              { id: 'user3', name: 'Carlos Hernández', avatar: 'assets/users/carlos-hernandez.jpg' },
+              { id: 'user11', name: 'Elias Veris', avatar: 'assets/users/elias-veris.jpg' }
+            ];
+          } else if (gearName.includes('aeropress') || gearName.includes('brewer')) {
+            usedBy = [
+              { id: 'user1', name: 'Ivo Vilches', avatar: 'assets/users/ivo-vilches.jpg' },
+              { id: 'user11', name: 'Elias Veris', avatar: 'assets/users/elias-veris.jpg' }
+            ];
+          } else if (gearName.includes('grinder') || gearName.includes('encore') || gearName.includes('comandante')) {
+            usedBy = [
+              { id: 'user3', name: 'Carlos Hernández', avatar: 'assets/users/carlos-hernandez.jpg' },
+              { id: 'user11', name: 'Elias Veris', avatar: 'assets/users/elias-veris.jpg' }
+            ];
+          } else if (gearName.includes('kettle') || gearName.includes('stagg')) {
+            usedBy = [
+              { id: 'user11', name: 'Elias Veris', avatar: 'assets/users/elias-veris.jpg' },
+              { id: 'user1', name: 'Ivo Vilches', avatar: 'assets/users/ivo-vilches.jpg' },
+              { id: 'user3', name: 'Carlos Hernández', avatar: 'assets/users/carlos-hernandez.jpg' }
+            ];
+          } else {
+            // Default users for other gear
+            usedBy = [
+              { id: 'user1', name: 'Ivo Vilches', avatar: 'assets/users/ivo-vilches.jpg' },
+              { id: 'user11', name: 'Elias Veris', avatar: 'assets/users/elias-veris.jpg' }
+            ];
+          }
           
           return {
             ...item,
             type: 'gear',
-            // Use the Supabase storage URL if available, otherwise use a default image
-            imageUrl: publicUrl || 
+            // Use the image_url from the database, fallback to default if not available
+            imageUrl: item.image_url || 
               'https://images.unsplash.com/photo-1510017803434-a899398421b3?q=80&w=2940&auto=format&fit=crop', // Default coffee gear image
             name: item.name || '',
             brand: item.brand || '',
             category: item.category || '',
             description: item.description || '',
-            price: item.price || 0
+            price: item.price || 0,
+            rating: item.rating || 4.5,
+            reviewCount: item.review_count || 0,
+            usedBy: usedBy // Add the usedBy data
           };
-        }) : []);
+        }));
       } catch (error) {
         console.error('Error loading gear:', error);
         setPopularGear([]);
+      }
+
+      // Load roasters
+      try {
+        const { data: roastersData, error: roastersError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('account_type', 'roaster')
+          .order('created_at', { ascending: false })
+          .limit(5);
+
+        if (roastersError) throw roastersError;
+        
+        console.log('Loaded roasters from Supabase:', roastersData);
+        
+        if (roastersData && roastersData.length > 0) {
+          setRoasters(roastersData.map(roaster => ({
+            ...roaster,
+            type: 'roaster',
+            name: roaster.full_name,
+            imageUrl: roaster.avatar_url,
+            logo_url: roaster.avatar_url,
+            is_open: true
+          })));
+        } else {
+          console.log('No roasters found in Supabase');
+          setRoasters([]);
+        }
+      } catch (error) {
+        console.error('Error loading roasters:', error);
+        // Use fallback data on error - removed hardcoded roasters, let Supabase data load properly
+        console.log('Error loading roasters, setting empty array to let Supabase data load');
+        setRoasters([]);
       }
 
       // Load suggested users
@@ -896,19 +1017,73 @@ export default function SearchScreen() {
 
         if (usersError) throw usersError;
         
-        console.log('Loaded users:', users);
-        setSuggestedUsers(users ? users.map(user => ({
-          ...user,
-          id: user.id,
-          type: 'user',
-          userName: user.full_name || user.username,
-          username: user.username,
-          userAvatar: user.avatar_url,
-          location: user.location
-        })) : []);
+        console.log('Loaded users from Supabase:', users);
+        
+        let suggestedUsersList = [];
+        
+        if (users && users.length > 0) {
+          suggestedUsersList = users.map(user => ({
+            ...user,
+            id: user.id,
+            type: 'user',
+            userName: user.full_name || user.username,
+            username: user.username,
+            userAvatar: user.avatar_url,
+            location: user.location
+          }));
+        }
+        
+        // If we have fewer than 3 users from Supabase, add mock users as fallback
+        if (suggestedUsersList.length < 3) {
+          console.log('Adding mock users as fallback');
+          
+          // Import mock users
+          const mockUsers = require('../data/mockUsers.json');
+          const mockUsersList = mockUsers.users
+            .filter(mockUser => 
+              // Don't include current user and only include regular users (not businesses)
+              mockUser.id !== user?.id && 
+              !mockUser.isBusinessAccount &&
+              mockUser.id !== 'user2' // Exclude Vértigo y Calambre business account
+            )
+            .slice(0, 5 - suggestedUsersList.length) // Only take what we need
+            .map(mockUser => ({
+              id: mockUser.id,
+              type: 'user',
+              userName: mockUser.userName,
+              username: mockUser.handle?.replace('@', '') || mockUser.userName.toLowerCase().replace(' ', ''),
+              userAvatar: mockUser.userAvatar,
+              location: mockUser.location
+            }));
+            
+          suggestedUsersList = [...suggestedUsersList, ...mockUsersList];
+        }
+        
+        setSuggestedUsers(suggestedUsersList);
       } catch (error) {
         console.error('Error loading suggested users:', error);
-        setSuggestedUsers([]);
+        
+        // Fallback to mock users if Supabase fails completely
+        console.log('Using mock users as complete fallback');
+        const mockUsers = require('../data/mockUsers.json');
+        const mockUsersList = mockUsers.users
+          .filter(mockUser => 
+            // Don't include current user and only include regular users (not businesses)
+            mockUser.id !== user?.id && 
+            !mockUser.isBusinessAccount &&
+            mockUser.id !== 'user2' // Exclude Vértigo y Calambre business account
+          )
+          .slice(0, 5)
+          .map(mockUser => ({
+            id: mockUser.id,
+            type: 'user',
+            userName: mockUser.userName,
+            username: mockUser.handle?.replace('@', '') || mockUser.userName.toLowerCase().replace(' ', ''),
+            userAvatar: mockUser.userAvatar,
+            location: mockUser.location
+          }));
+          
+        setSuggestedUsers(mockUsersList);
       }
 
     } catch (error) {
@@ -986,42 +1161,14 @@ export default function SearchScreen() {
 
   const handleGearPress = (item) => {
     const gearName = item.name;
-    console.log(`Navigating to gear detail for ${gearName}`);
+    const gearId = item.id || item.gearId;
+    console.log(`Navigating to gear detail for ${gearName} (ID: ${gearId})`);
     
-    // Find the exact key in gearData that corresponds to this gear
-    const exactMatchKey = Object.keys(gearData).find(key => 
-      key.toLowerCase() === gearName.toLowerCase()
-    );
-    
-    if (exactMatchKey) {
-      navigation.navigate('GearDetail', { gearName: exactMatchKey });
-      return;
-    }
-    
-    // Try to find a partial match in gearData keys
-    const partialMatchKey = Object.keys(gearData).find(key => {
-      return key.toLowerCase().includes(gearName.toLowerCase()) || 
-             gearName.toLowerCase().includes(key.toLowerCase());
+    // Pass both gearId and gearName to GearDetailScreen for better lookup
+    navigation.navigate('GearDetail', { 
+      gearId: gearId,
+      gearName: gearName 
     });
-    
-    if (partialMatchKey) {
-      navigation.navigate('GearDetail', { gearName: partialMatchKey });
-      return;
-    }
-    
-    // Special cases
-    if (gearName.includes("Baratza Encore")) {
-      navigation.navigate('GearDetail', { gearName: "Baratza Encore" });
-      return;
-    }
-    
-    if (gearName.toLowerCase().includes("aeropress")) {
-      navigation.navigate('GearDetail', { gearName: "AeroPress" });
-      return;
-    }
-    
-    // Fallback
-    navigation.navigate('GearDetail', { gearName: gearName });
   };
 
   const handleSearch = async (text) => {
@@ -1042,12 +1189,12 @@ export default function SearchScreen() {
     try {
       let results = [];
       
-      // Search users in Supabase
+      // Always fetch fresh user data from Supabase to ensure updated avatars are shown
       const { data: users, error: usersError } = await supabase
         .from('profiles')
         .select('*')
         .or(`username.ilike.%${cleanSearchText}%,full_name.ilike.%${cleanSearchText}%`)
-        .order('updated_at', { ascending: false })
+        .order('updated_at', { ascending: false }) // Order by updated_at to show recently updated profiles first
         .limit(5);
       
       if (usersError) throw usersError;
@@ -1073,10 +1220,42 @@ export default function SearchScreen() {
             cover_url: user.cover_url,
             rating: user.rating,
             review_count: user.review_count,
-            is_open: true // This should be dynamic based on opening hours
+            is_open: true, // This should be dynamic based on opening hours
+            avatar_url: user.avatar_url, // Add this for consistency
+            logo_url: user.avatar_url   // Add this for business accounts
           };
         }));
       }
+
+      // Search mock users as fallback only if no Supabase results found
+      if (!users || users.length === 0) {
+        const mockUsers = require('../data/mockUsers.json');
+        const filteredMockUsers = mockUsers.users
+          .filter(user => 
+            user.userName?.toLowerCase().includes(cleanSearchText) ||
+            user.handle?.toLowerCase().includes(cleanSearchText) ||
+            user.email?.toLowerCase().includes(cleanSearchText)
+          )
+          .slice(0, 5)
+          .map(user => ({
+            id: user.id,
+            userId: user.id,
+            name: user.userName,
+            userName: user.userName,
+            username: user.handle?.replace('@', '') || user.userName.toLowerCase().replace(' ', ''),
+            location: user.location,
+            type: user.isBusinessAccount ? (user.isRoaster ? 'roaster' : 'cafe') : 'user',
+            source: 'mock',
+            userAvatar: user.userAvatar,
+            avatar: user.userAvatar,
+            imageUrl: user.userAvatar,
+            avatar_url: user.userAvatar
+          }));
+        
+        results.push(...filteredMockUsers);
+      }
+      
+
       
       // Search coffees
       const { data: coffees, error: coffeesError } = await supabase
@@ -1096,7 +1275,14 @@ export default function SearchScreen() {
           roaster: coffee.roaster,
           type: 'coffee',
           image: coffee.image_url,
-          imageUrl: coffee.image_url
+          imageUrl: coffee.image_url,
+          origin: coffee.origin,
+          process: coffee.process,
+          roast_level: coffee.roast_level,
+          price: coffee.price,
+          description: coffee.description,
+          rating: coffee.rating,
+          review_count: coffee.review_count
         })));
       }
       
@@ -1112,11 +1298,6 @@ export default function SearchScreen() {
       
       if (gear) {
         results.push(...gear.map(item => {
-          // Get the public URL for the image
-          const { data: { publicUrl } } = supabase.storage
-            .from('gear')
-            .getPublicUrl(`${item.id}.jpg`);
-            
           return {
             id: item.id,
             gearId: item.id,
@@ -1125,39 +1306,13 @@ export default function SearchScreen() {
             type: 'gear',
             category: item.category,
             price: item.price,
-            imageUrl: publicUrl || 'https://images.unsplash.com/photo-1510017803434-a899398421b3?q=80&w=2940&auto=format&fit=crop',
+            imageUrl: item.image_url,
             description: item.description
           };
         }));
       }
       
-      // Search recipes
-      const { data: recipes, error: recipesError } = await supabase
-        .from('recipes')
-        .select(`
-          *,
-          author:author_id(full_name, avatar_url),
-          coffee:coffee_id(name, roaster)
-        `)
-        .or(`title.ilike.%${cleanSearchText}%,method.ilike.%${cleanSearchText}%`)
-        .order('created_at', { ascending: false })
-        .limit(5);
-      
-      if (recipesError) throw recipesError;
-      
-      if (recipes) {
-        results.push(...recipes.map(recipe => ({
-          id: recipe.id,
-          name: recipe.title,
-          type: 'recipe',
-          method: recipe.method,
-          creatorName: recipe.author?.full_name,
-          creatorAvatar: recipe.author?.avatar_url,
-          coffeeName: recipe.coffee?.name,
-          roaster: recipe.coffee?.roaster,
-          imageUrl: recipe.image_url
-        })));
-      }
+      // Recipes are removed from search results
       
       // Log the results for debugging
       console.log('Search results:', results.map(r => ({id: r.id, name: r.name, type: r.type})));
@@ -1197,13 +1352,17 @@ export default function SearchScreen() {
       subtitle = item.roaster || 'Unknown roaster';
     } else if (item.type === 'gear') {
       subtitle = `${item.brand || 'Unknown brand'} ${item.category || ''}`;
+    } else if (item.type === 'user') {
+      // For regular users, show handle instead of location
+      subtitle = item.username ? `@${item.username}` : '';
     } else {
-      // For users or other types
+      // For business accounts (cafes/roasters), show location
       subtitle = item.location || '';
     }
 
     // Determine if the item is a user type (either regular user or business account)
     const isUserType = item.type === 'user' || item.type === 'cafe' || item.type === 'roaster';
+    const isBusinessAccount = item.type === 'cafe' || item.type === 'roaster';
     
     return (
       <TouchableOpacity 
@@ -1212,13 +1371,16 @@ export default function SearchScreen() {
       >
         <View style={[
           styles.searchResultImageContainer,
-          isUserType && styles.roundedImageContainer
+          isUserType && !isBusinessAccount && styles.roundedImageContainer
         ]}>
           {isUserType ? (
             <AppImage 
-              source={item.imageUrl} 
-              style={[styles.searchResultImage, isUserType && styles.roundedImage]}
-              placeholder="person"
+              source={item.imageUrl || item.userAvatar || item.avatar} 
+              style={[
+                styles.searchResultImage, 
+                isUserType && !isBusinessAccount && styles.roundedImage
+              ]}
+              placeholder={isBusinessAccount ? "business" : "person"}
               placeholderStyle={{ backgroundColor: '#E5E5EA' }}
             />
           ) : (
@@ -1250,9 +1412,24 @@ export default function SearchScreen() {
     if (item.type === 'coffee') {
       navigation.navigate('CoffeeDetail', {
         coffeeId: item.id,
-        name: item.name,
-        roaster: item.roaster,
-        imageUrl: item.imageUrl
+        coffee: {
+          id: item.id,
+          name: item.name,
+          roaster: item.roaster,
+          image: item.imageUrl,
+          imageUrl: item.imageUrl,
+          origin: item.origin || 'Unknown',
+          process: item.process || 'Unknown',
+          roastLevel: item.roast_level || 'Medium',
+          price: item.price || 0,
+          description: item.description || 'No description available',
+          stats: {
+            rating: item.rating || 0,
+            reviews: item.review_count || 0,
+            brews: 0,
+            wishlist: 0
+          }
+        }
       });
     } else if (item.type === 'recipe') {
       navigation.navigate('RecipeDetail', {
@@ -1267,7 +1444,7 @@ export default function SearchScreen() {
       });
     } else if (item.type === 'gear') {
       navigation.navigate('GearDetail', {
-        gearId: item.id,
+        gearName: item.name, // Changed from gearId to gearName
         name: item.name,
         brand: item.brand,
         category: item.category,
@@ -1276,41 +1453,44 @@ export default function SearchScreen() {
         description: item.description
       });
     } else if (item.type === 'user') {
-      navigation.replace('UserProfileBridge', {
+      navigation.navigate('UserProfileScreen', {
         userId: item.id,
         userName: item.name || item.userName,
-        userAvatar: item.userAvatar || item.avatar,
+        userAvatar: item.userAvatar || item.avatar || item.imageUrl,
         location: item.location,
-        isCurrentUser: currentAccount?.id === item.id,
+        isCurrentUser: currentAccount === item.id,
         skipAuth: true
       });
     } else if (item.type === 'roaster') {
-      navigation.replace('UserProfileBridge', {
+      navigation.navigate('UserProfileBridge', {
         userId: item.id,
         userName: item.name,
-        userAvatar: item.imageUrl,
+        userAvatar: item.imageUrl || item.userAvatar || item.avatar,
+        coverImage: item.cover_url,
+        location: item.location,
         isBusinessAccount: true,
         isRoaster: true,
         skipAuth: true
       });
     } else if (item.type === 'cafe') {
       // Special handling for Vértigo y Calambre
-      if (item.name === 'Vértigo y Calambre' || item.full_name === 'Vértigo y Calambre') {
-        navigation.replace('UserProfileBridge', {
+      if (item.name === 'Vértigo y Calambre' || item.full_name === 'Vértigo y Calambre' || item.id === 'vertigo-calambre') {
+        navigation.navigate('UserProfileBridge', {
           userId: 'business-vertigo',
           userName: 'Vértigo y Calambre',
-          userAvatar: item.avatar_url || item.logo_url,
+          userAvatar: item.avatar_url || item.logo_url || item.avatar || item.imageUrl,
           coverImage: item.cover_url,
           isBusinessAccount: true,
           isRoaster: false,
           skipAuth: true
         });
       } else {
-        navigation.replace('UserProfileBridge', {
+        navigation.navigate('UserProfileBridge', {
           userId: item.id,
           userName: item.name,
-          userAvatar: item.avatar_url || item.logo_url,
+          userAvatar: item.avatar_url || item.logo_url || item.avatar || item.imageUrl,
           coverImage: item.cover_url,
+          location: item.location,
           isBusinessAccount: true,
           isRoaster: false,
           skipAuth: true
@@ -1325,6 +1505,7 @@ export default function SearchScreen() {
       { id: 'coffee', label: 'Coffees' },
       { id: 'user', label: 'People' },
       { id: 'cafe', label: 'Cafés' },
+      { id: 'roaster', label: 'Roasters' },
       { id: 'gear', label: 'Gear' }
     ];
 
@@ -1343,7 +1524,7 @@ export default function SearchScreen() {
                 activeFilter === filter.id && styles.activeFilterChip,
                 { 
                   backgroundColor: activeFilter === filter.id 
-                    ? theme.tintColor 
+                    ? (isDarkMode ? '#FFFFFF' : '#000000')
                     : isDarkMode ? theme.altCardBackground : '#F2F2F7',
                   borderColor: isDarkMode ? 'transparent' : theme.divider
                 }
@@ -1354,7 +1535,7 @@ export default function SearchScreen() {
                 style={[
                   styles.filterText,
                   activeFilter === filter.id && styles.activeFilterText,
-                  { color: activeFilter === filter.id ? '#FFFFFF' : theme.primaryText }
+                  { color: activeFilter === filter.id ? (isDarkMode ? '#000000' : '#FFFFFF') : theme.primaryText }
                 ]}
               >
                 {filter.label}
@@ -1389,7 +1570,27 @@ export default function SearchScreen() {
                   backgroundColor: isDarkMode ? theme.cardBackground : 'transparent' 
                 }
               ]}
-              onPress={() => navigation.navigate('CoffeeDetail', { coffeeId: item.id })}
+              onPress={() => navigation.navigate('CoffeeDetail', { 
+                coffeeId: item.id,
+                coffee: {
+                  id: item.id,
+                  name: item.name,
+                  roaster: item.roaster,
+                  image: item.imageUrl,
+                  imageUrl: item.imageUrl,
+                  origin: item.origin || 'Unknown',
+                  process: item.process || 'Unknown',
+                  roastLevel: item.roast_level || 'Medium',
+                  price: item.price || 0,
+                  description: item.description || 'No description available',
+                  stats: {
+                    rating: item.rating || 0,
+                    reviews: item.review_count || 0,
+                    brews: 0,
+                    wishlist: 0
+                  }
+                }
+              })}
             >
               <Image 
                 source={{ uri: item.imageUrl }} 
@@ -1438,14 +1639,6 @@ export default function SearchScreen() {
           renderItem={({ item }) => {
             console.log('Rendering cafe item:', item);
             
-            // Function to handle image source based on whether it's a local or remote URL
-            const getImageSource = (image) => {
-              if (typeof image === 'string') {
-                return { uri: image };
-              }
-              return image; // If it's already a required local image
-            };
-            
             return (
               <TouchableOpacity 
                 style={[
@@ -1459,7 +1652,7 @@ export default function SearchScreen() {
                 onPress={() => {
                   // Special handling for Vértigo y Calambre
                   if (item.name === 'Vértigo y Calambre' || item.full_name === 'Vértigo y Calambre') {
-                    navigation.replace('UserProfileBridge', {
+                    navigation.navigate('UserProfileBridge', {
                       userId: 'business-vertigo',
                       userName: 'Vértigo y Calambre',
                       userAvatar: typeof item.avatar_url === 'string' ? item.avatar_url : require('../../assets/businesses/vertigo-logo.jpg'),
@@ -1469,11 +1662,11 @@ export default function SearchScreen() {
                       skipAuth: true
                     });
                   } else {
-                    navigation.replace('UserProfileBridge', {
+                    navigation.navigate('UserProfileBridge', {
                       userId: item.id,
                       userName: item.name,
-                      userAvatar: getImageSource(item.avatar_url || item.logo_url),
-                      coverImage: getImageSource(item.cover_url),
+                      userAvatar: item.avatar_url || item.logo_url,
+                      coverImage: item.cover_url,
                       isBusinessAccount: true,
                       isRoaster: false,
                       skipAuth: true
@@ -1481,16 +1674,19 @@ export default function SearchScreen() {
                   }
                 }}
               >
-                <Image 
-                  source={getImageSource(item.cover_url || item.image_url)}
+                <AppImage 
+                  source={item.cover_url || item.image_url} 
                   style={styles.cafeListImage}
+                  resizeMode="cover"
+                  placeholder="business"
                 />
                 <View style={styles.cafeListContent}>
                   <View style={styles.cafeListHeader}>
-                    <Image 
-                      source={getImageSource(item.avatar_url || item.logo_url)}
+                    <AppImage 
+                      source={item.avatar_url || item.logo_url} 
                       style={[styles.cafeListLogo, { borderColor: theme.divider }]}
                       resizeMode="cover"
+                      placeholder="business"
                     />
                     <View style={styles.cafeListTitleContainer}>
                       <Text style={[styles.cafeListName, { color: theme.primaryText }]} numberOfLines={1} ellipsizeMode="tail">{item.name}</Text>
@@ -1506,7 +1702,9 @@ export default function SearchScreen() {
                     <View style={styles.ratingContainer}>
                       <Ionicons name="star" size={16} color="#FFD700" />
                       <Text style={[styles.ratingText, { color: theme.primaryText }]}>{item.rating ? item.rating.toFixed(1) : '4.5'}</Text>
-                      <Text style={[styles.reviewCount, { color: theme.secondaryText }]}>({item.review_count || '0'} reviews)</Text>
+                      <Text style={[styles.reviewCount, { color: theme.secondaryText }]}>
+                        {item.review_count === 0 ? 'No reviews' : `(${item.review_count || '0'} reviews)`}
+                      </Text>
                     </View>
                   </View>
                 </View>
@@ -1639,6 +1837,80 @@ export default function SearchScreen() {
           {renderPopularCoffeeCarousel()}
           {renderGoodCafesSection()}
           
+          {/* Roasters Section */}
+          <View style={styles.carouselSection}>
+            <View style={styles.sectionHeader}>
+              <Text style={[styles.carouselSectionTitle, { color: theme.primaryText }]}>Roasters</Text>
+              <TouchableOpacity onPress={() => navigation.navigate('RoastersList')}>
+                <Text style={[styles.viewAllText, { color: theme.primaryText, borderBottomColor: theme.primaryText }]}>View more</Text>
+              </TouchableOpacity>
+            </View>
+            <FlatList
+              data={roasters}
+              renderItem={({ item, index }) => {
+                // Function to handle image source based on whether it's a local or remote URL
+                const getImageSource = (image) => {
+                  if (!image) {
+                    return null; // Will trigger placeholder handling
+                  }
+                  if (typeof image === 'string') {
+                    return { uri: image };
+                  }
+                  return image; // If it's already a required local image
+                };
+                
+                return (
+                  <TouchableOpacity 
+                    style={[
+                      styles.suggestedUserCard, 
+                      { 
+                        backgroundColor: isDarkMode ? theme.cardBackground : '#FFFFFF',
+                        borderWidth: isDarkMode ? 0 : 1,
+                        borderColor: theme.divider,
+                        marginRight: index < roasters.length - 1 ? 12 : 0
+                      }
+                    ]}
+                    onPress={() => navigation.navigate('UserProfileBridge', {
+                      userId: item.id,
+                      userName: item.name || item.full_name,
+                      userAvatar: getImageSource(item.avatar_url),
+                      location: item.location,
+                      isBusinessAccount: true,
+                      isRoaster: true,
+                      skipAuth: true
+                    })}
+                  >
+                    <AppImage 
+                      source={item.avatar_url} 
+                      style={[
+                        styles.suggestedUserAvatar, 
+                        { 
+                          borderColor: theme.divider,
+                          borderRadius: 8 // Square corners instead of circular
+                        }
+                      ]}
+                      resizeMode="cover"
+                      placeholder="business"
+                    />
+                    <Text style={[styles.suggestedUserName, { color: theme.primaryText }]} numberOfLines={1}>{item.name || item.full_name}</Text>
+                    <Text style={[styles.suggestedUserHandle, { color: theme.secondaryText }]} numberOfLines={1}>{item.location}</Text>
+                    <View style={styles.ratingContainer}>
+                      <Ionicons name="star" size={16} color="#FFD700" />
+                      <Text style={[styles.ratingText, { color: theme.primaryText }]}>{(item.rating || 4.5).toFixed(1)}</Text>
+                      <Text style={[styles.reviewCount, { color: theme.secondaryText }]}>
+                        {(item.review_count || 0) === 0 ? 'No reviews' : `(${item.review_count || 0} reviews)`}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              }}
+              keyExtractor={item => item.id}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.userCarouselContainer}
+            />
+          </View>
+
           {/* Coffee Gear Section - Always try to render */}
           <View style={styles.carouselSection}>
             <View style={styles.sectionHeader}>
@@ -1655,7 +1927,14 @@ export default function SearchScreen() {
                     item={item}
                     onPress={() => handleGearPress(item)}
                     theme={theme}
-                    showAvatars={false}
+                    showAvatars={true}
+                    onUserPress={(userId) => {
+                      // Navigate to user profile when avatar is pressed
+                      navigation.navigate('UserProfileScreen', {
+                        userId: userId,
+                        skipAuth: true
+                      });
+                    }}
                   />
                 </View>
               )}
@@ -1676,17 +1955,18 @@ export default function SearchScreen() {
             </View>
             <FlatList
               data={suggestedUsers}
-              renderItem={({ item }) => (
+              renderItem={({ item, index }) => (
                 <TouchableOpacity 
                   style={[
                     styles.suggestedUserCard, 
                     { 
                       backgroundColor: isDarkMode ? theme.cardBackground : '#FFFFFF',
                       borderWidth: isDarkMode ? 0 : 1,
-                      borderColor: theme.divider
+                      borderColor: theme.divider,
+                      marginRight: index < suggestedUsers.length - 1 ? 12 : 0
                     }
                   ]}
-                  onPress={() => navigation.navigate('UserProfileBridge', {
+                  onPress={() => navigation.navigate('UserProfileScreen', {
                     userId: item.id,
                     userName: item.userName,
                     userAvatar: item.userAvatar,
