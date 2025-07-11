@@ -26,16 +26,13 @@ export default function UserProfileBridge() {
   const [error, setError] = useState(null);
   const hasNavigatedRef = useRef(false);
 
-  // Ensure header is maintained during bridge navigation
+  // Show a proper header with loading state
   useLayoutEffect(() => {
     navigation.setOptions({
       headerShown: true,
+      headerTitle: 'Loading...',
       headerStyle: {
         backgroundColor: theme.background,
-        elevation: 0,
-        shadowOpacity: 0,
-        borderBottomWidth: 1,
-        borderBottomColor: theme.divider,
       },
       headerTintColor: theme.primaryText,
     });
@@ -48,11 +45,11 @@ export default function UserProfileBridge() {
     // Don't proceed if no user info provided
     if (!userId && !userName) {
       console.error('UserProfileBridge: No userId or userName provided');
-      setError('No user information provided');
+      navigation.goBack();
       return;
     }
 
-    // Process navigation immediately without loading state
+    // Process navigation immediately
     const navigateToProfile = () => {
       if (hasNavigatedRef.current) {
         return;
@@ -138,6 +135,26 @@ export default function UserProfileBridge() {
     const handleCafeProfile = () => {
       console.log('UserProfileBridge: Searching for café with userId:', userId, 'userName:', userName);
       
+      // Special handling for Nomad Coffee Roasters (from Supabase)
+      if (userId === '3cde3f00-8f96-46c8-85f8-9d95dff113d8' || 
+          userId === 'nomad-coffee' || 
+          userName === 'Nomad Coffee Roasters' || 
+          userName === 'Nomad Coffee' || 
+          userName === 'Nomad') {
+        console.log("Found Nomad Coffee Roasters - handling as special case");
+        navigateToUserProfile({
+          userId: userId || '3cde3f00-8f96-46c8-85f8-9d95dff113d8',
+          userName: userName || 'Nomad Coffee Roasters',
+          userAvatar: route.params?.userAvatar || 'https://wzawsiaanhriocxrabft.supabase.co/storage/v1/object/public/businesses/nomad_avatar.jpeg',
+          coverImage: route.params?.coverImage || null,
+          isBusinessAccount: true,
+          isRoaster: true,
+          location: location || 'Barcelona',
+          skipAuth
+        });
+        return true;
+      }
+      
       // First check roasters (for main business profiles)
       const roaster = mockCafes.roasters.find(r => r.id === userId || r.name === userName);
       if (roaster) {
@@ -150,6 +167,29 @@ export default function UserProfileBridge() {
           isBusinessAccount: true,
           isRoaster: true,
           location: location || roaster.location,
+          skipAuth
+        });
+        return true;
+      }
+      
+      // If it's marked as a roaster but not found in mock data, create a basic roaster profile
+      if (isRoaster && userId && userName) {
+        console.log("Creating basic roaster profile for:", userName);
+        console.log("UserProfileBridge: roaster params received:", {
+          userId,
+          userName,
+          userAvatar: route.params?.userAvatar,
+          coverImage: route.params?.coverImage,
+          location
+        });
+        navigateToUserProfile({
+          userId: userId,
+          userName: userName,
+          userAvatar: route.params?.userAvatar || null,
+          coverImage: route.params?.coverImage || null,
+          isBusinessAccount: true,
+          isRoaster: true,
+          location: location,
           skipAuth
         });
         return true;
@@ -246,8 +286,24 @@ export default function UserProfileBridge() {
       console.warn(`User/Cafe not found for ID: ${userId} or name: ${userName}`);
       console.log('Available users in mockUsers:', mockUsers.users.map(u => ({ id: u.id, userName: u.userName })));
       
-      // Instead of navigating to an empty profile, set an error
-      setError(`Profile not found for ${userName || userId}`);
+      // Try to create a basic profile with the provided info
+      if (userId && userName) {
+        console.log('Creating basic profile for unknown user/business');
+        navigateToUserProfile({
+          userId: userId,
+          userName: userName,
+          userAvatar: route.params?.userAvatar || null,
+          coverImage: route.params?.coverImage || null,
+          isBusinessAccount: isBusinessAccount,
+          isRoaster: isRoaster,
+          location: location,
+          skipAuth: true
+        });
+        return;
+      }
+      
+      // Navigate back as last resort
+      navigation.goBack();
       return;
     };
 
@@ -260,29 +316,33 @@ export default function UserProfileBridge() {
       hasNavigatedRef.current = true;
       console.log('UserProfileBridge: Navigating with params:', params);
       
-      // Navigate to UserProfileScreen while preserving the navigation stack
-      navigation.navigate('UserProfileScreen', {
-        ...params,
-        // Ensure we preserve the navigation stack by not using replace
-        ensureHeaderShown: true // Signal to UserProfileScreen to maintain header
-      });
+      // Use replace to remove the bridge from the navigation stack
+      navigation.replace('UserProfileScreen', params);
     };
 
-    // Execute navigation immediately without timeout
+    // Execute navigation immediately
     navigateToProfile();
   }, [navigation, userId, userName]);
 
-  // Only show error state, never show loading
+  // Show loading state while processing
   if (error) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.errorText}>Error: {error}</Text>
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
+        <Text style={[styles.errorText, { color: theme.primaryText }]}>
+          Error: {error}
+        </Text>
       </View>
     );
   }
 
-  // Always return invisible view during processing
-  return <View style={{ flex: 1, backgroundColor: 'transparent' }} />;
+  return (
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <ActivityIndicator size="large" color={theme.primaryText} />
+      <Text style={[styles.loadingText, { color: theme.secondaryText }]}>
+        Loading profile...
+      </Text>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
