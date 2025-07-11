@@ -45,6 +45,7 @@ import AnimatedTabBar from '../components/AnimatedTabBar';
 import { useUser } from '../context/UserContext';
 import RecipeCard from '../components/RecipeCard';
 import { useTheme } from '../context/ThemeContext';
+import { supabase } from '../lib/supabase';
 
 // Helper component to safely render FlatLists inside ScrollView
 const SafeFlatList = ({ data, ...props }) => {
@@ -416,90 +417,167 @@ export default function UserProfileScreen() {
           // If viewing own profile, use current user data
           userData = currentUser;
         } else {
-          // Check if this is a business ID (roaster)
-          if (userId.startsWith('business-')) {
-            const businessData = mockUsersData.businesses?.find(b => b.id === userId) || 
-                               mockCafesData.roasters?.find(b => b.id === userId);
-            
-            if (businessData) {
-              // Find all cafe locations for this roaster
-              const roasterCafes = mockCafesData.cafes?.filter(cafe => cafe.roasterId === userId) || [];
+          // Try to fetch from Supabase first for business accounts
+          console.log('Attempting to fetch user data from Supabase for userId:', userId);
+          
+          try {
+            const { data: supabaseUser, error: supabaseError } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', userId)
+              .single();
+
+            if (supabaseUser && !supabaseError) {
+              console.log('Found user in Supabase:', supabaseUser);
               
+              // Map Supabase data to our user format
               userData = {
-                ...businessData,
-                userName: businessData.name,
-                userAvatar: businessData.avatar || businessData.logo,
-                isBusinessAccount: true,
-                isRoaster: businessData.isRoaster || businessData.type?.includes('roaster'),
-                location: businessData.location || route.params?.location,
-                // Load cafe locations from mockCafes.json
-                cafes: roasterCafes.map(cafe => ({
-                  id: cafe.id,
-                  name: cafe.name,
-                  address: cafe.address,
-                  location: cafe.location,
-                  avatar: cafe.avatar || businessData.avatar || businessData.logo,
-                  rating: cafe.rating || 4.8,
-                  reviewCount: cafe.reviewCount || (100 + Math.floor(Math.random() * 50)),
-                  phone: cafe.phone,
-                  neighborhood: cafe.neighborhood,
-                  openingHours: cafe.openingHours,
-                  coordinates: cafe.coordinates
-                }))
+                id: supabaseUser.id,
+                userName: supabaseUser.full_name || supabaseUser.username,
+                userAvatar: supabaseUser.avatar_url ? supabaseUser.avatar_url.replace('//nomad_avatar', '/nomad_avatar') : null,
+                coverImage: supabaseUser.cover_url,
+                location: supabaseUser.location,
+                bio: supabaseUser.bio || '',
+                phone: supabaseUser.phone,
+                address: supabaseUser.address,
+                rating: supabaseUser.rating,
+                reviewCount: supabaseUser.review_count,
+                isBusinessAccount: supabaseUser.account_type === 'cafe' || supabaseUser.account_type === 'roaster',
+                isRoaster: supabaseUser.account_type === 'roaster',
+                userHandle: supabaseUser.username,
+                gear: [],
+                gearWishlist: [],
+                website: supabaseUser.website,
+                instagram: supabaseUser.instagram,
+                categories: supabaseUser.categories,
+                priceRange: supabaseUser.price_range,
+                openingHours: supabaseUser.opening_hours,
+                coordinates: supabaseUser.coordinates,
+                neighborhood: supabaseUser.neighborhood
               };
               
-              // Load coffees from mockCoffees.json for specific roasters
-              if (userId === 'business-kima') {
-                console.log('Loading Kima Coffee products');
-                // Get coffees from mockCoffees.json where roasterId matches the business ID
-                import('../data/mockCoffees.json').then(mockCoffeesData => {
-                  const roasterCoffeeProducts = mockCoffeesData.coffees.filter(
-                    coffee => coffee.roasterId === userId
-                  );
-                  console.log(`Found ${roasterCoffeeProducts.length} coffees for ${userData.userName}`);
-                  setRoasterCoffees(roasterCoffeeProducts);
-                });
+              // If it's a roaster, try to load their cafe locations
+              if (supabaseUser.account_type === 'roaster') {
+                try {
+                  const { data: cafeLocations, error: cafesError } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('account_type', 'cafe')
+                    .eq('parent_roaster_id', userId);
+                  
+                  if (cafeLocations && !cafesError) {
+                    userData.cafes = cafeLocations.map(cafe => ({
+                      id: cafe.id,
+                      name: cafe.full_name,
+                      address: cafe.address,
+                      location: cafe.location,
+                      avatar: cafe.avatar_url,
+                      rating: cafe.rating || 4.8,
+                      reviewCount: cafe.review_count || 0,
+                      phone: cafe.phone,
+                      neighborhood: cafe.neighborhood,
+                      openingHours: cafe.opening_hours,
+                      coordinates: cafe.coordinates
+                    }));
+                  }
+                } catch (cafesError) {
+                  console.log('Error loading cafe locations:', cafesError);
+                }
+              }
+            } else {
+              console.log('User not found in Supabase, trying mock data');
+              // Fallback to mock data
+              // Check if this is a business ID (roaster)
+              if (userId.startsWith('business-')) {
+                const businessData = mockUsersData.businesses?.find(b => b.id === userId) || 
+                                   mockCafesData.roasters?.find(b => b.id === userId);
+                
+                if (businessData) {
+                  // Find all cafe locations for this roaster
+                  const roasterCafes = mockCafesData.cafes?.filter(cafe => cafe.roasterId === userId) || [];
+                  
+                  userData = {
+                    ...businessData,
+                    userName: businessData.name,
+                    userAvatar: businessData.avatar || businessData.logo,
+                    isBusinessAccount: true,
+                    isRoaster: businessData.isRoaster || businessData.type?.includes('roaster'),
+                    location: businessData.location || route.params?.location,
+                    // Load cafe locations from mockCafes.json
+                    cafes: roasterCafes.map(cafe => ({
+                      id: cafe.id,
+                      name: cafe.name,
+                      address: cafe.address,
+                      location: cafe.location,
+                      avatar: cafe.avatar || businessData.avatar || businessData.logo,
+                      rating: cafe.rating || 4.8,
+                      reviewCount: cafe.reviewCount || (100 + Math.floor(Math.random() * 50)),
+                      phone: cafe.phone,
+                      neighborhood: cafe.neighborhood,
+                      openingHours: cafe.openingHours,
+                      coordinates: cafe.coordinates
+                    }))
+                  };
+                  
+                  // Load coffees from mockCoffees.json for specific roasters
+                  if (userId === 'business-kima') {
+                    console.log('Loading Kima Coffee products');
+                    // Get coffees from mockCoffees.json where roasterId matches the business ID
+                    import('../data/mockCoffees.json').then(mockCoffeesData => {
+                      const roasterCoffeeProducts = mockCoffeesData.coffees.filter(
+                        coffee => coffee.roasterId === userId
+                      );
+                      console.log(`Found ${roasterCoffeeProducts.length} coffees for ${userData.userName}`);
+                      setRoasterCoffees(roasterCoffeeProducts);
+                    });
+                  }
+                }
+              } else {
+                // Check if this is a cafe ID from mockCafes.json
+                const cafeData = mockCafesData.cafes?.find(c => c.id === userId);
+                
+                if (cafeData) {
+                  console.log('Found cafe data for', userId, ':', cafeData);
+                  
+                  // Get parent roaster info if available
+                  const parentRoaster = cafeData.roasterId ? 
+                    mockCafesData.roasters?.find(r => r.id === cafeData.roasterId) : null;
+                  
+                  userData = {
+                    id: cafeData.id,
+                    userName: cafeData.name,
+                    userAvatar: cafeData.avatar,
+                    coverImage: cafeData.coverImage,
+                    location: cafeData.location,
+                    bio: cafeData.description || '',
+                    phone: cafeData.phone,
+                    address: cafeData.address,
+                    rating: cafeData.rating,
+                    reviewCount: cafeData.reviewCount,
+                    categories: cafeData.categories,
+                    priceRange: cafeData.priceRange,
+                    openingHours: cafeData.openingHours,
+                    coordinates: cafeData.coordinates,
+                    neighborhood: cafeData.neighborhood,
+                    isBusinessAccount: true,
+                    isLocation: !!cafeData.roasterId,
+                    parentBusinessId: cafeData.roasterId,
+                    parentBusinessName: parentRoaster ? parentRoaster.name : null,
+                    gear: [],
+                    gearWishlist: []
+                  };
+                } else {
+                  // Otherwise, fetch the requested user using the fallback function
+                  userData = getMockUserFallback(userId);
+                  console.log('Found user data for', userId, ':', userData);
+                }
               }
             }
-          } else {
-            // Check if this is a cafe ID from mockCafes.json
-            const cafeData = mockCafesData.cafes?.find(c => c.id === userId);
-            
-            if (cafeData) {
-              console.log('Found cafe data for', userId, ':', cafeData);
-              
-              // Get parent roaster info if available
-              const parentRoaster = cafeData.roasterId ? 
-                mockCafesData.roasters?.find(r => r.id === cafeData.roasterId) : null;
-              
-              userData = {
-                id: cafeData.id,
-                userName: cafeData.name,
-                userAvatar: cafeData.avatar,
-                coverImage: cafeData.coverImage,
-                location: cafeData.location,
-                bio: cafeData.description || '',
-                phone: cafeData.phone,
-                address: cafeData.address,
-                rating: cafeData.rating,
-                reviewCount: cafeData.reviewCount,
-                categories: cafeData.categories,
-                priceRange: cafeData.priceRange,
-                openingHours: cafeData.openingHours,
-                coordinates: cafeData.coordinates,
-                neighborhood: cafeData.neighborhood,
-                isBusinessAccount: true,
-                isLocation: !!cafeData.roasterId,
-                parentBusinessId: cafeData.roasterId,
-                parentBusinessName: parentRoaster ? parentRoaster.name : null,
-                gear: [],
-                gearWishlist: []
-              };
-            } else {
-              // Otherwise, fetch the requested user using the fallback function
-              userData = getMockUserFallback(userId);
-              console.log('Found user data for', userId, ':', userData);
-            }
+          } catch (supabaseError) {
+            console.error('Error fetching from Supabase:', supabaseError);
+            // Fallback to mock data logic above
+            userData = getMockUserFallback(userId);
+            console.log('Found user data for', userId, ':', userData);
           }
         }
         
@@ -509,7 +587,7 @@ export default function UserProfileScreen() {
           // Special handling for Vértigo y Calambre: if we get user2, redirect to business-vertigo
           if (userData.id === 'user2' && userData.userName === 'Vértigo y Calambre') {
             console.log('Redirecting user2 to business-vertigo for Vértigo y Calambre');
-            navigation.replace('UserProfileBridge', {
+            navigation.navigate('UserProfileBridge', {
               userId: 'business-vertigo',
               userName: 'Vértigo y Calambre',
               skipAuth: true
@@ -757,7 +835,8 @@ export default function UserProfileScreen() {
   const handleGearPress = (item) => {
     console.log('Navigating to GearDetail with:', item);
     navigation.navigate('GearDetail', {
-      gearName: item
+      gearId: item.id,
+      gearName: item.name || item
     });
   };
 
@@ -1108,7 +1187,7 @@ export default function UserProfileScreen() {
           <TouchableOpacity
             style={[
               styles.segment,
-              shopFilter === 'coffee' && [styles.segmentActive, { backgroundColor: isDarkMode ? '#5a5a5f' : theme.background }]
+              shopFilter === 'coffee' && [styles.segmentActive, { backgroundColor: isDarkMode ? '#3A3A3C' : theme.background }]
             ]}
             onPress={() => setShopFilter('coffee')}
           >
@@ -1181,6 +1260,7 @@ export default function UserProfileScreen() {
           : { backgroundColor: 'transparent', borderColor: theme.border, borderWidth: 1 }
       ]}
       onPress={() => navigation.navigate('GearDetail', { 
+        gearId: item.id,
         gearName: item.name,
         gear: item
       })}
@@ -1210,48 +1290,84 @@ export default function UserProfileScreen() {
     return [];
   }, [userId, user]);
 
-  // Add function to load follower data
+  // Load follower data from Supabase
   useEffect(() => {
-    // Load follower data when user is loaded
-    if (user) {
-      // Get follower data for the profile being viewed
-      const profileFollowerData = mockFollowersData[userId];
+    const loadFollowerData = async () => {
+      if (!user || !currentAccount) return;
       
-      if (profileFollowerData) {
-        // Set follower and following counts
-        const followers = profileFollowerData.followers || [];
-        const following = profileFollowerData.following || [];
-        
-        setFollowersCount(followers.length);
-        setFollowingCount(following.length);
-        
-        // Set initial following state based on whether current user is following this profile
-        const currentUserId = currentUser?.id || 'user1';
-        const isUserFollowing = followers.includes(currentUserId);
-        setIsFollowing(isUserFollowing);
-        
-        // Find mutual followers (people the current user follows who also follow this profile)
-        if (mockFollowersData[currentUserId] && profileFollowerData.followers) {
-          const currentUserFollowing = mockFollowersData[currentUserId].following || [];
-          const mutualFollowerIds = profileFollowerData.followers.filter(
-            followerId => currentUserFollowing.includes(followerId) && followerId !== currentUserId
-          );
+      try {
+        // Get followers count for this profile
+        const { data: followersData, error: followersError } = await supabase
+          .from('follows')
+          .select('follower_id')
+          .eq('following_id', userId);
+
+        if (!followersError) {
+          const followerIds = (followersData || []).map(f => f.follower_id);
+          setFollowersCount(followerIds.length);
           
-          // Get full user objects for the mutual followers
-          const mutualFollowerUsers = mutualFollowerIds.map(id => 
-            mockUsersData.users.find(user => user.id === id)
-          ).filter(Boolean);
-          
-          setMutualFollowers(mutualFollowerUsers);
+          // Check if current user is following this profile
+          const isUserFollowing = followerIds.includes(currentAccount);
+          setIsFollowing(isUserFollowing);
         }
-      } else {
-        // Set defaults if no data found
+
+        // Get following count for this profile
+        const { data: followingData, error: followingError } = await supabase
+          .from('follows')
+          .select('following_id')
+          .eq('follower_id', userId);
+
+        if (!followingError) {
+          const followingIds = (followingData || []).map(f => f.following_id);
+          setFollowingCount(followingIds.length);
+        }
+
+        // Find mutual followers (people the current user follows who also follow this profile)
+        if (followersData && followersData.length > 0) {
+          // Get people that current user follows
+          const { data: currentUserFollowing, error: currentUserFollowingError } = await supabase
+            .from('follows')
+            .select('following_id')
+            .eq('follower_id', currentAccount);
+
+          if (!currentUserFollowingError && currentUserFollowing) {
+            const currentUserFollowingIds = currentUserFollowing.map(f => f.following_id);
+            const followerIds = followersData.map(f => f.follower_id);
+            
+            // Find intersection (mutual followers)
+            const mutualFollowerIds = followerIds.filter(
+              followerId => currentUserFollowingIds.includes(followerId) && followerId !== currentAccount
+            );
+            
+            if (mutualFollowerIds.length > 0) {
+              // Get profile data for mutual followers
+              const { data: mutualFollowerProfiles, error: mutualFollowerProfilesError } = await supabase
+                .from('profiles')
+                .select('id, username, full_name, avatar_url')
+                .in('id', mutualFollowerIds);
+
+              if (!mutualFollowerProfilesError && mutualFollowerProfiles) {
+                const mutualFollowerUsers = mutualFollowerProfiles.map(profile => ({
+                  id: profile.id,
+                  userName: profile.full_name || profile.username,
+                  userAvatar: profile.avatar_url
+                }));
+                setMutualFollowers(mutualFollowerUsers);
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error loading follower data:', error);
+        // Fallback to defaults
         setFollowersCount(0);
         setFollowingCount(0);
         setMutualFollowers([]);
       }
-    }
-  }, [user, userId, currentUser]);
+    };
+
+    loadFollowerData();
+  }, [user, userId, currentAccount]);
 
   // Load parent roaster data
   useEffect(() => {
@@ -1347,7 +1463,7 @@ export default function UserProfileScreen() {
                     styles.profileImage,
                     user.isBusinessAccount ? styles.businessAvatar : styles.userAvatar
                   ]}
-                  placeholder="person"
+                  placeholder={user.isBusinessAccount ? "business" : "person"}
                 />
               </TouchableOpacity>
               <View style={styles.profileInfo}>
@@ -1360,9 +1476,9 @@ export default function UserProfileScreen() {
                   </View>
                 )}
                 <Text style={[styles.profileUsername, { color: theme.secondaryText }]}>
-                  {(user.handle || user.userHandle || `@${user.userName?.toLowerCase().replace(/\s+/g, '') || 'user'}`)}
+                  @{user.userHandle || user.userName?.toLowerCase().replace(/\s+/g, '') || 'user'}
                 </Text>
-                {user.location && (
+                {user.location && !user.isRoaster && (
                   <Text style={[styles.profileLocation, { color: theme.secondaryText }]}>
                     {user.location}
                   </Text>
@@ -1518,20 +1634,20 @@ export default function UserProfileScreen() {
                 <Text style={[styles.mutualFollowersText, { color: theme.secondaryText }]}>
                   Followed by{' '}
                   <Text style={[styles.mutualFollowerBold, { color: theme.primaryText }]}>
-                    {mutualFollowers[0].userName}
+                    {mutualFollowers[0]?.userName || 'Someone'}
                   </Text>
                   {mutualFollowers.length > 1 && (
-                    <>
+                    <Text>
                       {mutualFollowers.length === 2 ? ' and ' : ', '}
                       <Text style={[styles.mutualFollowerBold, { color: theme.primaryText }]}>
                         {mutualFollowers.length === 2 
-                          ? mutualFollowers[1].userName
+                          ? mutualFollowers[1]?.userName || 'Someone'
                           : `${mutualFollowers.length - 1} others`
                         }
                       </Text>
-                    </>
+                    </Text>
                   )}
-                  {' you follow'}
+                  <Text>{' you follow'}</Text>
                 </Text>
               </View>
             )}
@@ -1602,10 +1718,13 @@ export default function UserProfileScreen() {
                     
                     {/* Location (for roasters - general location) */}
                     {!user.address && user.location && (
-                      <View style={styles.infoItem}>
+                      <TouchableOpacity 
+                        style={styles.infoItem}
+                        onPress={() => navigation.navigate('RoastersList', { selectedCity: user.location })}
+                      >
                         <Ionicons name="location-outline" size={20} color={theme.secondaryText} />
                         <Text style={[styles.infoText, { color: theme.primaryText }]}>{user.location}</Text>
-                      </View>
+                      </TouchableOpacity>
                     )}
                     
                     {/* Phone */}
@@ -1740,26 +1859,28 @@ export default function UserProfileScreen() {
                     </View>
                     
                     {/* Rating Summary */}
-                    <View style={styles.ratingContainer}>
-                      <View style={styles.ratingLeft}>
-                        <Text style={[styles.ratingNumber, { color: theme.primaryText }]}>
-                          {user.rating || 4.8}
-                        </Text>
-                        <View style={styles.starsContainer}>
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <Ionicons
-                              key={star}
-                              name={star <= Math.floor(user.rating || 4.8) ? "star" : "star-outline"}
-                              size={16}
-                              color="#FFD700"
-                            />
-                          ))}
+                    {(user.reviewCount && user.reviewCount > 0) && (
+                      <View style={styles.ratingContainer}>
+                        <View style={styles.ratingLeft}>
+                          <Text style={[styles.ratingNumber, { color: theme.primaryText }]}>
+                            {user.rating || 4.8}
+                          </Text>
+                          <View style={styles.starsContainer}>
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <Ionicons
+                                key={star}
+                                name={star <= Math.floor(user.rating || 4.8) ? "star" : "star-outline"}
+                                size={16}
+                                color="#FFD700"
+                              />
+                            ))}
+                          </View>
+                          <Text style={[styles.reviewCount, { color: theme.secondaryText }]}>
+                            {user.reviewCount} reviews
+                          </Text>
                         </View>
-                        <Text style={[styles.reviewCount, { color: theme.secondaryText }]}>
-                          {user.reviewCount || 0} reviews
-                        </Text>
                       </View>
-                    </View>
+                    )}
                     
                     {/* Reviews List */}
                     {userReviews.length > 0 ? (
@@ -1842,7 +1963,7 @@ export default function UserProfileScreen() {
                       currentUserId={currentAccount}
                       hideFollowButton={true}
                       containerStyle={{
-                        // marginBottom: index === userLogs.length - 1 ? 0 : 8
+                        borderBottomWidth: index === userLogs.length - 1 ? 0 : 1
                       }}
                     />
                     ))
@@ -1967,7 +2088,7 @@ export default function UserProfileScreen() {
                             <Ionicons name="star" size={14} color="#FFD700" />
                             <Text style={[styles.cafeRating, { color: theme.primaryText }]}>{cafe.rating}</Text>
                             <Text style={[styles.cafeReviews, { color: theme.secondaryText }]}>
-                              ({cafe.reviewCount} reviews)
+                              ({cafe.reviewCount || 0} reviews)
                             </Text>
                           </View>
                         </View>
@@ -2137,8 +2258,8 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     marginRight: 16,
-    // borderWidth: 1,
-    // borderColor: '#F0F0F0',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: '#E5E5EA',
   },
   profileInfo: {
     flex: 1,
@@ -2463,7 +2584,7 @@ const styles = StyleSheet.create({
   },
   coffeeCard: {
     width: '48%',
-    marginBottom: 16,
+    marginBottom: 0,
     borderWidth: 1,
     borderRadius: 8,
     overflow: 'hidden',
@@ -2615,7 +2736,7 @@ const styles = StyleSheet.create({
   },
   gearCard: {
     width: '48%',
-    marginBottom: 16,
+    marginBottom: 0,
     borderWidth: 1,
     borderRadius: 8,
     overflow: 'hidden',
