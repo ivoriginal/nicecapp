@@ -13,112 +13,22 @@ import {
   Platform
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation, useRoute, CommonActions } from '@react-navigation/native';
+import { useNavigation, useRoute, CommonActions, useFocusEffect } from '@react-navigation/native';
 import { useCoffee } from '../context/CoffeeContext';
-import mockGearData from '../data/mockGear.json';
 import mockCafes from '../data/mockCafes.json';
 import { useTheme } from '../context/ThemeContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AppImage from '../components/common/AppImage';
 import mockUsers from '../data/mockUsers.json';
 import Toast from '../components/Toast';
+import { supabase } from '../lib/supabase';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
 } from 'react-native-reanimated';
 
-// Transform mockGear.json data to the format expected by the component
-const gearData = mockGearData.gear.reduce((acc, item) => {
-  // Create a simple entry for the gear item with real purchase links
-  let whereToBuy = [];
-  
-  // Add real purchase links based on the item
-  if (item.name === 'Fellow Stagg EKG') {
-    whereToBuy = [
-      { name: 'Fellow Products', url: 'https://fellowproducts.com/products/stagg-ekg-electric-pour-over-kettle', price: '€179.95', logo: 'https://fellowproducts.com/cdn/shop/files/Fellow_Logo_Black_160x.png' },
-      { name: 'Amazon', url: 'https://www.amazon.es/Fellow-Electric-Pour-over-Kettle/dp/B077JBQZPX', price: '€179.95', logo: 'https://logo.clearbit.com/amazon.es' },
-      { name: 'Tea Forté', url: 'https://teaforte.com/products/tea-accessories-stagg-electric-kettle-ekg-matte-black-21096', price: '€149.00', logo: 'https://logo.clearbit.com/teaforte.com' },
-    ];
-  } else if (item.name === 'Baratza Encore') {
-    whereToBuy = [
-      { name: 'Amazon', url: 'https://www.amazon.es/Baratza-Encore-Conical-Coffee-Grinder/dp/B007F183LK', price: '€139.95', logo: 'https://logo.clearbit.com/amazon.es' },
-      { name: 'Prima Coffee', url: 'https://prima-coffee.com/equipment/baratza/485', price: '€139.95', logo: 'https://logo.clearbit.com/prima-coffee.com' },
-      { name: 'Baratza Direct', url: 'https://baratza.com/grinder/encore/', price: '€139.95', logo: 'https://logo.clearbit.com/baratza.com' },
-    ];
-  } else {
-    // Fallback for other items
-    whereToBuy = [
-      { name: 'Vértigo y Calambre', url: 'https://vertigoycalambre.com', price: `€${item.price}`, logo: 'https://logo.clearbit.com/vertigoycalambre.com' },
-      { name: item.brand, url: `https://${item.brand.toLowerCase().replace(/\s+/g, '')}.com`, price: `€${item.price}`, logo: `https://logo.clearbit.com/${item.brand.toLowerCase().replace(/\s+/g, '')}.com` },
-      { name: 'Amazon', url: 'https://amazon.es', price: `€${item.price}`, logo: 'https://logo.clearbit.com/amazon.es' },
-    ];
-  }
-
-  // Map gear to cafés that use it (based on gear type and realistic associations)
-  let usedByCafes = [];
-  if (item.name === 'Fellow Stagg EKG' || item.type === 'Kettle') {
-    usedByCafes = [
-      { id: 'kima-coffee', name: 'Kima Coffee', avatar: 'assets/businesses/kima-logo.jpg', location: 'Málaga, Spain' },
-      { id: 'toma-cafe-1', name: 'Toma Café 1', avatar: 'assets/businesses/toma-logo.jpg', location: 'Madrid, Spain' },
-      { id: 'cafelab-murcia', name: 'CaféLab Murcia', avatar: 'assets/businesses/cafelab-logo.png', location: 'Murcia, Spain' },
-    ];
-  } else if (item.name === 'Baratza Encore' || item.type === 'Grinder') {
-    usedByCafes = [
-      { id: 'toma-cafe-2', name: 'Toma Café 2', avatar: 'assets/businesses/toma-logo.jpg', location: 'Madrid, Spain' },
-      { id: 'cafelab-cartagena', name: 'CaféLab Cartagena', avatar: 'assets/businesses/cafelab-logo.png', location: 'Cartagena, Spain' },
-    ];
-  } else if (item.type === 'Pour Over' || item.name.includes('V60') || item.name.includes('Chemex')) {
-    usedByCafes = [
-      { id: 'kima-coffee', name: 'Kima Coffee', avatar: 'assets/businesses/kima-logo.jpg', location: 'Málaga, Spain' },
-      { id: 'toma-cafe-1', name: 'Toma Café 1', avatar: 'assets/businesses/toma-logo.jpg', location: 'Madrid, Spain' },
-      { id: 'toma-cafe-2', name: 'Toma Café 2', avatar: 'assets/businesses/toma-logo.jpg', location: 'Madrid, Spain' },
-      { id: 'cafelab-murcia', name: 'CaféLab Murcia', avatar: 'assets/businesses/cafelab-logo.png', location: 'Murcia, Spain' },
-    ];
-  } else if (item.type === 'Scale') {
-    usedByCafes = [
-      { id: 'kima-coffee', name: 'Kima Coffee', avatar: 'assets/businesses/kima-logo.jpg', location: 'Málaga, Spain' },
-      { id: 'toma-cafe-1', name: 'Toma Café 1', avatar: 'assets/businesses/toma-logo.jpg', location: 'Madrid, Spain' },
-    ];
-  }
-  
-  acc[item.name] = {
-    id: item.id,
-    name: item.name,
-    image: item.imageUrl,
-    description: item.description,
-    price: item.price,
-    brand: item.brand,
-    type: item.type,
-    whereToBuy,
-    // Connect to real user data from mockUsers.json based on gear in their profile
-    usedBy: mockUsers.users
-      .filter(user => user.gear && user.gear.includes(item.name))
-      .map(user => {
-        // Use the userAvatar directly as a string path, AppImage will handle it
-        return {
-          id: user.id,
-          name: user.userName,
-          avatar: user.userAvatar // Keep as string, AppImage will handle local assets
-        };
-      }),
-    wantedBy: mockUsers.users
-      .filter(user => user.gearWishlist && user.gearWishlist.includes(item.name))
-      .map(user => {
-        // Use the userAvatar directly as a string path, AppImage will handle it
-        return {
-          id: user.id,
-          name: user.userName,
-          avatar: user.userAvatar // Keep as string, AppImage will handle local assets
-        };
-      }),
-    usedByCafes: usedByCafes
-  };
-  return acc;
-}, {});
-
-// Export gearData so it can be imported by other components
-export { gearData };
+// Removed the old gearData transformation as we now fetch from Supabase
 
 export default function GearDetailScreen() {
   const route = useRoute();
@@ -133,6 +43,8 @@ export default function GearDetailScreen() {
   const { coffeeWishlist, addToWishlist, removeFromWishlist } = useCoffee();
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const [gear, setGear] = useState(null);
+  const [loading, setLoading] = useState(true);
   
   // Animated values for header title
   const headerOpacity = useSharedValue(0);
@@ -143,36 +55,237 @@ export default function GearDetailScreen() {
     setToastVisible(true);
   };
   
-  // Get gear data - try to match by ID first, then by name
-  let gear;
+  // Load gear data from Supabase
+  const loadGearData = async () => {
+    try {
+      setLoading(true);
+      console.log('🔍 GearDetailScreen: Loading gear data for:', { gearId, gearName });
+      
+      let gearData = null;
+      
+      if (gearId) {
+        // Try to find gear by ID first
+        console.log('🔍 Searching by ID:', gearId);
+        const { data, error } = await supabase
+          .from('gear')
+          .select('*')
+          .eq('id', gearId)
+          .single();
+          
+        console.log('📊 Search by ID result:', { data, error: error?.message });
+        
+        if (error && error.code !== 'PGRST116') { // PGRST116 is "not found"
+          console.error('❌ Error fetching gear by ID:', error);
+        } else if (data) {
+          console.log('✅ Found gear by ID:', data.name);
+          gearData = data;
+        } else {
+          console.log('❌ No gear found by ID');
+        }
+      }
+      
+      if (!gearData && gearName) {
+        // If not found by ID, try to find by name
+        console.log('🔍 Searching by name:', gearName);
+        const { data, error } = await supabase
+          .from('gear')
+          .select('*')
+          .eq('name', gearName)
+          .single();
+          
+        console.log('📊 Search by name result:', { data, error: error?.message });
+        
+        if (error && error.code !== 'PGRST116') {
+          console.error('❌ Error fetching gear by name:', error);
+        } else if (data) {
+          console.log('✅ Found gear by name:', data.name);
+          gearData = data;
+        } else {
+          console.log('❌ No gear found by name');
+        }
+      }
+      
+      if (!gearData) {
+        // Let's also try a fuzzy search to see what's available
+        console.log('🔍 Trying fuzzy search for available gear...');
+        const { data: allGear, error: allGearError } = await supabase
+          .from('gear')
+          .select('id, name')
+          .limit(10);
+          
+        if (allGearError) {
+          console.error('❌ Error fetching all gear:', allGearError);
+        } else {
+          console.log('📋 Available gear in database:', allGear);
+          
+          // Try to find a partial match
+          if (gearName) {
+            const fuzzyMatch = allGear?.find(item => 
+              item.name.toLowerCase().includes(gearName.toLowerCase()) ||
+              gearName.toLowerCase().includes(item.name.toLowerCase())
+            );
+            
+            if (fuzzyMatch) {
+              console.log('🎯 Found fuzzy match:', fuzzyMatch);
+              // Fetch the full data for the fuzzy match
+              const { data: fuzzyData, error: fuzzyError } = await supabase
+                .from('gear')
+                .select('*')
+                .eq('id', fuzzyMatch.id)
+                .single();
+                
+              if (!fuzzyError && fuzzyData) {
+                console.log('✅ Using fuzzy match data:', fuzzyData.name);
+                gearData = fuzzyData;
+              }
+            }
+          }
+        }
+      }
+      
+      if (gearData) {
+        // Transform Supabase data to match expected format
+        console.log('🔧 Transforming gear data:', gearData);
+        const transformedGear = {
+          id: gearData.id,
+          name: gearData.name,
+          image: gearData.image_url,
+          description: gearData.description,
+          price: gearData.price,
+          brand: gearData.brand,
+          type: gearData.category,
+          rating: gearData.rating || 4.5,
+          numReviews: gearData.review_count || 0,
+          whereToBuy: createWhereToBuyData(gearData),
+          usedBy: getUsersWhoHaveGear(gearData.name),
+          wantedBy: getUsersWhoWantGear(gearData.name),
+          usedByCafes: getCafesUsingGear(gearData)
+        };
+        
+        console.log('✅ Setting transformed gear:', transformedGear.name);
+        setGear(transformedGear);
+      } else {
+        // Fallback to default if still not found
+        console.log('⚠️ No gear data found, using fallback');
+        setGear({
+          id: gearId || 'unknown',
+          name: gearName || 'Unknown Gear',
+          image: 'https://images.unsplash.com/photo-1447933601403-0c6688de566e',
+          description: 'No information available for this item.',
+          price: 0,
+          brand: 'Unknown',
+          type: 'Unknown',
+          rating: 0,
+          numReviews: 0,
+          whereToBuy: [],
+          usedBy: [],
+          wantedBy: [],
+          usedByCafes: []
+        });
+      }
+    } catch (error) {
+      console.error('Error loading gear data:', error);
+      setGear({
+        id: gearId || 'unknown',
+        name: gearName || 'Unknown Gear',
+        image: 'https://images.unsplash.com/photo-1447933601403-0c6688de566e',
+        description: 'Error loading gear information.',
+        price: 0,
+        brand: 'Unknown',
+        type: 'Unknown',
+        rating: 0,
+        numReviews: 0,
+        whereToBuy: [],
+        usedBy: [],
+        wantedBy: [],
+        usedByCafes: []
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
   
-  if (gearId) {
-    // Try to find gear by ID first
-    gear = Object.values(gearData).find(item => item.id === gearId);
-  }
+  // Helper function to create where to buy data
+  const createWhereToBuyData = (gearData) => {
+    const gearName = gearData.name;
+    
+    if (gearName === 'Fellow Stagg EKG') {
+      return [
+        { name: 'Fellow Products', url: 'https://fellowproducts.com/products/stagg-ekg-electric-pour-over-kettle', price: '€179.95', logo: 'https://fellowproducts.com/cdn/shop/files/Fellow_Logo_Black_160x.png' },
+        { name: 'Amazon', url: 'https://www.amazon.es/Fellow-Electric-Pour-over-Kettle/dp/B077JBQZPX', price: '€179.95', logo: 'https://logo.clearbit.com/amazon.es' },
+        { name: 'Tea Forté', url: 'https://teaforte.com/products/tea-accessories-stagg-electric-kettle-ekg-matte-black-21096', price: '€149.00', logo: 'https://logo.clearbit.com/teaforte.com' },
+      ];
+    } else if (gearName === 'Baratza Encore') {
+      return [
+        { name: 'Amazon', url: 'https://www.amazon.es/Baratza-Encore-Conical-Coffee-Grinder/dp/B007F183LK', price: '€139.95', logo: 'https://logo.clearbit.com/amazon.es' },
+        { name: 'Prima Coffee', url: 'https://prima-coffee.com/equipment/baratza/485', price: '€139.95', logo: 'https://logo.clearbit.com/prima-coffee.com' },
+        { name: 'Baratza Direct', url: 'https://baratza.com/grinder/encore/', price: '€139.95', logo: 'https://logo.clearbit.com/baratza.com' },
+      ];
+    } else {
+      return [
+        { name: 'Vértigo y Calambre', url: 'https://vertigoycalambre.com', price: `€${gearData.price || 0}`, logo: 'https://logo.clearbit.com/vertigoycalambre.com' },
+        { name: gearData.brand || 'Brand', url: `https://${(gearData.brand || 'brand').toLowerCase().replace(/\s+/g, '')}.com`, price: `€${gearData.price || 0}`, logo: `https://logo.clearbit.com/${(gearData.brand || 'brand').toLowerCase().replace(/\s+/g, '')}.com` },
+        { name: 'Amazon', url: 'https://amazon.es', price: `€${gearData.price || 0}`, logo: 'https://logo.clearbit.com/amazon.es' },
+      ];
+    }
+  };
   
-  if (!gear && gearName) {
-    // If not found by ID, try to find by name
-    gear = gearData[gearName];
-  }
+  // Helper function to get users who have this gear
+  const getUsersWhoHaveGear = (gearName) => {
+    return mockUsers.users
+      .filter(user => user.gear && user.gear.includes(gearName))
+      .map(user => ({
+        id: user.id,
+        name: user.userName,
+        avatar: user.userAvatar
+      }));
+  };
   
-  // Fallback to default if still not found
-  if (!gear) {
-    gear = {
-      id: gearId || 'unknown',
-      name: gearName || 'Unknown Gear',
-      image: 'https://images.unsplash.com/photo-1447933601403-0c6688de566e',
-      description: 'No information available for this item.',
-      price: 0,
-      brand: 'Unknown',
-      whereToBuy: [],
-      usedBy: [],
-      wantedBy: [],
-      usedByCafes: []
-    };
-  }
-
-  // Animated header title styles
+  // Helper function to get users who want this gear
+  const getUsersWhoWantGear = (gearName) => {
+    return mockUsers.users
+      .filter(user => user.gearWishlist && user.gearWishlist.includes(gearName))
+      .map(user => ({
+        id: user.id,
+        name: user.userName,
+        avatar: user.userAvatar
+      }));
+  };
+  
+  // Helper function to get cafes using this gear
+  const getCafesUsingGear = (gearData) => {
+    const gearName = gearData.name;
+    const category = gearData.category?.toLowerCase() || '';
+    
+    if (gearName === 'Fellow Stagg EKG' || category === 'kettles') {
+      return [
+        { id: 'kima-coffee', name: 'Kima Coffee', avatar: 'assets/businesses/kima-logo.jpg', location: 'Málaga, Spain' },
+        { id: 'toma-cafe-1', name: 'Toma Café 1', avatar: 'assets/businesses/toma-logo.jpg', location: 'Madrid, Spain' },
+        { id: 'cafelab-murcia', name: 'CaféLab Murcia', avatar: 'assets/businesses/cafelab-logo.png', location: 'Murcia, Spain' },
+      ];
+    } else if (gearName === 'Baratza Encore' || category === 'grinders') {
+      return [
+        { id: 'toma-cafe-2', name: 'Toma Café 2', avatar: 'assets/businesses/toma-logo.jpg', location: 'Madrid, Spain' },
+        { id: 'cafelab-cartagena', name: 'CaféLab Cartagena', avatar: 'assets/businesses/cafelab-logo.png', location: 'Cartagena, Spain' },
+      ];
+    } else if (category === 'brewers' || gearName.includes('V60') || gearName.includes('Chemex')) {
+      return [
+        { id: 'kima-coffee', name: 'Kima Coffee', avatar: 'assets/businesses/kima-logo.jpg', location: 'Málaga, Spain' },
+        { id: 'toma-cafe-1', name: 'Toma Café 1', avatar: 'assets/businesses/toma-logo.jpg', location: 'Madrid, Spain' },
+        { id: 'toma-cafe-2', name: 'Toma Café 2', avatar: 'assets/businesses/toma-logo.jpg', location: 'Madrid, Spain' },
+        { id: 'cafelab-murcia', name: 'CaféLab Murcia', avatar: 'assets/businesses/cafelab-logo.png', location: 'Murcia, Spain' },
+      ];
+    } else if (category === 'scales') {
+      return [
+        { id: 'kima-coffee', name: 'Kima Coffee', avatar: 'assets/businesses/kima-logo.jpg', location: 'Málaga, Spain' },
+        { id: 'toma-cafe-1', name: 'Toma Café 1', avatar: 'assets/businesses/toma-logo.jpg', location: 'Madrid, Spain' },
+      ];
+    }
+    
+    return [];
+  };
+  
+  // Animated header title styles - MUST be before any conditional returns
   const animatedDefaultTitleStyle = useAnimatedStyle(() => {
     return {
       opacity: withTiming(showGearNameInHeader ? 0 : 1, { duration: 150 }),
@@ -195,8 +308,23 @@ export default function GearDetailScreen() {
     };
   });
   
+  // Load data when component mounts
+  useEffect(() => {
+    loadGearData();
+  }, [gearId, gearName]);
+  
+  // Add focus effect to refresh data when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('GearDetailScreen focused - refreshing data to show updated avatars');
+      loadGearData();
+    }, [gearId, gearName])
+  );
+  
   // Set screen title and header options
   useLayoutEffect(() => {
+    if (!gear) return; // Only set options when gear is loaded
+    
     navigation.setOptions({
       headerTitle: () => (
         <View style={{ position: 'relative', alignItems: 'center', justifyContent: 'center', height: 44 }}>
@@ -228,7 +356,7 @@ export default function GearDetailScreen() {
             numberOfLines={1}
             ellipsizeMode="tail"
           >
-            {gear.name}
+            {gear?.name || ''}
           </Animated.Text>
         </View>
       ),
@@ -249,7 +377,7 @@ export default function GearDetailScreen() {
       },
       headerTintColor: theme.primaryText,
     });
-  }, [navigation, gear.name, theme.primaryText, theme.background, theme.divider, isDarkMode, scrollY, showGearNameInHeader, animatedDefaultTitleStyle, animatedGearTitleStyle]);
+  }, [navigation, gear?.name, theme.primaryText, theme.background, theme.divider, isDarkMode, scrollY, showGearNameInHeader, animatedDefaultTitleStyle, animatedGearTitleStyle]);
   
   // Check if item is in wishlist
   useEffect(() => {
@@ -258,6 +386,15 @@ export default function GearDetailScreen() {
       setInWishlist(isInWishlist);
     }
   }, [coffeeWishlist, gear]);
+  
+  // Show loading state
+  if (loading || !gear) {
+    return (
+      <View style={[styles.container, { backgroundColor: theme.background, justifyContent: 'center', alignItems: 'center' }]}>
+        <Text style={[styles.loadingText, { color: theme.primaryText }]}>Loading gear...</Text>
+      </View>
+    );
+  }
   
   // Toggle wishlist
   const toggleWishlist = () => {
@@ -390,7 +527,7 @@ export default function GearDetailScreen() {
         <View style={[styles.headerCard, { backgroundColor: theme.background }]}>
           <View style={styles.headerContent}>
             {/* Gear Image */}
-            <View style={[styles.imageContainer, { backgroundColor: theme.surface }]}>
+            <View style={[styles.imageContainer, { backgroundColor: theme.surface, borderColor: theme.border }]}>
               <AppImage
                 source={{ uri: gear.image }}
                 style={styles.gearImage}
@@ -702,6 +839,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: 'hidden',
     marginRight: 16,
+    borderWidth: 0.5, // Hairline border
   },
   gearImage: {
     width: '100%',
@@ -962,5 +1100,9 @@ const styles = StyleSheet.create({
   },
   cafeLocation: {
     fontSize: 14,
+  },
+  loadingText: {
+    fontSize: 16,
+    textAlign: 'center',
   },
 }); 
