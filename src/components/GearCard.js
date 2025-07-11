@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AppImage from './common/AppImage';
 import { useTheme } from '../context/ThemeContext';
+import { shouldShowNewBadge } from '../utils/gearBadgeManager';
 
 const { width } = Dimensions.get('window');
 // Adjust the width calculation to work better with the parent container sizing
@@ -27,6 +28,7 @@ const GearCard = ({
   showAvatars = true
 }) => {
   const { theme, isDarkMode } = useTheme();
+  const [showNewBadge, setShowNewBadge] = useState(false);
   
   if (!item) return null;
 
@@ -39,6 +41,18 @@ const GearCard = ({
     reviewCount,
     usedBy = []
   } = item;
+
+  // Check if this gear should show the "NEW" badge
+  useEffect(() => {
+    const checkNewBadge = async () => {
+      if (item.id) {
+        const shouldShow = await shouldShowNewBadge(item.id);
+        setShowNewBadge(shouldShow);
+      }
+    };
+    
+    checkNewBadge();
+  }, [item.id]);
 
   // Debug log to check usedBy data
   console.log(`GearCard for ${name}, usedBy data:`, usedBy ? JSON.stringify(usedBy.slice(0, 2)) : 'none');
@@ -122,6 +136,13 @@ const GearCard = ({
           placeholder="gear"
           resizeMode="cover"
         />
+        
+        {/* NEW Badge */}
+        {showNewBadge && (
+          <View style={styles.newBadge}>
+            <Text style={styles.newBadgeText}>NEW</Text>
+          </View>
+        )}
       </View>
 
       {/* Content */}
@@ -160,11 +181,28 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
+    position: 'relative',
   },
   image: {
     width: '100%',
     height: '100%',
     resizeMode: 'cover',
+  },
+  newBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: '#FF3B30',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    zIndex: 10,
+  },
+  newBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   contentContainer: {
     padding: 12,

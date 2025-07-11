@@ -29,6 +29,7 @@ import { useCoffee } from '../context/CoffeeContext';
 import { useTheme } from '../context/ThemeContext';
 import { supabase } from '../lib/supabase';
 import FollowButton from '../components/FollowButton';
+import { incrementGearViewCount } from '../utils/gearBadgeManager';
 
 // Import the gearData from GearDetailScreen for consistency
 // This is the object used in GearDetailScreen.js to look up gear by name
@@ -1117,6 +1118,11 @@ export default function SearchScreen() {
             .from('gear')
             .getPublicUrl(`${item.id}.jpg`);
             
+          // Track gear view when it appears in search results
+          if (item.id) {
+            incrementGearViewCount(item.id);
+          }
+            
           return {
             id: item.id,
             gearId: item.id,
@@ -1649,16 +1655,23 @@ export default function SearchScreen() {
             </View>
             <FlatList
               data={popularGear}
-              renderItem={({ item, index }) => (
-                <View style={{ marginRight: index < popularGear.length - 1 ? 12 : 0 }}>
-                  <GearCard
-                    item={item}
-                    onPress={() => handleGearPress(item)}
-                    theme={theme}
-                    showAvatars={false}
-                  />
-                </View>
-              )}
+              renderItem={({ item, index }) => {
+                // Track gear view when card is rendered
+                if (item.id) {
+                  incrementGearViewCount(item.id);
+                }
+                
+                return (
+                  <View style={{ marginRight: index < popularGear.length - 1 ? 12 : 0 }}>
+                    <GearCard
+                      item={item}
+                      onPress={() => handleGearPress(item)}
+                      theme={theme}
+                      showAvatars={false}
+                    />
+                  </View>
+                );
+              }}
               keyExtractor={item => item.id}
               horizontal
               showsHorizontalScrollIndicator={false}

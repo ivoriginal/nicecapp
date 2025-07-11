@@ -16,6 +16,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import { supabase } from '../lib/supabase';
+import { incrementGearViewCount } from '../utils/gearBadgeManager';
 
 import GearCard from '../components/GearCard';
 import AppImage from '../components/common/AppImage';
@@ -394,6 +395,11 @@ const GearListScreen = ({ navigation, route }) => {
   const renderGearItem = ({ item }) => {
     // Debug log to check if usedBy data is available
     console.log(`Rendering gear ${item.name}, usedBy:`, item.usedBy ? item.usedBy.length : 0);
+    
+    // Track gear view when card is rendered
+    if (item.id) {
+      incrementGearViewCount(item.id);
+    }
     
     return (
       <View style={styles.gearCardWrapper}>
