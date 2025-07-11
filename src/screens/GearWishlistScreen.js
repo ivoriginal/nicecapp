@@ -21,6 +21,7 @@ import gearDetails from '../data/gearDetails';
 import AppImage from '../components/common/AppImage';
 import GearCard from '../components/GearCard';
 import { useTheme } from '../context/ThemeContext';
+import { supabase } from '../lib/supabase';
 
 // Helper function to get the gear details by name
 const getGearDetails = (gearName) => {
@@ -114,7 +115,7 @@ const GearWishlistScreen = () => {
     });
   }, [navigation, isEditing, styles]);
 
-  const loadWishlist = () => {
+  const loadWishlist = async () => {
     // Skip navigation bar setup in this screen as we're using the one from App.js
     
     // Get user data
@@ -122,26 +123,69 @@ const GearWishlistScreen = () => {
                  mockUsers.users.find(u => u.id === 'user1'); // Default to user1 if not found
 
     if (user && user.gearWishlist && user.gearWishlist.length > 0) {
-      // Map gear wishlist names to actual gear objects
-      const wishlistGear = user.gearWishlist.map(gearName => {
-        // Find the gear in mockGear.json
-        const foundGear = mockGear.gear.find(g => g.name === gearName);
-        
-        if (foundGear) {
-          return foundGear;
-        } else {
-          // Create a placeholder for gear not found in the database
-          return {
-            id: `placeholder-${gearName}`,
-            name: gearName,
-            brand: 'Unknown Brand',
-            price: '-',
-            imageUrl: null
-          };
+      try {
+        // Fetch all available gear from Supabase
+        const { data: availableGear, error: gearError } = await supabase
+          .from('gear')
+          .select('*');
+
+        if (gearError) {
+          console.error('Error fetching gear from Supabase:', gearError);
+          setWishlistItems([]);
+          setLoading(false);
+          return;
         }
-      });
-      
-      setWishlistItems(wishlistGear);
+
+        console.log('Available gear from Supabase:', availableGear?.length || 0);
+
+        // Map gear wishlist names to actual gear objects, but only include items that exist in Supabase
+        const wishlistGear = user.gearWishlist
+          .map(gearName => {
+            // First try to find gear in Supabase by name
+            const supabaseGear = availableGear?.find(g => g.name === gearName);
+            
+            if (supabaseGear) {
+              // Transform Supabase gear to match expected format
+              return {
+                id: supabaseGear.id,
+                name: supabaseGear.name,
+                brand: supabaseGear.brand,
+                price: supabaseGear.price,
+                imageUrl: supabaseGear.image_url,
+                category: supabaseGear.category,
+                description: supabaseGear.description
+              };
+            }
+
+            // If not found in Supabase, try mockGear as fallback
+            const mockGearItem = mockGear.gear.find(g => g.name === gearName);
+            if (mockGearItem) {
+              // Check if this mock gear also exists in Supabase by ID
+              const supabaseMatch = availableGear?.find(g => g.id === mockGearItem.id);
+              if (supabaseMatch) {
+                return {
+                  id: supabaseMatch.id,
+                  name: supabaseMatch.name,
+                  brand: supabaseMatch.brand,
+                  price: supabaseMatch.price,
+                  imageUrl: supabaseMatch.image_url,
+                  category: supabaseMatch.category,
+                  description: supabaseMatch.description
+                };
+              }
+            }
+
+            // If gear doesn't exist in Supabase, return null to filter it out
+            console.log(`Gear "${gearName}" not found in Supabase database, removing from wishlist`);
+            return null;
+          })
+          .filter(item => item !== null); // Remove null items (gear not in database)
+        
+        setWishlistItems(wishlistGear);
+      } catch (error) {
+        console.error('Error loading wishlist:', error);
+        setWishlistItems([]);
+      }
     } else {
       setWishlistItems([]);
     }
@@ -223,6 +267,7 @@ const GearWishlistScreen = () => {
       <TouchableOpacity 
         style={styles.gearCard}
         onPress={() => !isEditing && navigation.navigate('GearDetail', { 
+          gearId: item.id,
           gearName: item.name,
           gear: item
         })}
@@ -234,11 +279,11 @@ const GearWishlistScreen = () => {
               source={item.imageUrl} 
               style={styles.gearImage}
               resizeMode="cover"
-              placeholder="hardware-chip"
+              placeholder="cafe-outline"
             />
           ) : (
             <View style={styles.gearImagePlaceholder}>
-              <Ionicons name="hardware-chip-outline" size={30} color={theme.secondaryText} />
+              <Ionicons name="cafe-outline" size={30} color={theme.secondaryText} />
             </View>
           )}
         </View>
@@ -278,7 +323,7 @@ const GearWishlistScreen = () => {
           columnWrapperStyle={styles.columnWrapper}
           ListEmptyComponent={() => (
             <View style={styles.emptyContainer}>
-              {/* <Ionicons name="hardware-chip-outline" size={50} color="#CCCCCC" /> */}
+              {/* <Ionicons name="cafe-outline" size={50} color="#CCCCCC" /> */}
               <Text style={styles.emptyText}>No items in the wishlist</Text>
               {isCurrentUser && (
                 <Text style={styles.emptySubText}>Browse coffee gear to add items to your wishlist</Text>
