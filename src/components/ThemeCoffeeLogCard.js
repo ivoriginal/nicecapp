@@ -228,6 +228,16 @@ const ThemeCoffeeLogCard = ({
       return 'added to inventory';
     }
     
+    // Check for specific event types first before checking for method/brewing data
+    if (event.type === 'added_to_collection') {
+      return 'added to collection';
+    }
+    
+    // Handle business coffee announcements
+    if (event.type === 'coffee_announcement' && isBusinessAccount) {
+      return 'added to store';
+    }
+    
     // Check for location first - if there's a location and it's not home, it's an order
     if (event.location && event.location !== 'Home' && event.locationId && event.locationId !== 'home') {
       return 'ordered';
@@ -236,15 +246,6 @@ const ThemeCoffeeLogCard = ({
     // Then check for recipe/method/brewing related events
     if (event.hasRecipe || event.method || event.brewingMethod) {
       return 'brewed';
-    }
-    
-    // Handle business coffee announcements
-    if (event.type === 'coffee_announcement' && isBusinessAccount) {
-      return 'added to store';
-    }
-    
-    if (event.type === 'added_to_collection') {
-      return 'added to collection';
     }
     
     return 'tried';
@@ -380,7 +381,7 @@ const ThemeCoffeeLogCard = ({
             <AppImage 
               source={event.gearImage || event.imageUrl} 
               style={styles.gearImage}
-              placeholder="hardware-chip" 
+              placeholder="cafe-outline" 
             />
           </View>
           <View style={styles.gearInfo}>
