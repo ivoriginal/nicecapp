@@ -1,15 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, Image, ScrollView, TextInput, Switch, Modal, Alert } from 'react-native';
+import { View, Text, FlatList, SectionList, StyleSheet, TouchableOpacity, Image, ScrollView, TextInput, Switch, Modal, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import mockCafes from '../data/mockCafes.json';
+import { useFocusEffect } from '@react-navigation/native';
+import * as Location from 'expo-location';
 import AppImage from '../components/common/AppImage';
 import { useTheme } from '../context/ThemeContext';
+import { supabase } from '../lib/supabase';
 
 const CafesListScreen = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
   const { theme, isDarkMode } = useTheme();
-  const { title = 'Cafés Near You' } = route.params || {};
+  const { title = 'Good Cafés' } = route.params || {};
   
   // Modal state for adding cafes
   const [showAddCafeModal, setShowAddCafeModal] = useState(false);
@@ -19,6 +21,14 @@ const CafesListScreen = ({ navigation, route }) => {
     navigation.setOptions({
       title: title,
       headerBackTitle: 'Back',
+      headerStyle: {
+        backgroundColor: theme.background,
+        elevation: 0,
+        shadowOpacity: 0,
+        borderBottomWidth: 1,
+        borderBottomColor: theme.divider,
+      },
+      headerTintColor: theme.primaryText,
       headerRight: () => (
         <TouchableOpacity 
           style={{ marginRight: 16 }}
@@ -28,13 +38,39 @@ const CafesListScreen = ({ navigation, route }) => {
         </TouchableOpacity>
       )
     });
-  }, [navigation, title, theme.primaryText]);
+  }, [navigation, title, theme.primaryText, theme.background, theme.divider]);
+
+  // Reset header when screen comes into focus (fixes header disappearing issue when navigating back)
+  useFocusEffect(
+    React.useCallback(() => {
+      // Force header to be shown and reset any conflicting options
+      navigation.setOptions({
+        headerShown: true,
+        title: title,
+        headerBackTitle: 'Back',
+        headerStyle: {
+          backgroundColor: theme.background,
+          elevation: 0,
+          shadowOpacity: 0,
+          borderBottomWidth: 1,
+          borderBottomColor: theme.divider,
+        },
+        headerTintColor: theme.primaryText,
+        headerRight: () => (
+          <TouchableOpacity 
+            style={{ marginRight: 16 }}
+            onPress={() => setShowAddCafeModal(true)}
+          >
+            <Ionicons name="add" size={24} color={theme.primaryText} />
+          </TouchableOpacity>
+        )
+      });
+    }, [navigation, title, theme.primaryText, theme.background, theme.divider])
+  );
   
-  // Get good cafes by resolving IDs to full cafe data
-const goodCafeIds = mockCafes.goodCafes || [];
-const cafes = goodCafeIds.map(cafeId => {
-  return mockCafes.cafes.find(cafe => cafe.id === cafeId);
-}).filter(Boolean);
+  // State for cafes data from Supabase
+  const [cafes, setCafes] = useState([]);
+  const [loading, setLoading] = useState(true);
   
   // Filter states
   const [activeLocationFilter, setActiveLocationFilter] = useState('all');
@@ -45,76 +81,289 @@ const cafes = goodCafeIds.map(cafeId => {
   const [citySheetVisible, setCitySheetVisible] = useState(false);
   const [citySearchQuery, setCitySearchQuery] = useState('');
   
-  // Add Spanish cities
-  const spanishCities = [
-    "Madrid",
-    "Barcelona",
-    "Valencia",
-    "Seville",
-    "Zaragoza",
-    "Málaga",
-    "Murcia",
-    "Palma",
-    "Las Palmas",
-    "Bilbao",
-    "Alicante",
-    "Córdoba",
-    "Valladolid",
-    "Vigo",
-    "Gijón",
-    "Granada"
-  ];
+  // Sort states
+  const [sortBy, setSortBy] = useState('name'); // 'name' or 'rating'
+  const [sortSheetVisible, setSortSheetVisible] = useState(false);
   
-  // Extract unique cities for filters - Here we're extracting the city from "Neighborhood, City" format
+  // Cities organized by country
+  const citiesByCountry = {
+    Spain: [
+      "Madrid",
+      "Barcelona", 
+      "Valencia",
+      "Seville",
+      "Zaragoza",
+      "Málaga",
+      "Murcia",
+      "Palma",
+      "Las Palmas",
+      "Bilbao",
+      "Alicante",
+      "Córdoba",
+      "Valladolid",
+      "Vigo", 
+      "Gijón",
+      "Granada"
+    ],
+    Belgium: [
+      "Brussels",
+      "Antwerp", 
+      "Ghent",
+      "Charleroi",
+      "Liège",
+      "Bruges"
+    ],
+    France: [
+      "Paris",
+      "Lyon",
+      "Marseille",
+      "Toulouse",
+      "Nice",
+      "Nantes"
+    ]
+  };
+  
+  // Extract unique cities from actual cafe data
   const allCities = [
     ...new Set([
       ...cafes.map(cafe => {
-        const locationParts = cafe.location?.split(', ');
-        return locationParts && locationParts.length > 1 ? locationParts[1] : '';
+        // Try multiple location formats
+        if (cafe.location) {
+          const locationParts = cafe.location.split(', ');
+          return locationParts.length > 1 ? locationParts[locationParts.length - 1] : cafe.location;
+        }
+        if (cafe.address) {
+          const addressParts = cafe.address.split(', ');
+          return addressParts.length > 1 ? addressParts[addressParts.length - 1] : cafe.address;
+        }
+        return '';
       }),
-      ...spanishCities
+      ...Object.values(citiesByCountry).flat()
     ])
   ].filter(Boolean);
   
-  // Mock user location (would be replaced with actual geolocation)
+  // Real user location
   const [userLocation, setUserLocation] = useState(null);
   
-  // Get user location (simulated)
-  useEffect(() => {
-    // This would be replaced with actual geolocation
-    // For now, we'll just simulate having the user's location
-    if (isNearbyEnabled) {
-      // Mock coordinates that would come from geolocation API
-      setUserLocation({ latitude: 37.7749, longitude: -122.4194 }); // San Francisco coordinates
-    } else {
-      setUserLocation(null);
+  // Fetch cafes from Supabase
+  const fetchCafes = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('account_type', 'cafe');
+      
+      if (error) {
+        console.error('Error fetching cafes:', error);
+        Alert.alert('Error', 'Failed to load cafes');
+        return;
+      }
+      
+      // Transform Supabase data to match expected format
+      const transformedCafes = data.map(cafe => ({
+        id: cafe.id,
+        name: cafe.full_name,
+        location: cafe.location,
+        description: cafe.bio,
+        rating: cafe.rating,
+        reviewCount: cafe.review_count,
+        coverImage: cafe.cover_url,
+        avatar: cafe.avatar_url,
+        logo: cafe.avatar_url,
+        imageUrl: cafe.cover_url,
+        businessId: cafe.id,
+        latitude: cafe.latitude,
+        longitude: cafe.longitude,
+        phone: cafe.phone,
+        website: cafe.website,
+        hours: cafe.hours,
+        address: cafe.address,
+        instagram: cafe.instagram,
+        email: cafe.email,
+        username: cafe.username
+      }));
+      
+      setCafes(transformedCafes);
+    } catch (error) {
+      console.error('Error fetching cafes:', error);
+      Alert.alert('Error', 'Failed to load cafes');
+    } finally {
+      setLoading(false);
     }
-  }, [isNearbyEnabled]);
+  };
+  
+  // Load cafes on component mount
+  useEffect(() => {
+    fetchCafes();
+  }, []);
+  
+  // Calculate distance between two coordinates (Haversine formula)
+  const calculateDistance = (lat1, lon1, lat2, lon2) => {
+    const R = 6371; // Radius of the Earth in kilometers
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const distance = R * c; // Distance in kilometers
+    return distance;
+  };
   
   // Check if a cafe is currently open
   const isCafeOpen = (cafe) => {
-    // In a real app, you would check opening hours against current time
-    // For now, we'll just simulate with a random value for demonstration
-    return Math.random() > 0.3; // 70% chance a cafe is "open"
+    if (!cafe.hours) {
+      // If no hours data, assume open
+      return true;
+    }
+    
+    try {
+      const now = new Date();
+      const currentDay = now.toLocaleLowerCase().substring(0, 3); // 'mon', 'tue', etc.
+      const currentTime = now.getHours() * 100 + now.getMinutes(); // e.g., 1430 for 2:30 PM
+      
+      // Parse hours object (assuming format like { "mon": "8:00-18:00", "tue": "8:00-18:00", ... })
+      const todayHours = cafe.hours[currentDay];
+      
+      if (!todayHours || todayHours === 'Closed') {
+        return false;
+      }
+      
+      // Parse time range (e.g., "8:00-18:00")
+      const [openTime, closeTime] = todayHours.split('-');
+      const [openHour, openMin] = openTime.split(':').map(Number);
+      const [closeHour, closeMin] = closeTime.split(':').map(Number);
+      
+      const openTimeNum = openHour * 100 + openMin;
+      const closeTimeNum = closeHour * 100 + closeMin;
+      
+      return currentTime >= openTimeNum && currentTime <= closeTimeNum;
+    } catch (error) {
+      console.error('Error parsing hours:', error);
+      // If parsing fails, assume open
+      return true;
+    }
   };
   
-  // Apply filters based on city and nearby toggle
+  // Group cafes into sections for display
+  const groupCafesIntoSections = (cafes) => {
+    if (sortBy === 'name') {
+      // Group alphabetically
+      const grouped = {};
+      cafes.forEach(cafe => {
+        const firstLetter = cafe.name.charAt(0).toUpperCase();
+        if (!grouped[firstLetter]) {
+          grouped[firstLetter] = [];
+        }
+        grouped[firstLetter].push(cafe);
+      });
+      
+      // Convert to sections array
+      return Object.keys(grouped)
+        .sort()
+        .map(letter => ({
+          title: letter,
+          data: grouped[letter]
+        }));
+    } else if (sortBy === 'rating') {
+      // Group by rating ranges
+      const highRated = cafes.filter(cafe => (cafe.rating || 4.5) >= 4.5);
+      const mediumRated = cafes.filter(cafe => (cafe.rating || 4.5) >= 4.0 && (cafe.rating || 4.5) < 4.5);
+      const lowerRated = cafes.filter(cafe => (cafe.rating || 4.5) < 4.0);
+      
+      const sections = [];
+      if (highRated.length > 0) sections.push({ title: '4.5+ Stars', data: highRated });
+      if (mediumRated.length > 0) sections.push({ title: '4.0-4.4 Stars', data: mediumRated });
+      if (lowerRated.length > 0) sections.push({ title: 'Under 4.0 Stars', data: lowerRated });
+      
+      return sections;
+    }
+    
+    // If "All Cities" is selected and we have multiple cities, group by city
+    if (selectedCity === 'All Cities' && cafes.length > 0) {
+      const grouped = {};
+      cafes.forEach(cafe => {
+        // Extract city from location
+        let city = 'Other';
+        if (cafe.location) {
+          const locationParts = cafe.location.split(', ');
+          city = locationParts.length > 1 ? locationParts[locationParts.length - 1] : cafe.location;
+        }
+        
+        if (!grouped[city]) {
+          grouped[city] = [];
+        }
+        grouped[city].push(cafe);
+      });
+      
+      // Convert to sections array, sorted by city name
+      const sections = Object.keys(grouped)
+        .sort()
+        .map(city => ({
+          title: city,
+          data: grouped[city].sort((a, b) => a.name.localeCompare(b.name))
+        }));
+      
+      // Only return sections if we have more than one city
+      if (sections.length > 1) {
+        return sections;
+      }
+    }
+    
+    // No sections, return as single section
+    return [{ title: null, data: cafes }];
+  };
+
+  // Apply filters and sorting
   const applyFilters = () => {
     let filtered = [...cafes];
     
-    // Apply nearby filter (would implement actual distance calculation)
+    // Apply nearby filter with real distance calculation
     if (isNearbyEnabled && userLocation) {
-      // For now, we'll just pretend some cafes are nearby
-      // In a real app, you would calculate distance from user location
-      filtered = filtered.filter(cafe => 
-        // Simulating nearby filter by selecting random cafes
-        Math.random() > 0.5
-      );
+      const NEARBY_RADIUS_KM = 10; // 10km radius
+      
+      // Filter cafes that have coordinate data
+      const cafesWithCoords = filtered.filter(cafe => cafe.latitude && cafe.longitude);
+      
+      if (cafesWithCoords.length > 0) {
+        filtered = cafesWithCoords.filter(cafe => {
+          const distance = calculateDistance(
+            userLocation.latitude,
+            userLocation.longitude,
+            cafe.latitude,
+            cafe.longitude
+          );
+          
+          return distance <= NEARBY_RADIUS_KM;
+        });
+        
+        // Sort by distance when using nearby filter
+        filtered.sort((a, b) => {
+          const distanceA = calculateDistance(
+            userLocation.latitude,
+            userLocation.longitude,
+            a.latitude,
+            a.longitude
+          );
+          const distanceB = calculateDistance(
+            userLocation.latitude,
+            userLocation.longitude,
+            b.latitude,
+            b.longitude
+          );
+          return distanceA - distanceB;
+        });
+      } else {
+        // If no cafes have coordinate data, show all cafes with a message
+        console.log('No coordinate data available for distance filtering');
+      }
     }
     // Apply city filter (only if nearby is not enabled)
     else if (selectedCity !== 'All Cities') {
       filtered = filtered.filter(cafe => 
-        cafe.location?.includes(selectedCity)
+        cafe.location?.includes(selectedCity) || cafe.address?.includes(selectedCity)
       );
     }
     
@@ -123,22 +372,67 @@ const cafes = goodCafeIds.map(cafeId => {
       filtered = filtered.filter(cafe => isCafeOpen(cafe));
     }
     
+    // Apply sorting (only if not using nearby filter, which already sorts by distance)
+    if (!isNearbyEnabled) {
+      if (sortBy === 'name') {
+        filtered.sort((a, b) => a.name.localeCompare(b.name));
+      } else if (sortBy === 'rating') {
+        filtered.sort((a, b) => (b.rating || 4.5) - (a.rating || 4.5));
+      }
+    }
+    
     setFilteredCafes(filtered);
   };
   
   // Apply filters when relevant states change
   useEffect(() => {
-    applyFilters();
-  }, [selectedCity, isNearbyEnabled, isOpenNowEnabled, userLocation]);
+    if (cafes.length > 0) {
+      applyFilters();
+    }
+  }, [cafes, selectedCity, isNearbyEnabled, isOpenNowEnabled, userLocation, sortBy]);
   
+  // Request location permission and get user location
+  const requestLocationPermission = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      
+      if (status !== 'granted') {
+        Alert.alert(
+          'Permission Required',
+          'Location permission is required to show nearby cafés',
+          [{ text: 'OK' }]
+        );
+        return false;
+      }
+      
+      const location = await Location.getCurrentPositionAsync({});
+      setUserLocation({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude
+      });
+      return true;
+    } catch (error) {
+      console.error('Error requesting location permission:', error);
+      Alert.alert(
+        'Error',
+        'Unable to get your location. Please try again.',
+        [{ text: 'OK' }]
+      );
+      return false;
+    }
+  };
+
   // Toggle nearby filter
-  const toggleNearbySwitch = () => {
-    setIsNearbyEnabled(previousState => !previousState);
-    
-    // If user turns on nearby but hasn't allowed location access
-    if (!isNearbyEnabled && !userLocation) {
-      // In a real app, you would request location permissions here
-      console.log("Would request location permissions");
+  const toggleNearbySwitch = async () => {
+    if (!isNearbyEnabled) {
+      // Request location permission when turning on nearby
+      const permissionGranted = await requestLocationPermission();
+      if (permissionGranted) {
+        setIsNearbyEnabled(true);
+      }
+    } else {
+      setIsNearbyEnabled(false);
+      setUserLocation(null);
     }
   };
   
@@ -155,10 +449,13 @@ const cafes = goodCafeIds.map(cafeId => {
     : allCities;
   
   // Select a city from the bottom sheet
-  const handleCitySelect = (city) => {
+  const handleCitySelect = async (city) => {
     if (city === 'Nearby') {
-      setIsNearbyEnabled(true);
-      setSelectedCity('Nearby');
+      const permissionGranted = await requestLocationPermission();
+      if (permissionGranted) {
+        setIsNearbyEnabled(true);
+        setSelectedCity('Nearby');
+      }
     } else {
       setIsNearbyEnabled(false);
       setSelectedCity(city);
@@ -184,7 +481,12 @@ const cafes = goodCafeIds.map(cafeId => {
   const renderFilterUI = () => {
     return (
       <View style={[styles.filterContainer, { backgroundColor: theme.background }]}>
-        <View style={styles.filterRow}>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          style={styles.filterRow}
+          contentContainerStyle={styles.filterRowContent}
+        >
           <TouchableOpacity 
             style={[styles.citySelector, { backgroundColor: theme.cardBackground }]}
             onPress={() => setCitySheetVisible(true)}
@@ -216,7 +518,17 @@ const cafes = goodCafeIds.map(cafeId => {
               Open Now
             </Text>
           </TouchableOpacity>
-        </View>
+          
+          <TouchableOpacity 
+            style={[styles.filterChip, { backgroundColor: theme.cardBackground }]}
+            onPress={() => setSortSheetVisible(true)}
+          >
+            <Text style={[styles.chipText, { color: theme.primaryText }]}>
+              Sort by {sortBy === 'name' ? 'Name' : 'Rating'}
+            </Text>
+            <Ionicons name="chevron-down" size={16} color={theme.primaryText} style={{ marginLeft: 4 }} />
+          </TouchableOpacity>
+        </ScrollView>
       </View>
     );
   };
@@ -297,11 +609,12 @@ const cafes = goodCafeIds.map(cafeId => {
               </TouchableOpacity>
               
               {/* Group cities by country/region */}
-              <View style={styles.cityGroup}>
-                <Text style={[styles.cityGroupHeader, { backgroundColor: theme.secondaryBackground, color: theme.secondaryText }]}>Spanish Cities</Text>
-                {filteredCities
-                  .filter(city => spanishCities.includes(city))
-                  .map((city, index) => (
+              {Object.entries(citiesByCountry).map(([country, cities]) => (
+                <View key={country} style={styles.cityGroup}>
+                  <Text style={[styles.cityGroupHeader, { backgroundColor: theme.secondaryBackground, color: theme.secondaryText }]}>{country}</Text>
+                  {filteredCities
+                    .filter(city => cities.includes(city))
+                    .map((city, index) => (
                     <TouchableOpacity 
                       key={`spanish-${index}`}
                       style={[styles.cityItem, { borderBottomColor: theme.divider }]}
@@ -321,38 +634,122 @@ const cafes = goodCafeIds.map(cafeId => {
                         <Ionicons name="checkmark" size={20} color={theme.primaryText} />
                       )}
                     </TouchableOpacity>
-                  ))
-                }
-              </View>
+                                          ))
+                      }
+                    </View>
+                  ))}
+                  
+                  {/* Other cities not in any specific country */}
+                  {(() => {
+                    const categorizedCities = Object.values(citiesByCountry).flat();
+                    const otherCities = filteredCities.filter(city => 
+                      !categorizedCities.includes(city) && city !== 'All Cities'
+                    );
+                    
+                    if (otherCities.length > 0) {
+                      return (
+                        <View style={styles.cityGroup}>
+                          <Text style={[styles.cityGroupHeader, { backgroundColor: theme.secondaryBackground, color: theme.secondaryText }]}>Other Cities</Text>
+                          {otherCities.map((city, index) => (
+                            <TouchableOpacity 
+                              key={`other-${index}`}
+                              style={[styles.cityItem, { borderBottomColor: theme.divider }]}
+                              onPress={() => handleCitySelect(city)}
+                            >
+                              <View style={styles.cityItemLeftContent}>
+                                <Ionicons name="location-outline" size={20} color={theme.primaryText} style={styles.cityItemIcon} />
+                                <Text style={[
+                                  styles.cityItemText, 
+                                  { color: theme.primaryText },
+                                  selectedCity === city && !isNearbyEnabled && styles.selectedCityText
+                                ]}>
+                                  {city}
+                                </Text>
+                              </View>
+                              {selectedCity === city && !isNearbyEnabled && (
+                                <Ionicons name="checkmark" size={20} color={theme.primaryText} />
+                              )}
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      );
+                    }
+                                         return null;
+                   })()}
+              </ScrollView>
+          </View>
+        </View>
+      </Modal>
+    );
+  };
+  
+  // Sort selection modal
+  const renderSortSheet = () => {
+    return (
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={sortSheetVisible}
+        onRequestClose={() => setSortSheetVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.bottomSheet, { paddingBottom: insets.bottom, backgroundColor: theme.cardBackground, minHeight: '30%', maxHeight: '30%' }]}>
+            <View style={[styles.sheetHeader, { borderBottomColor: theme.divider }]}>
+              <TouchableOpacity 
+                style={styles.closeButton}
+                onPress={() => setSortSheetVisible(false)}
+              >
+                <Ionicons name="close" size={24} color={theme.primaryText} />
+              </TouchableOpacity>
+              <Text style={[styles.sheetTitle, { color: theme.primaryText }]}>Sort By</Text>
+              <View style={{ width: 40 }}><Text></Text></View>
+            </View>
+            
+            <View style={styles.sortOptionsContainer}>
+              <TouchableOpacity 
+                style={[styles.cityItem, { borderBottomColor: theme.divider }]}
+                onPress={() => {
+                  setSortBy('name');
+                  setSortSheetVisible(false);
+                }}
+              >
+                <View style={styles.cityItemLeftContent}>
+                  <Ionicons name="text-outline" size={20} color={theme.primaryText} style={styles.cityItemIcon} />
+                  <Text style={[
+                    styles.cityItemText, 
+                    { color: theme.primaryText },
+                    sortBy === 'name' && styles.selectedCityText
+                  ]}>
+                    Alphabetical
+                  </Text>
+                </View>
+                {sortBy === 'name' && (
+                  <Ionicons name="checkmark" size={20} color={theme.primaryText} />
+                )}
+              </TouchableOpacity>
               
-              <View style={styles.cityGroup}>
-                <Text style={[styles.cityGroupHeader, { backgroundColor: theme.secondaryBackground, color: theme.secondaryText }]}>Other Cities</Text>
-                {filteredCities
-                  .filter(city => !spanishCities.includes(city) && city !== 'All Cities' && city !== 'Spain')
-                  .map((city, index) => (
-                    <TouchableOpacity 
-                      key={`other-${index}`}
-                      style={[styles.cityItem, { borderBottomColor: theme.divider }]}
-                      onPress={() => handleCitySelect(city)}
-                    >
-                      <View style={styles.cityItemLeftContent}>
-                        <Ionicons name="location-outline" size={20} color={theme.primaryText} style={styles.cityItemIcon} />
-                        <Text style={[
-                          styles.cityItemText, 
-                          { color: theme.primaryText },
-                          selectedCity === city && !isNearbyEnabled && styles.selectedCityText
-                        ]}>
-                          {city}
-                        </Text>
-                      </View>
-                      {selectedCity === city && !isNearbyEnabled && (
-                        <Ionicons name="checkmark" size={20} color={theme.primaryText} />
-                      )}
-                    </TouchableOpacity>
-                  ))
-                }
-              </View>
-            </ScrollView>
+              <TouchableOpacity 
+                style={[styles.cityItem, { borderBottomColor: theme.divider }]}
+                onPress={() => {
+                  setSortBy('rating');
+                  setSortSheetVisible(false);
+                }}
+              >
+                <View style={styles.cityItemLeftContent}>
+                  <Ionicons name="star-outline" size={20} color={theme.primaryText} style={styles.cityItemIcon} />
+                  <Text style={[
+                    styles.cityItemText, 
+                    { color: theme.primaryText },
+                    sortBy === 'rating' && styles.selectedCityText
+                  ]}>
+                    Rating (Highest First)
+                  </Text>
+                </View>
+                {sortBy === 'rating' && (
+                  <Ionicons name="checkmark" size={20} color={theme.primaryText} />
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -410,17 +807,14 @@ const cafes = goodCafeIds.map(cafeId => {
   const renderCafeItem = ({ item }) => {
     const isOpen = isCafeOpen(item);
     
-    // Special handling for The Fix
-    let coverImageSource;
-    let logoImageSource;
+    // Use the URLs from Supabase or fallback to local assets
+    let coverImageSource = item.coverImage || item.imageUrl;
+    let logoImageSource = item.avatar || item.logo;
     
-    if (item.name === 'The Fix' || item.id === 'thefix-madrid' || item.businessId === 'business-thefix') {
-      // Use string paths instead of require() - AppImage will handle these properly
-      coverImageSource = 'assets/businesses/thefix-cover.jpg';
-      logoImageSource = 'assets/businesses/thefix-logo.jpg';
-    } else {
-      coverImageSource = item.coverImage || item.imageUrl;
-      logoImageSource = item.avatar || item.logo;
+    // Special handling for cafes that might still need local assets
+    if (item.name === 'The Fix' && (!coverImageSource || !logoImageSource)) {
+      coverImageSource = coverImageSource || 'assets/businesses/thefix-cover.jpg';
+      logoImageSource = logoImageSource || 'assets/businesses/thefix-logo.jpg';
     }
     
     return (
@@ -473,8 +867,35 @@ const cafes = goodCafeIds.map(cafeId => {
             <View style={styles.ratingContainer}>
               <Ionicons name="star" size={16} color="#FFD700" />
               <Text style={[styles.ratingText, { color: theme.primaryText }]}>{item.rating ? item.rating.toFixed(1) : '4.5'}</Text>
-              <Text style={[styles.reviewCount, { color: theme.secondaryText }]}>({item.reviewCount || '0'} reviews)</Text>
+              <Text style={[styles.reviewCount, { color: theme.secondaryText }]}>
+                {item.reviewCount === 0 ? 'No reviews' : `(${item.reviewCount || '0'} reviews)`}
+              </Text>
             </View>
+            
+            {/* Show distance when using nearby filter and coordinates are available */}
+            {isNearbyEnabled && userLocation && item.latitude && item.longitude && (
+              <View style={styles.distanceContainer}>
+                <Ionicons name="location-outline" size={14} color={theme.secondaryText} />
+                <Text style={[styles.distanceText, { color: theme.secondaryText }]}>
+                  {calculateDistance(
+                    userLocation.latitude,
+                    userLocation.longitude,
+                    item.latitude,
+                    item.longitude
+                  ).toFixed(1)} km
+                </Text>
+              </View>
+            )}
+            
+            {/* Show message when nearby is enabled but no coordinates available */}
+            {isNearbyEnabled && userLocation && (!item.latitude || !item.longitude) && (
+              <View style={styles.distanceContainer}>
+                <Ionicons name="location-outline" size={14} color={theme.secondaryText} />
+                <Text style={[styles.distanceText, { color: theme.secondaryText }]}>
+                  Location data pending
+                </Text>
+              </View>
+            )}
           </View>
         </View>
       </TouchableOpacity>
@@ -543,19 +964,33 @@ const cafes = goodCafeIds.map(cafeId => {
     <View style={[styles.container, { backgroundColor: isDarkMode ? theme.background : '#FFFFFF' }]}>
       {renderFilterUI()}
       {renderCitySheet()}
+      {renderSortSheet()}
       {renderAddCafeModal()}
 
-      <FlatList
-        data={filteredCafes}
-        renderItem={renderCafeItem}
-        keyExtractor={item => item.id}
-        contentContainerStyle={styles.cafesList}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={[styles.emptyText, { color: theme.secondaryText }]}>No cafés found</Text>
-          </View>
-        }
-      />
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <Text style={[styles.loadingText, { color: theme.secondaryText }]}>Loading cafés...</Text>
+        </View>
+      ) : (
+        <SectionList
+          sections={groupCafesIntoSections(filteredCafes)}
+          renderItem={renderCafeItem}
+          keyExtractor={item => item.id}
+          contentContainerStyle={styles.cafesList}
+          renderSectionHeader={({ section: { title } }) => 
+            title ? (
+              <View style={[styles.sectionHeader, { backgroundColor: isDarkMode ? theme.background : '#FFFFFF' }]}>
+                <Text style={[styles.sectionHeaderText, { color: theme.primaryText }]}>{title}</Text>
+              </View>
+            ) : null
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={[styles.emptyText, { color: theme.secondaryText }]}>No cafés found</Text>
+            </View>
+          }
+        />
+      )}
     </View>
   );
 };
@@ -566,12 +1001,16 @@ const styles = StyleSheet.create({
   },
   filterContainer: {
     paddingVertical: 16,
-    paddingHorizontal: 16,
     marginBottom: 0,
   },
   filterRow: {
+    flexGrow: 0,
+  },
+  filterRowContent: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
   },
   citySelector: {
     flexDirection: 'row',
@@ -579,14 +1018,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 50,
-    flex: 1,
-    marginRight: 10,
+    minWidth: 'auto', // Let it size to content
   },
   cityText: {
     fontSize: 16,
     marginLeft: 8,
     marginRight: 4,
-    flex: 1,
   },
   filterChip: {
     flexDirection: 'row',
@@ -687,6 +1124,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginHorizontal: -16,
   },
+  sortOptionsContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+  },
+  sectionHeader: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.1)',
+  },
+  sectionHeaderText: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
   cafesList: {
     paddingHorizontal: 16,
     paddingBottom: 32,
@@ -767,12 +1218,28 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginLeft: 4,
   },
+  distanceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  distanceText: {
+    fontSize: 14,
+    marginLeft: 4,
+  },
   emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 24,
   },
   emptyText: {
+    fontSize: 16,
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 24,
+  },
+  loadingText: {
     fontSize: 16,
   },
   addCafeModalContainer: {
