@@ -267,6 +267,34 @@
       }
     },
     {
+      "id": "little-havana-madrid",
+      "name": "Little Havana Cafe",
+      "roasterId": null,
+      "address": "Calle de la Cruz, 22, 28012 Madrid",
+      "coordinates": {
+        "lat": 40.4157,
+        "lng": -3.7003
+      },
+      "phone": "+34 915 678 901",
+      "location": "Madrid, Spain",
+      "neighborhood": "Sol",
+      "rating": 4.6,
+      "reviewCount": 187,
+      "categories": ["specialty coffee", "cafe", "breakfast", "cuban cuisine"],
+      "priceRange": "$$",
+      "avatar": null,
+      "coverImage": null,
+      "openingHours": {
+        "monday": "8:00-20:00",
+        "tuesday": "8:00-20:00",
+        "wednesday": "8:00-20:00",
+        "thursday": "8:00-20:00",
+        "friday": "8:00-22:00",
+        "saturday": "9:00-22:00",
+        "sunday": "9:00-20:00"
+      }
+    },
+    {
       "id": "vertigo-calambre",
       "name": "Vértigo y Calambre",
       "roasterId": null,
@@ -302,6 +330,7 @@
     "kima-coffee",
     "vertigo-calambre",
     "cafelab-murcia",
-    "thefix-madrid"
+    "thefix-madrid",
+    "little-havana-madrid"
   ]
 } 
