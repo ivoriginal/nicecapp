@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useLayoutEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, Platform, Alert } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { View, Text, FlatList, SectionList, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator, Platform, Alert } from 'react-native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import mockUsers from '../data/mockUsers.json';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import PeopleCard from '../components/PeopleCard';
 import { COLORS, FONTS } from '../constants';
 import AppImage from '../components/common/AppImage';
+import FollowButton from '../components/FollowButton';
 import { useTheme } from '../context/ThemeContext';
 import { useCoffee } from '../context/CoffeeContext';
+import { supabase } from '../lib/supabase';
 import * as Contacts from 'expo-contacts';
 
 const ContactsBanner = ({ onConnect, theme, isDarkMode }) => (
@@ -55,13 +57,14 @@ const PeopleListScreen = () => {
   const route = useRoute();
   const insets = useSafeAreaInsets();
   const { theme, isDarkMode } = useTheme();
-  const { following, isFollowing } = useCoffee();
+  const { following, isFollowing, user: currentUser } = useCoffee();
   const [searchQuery, setSearchQuery] = useState('');
   const [showContactsBanner, setShowContactsBanner] = useState(true);
   const [loading, setLoading] = useState(true);
   const [newUsers, setNewUsers] = useState([]);
   const [otherUsers, setOtherUsers] = useState([]);
   const [allUnfollowedUsers, setAllUnfollowedUsers] = useState([]);
+  const [supabaseProfiles, setSupabaseProfiles] = useState([]);
   
   // Configure navigation header
   useLayoutEffect(() => {
@@ -86,24 +89,76 @@ const PeopleListScreen = () => {
       setShowContactsBanner(false);
     }
   }, [route.params?.type]);
+
+  // Load Supabase profiles to get updated avatar and profile data
+  const loadSupabaseProfiles = async () => {
+    try {
+      const { data: profiles, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, username, avatar_url, location, created_at');
+        
+      if (error) {
+        console.error('Error loading Supabase profiles:', error);
+        return [];
+      }
+      
+      console.log('Loaded Supabase profiles:', profiles);
+      return profiles || [];
+    } catch (error) {
+      console.error('Error fetching Supabase profiles:', error);
+      return [];
+    }
+  };
+
+  // Enhanced user merging function
+  const mergeUserData = (mockUser, supabaseProfile) => {
+    if (!supabaseProfile) return mockUser;
+    
+    return {
+      ...mockUser,
+      // Prefer Supabase data for these fields if available
+      userName: supabaseProfile.full_name || mockUser.userName,
+      userHandle: supabaseProfile.username || mockUser.userHandle || mockUser.handle,
+      handle: supabaseProfile.username || mockUser.handle || mockUser.userHandle,
+      userAvatar: supabaseProfile.avatar_url || mockUser.userAvatar,
+      location: supabaseProfile.location || mockUser.location,
+      created_at: supabaseProfile.created_at || mockUser.joinedDate || mockUser.created_at,
+      // Keep the original mock data as fallback
+      ...mockUser
+    };
+  };
   
   // Fetch people data
-  const fetchPeople = () => {
+  const fetchPeople = async () => {
     try {
+      // Load Supabase profiles for updated data
+      const profiles = await loadSupabaseProfiles();
+      setSupabaseProfiles(profiles);
+      
+      // Create a map for quick lookup
+      const profilesMap = {};
+      profiles.forEach(profile => {
+        profilesMap[profile.id] = profile;
+      });
+
       // If we have suggestedUsers from SearchScreen, use those
       if (route.params?.suggestedUsers) {
-        const suggestedUsers = route.params.suggestedUsers;
+        const suggestedUsers = route.params.suggestedUsers.map(user => {
+          const supabaseProfile = profilesMap[user.id];
+          return mergeUserData(user, supabaseProfile);
+        });
+        
         // Split into new and other users based on join date
         const now = new Date();
         const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
         
         const newUsersList = suggestedUsers.filter(user => {
-          const joinDate = new Date(user.created_at || '2024-01-01');
+          const joinDate = new Date(user.created_at || user.joinedDate || '2024-01-01');
           return joinDate > oneWeekAgo;
         });
         
         const otherUsersList = suggestedUsers.filter(user => {
-          const joinDate = new Date(user.created_at || '2024-01-01');
+          const joinDate = new Date(user.created_at || user.joinedDate || '2024-01-01');
           return joinDate <= oneWeekAgo;
         });
 
@@ -111,8 +166,11 @@ const PeopleListScreen = () => {
         setOtherUsers(otherUsersList);
         setAllUnfollowedUsers(suggestedUsers);
       } else {
-        // Get all users from mockUsers
-        const allUsers = mockUsers.users;
+        // Get all users from mockUsers and merge with Supabase data
+        const allUsers = mockUsers.users.map(user => {
+          const supabaseProfile = profilesMap[user.id];
+          return mergeUserData(user, supabaseProfile);
+        });
         
         // Filter out users we already follow
         const unfollowedUsers = allUsers.filter(user => !isFollowing(user.id));
@@ -125,12 +183,12 @@ const PeopleListScreen = () => {
         const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
         
         const newUsersList = unfollowedUsers.filter(user => {
-          const joinDate = new Date(user.joinDate || '2024-01-01');
+          const joinDate = new Date(user.created_at || user.joinedDate || user.joinDate || '2024-01-01');
           return joinDate > oneWeekAgo;
         });
         
         const otherUsersList = unfollowedUsers.filter(user => {
-          const joinDate = new Date(user.joinDate || '2024-01-01');
+          const joinDate = new Date(user.created_at || user.joinedDate || user.joinDate || '2024-01-01');
           return joinDate <= oneWeekAgo;
         });
 
@@ -148,6 +206,15 @@ const PeopleListScreen = () => {
   useEffect(() => {
     fetchPeople();
   }, [following, route.params?.suggestedUsers]);
+
+  // Add focus effect to refresh data when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('PeopleListScreen focused - refreshing data to show updated avatars');
+      // Refresh data when screen comes into focus to show updated avatars
+      fetchPeople();
+    }, [following, route.params?.suggestedUsers])
+  );
   
   // Filter people based on search query
   useEffect(() => {
@@ -155,7 +222,9 @@ const PeopleListScreen = () => {
       const filtered = allUnfollowedUsers.filter(person => 
         person.userName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         person.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        person.username?.toLowerCase().includes(searchQuery.toLowerCase())
+        person.username?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        person.handle?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        person.userHandle?.toLowerCase().includes(searchQuery.toLowerCase())
       );
       setNewUsers([]);
       setOtherUsers(filtered);
@@ -247,71 +316,65 @@ const PeopleListScreen = () => {
     );
   };
 
-  const renderUserItem = ({ item, section }) => {
-    // Handle avatar source based on user
-    let avatar;
+  const handleUserPress = (user) => {
+    console.log('PeopleListScreen - handleUserPress called with user:', user);
     
-    if (item.id === 'user11') {
-      // Use the AppImage component with the string path which it knows how to handle
-      return (
-        <TouchableOpacity 
-          style={[styles.userCard, { backgroundColor: 'transparent' }]}
-          onPress={() => navigation.navigate('UserProfileBridge', { 
-            userId: item.id, 
-            userName: item.userName || item.name,
-            skipAuth: true 
-          })}
-        >
-          <AppImage 
-            source="assets/users/elias-veris.jpg" 
-            style={styles.userAvatar}
-            placeholder="person"
-          />
-          <View style={styles.userInfo}>
-            <View style={styles.userNameContainer}>
-              <Text style={[styles.userName, { color: theme.primaryText }]}>{item.userName || item.name}</Text>
-              {item.isNew && <NewUserBadge theme={theme} />}
-            </View>
-            <Text style={[styles.userHandle, { color: theme.secondaryText }]} numberOfLines={1}>{item.handle}</Text>
-          </View>
-          <TouchableOpacity style={[styles.followButton, { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' }]}>
-            <Text style={[styles.followButtonText, { color: isDarkMode ? '#000000' : '#FFFFFF' }]}>Follow</Text>
-          </TouchableOpacity>
-        </TouchableOpacity>
-      );
-    }
+    // Navigate to UserProfileBridge for proper user resolution
+    navigation.navigate('UserProfileBridge', {
+      userId: user.id,
+      userName: user.userName || user.name || user.full_name,
+      userAvatar: user.userAvatar || user.avatar_url,
+      location: user.location,
+      isCurrentUser: false,
+      skipAuth: true
+    });
+  };
+
+  const renderUserItem = ({ item, section }) => {
+    // Generate a fallback handle if none exists
+    const displayHandle = item.handle || 
+                         item.userHandle || 
+                         item.username || 
+                         `@${(item.userName || item.name || item.full_name || 'user').toLowerCase().replace(/\s+/g, '')}`;
     
     return (
       <TouchableOpacity 
         style={[styles.userCard, { backgroundColor: 'transparent' }]}
-        onPress={() => navigation.navigate('UserProfileBridge', { 
-          userId: item.id, 
-          userName: item.userName || item.name,
-          skipAuth: true 
-        })}
+        onPress={() => handleUserPress(item)}
       >
         <AppImage 
-          source={item.userAvatar || item.avatar} 
+          source={item.userAvatar || item.avatar_url || item.avatar} 
           style={styles.userAvatar}
           placeholder="person"
         />
         <View style={styles.userInfo}>
           <View style={styles.userNameContainer}>
-            <Text style={[styles.userName, { color: theme.primaryText }]}>{item.userName || item.name}</Text>
+            <Text style={[styles.userName, { color: theme.primaryText }]}>
+              {item.userName || item.name || item.full_name || 'User'}
+            </Text>
             {item.isNew && <NewUserBadge theme={theme} />}
           </View>
-          <Text style={[styles.userHandle, { color: theme.secondaryText }]} numberOfLines={1}>{item.handle}</Text>
+          <Text style={[styles.userHandle, { color: theme.secondaryText }]} numberOfLines={1}>
+            {displayHandle}
+          </Text>
         </View>
-        <TouchableOpacity style={[styles.followButton, { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' }]}>
-          <Text style={[styles.followButtonText, { color: isDarkMode ? '#000000' : '#FFFFFF' }]}>Follow</Text>
-        </TouchableOpacity>
+        <FollowButton 
+          userId={item.id}
+          style={[styles.followButton, { backgroundColor: isDarkMode ? '#FFFFFF' : '#000000' }]}
+        />
       </TouchableOpacity>
     );
   };
 
   const renderSectionHeader = ({ section }) => {
-    if (!section.data.length) return null;
-    return <SectionHeader title={section.title} theme={theme} />;
+    if (!section.data.length || !section.title) return null;
+    return (
+      <View style={[styles.sectionHeader, { backgroundColor: theme.background }]}>
+        <Text style={[styles.sectionHeaderText, { color: theme.primaryText }]}>
+          {section.title}
+        </Text>
+      </View>
+    );
   };
 
   const ListHeader = () => (
@@ -326,26 +389,35 @@ const PeopleListScreen = () => {
 
   const sections = [
     {
-      title: 'New Users',
+      title: '', // Remove the "New Users" title
       data: newUsers
     },
     {
-      title: searchQuery ? 'Search Results' : 'All Users',
+      title: searchQuery ? 'Search Results' : '',
       data: otherUsers
     }
   ].filter(section => section.data.length > 0);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <FlatList
-        sections={sections}
-        renderItem={renderUserItem}
-        renderSectionHeader={renderSectionHeader}
-        keyExtractor={item => item.id}
-        contentContainerStyle={styles.usersList}
-        ListHeaderComponent={ListHeader}
-        stickySectionHeadersEnabled={false}
-      />
+      {sections.length > 0 ? (
+        <SectionList
+          sections={sections}
+          renderItem={renderUserItem}
+          renderSectionHeader={renderSectionHeader}
+          keyExtractor={item => item.id}
+          ListHeaderComponent={ListHeader}
+          stickySectionHeadersEnabled={false}
+          showsVerticalScrollIndicator={false}
+          style={styles.sectionList}
+        />
+      ) : (
+        <View style={styles.emptyContainer}>
+          <Text style={[styles.emptyText, { color: theme.secondaryText }]}>
+            {loading ? 'Loading people...' : 'No people found'}
+          </Text>
+        </View>
+      )}
     </View>
   );
 };
@@ -355,9 +427,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF', // Will be overridden by inline style
   },
-  usersList: {
-    padding: 0,
-    paddingVertical: 8,
+  sectionList: {
+    flex: 1,
   },
   userCard: {
     flexDirection: 'row',
@@ -452,11 +523,21 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   sectionHeaderText: {
-    fontSize: 14,
+    fontSize: 18,
     fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
   },
+  // Empty state styles
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  emptyText: {
+    fontSize: 16,
+    textAlign: 'center',
+  },
+
 });
 
 export default PeopleListScreen; 
