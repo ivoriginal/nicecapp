@@ -482,6 +482,14 @@ export default function ProfileScreen() {
           <TouchableOpacity
             style={styles.headerButton}
             onPress={() => {
+              navigation.navigate('Analytics');
+            }}
+          >
+            <Ionicons name="stats-chart-outline" size={24} color={theme.primaryText} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.headerButton}
+            onPress={() => {
               navigation.navigate('Saved');
             }}
           >

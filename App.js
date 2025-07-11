@@ -30,6 +30,7 @@ import AddCoffeeFromCamera from './src/screens/AddCoffeeFromCamera';
 import AddCoffeeFromGallery from './src/screens/AddCoffeeFromGallery';
 import AddCoffeeManually from './src/screens/AddCoffeeManually';
 import AddGearScreen from './src/screens/AddGearScreen';
+import AnalyticsScreen from './src/screens/AnalyticsScreen';
 import { CoffeeProvider, useCoffee } from './src/context/CoffeeContext';
 import { NotificationsProvider } from './src/context/NotificationsContext';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
@@ -571,6 +572,14 @@ function MainNavigator({ theme, handleRecipeOptions, handleCoffeeOptions, header
         component={AddCoffeeManually} 
         options={{ 
           title: 'Add Manually',
+          headerBackTitle: 'Back'
+        }} 
+      />
+      <Stack.Screen 
+        name="Analytics" 
+        component={AnalyticsScreen} 
+        options={{ 
+          title: 'Analytics',
           headerBackTitle: 'Back'
         }} 
       />
