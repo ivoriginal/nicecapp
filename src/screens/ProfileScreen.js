@@ -350,22 +350,63 @@ export default function ProfileScreen() {
   // Toast state
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const [toastActionText, setToastActionText] = useState('');
+  const [pendingRemoval, setPendingRemoval] = useState(null);
+  const [removalTimeout, setRemovalTimeout] = useState(null);
 
   // Show toast notification based on platform
-  const showToast = (message) => {
+  const showToast = (message, actionText = '') => {
     if (Platform.OS === 'android') {
       ToastAndroid.show(message, ToastAndroid.SHORT);
     } else {
       // Use custom Toast component for iOS
       setToastMessage(message);
+      setToastActionText(actionText);
       setToastVisible(true);
       
-      // Hide the toast after 2 seconds
+      // Hide the toast after 4 seconds (to match undo timeout)
       setTimeout(() => {
         setToastVisible(false);
-      }, 2000);
+      }, 4000);
     }
   };
+
+  // Handle undo action
+  const handleUndoRemoval = () => {
+    if (pendingRemoval && removalTimeout) {
+      // Cancel the timeout
+      clearTimeout(removalTimeout);
+      setRemovalTimeout(null);
+      
+      // Revert UI state - add the coffee back to collection
+      setCoffeeCollection(prev => {
+        const isAlreadyBack = prev.some(c => c.id === pendingRemoval.coffeeId);
+        return isAlreadyBack ? prev : [...prev, pendingRemoval.coffee];
+      });
+      
+      // Clear pending removal
+      setPendingRemoval(null);
+      
+      console.log('Removal undone for coffee:', pendingRemoval.coffeeId);
+    }
+  };
+
+  // Handle toast action
+  const handleToastAction = () => {
+    if (toastActionText === 'Undo') {
+      handleUndoRemoval();
+    }
+    setToastVisible(false);
+  };
+
+  // Clean up timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (removalTimeout) {
+        clearTimeout(removalTimeout);
+      }
+    };
+  }, [removalTimeout]);
   
   // Handle account switching from other components
   useFocusEffect(
@@ -375,8 +416,23 @@ export default function ProfileScreen() {
       const now = Date.now();
       const timeSinceLastUpdate = now - lastUpdate;
       
-      // Check if we have updated user data from EditProfileScreen
+      // Check if we should switch to a specific tab
       const route = navigation.getState().routes.find(route => route.name === 'Root');
+      const switchToTab = route?.params?.params?.switchToTab;
+      if (switchToTab) {
+        console.log('Switching to tab:', switchToTab);
+        if (switchToTab === 'collection') {
+          setActiveTab('collection');
+        } else if (switchToTab === 'recipes') {
+          setActiveTab('recipes');
+        } else if (switchToTab === 'coffee') {
+          setActiveTab('coffee');
+        }
+        // Clear the parameter to avoid repeated tab switching
+        navigation.setParams({ params: { switchToTab: null } });
+      }
+      
+      // Check if we have updated user data from EditProfileScreen
       const hasUpdatedUserData = route?.params?.params?.updatedUserData;
       
       if (hasUpdatedUserData) {
@@ -720,29 +776,79 @@ export default function ProfileScreen() {
     }
   };
 
-  // Handle remove from collection
+  // Handle remove from collection with confirmation and undo mechanism
   const handleRemoveFromCollection = (item) => {
-    Alert.alert(
-      'Remove from Collection',
-      `Remove "${item.name}" from your collection?`,
-      [
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
         {
-          text: 'Cancel',
-          style: 'cancel'
+          options: ['Remove from Collection', 'Cancel'],
+          destructiveButtonIndex: 0,
+          cancelButtonIndex: 1,
+          userInterfaceStyle: isDarkMode ? 'dark' : 'light',
         },
-        {
-          text: 'Remove',
-          style: 'destructive',
-          onPress: () => {
-            removeFromCollection(item.id);
-            showToast('Removed from collection');
+        (buttonIndex) => {
+          if (buttonIndex === 0) {
+            performRemovalWithUndo(item);
           }
         }
-      ],
-      {
-        userInterfaceStyle: isDarkMode ? 'dark' : 'light'
+      );
+    } else {
+      Alert.alert(
+        'Collection Options',
+        'What would you like to do?',
+        [
+          {
+            text: 'Remove from Collection',
+            style: 'destructive',
+            onPress: () => performRemovalWithUndo(item)
+          },
+          {
+            text: 'Cancel',
+            style: 'cancel'
+          }
+        ],
+        {
+          userInterfaceStyle: isDarkMode ? 'dark' : 'light'
+        }
+      );
+    }
+  };
+
+  // Perform the actual removal with undo mechanism
+  const performRemovalWithUndo = (item) => {
+    // Set pending removal state
+    setPendingRemoval({
+      coffeeId: item.id,
+      coffee: item
+    });
+    
+    // Update UI immediately (optimistic update)
+    const updatedCollection = coffeeCollection.filter(c => c.id !== item.id);
+    setCoffeeCollection(updatedCollection);
+    
+    // Show toast with undo option
+    showToast('Removed from collection', 'Undo');
+    
+    // Set timeout for actual removal
+    const timeoutId = setTimeout(async () => {
+      try {
+        // Actually remove from collection after timeout
+        await removeFromCollection(item.id);
+        setPendingRemoval(null);
+        console.log('Coffee permanently removed from collection');
+      } catch (error) {
+        console.error('Error removing from collection:', error);
+        // Revert UI state if removal fails
+        setCoffeeCollection(prev => {
+          const isAlreadyBack = prev.some(c => c.id === item.id);
+          return isAlreadyBack ? prev : [...prev, item];
+        });
+        setPendingRemoval(null);
+        showToast('Failed to remove from collection');
       }
-    );
+    }, 4000); // 4 second delay to match toast duration
+    
+    setRemovalTimeout(timeoutId);
   };
 
   // Handle delete recipe
@@ -1526,7 +1632,13 @@ export default function ProfileScreen() {
   // Handle gear item press
   const handleGearPress = (item) => {
     console.log('Navigating to GearDetailScreen with gear:', item);
+    
+    // Find the gear ID from mockGear data
+    const mockGearItem = mockGear.gear.find(g => g.name === item);
+    const gearId = mockGearItem?.id;
+    
     navigation.navigate('GearDetail', {
+      gearId: gearId,
       gearName: item
     });
   };
@@ -1666,7 +1778,7 @@ export default function ProfileScreen() {
     };
   }, [currentAccount, navigation]);
 
-  // Listen for profile updates
+  // Listen for profile updates and tab switches
   useEffect(() => {
     const handleProfileUpdate = (data) => {
       console.log('Received profile update event:', data);
@@ -1718,10 +1830,17 @@ export default function ProfileScreen() {
       }
     };
     
+    const handleSwitchToCollectionTab = () => {
+      console.log('Switching to collection tab via event emitter');
+      setActiveTab('collection');
+    };
+    
     eventEmitter.addListener('profileUpdated', handleProfileUpdate);
+    eventEmitter.addListener('switchToCollectionTab', handleSwitchToCollectionTab);
     
     return () => {
       eventEmitter.removeListener('profileUpdated', handleProfileUpdate);
+      eventEmitter.removeListener('switchToCollectionTab', handleSwitchToCollectionTab);
     };
   }, [currentAccount, currentUserData, accounts, loadData]);
 
@@ -1869,7 +1988,10 @@ export default function ProfileScreen() {
         <Toast 
           visible={toastVisible} 
           message={toastMessage} 
-          duration={2000}
+          actionText={toastActionText}
+          onAction={handleToastAction}
+          onDismiss={() => setToastVisible(false)}
+          duration={4000}
         />
       )}
     </View>
@@ -1900,8 +2022,8 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     marginBottom: 8,
-    // borderWidth: 1,
-    borderColor: '#F0F0F0',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: '#E5E5EA',
   },
   userAvatar: {
     borderRadius: 40,
