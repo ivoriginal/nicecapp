@@ -587,7 +587,7 @@ export default function EditProfileScreen() {
               />
             ) : (
               <View style={styles.gearItemAvatarPlaceholder}>
-                <Ionicons name="hardware-chip-outline" size={16} color={theme.secondaryText} />
+                <Ionicons name="cafe-outline" size={16} color={theme.secondaryText} />
               </View>
             )}
           </View>
