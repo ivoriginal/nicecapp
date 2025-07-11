@@ -54,6 +54,7 @@ export default function CoffeeDetailScreen() {
     coffeeCollection, 
     coffeeWishlist, 
     favorites,
+    recipes,
     getRecipesForCoffee,
     addToCollection, 
     removeFromCollection,
@@ -91,6 +92,7 @@ export default function CoffeeDetailScreen() {
 
   // Recipe creation modal states
   const [showCreateRecipeModal, setShowCreateRecipeModal] = useState(false);
+  const [isSubmittingRecipe, setIsSubmittingRecipe] = useState(false);
   const [recipeData, setRecipeData] = useState({
     method: '',
     amount: '',
@@ -356,19 +358,22 @@ export default function CoffeeDetailScreen() {
         r.coffeeId === (coffee.id?.replace('coffee-', '') || '')
       );
       
-      // If we found matching recipes in mockRecipes, use those
-      if (matchingRecipes.length > 0) {
-        console.log(`Found ${matchingRecipes.length} recipes for coffee ${coffee.id} in mockRecipes`);
-        setRelatedRecipes(matchingRecipes);
-      } else {
-        // Otherwise fall back to context recipes
-        const contextRecipes = getRecipesForCoffee(coffee.id);
-        console.log(`Found ${contextRecipes.length} recipes for coffee ${coffee.id} in context`);
-        setRelatedRecipes(contextRecipes);
-      }
+      // Get context recipes (including newly added ones)
+      const contextRecipes = getRecipesForCoffee(coffee.id);
+      
+      // Combine both sources, with context recipes first (they include newly added ones)
+      const allRecipes = [...contextRecipes, ...matchingRecipes];
+      
+      // Remove duplicates based on recipe ID
+      const uniqueRecipes = allRecipes.filter((recipe, index, self) => 
+        index === self.findIndex(r => r.id === recipe.id)
+      );
+      
+      console.log(`Found ${uniqueRecipes.length} total recipes for coffee ${coffee.id}`);
+      setRelatedRecipes(uniqueRecipes);
     }
-  // Only run this effect when coffee object changes, not on every render
-  }, [coffee?.id, getRecipesForCoffee]);
+  // Include recipes in dependencies to update when new recipes are added
+  }, [coffee?.id, getRecipesForCoffee, recipes]);
 
 
 
@@ -697,7 +702,10 @@ export default function CoffeeDetailScreen() {
   const navigateToCollection = () => {
     navigation.navigate('MainTabs', { 
       screen: 'Profile',
-      params: { skipAuth: true }
+      params: { 
+        skipAuth: true,
+        switchToTab: 'collection'
+      }
     });
     
     setTimeout(() => {
@@ -713,38 +721,83 @@ export default function CoffeeDetailScreen() {
 
   const handleAddToCollection = async () => {
     if (isInCollection) {
-      removeFromCollection(coffee.id);
+      // Handle removal with undo mechanism
+      const coffeeToRemove = coffeeCollection.find(c => c.id === coffee.id);
+      
+      // Set pending removal state
+      setPendingRemoval({
+        coffeeId: coffee.id,
+        coffee: coffeeToRemove
+      });
+      
+      // Update UI immediately (optimistic update)
       setIsInCollection(false);
-      showToast('Removed from collection');
+      
+      // Show toast with undo option
+      showToast('Removed from collection', 'Undo');
+      
+      // Set timeout for actual removal
+      const timeoutId = setTimeout(async () => {
+        try {
+          // Actually remove from collection after timeout
+          await removeFromCollection(coffee.id);
+          setPendingRemoval(null);
+          console.log('Coffee permanently removed from collection');
+        } catch (error) {
+          console.error('Error removing from collection:', error);
+          // Revert UI state if removal fails
+          setIsInCollection(true);
+          setPendingRemoval(null);
+          showToast('Failed to remove from collection');
+        }
+      }, 4000); // 4 second delay to match toast duration
+      
+      setRemovalTimeout(timeoutId);
     } else {
+      // Handle addition
       addToCollection(coffee);
       setIsInCollection(true);
-      showToast('Added to collection');
-
-      // Create a feed event for adding to collection
-      try {
-        const randomString = Math.random().toString(36).substring(2, 8);
-        const eventId = `collection-add-${Date.now()}-${randomString}`;
-        
-        const collectionAddEvent = {
-          id: eventId,
-          type: 'added_to_collection',
-          userId: currentAccount?.id || 'user-default',
-          userName: currentAccount?.userName || 'You',
-          userAvatar: currentAccount?.userAvatar,
-          timestamp: new Date().toISOString(),
-          coffeeId: coffee.id,
-          coffeeName: coffee.name,
-          roaster: coffee.roaster,
-          imageUrl: coffee.image,
-        };
-
-        await addCoffeeEvent(collectionAddEvent);
-      } catch (error) {
-        console.error('Error creating "add to collection" event:', error);
-      }
+      showToast('Added to collection', 'View Collection');
     }
   };
+
+  // Handle undo action
+  const handleUndoRemoval = () => {
+    if (pendingRemoval && removalTimeout) {
+      // Cancel the timeout
+      clearTimeout(removalTimeout);
+      setRemovalTimeout(null);
+      
+      // Revert UI state
+      setIsInCollection(true);
+      
+      // Clear pending removal
+      setPendingRemoval(null);
+      
+      console.log('Removal undone for coffee:', pendingRemoval.coffeeId);
+    }
+  };
+
+  // Update showToast function to handle undo action
+  const handleToastAction = () => {
+    if (toastActionText === 'View Collection') {
+      navigateToCollection();
+    } else if (toastActionText === 'Undo') {
+      handleUndoRemoval();
+    } else if (toastActionText === 'View Saved') {
+      navigateToSaved();
+    }
+    setToastVisible(false);
+  };
+
+  // Clean up timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (removalTimeout) {
+        clearTimeout(removalTimeout);
+      }
+    };
+  }, [removalTimeout]);
 
   const handleSave = () => {
     if (isSaved) {
@@ -787,10 +840,21 @@ export default function CoffeeDetailScreen() {
       return;
     }
 
+    if (isSubmittingRecipe) {
+      return; // Prevent double submission
+    }
+
+    setIsSubmittingRecipe(true);
+
     try {
-      // Create a unique ID for the recipe using timestamp and random string
-      const randomString = Math.random().toString(36).substring(2, 8);
-      const recipeId = `recipe-${Date.now()}-${randomString}`;
+      // Create unique IDs with more robust generation to prevent collisions
+      const timestamp = Date.now();
+      const recipeRandomString = Math.random().toString(36).substring(2, 8);
+      const eventRandomString = Math.random().toString(36).substring(2, 8);
+      const recipeCounter = Math.floor(Math.random() * 1000); // Additional uniqueness
+      const eventCounter = Math.floor(Math.random() * 1000);
+      const recipeId = `recipe-${timestamp}-${recipeRandomString}-${recipeCounter}`;
+      const eventId = `recipe-creation-${timestamp}-${eventRandomString}-${eventCounter}`;
       
       // Create the recipe object
       const newRecipe = {
@@ -816,7 +880,7 @@ export default function CoffeeDetailScreen() {
       
       // Create a recipe creation event for the home feed
       const recipeCreationEvent = {
-        id: `recipe-creation-${Date.now()}-${randomString}`,
+        id: eventId,
         type: 'created_recipe',
         userId: currentAccount?.id || 'user-default',
         userName: currentAccount?.userName || 'You',
@@ -851,13 +915,17 @@ export default function CoffeeDetailScreen() {
       });
       
       // Refresh related recipes to show the new one
-      setRelatedRecipes(prev => [newRecipe, ...prev]);
+      // Use the context's getRecipesForCoffee function to get updated recipes
+      const updatedRecipes = getRecipesForCoffee(coffee.id);
+      setRelatedRecipes(updatedRecipes);
       
       // Show success message
       Alert.alert('Success', 'Recipe created successfully!');
     } catch (error) {
       console.error('Error saving recipe:', error);
       Alert.alert('Error', 'Failed to save recipe. Please try again.');
+    } finally {
+      setIsSubmittingRecipe(false);
     }
   };
 
@@ -1051,13 +1119,13 @@ export default function CoffeeDetailScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <Toast 
+              <Toast 
         visible={toastVisible}
         message={toastMessage}
         actionText={toastActionText}
-        onAction={toastActionText === 'View Collection' ? navigateToCollection : toastActionText === 'View Saved' ? navigateToSaved : null}
+        onAction={handleToastAction}
         onDismiss={() => setToastVisible(false)}
-        duration={3000}
+        duration={4000}
       />
       
       <ScrollView
@@ -1370,15 +1438,15 @@ export default function CoffeeDetailScreen() {
             <Text style={[styles.recipeModalTitle, { color: theme.primaryText }]}>Create Recipe</Text>
             <TouchableOpacity 
               onPress={handleSubmitRecipe}
-              disabled={!recipeData.method || !recipeData.amount || !recipeData.waterVolume}
+              disabled={!recipeData.method || !recipeData.amount || !recipeData.waterVolume || isSubmittingRecipe}
             >
               <Text style={[
                 styles.recipeModalSubmit, 
                 { 
-                  color: (!recipeData.method || !recipeData.amount || !recipeData.waterVolume) 
+                  color: (!recipeData.method || !recipeData.amount || !recipeData.waterVolume || isSubmittingRecipe) 
                     ? theme.secondaryText 
                     : theme.primaryText,
-                  opacity: (!recipeData.method || !recipeData.amount || !recipeData.waterVolume) ? 0.5 : 1
+                  opacity: (!recipeData.method || !recipeData.amount || !recipeData.waterVolume || isSubmittingRecipe) ? 0.5 : 1
                 }
               ]}>Save</Text>
             </TouchableOpacity>
