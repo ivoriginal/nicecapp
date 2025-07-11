@@ -40,8 +40,9 @@ const GearCard = ({
     usedBy = []
   } = item;
 
-  // Debug log to check usedBy data
+  // Debug log to check usedBy data and image URL
   console.log(`GearCard for ${name}, usedBy data:`, usedBy ? JSON.stringify(usedBy.slice(0, 2)) : 'none');
+  console.log(`GearCard for ${name}, imageUrl:`, imageUrl);
 
   // Render avatars of users who own this gear
   const renderAvatars = () => {
@@ -115,17 +116,24 @@ const GearCard = ({
       activeOpacity={0.8}
     >
       {/* Image */}
-      <View style={[styles.imageContainer, { backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F5' }]}>
+      <View style={[
+        styles.imageContainer, 
+        { 
+          backgroundColor: isDarkMode ? '#2C2C2E' : '#F5F5F5',
+          borderBottomWidth: 1,
+          borderBottomColor: theme.divider
+        }
+      ]}>
         <AppImage
           source={imageUrl}
           style={styles.image}
-          placeholder="gear"
+          placeholder="cafe-outline"
           resizeMode="cover"
         />
       </View>
 
       {/* Content */}
-      <View style={!showAvatars ? styles.contentContainerCompact : styles.contentContainer}>
+      <View style={(!showAvatars || !usedBy || usedBy.length === 0) ? styles.contentContainerCompact : styles.contentContainer}>
         {brand && <Text style={[styles.brand, { color: theme.secondaryText }]}>{brand}</Text>}
         <Text style={[styles.name, { color: theme.primaryText }]} numberOfLines={1}>{name}</Text>
         
