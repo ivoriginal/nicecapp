@@ -10,12 +10,20 @@ import AppImage from '../components/common/AppImage';
 import { useTheme } from '../context/ThemeContext';
 import { useCoffee } from '../context/CoffeeContext';
 
+// Section Header Component
+const SectionHeader = ({ title, theme }) => (
+  <View style={[styles.sectionHeader, { backgroundColor: theme.background }]}>
+    <Text style={[styles.sectionHeaderText, { color: theme.primaryText }]}>{title}</Text>
+  </View>
+);
+
 const CoffeeDiscoveryScreen = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
   const { theme, isDarkMode } = useTheme();
   const { getAllAvailableCoffees } = useCoffee();
   const { preselectedFilter = null, sortBy = 'default' } = (route && route.params) || {};
   const [coffees, setCoffees] = useState([]);
+  const [sections, setSections] = useState([]);
   const [activeFilters, setActiveFilters] = useState({});
   const [sortOrder, setSortOrder] = useState(sortBy);
   const [selectedCategory, setSelectedCategory] = useState(null);
@@ -27,6 +35,11 @@ const CoffeeDiscoveryScreen = ({ navigation, route }) => {
   
   // Check if any filters are active
   const hasActiveFilters = Object.values(activeFilters).some(filters => filters.length > 0);
+
+  // Check if current sort order should show section headers
+  const shouldShowSectionHeaders = () => {
+    return ['alphabetical', 'roaster', 'producer', 'origin', 'process', 'varietal', 'altitude'].includes(sortOrder);
+  };
 
   // Configure navigation header
   useLayoutEffect(() => {
@@ -229,7 +242,13 @@ const CoffeeDiscoveryScreen = ({ navigation, route }) => {
     { id: 'popularity', label: 'Popular' },
     { id: 'alphabetical', label: 'A-Z' },
     { id: 'price-low', label: 'Price (Low to High)' },
-    { id: 'price-high', label: 'Price (High to Low)' }
+    { id: 'price-high', label: 'Price (High to Low)' },
+    { id: 'roaster', label: 'Roaster' },
+    { id: 'producer', label: 'Producer' },
+    { id: 'origin', label: 'Origin' },
+    { id: 'process', label: 'Process' },
+    { id: 'varietal', label: 'Varietal' },
+    { id: 'altitude', label: 'Altitude' }
   ];
 
   // Get the current sort label to display
@@ -255,6 +274,68 @@ const CoffeeDiscoveryScreen = ({ navigation, route }) => {
       setCoffees(getAllAvailableCoffees());
     }, [getAllAvailableCoffees])
   );
+
+  // Helper function to get section title based on sort order
+  const getSectionTitle = (coffee, sortOrder) => {
+    switch (sortOrder) {
+      case 'alphabetical':
+        return coffee.name.charAt(0).toUpperCase();
+      case 'roaster':
+        return coffee.roaster || 'Unknown Roaster';
+      case 'producer':
+        return coffee.producer || 'Unknown Producer';
+      case 'origin':
+        return coffee.origin || 'Unknown Origin';
+      case 'process':
+        return coffee.process || 'Unknown Process';
+      case 'varietal':
+        return coffee.varietal || 'Unknown Varietal';
+      case 'altitude':
+        if (!coffee.altitude || coffee.altitude === 'Unknown') return 'Unknown Altitude';
+        const altitudeText = coffee.altitude.toLowerCase();
+        const altitudeNumbers = altitudeText.match(/\d+/g);
+        if (!altitudeNumbers) return 'Unknown Altitude';
+        const avgAltitude = altitudeNumbers.length > 1 
+          ? (parseInt(altitudeNumbers[0]) + parseInt(altitudeNumbers[1])) / 2
+          : parseInt(altitudeNumbers[0]);
+        
+        if (avgAltitude >= 1000 && avgAltitude < 1400) return 'Low (1000-1400m)';
+        if (avgAltitude >= 1400 && avgAltitude < 1700) return 'Medium (1400-1700m)';
+        if (avgAltitude >= 1700 && avgAltitude < 2000) return 'High (1700-2000m)';
+        if (avgAltitude >= 2000) return 'Very High (2000m+)';
+        return 'Unknown Altitude';
+      default:
+        return '';
+    }
+  };
+
+  // Helper function to group coffees into sections
+  const groupCoffeesIntoSections = (coffees, sortOrder) => {
+    if (!shouldShowSectionHeaders()) {
+      return [];
+    }
+
+    const grouped = {};
+    
+    coffees.forEach(coffee => {
+      const sectionTitle = getSectionTitle(coffee, sortOrder);
+      if (!grouped[sectionTitle]) {
+        grouped[sectionTitle] = [];
+      }
+      grouped[sectionTitle].push(coffee);
+    });
+
+    // Convert to sections array and sort
+    const sections = Object.keys(grouped).map(title => ({
+      title,
+      data: grouped[title]
+    }));
+
+    // Sort sections alphabetically
+    sections.sort((a, b) => a.title.localeCompare(b.title));
+
+    return sections;
+  };
 
   useEffect(() => {
     // Get all coffees from both mock data and user-added coffees
@@ -443,9 +524,53 @@ const CoffeeDiscoveryScreen = ({ navigation, route }) => {
       filteredCoffees = filteredCoffees.sort((a, b) => a.price - b.price);
     } else if (sortOrder === 'price-high') {
       filteredCoffees = filteredCoffees.sort((a, b) => b.price - a.price);
+    } else if (sortOrder === 'roaster') {
+      filteredCoffees = filteredCoffees.sort((a, b) => {
+        const roasterA = a.roaster || '';
+        const roasterB = b.roaster || '';
+        return roasterA.localeCompare(roasterB);
+      });
+    } else if (sortOrder === 'producer') {
+      filteredCoffees = filteredCoffees.sort((a, b) => {
+        const producerA = a.producer || '';
+        const producerB = b.producer || '';
+        return producerA.localeCompare(producerB);
+      });
+    } else if (sortOrder === 'origin') {
+      filteredCoffees = filteredCoffees.sort((a, b) => {
+        const originA = a.origin || '';
+        const originB = b.origin || '';
+        return originA.localeCompare(originB);
+      });
+    } else if (sortOrder === 'process') {
+      filteredCoffees = filteredCoffees.sort((a, b) => {
+        const processA = a.process || '';
+        const processB = b.process || '';
+        return processA.localeCompare(processB);
+      });
+    } else if (sortOrder === 'varietal') {
+      filteredCoffees = filteredCoffees.sort((a, b) => {
+        const varietalA = a.varietal || '';
+        const varietalB = b.varietal || '';
+        return varietalA.localeCompare(varietalB);
+      });
+    } else if (sortOrder === 'altitude') {
+      filteredCoffees = filteredCoffees.sort((a, b) => {
+        const altitudeA = a.altitude || '';
+        const altitudeB = b.altitude || '';
+        return altitudeA.localeCompare(altitudeB);
+      });
     }
     
     setCoffees(filteredCoffees);
+    
+    // Group into sections if needed
+    if (shouldShowSectionHeaders()) {
+      const groupedSections = groupCoffeesIntoSections(filteredCoffees, sortOrder);
+      setSections(groupedSections);
+    } else {
+      setSections([]);
+    }
   }, [activeFilters, sortOrder, filterCategories, getAllAvailableCoffees]);
 
   const openFilterModal = (category) => {
@@ -894,18 +1019,36 @@ const CoffeeDiscoveryScreen = ({ navigation, route }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <FlatList
-        data={coffees}
-        renderItem={renderCoffeeItem}
-        keyExtractor={item => `${item.id}-${item.roaster ? item.roaster.toLowerCase().replace(/\s+/g, '-') : ''}-${item.price}`}
-        contentContainerStyle={styles.coffeeList}
-        ListHeaderComponent={renderFilterBar()}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={[styles.emptyText, { color: theme.secondaryText }]}>No coffees found</Text>
-          </View>
-        }
-      />
+      {shouldShowSectionHeaders() ? (
+        <FlatList
+          sections={sections}
+          renderItem={renderCoffeeItem}
+          renderSectionHeader={({ section }) => (
+            <SectionHeader title={section.title} theme={theme} />
+          )}
+          keyExtractor={item => `${item.id}-${item.roaster ? item.roaster.toLowerCase().replace(/\s+/g, '-') : ''}-${item.price}`}
+          contentContainerStyle={styles.coffeeList}
+          ListHeaderComponent={renderFilterBar()}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={[styles.emptyText, { color: theme.secondaryText }]}>No coffees found</Text>
+            </View>
+          }
+        />
+      ) : (
+        <FlatList
+          data={coffees}
+          renderItem={renderCoffeeItem}
+          keyExtractor={item => `${item.id}-${item.roaster ? item.roaster.toLowerCase().replace(/\s+/g, '-') : ''}-${item.price}`}
+          contentContainerStyle={styles.coffeeList}
+          ListHeaderComponent={renderFilterBar()}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={[styles.emptyText, { color: theme.secondaryText }]}>No coffees found</Text>
+            </View>
+          }
+        />
+      )}
       
       {renderFilterModal()}
       {renderSortModal()}
@@ -1176,6 +1319,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666666',
   },
+  sectionHeader: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5E5',
+  },
+  sectionHeaderText: {
+    fontSize: 14,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
   clearFiltersFab: {
     position: 'absolute',
     alignSelf: 'center',
@@ -1247,6 +1402,16 @@ const styles = StyleSheet.create({
   addCoffeeOptionSubtitle: {
     fontSize: 14,
     color: '#666666',
+  },
+  sectionHeader: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5E5',
+  },
+  sectionHeaderText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
 
