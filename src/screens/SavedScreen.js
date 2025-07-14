@@ -166,7 +166,7 @@ export default function SavedScreen() {
   };
 
   const handleUserPress = (event) => {
-    navigation.navigate('UserProfileBridge', {
+    navigation.navigate('UserProfileScreen', {
       userId: event.userId,
       skipAuth: true
     });

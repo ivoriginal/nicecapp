@@ -294,7 +294,7 @@ export default function GearDetailScreen() {
   
   // Handle user profile press
   const handleUserPress = (userId, userName) => {
-    navigation.push('UserProfileBridge', {
+    navigation.push('UserProfileScreen', {
       userId,
       userName,
       skipAuth: true
@@ -588,7 +588,7 @@ export default function GearDetailScreen() {
                     index === gear.usedByCafes.length - 1 ? styles.cafeItemNoBorder : null
                   ]}
                   onPress={() => {
-                    navigation.navigate('UserProfileBridge', { 
+                    navigation.navigate('UserProfileScreen', { 
                       userId: cafe.id, 
                       userName: cafe.name,
                       skipAuth: true,

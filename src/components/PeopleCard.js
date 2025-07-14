@@ -20,7 +20,7 @@ const PeopleCard = ({
   const navigation = useNavigation();
 
   const onPress = () => {
-    handleUserPress ? handleUserPress(user) : navigation.navigate('UserProfileBridge', { userId: user.id });
+    handleUserPress ? handleUserPress(user) : navigation.navigate('UserProfileScreen', { userId: user.id });
   };
 
   const handleFollow = (userId, isFollowing) => {

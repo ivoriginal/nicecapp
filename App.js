@@ -7,7 +7,7 @@ import BottomTabNavigator from './src/navigation/BottomTabNavigator';
 import CoffeeDetailScreen from './src/screens/CoffeeDetailScreen';
 import RecipeDetailScreen from './src/screens/RecipeDetailScreen';
 import UserProfileScreen from './src/screens/UserProfileScreen';
-import UserProfileBridge from './src/screens/UserProfileBridge';
+
 import GearDetailScreen from './src/screens/GearDetailScreen';
 import GearWishlistScreen from './src/screens/GearWishlistScreen';
 import GearListScreen from './src/screens/GearListScreen';
@@ -430,11 +430,7 @@ function MainNavigator({ theme, handleRecipeOptions, handleCoffeeOptions, header
           )
         })} 
       />
-      <Stack.Screen 
-        name="UserProfileBridge" 
-        component={UserProfileBridge} 
-        options={{ headerShown: false }} 
-      />
+
       <Stack.Screen 
         name="UserProfileScreen" 
         component={UserProfileScreen} 

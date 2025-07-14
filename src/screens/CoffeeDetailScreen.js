@@ -677,7 +677,7 @@ export default function CoffeeDetailScreen() {
     // Special handling for Toma Café locations
     if (userName && userName.includes('Toma Café') && userName !== 'Toma Café') {
       // For Toma Café locations (like Toma Café 1), navigate to the specific location
-      navigation.navigate('UserProfileBridge', { 
+      navigation.navigate('UserProfileScreen', { 
         userId, 
         userName,
         skipAuth: true,
@@ -686,7 +686,7 @@ export default function CoffeeDetailScreen() {
       });
     } else {
       // For all other users/businesses, use standard navigation
-      navigation.navigate('UserProfileBridge', { 
+      navigation.navigate('UserProfileScreen', { 
         userId, 
         userName,
         skipAuth: true 
@@ -864,8 +864,8 @@ export default function CoffeeDetailScreen() {
   const navigateToRoasterProfile = () => {
     if (roasterInfo && roasterInfo.id) {
       console.log('Navigating to roaster profile:', roasterInfo);
-      // Navigate to UserProfileBridge instead of directly to UserProfile
-      navigation.navigate('UserProfileBridge', { 
+      // Navigate to UserProfileScreen directly
+      navigation.navigate('UserProfileScreen', { 
         userId: roasterInfo.id, 
         userName: roasterInfo.name,
         skipAuth: true,
@@ -942,7 +942,7 @@ export default function CoffeeDetailScreen() {
           if (item.name && item.name.includes('Toma Café') && item.name !== 'Toma Café') {
             // For Toma Café locations (like Toma Café 1), find the right ID from trendingCafes
             const locationId = item.name.replace(/\s+/g, '-').toLowerCase();
-            navigation.navigate('UserProfileBridge', { 
+            navigation.navigate('UserProfileScreen', { 
               userId: locationId, // This should match the ID in trendingCafes (e.g., "toma-cafe-1")
               userName: item.name,
               skipAuth: true,
@@ -1278,7 +1278,7 @@ export default function CoffeeDetailScreen() {
                       if (item.name && item.name.includes('Toma Café') && item.name !== 'Toma Café') {
                         // For Toma Café locations (like Toma Café 1), find the right ID from trendingCafes
                         const locationId = item.name.replace(/\s+/g, '-').toLowerCase();
-                        navigation.navigate('UserProfileBridge', { 
+                        navigation.navigate('UserProfileScreen', { 
                           userId: locationId, // This should match the ID in trendingCafes (e.g., "toma-cafe-1")
                           userName: item.name,
                           skipAuth: true,

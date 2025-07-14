@@ -641,7 +641,7 @@ export default function RecipeDetailScreen() {
   }, [recipe, coffee, logCount]);
 
   const navigateToUserProfile = (userId) => {
-    navigation.navigate('UserProfileBridge', { userId, skipAuth: true });
+    navigation.navigate('UserProfileScreen', { userId, skipAuth: true });
   };
 
   const navigateToCoffeeDetail = () => {

@@ -204,7 +204,7 @@ const NotificationsScreen = ({ navigation }) => {
 
     if (isAvatarPress) {
       // Navigate to user profile when avatar is pressed
-      navigation.navigate('UserProfileBridge', { 
+      navigation.navigate('UserProfileScreen', { 
         userId: notification.userId, 
         skipAuth: true 
       });
@@ -242,7 +242,7 @@ const NotificationsScreen = ({ navigation }) => {
         break;
         
       case 'followed':
-        navigation.navigate('UserProfileBridge', { 
+        navigation.navigate('UserProfileScreen', { 
           userId: notification.userId,
           skipAuth: true
         });
@@ -324,7 +324,7 @@ const NotificationsScreen = ({ navigation }) => {
           });
         } else if (notification.userId) {
           // Navigate to user profile as fallback
-          navigation.navigate('UserProfileBridge', { 
+          navigation.navigate('UserProfileScreen', { 
             userId: notification.userId,
             skipAuth: true
           });

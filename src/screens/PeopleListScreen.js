@@ -256,7 +256,7 @@ const PeopleListScreen = () => {
       return (
         <TouchableOpacity 
           style={[styles.userCard, { backgroundColor: 'transparent' }]}
-          onPress={() => navigation.navigate('UserProfileBridge', { 
+          onPress={() => navigation.navigate('UserProfileScreen', { 
             userId: item.id, 
             userName: item.userName || item.name,
             skipAuth: true 
@@ -284,7 +284,7 @@ const PeopleListScreen = () => {
     return (
       <TouchableOpacity 
         style={[styles.userCard, { backgroundColor: 'transparent' }]}
-        onPress={() => navigation.navigate('UserProfileBridge', { 
+        onPress={() => navigation.navigate('UserProfileScreen', { 
           userId: item.id, 
           userName: item.userName || item.name,
           skipAuth: true 

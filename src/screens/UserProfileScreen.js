@@ -46,6 +46,104 @@ import { useUser } from '../context/UserContext';
 import RecipeCard from '../components/RecipeCard';
 import { useTheme } from '../context/ThemeContext';
 
+// Skeleton loading components
+const SkeletonView = ({ width, height, style }) => {
+  const { theme } = useTheme();
+  const [opacity] = useState(new Animated.Value(0.3));
+  
+  useEffect(() => {
+    const animate = () => {
+      Animated.sequence([
+        Animated.timing(opacity, {
+          toValue: 0.7,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacity, {
+          toValue: 0.3,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+      ]).start(() => animate());
+    };
+    animate();
+  }, [opacity]);
+
+  return (
+    <Animated.View 
+      style={[
+        {
+          width,
+          height,
+          backgroundColor: theme.placeholder,
+          borderRadius: 4,
+          opacity,
+        },
+        style
+      ]}
+    />
+  );
+};
+
+const ProfileSkeleton = () => {
+  const { theme } = useTheme();
+  
+  return (
+    <View style={[styles.skeletonContainer, { backgroundColor: theme.background }]}>
+      <StatusBar barStyle={theme.isDarkMode ? "light" : "dark"} />
+      
+      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+        {/* Profile Section Skeleton */}
+        <View style={[styles.profileSection, { backgroundColor: theme.background }]}>
+          <SkeletonView width={80} height={80} style={{ borderRadius: 40, marginRight: 16 }} />
+          <View style={styles.profileInfo}>
+            <SkeletonView width={150} height={24} style={{ marginBottom: 8 }} />
+            <SkeletonView width={100} height={14} style={{ marginBottom: 4 }} />
+            <SkeletonView width={120} height={14} />
+          </View>
+        </View>
+
+        {/* Bio Skeleton */}
+        <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
+          <SkeletonView width="100%" height={16} style={{ marginBottom: 8 }} />
+          <SkeletonView width="80%" height={16} style={{ marginBottom: 8 }} />
+          <SkeletonView width="60%" height={16} />
+        </View>
+
+        {/* Stats Skeleton */}
+        <View style={[styles.followStatsContainer, { backgroundColor: theme.background }]}>
+          {[1, 2, 3, 4].map((_, index) => (
+            <View key={index} style={styles.followStat}>
+              <SkeletonView width={30} height={14} style={{ marginBottom: 4 }} />
+              <SkeletonView width={50} height={14} />
+            </View>
+          ))}
+        </View>
+
+        {/* Tabs Skeleton */}
+        <View style={[styles.tabsContainer, { backgroundColor: theme.background, borderBottomColor: theme.divider }]}>
+          {[1, 2, 3].map((_, index) => (
+            <View key={index} style={styles.tab}>
+              <SkeletonView width={60} height={16} />
+            </View>
+          ))}
+        </View>
+
+        {/* Content Skeleton */}
+        <View style={{ padding: 16 }}>
+          {[1, 2, 3].map((_, index) => (
+            <View key={index} style={{ marginBottom: 16 }}>
+              <SkeletonView width="100%" height={120} style={{ borderRadius: 8, marginBottom: 8 }} />
+              <SkeletonView width="70%" height={16} style={{ marginBottom: 4 }} />
+              <SkeletonView width="50%" height={14} />
+            </View>
+          ))}
+        </View>
+      </ScrollView>
+    </View>
+  );
+};
+
 // Helper component to safely render FlatLists inside ScrollView
 const SafeFlatList = ({ data, ...props }) => {
   if (!data || data.length === 0) {
@@ -59,6 +157,208 @@ const SafeFlatList = ({ data, ...props }) => {
       {...props}
     />
   );
+};
+
+// Bridge logic moved from UserProfileBridge
+const processUserProfileData = (routeParams) => {
+  const { 
+    userId, 
+    userName, 
+    skipAuth = false, 
+    isLocation = false, 
+    parentBusinessId = null,
+    isBusinessAccount = false,
+    isRoaster = false,
+    location
+  } = routeParams || {};
+  
+  // Don't proceed if no user info provided
+  if (!userId && !userName) {
+    console.error('UserProfileScreen: No userId or userName provided');
+    return { error: 'No user information provided' };
+  }
+
+  try {
+    console.log('UserProfileScreen processing data for userId:', userId, 'userName:', userName);
+    
+    // Handle location-specific cafes first (e.g., Toma Café 1)
+    if (isLocation && handleLocationProfile()) {
+      return handleLocationProfile();
+    }
+
+    // Handle cafe businesses
+    if (handleCafeProfile()) {
+      return handleCafeProfile();
+    }
+    
+    // Handle user profiles
+    if (handleUserProfile()) {
+      return handleUserProfile();
+    }
+
+    // Fallback for unknown profiles
+    return handleUnknownProfile();
+  } catch (error) {
+    console.error("Error in UserProfileScreen data processing:", error);
+    return { error: error.message };
+  }
+  
+  function handleLocationProfile() {
+    console.log(`Handling location: ${userId}, parentBusinessId: ${parentBusinessId}`);
+    
+    // Special handling for Toma Café locations
+    if (userId && userId.includes('toma-cafe')) {
+      let locationNumber = "1";
+      if (userId === 'toma-cafe-1' || userName === 'Toma Café 1') locationNumber = "1";
+      if (userId === 'toma-cafe-2' || userName === 'Toma Café 2') locationNumber = "2";
+      if (userId === 'toma-cafe-3' || userName === 'Toma Café 3 / Proper Sound') locationNumber = "3";
+      
+      const locationCoverImage = `assets/businesses/toma-${locationNumber}-cover.jpg`;
+      
+      console.log(`UserProfileScreen: Processing Toma Café ${locationNumber} with userId: ${userId}`);
+      return {
+        userId: userId || `toma-cafe-${locationNumber}`,
+        userName: userName || `Toma Café ${locationNumber}`,
+        userAvatar: 'assets/businesses/toma-logo.jpg',
+        coverImage: locationCoverImage,
+        isBusinessAccount: true,
+        isLocation: true,
+        parentBusinessId,
+        parentBusinessName: 'Toma Café',
+        skipAuth
+      };
+    }
+    
+    // General handling for other locations
+    const parentCafe = mockCafesData.roasters?.find(b => b.id === parentBusinessId);
+    const locationData = mockCafesData.cafes?.find(loc => loc.id === userId || loc.name === userName);
+    
+    if (locationData) {
+      console.log(`UserProfileScreen: Processing general location: ${locationData.name}`);
+      return {
+        userId: locationData.id,
+        userName: locationData.name,
+        userAvatar: locationData.avatar || locationData.logo || (parentCafe ? parentCafe.avatar : null),
+        coverImage: locationData.coverImage,
+        isBusinessAccount: true,
+        isLocation: true,
+        parentBusinessId,
+        parentBusinessName: parentCafe ? parentCafe.name : null,
+        skipAuth
+      };
+    }
+    
+    return null;
+  }
+  
+  function handleCafeProfile() {
+    console.log('UserProfileScreen: Searching for café with userId:', userId, 'userName:', userName);
+    
+    // First check roasters (for main business profiles)
+    const roaster = mockCafesData.roasters?.find(r => r.id === userId || r.name === userName);
+    if (roaster) {
+      console.log("Found roaster:", roaster.name);
+      return {
+        userId: roaster.id,
+        userName: roaster.name,
+        userAvatar: roaster.avatar || roaster.logo,
+        coverImage: roaster.coverImage,
+        isBusinessAccount: true,
+        isRoaster: true,
+        location: location || roaster.location,
+        skipAuth
+      };
+    }
+    
+    // Then check cafes (for specific café locations)
+    const cafe = mockCafesData.cafes?.find(c => c.id === userId || c.name === userName);
+    if (cafe) {
+      console.log("Found cafe:", cafe.name);
+      
+      // Get roaster info if available
+      const parentRoaster = cafe.roasterId ? mockCafesData.roasters?.find(r => r.id === cafe.roasterId) : null;
+      
+      // Special handling for Toma Café locations
+      if (cafe.id && cafe.id.startsWith('toma-cafe')) {
+        let locationNumber = "1";
+        if (cafe.id === 'toma-cafe-1') locationNumber = "1";
+        if (cafe.id === 'toma-cafe-2') locationNumber = "2";
+        if (cafe.id === 'toma-cafe-3') locationNumber = "3";
+        
+        const locationCoverImage = `assets/businesses/toma-${locationNumber}-cover.jpg`;
+        
+        console.log(`UserProfileScreen: Found Toma Café ${locationNumber}, processing with special handling`);
+        return {
+          userId: cafe.id,
+          userName: cafe.name,
+          userAvatar: 'assets/businesses/toma-logo.jpg',
+          coverImage: locationCoverImage,
+          isBusinessAccount: true,
+          isLocation: true,
+          parentBusinessId: 'business-toma',
+          parentBusinessName: 'Toma Café',
+          location: location || cafe.location,
+          skipAuth
+        };
+      }
+      
+      // Use image paths from mockCafes.json for other cafes
+      console.log(`UserProfileScreen: Found regular cafe ${cafe.name}, processing normally`);
+      return {
+        userId: cafe.id,
+        userName: cafe.name,
+        userAvatar: cafe.avatar,
+        coverImage: cafe.coverImage,
+        isBusinessAccount: true,
+        isLocation: !!cafe.roasterId,
+        parentBusinessId: cafe.roasterId,
+        parentBusinessName: parentRoaster ? parentRoaster.name : null,
+        location: location || cafe.location,
+        skipAuth
+      };
+    }
+    
+    console.log('UserProfileScreen: No café found with userId:', userId, 'userName:', userName);
+    return null;
+  }
+  
+  function handleUserProfile() {
+    const user = mockUsersData.users?.find(u => u.id === userId || u.userName === userName);
+    if (user) {
+      console.log("Found user:", user.userName);
+      
+      // Special handling for specific users
+      if (user.userName === 'Carlos Hernández' || user.id === 'user3') {
+        return {
+          userId: user.id,
+          userName: user.userName,
+          userAvatar: user.userAvatar || 'assets/users/carlos-hernandez.jpg',
+          isBusinessAccount: false,
+          skipAuth
+        };
+      }
+      
+      // For all other users
+      return {
+        userId: user.id,
+        userName: user.userName,
+        userAvatar: user.userAvatar,
+        isBusinessAccount: !!user.isBusinessAccount || isBusinessAccount,
+        isRoaster: isRoaster,
+        location: location || user.location,
+        skipAuth
+      };
+    }
+    
+    return null;
+  }
+  
+  function handleUnknownProfile() {
+    console.warn(`User/Cafe not found for ID: ${userId} or name: ${userName}`);
+    console.log('Available users in mockUsers:', mockUsersData.users?.map(u => ({ id: u.id, userName: u.userName })));
+    
+    return { error: `Profile not found for ${userName || userId}` };
+  }
 };
 
 // Fallback implementation in case dataService's getMockUser is unavailable
@@ -119,10 +419,27 @@ export default function UserProfileScreen() {
   const route = useRoute();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-  const { userId, userName, isCurrentUser, ensureHeaderShown, isLocation, parentBusinessId, isModalView = false } = route.params || { userId: 'user1' };
+  const { theme, isDarkMode } = useTheme();
+  
+  // Process route params to handle bridge logic
+  const processedParams = useMemo(() => {
+    return processUserProfileData(route.params);
+  }, [route.params]);
+  
+  // Use processed params or fallback to original params
+  const { 
+    userId, 
+    userName, 
+    isCurrentUser, 
+    ensureHeaderShown, 
+    isLocation, 
+    parentBusinessId, 
+    isModalView = false,
+    error: processedError
+  } = processedParams.error ? route.params || { userId: 'user1' } : processedParams;
+  
   const { allEvents, following, followers, loadData: loadGlobalData, currentAccount, removeCoffeeEvent } = useCoffee();
   const { currentUser } = useUser();
-  const { theme, isDarkMode } = useTheme();
   
   const [user, setUser] = useState(null);
   const [userCoffees, setUserCoffees] = useState([]);
@@ -140,7 +457,7 @@ export default function UserProfileScreen() {
 
   const [showAllDesc, setShowAllDesc] = useState(false);
   const [expandedEvent, setExpandedEvent] = useState(null);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState(processedError);
   const [coffeeEvents, setCoffeeEvents] = useState([]);
   const [shopFilter, setShopFilter] = useState('coffee');
   // Add states for follower data
@@ -200,7 +517,7 @@ export default function UserProfileScreen() {
              // Just hide modal - value will be reset when modal opens next time
              setShowProfilePicture(false);
            });
-        } else {
+         } else {
           // Spring back to original position
           Animated.spring(profilePictureTranslateY, {
             toValue: 0,
@@ -305,8 +622,6 @@ export default function UserProfileScreen() {
     }
   };
 
-
-
   // Handle scroll events to show/hide header title
   const handleScroll = (event) => {
     const scrollY = event.nativeEvent.contentOffset.y;
@@ -316,8 +631,6 @@ export default function UserProfileScreen() {
       setShowHeaderTitle(shouldShowTitle);
     }
   };
-
-
 
   // Determine tabs based on user type
   const getTabs = () => {
@@ -509,7 +822,7 @@ export default function UserProfileScreen() {
           // Special handling for Vértigo y Calambre: if we get user2, redirect to business-vertigo
           if (userData.id === 'user2' && userData.userName === 'Vértigo y Calambre') {
             console.log('Redirecting user2 to business-vertigo for Vértigo y Calambre');
-            navigation.replace('UserProfileBridge', {
+            navigation.replace('UserProfileScreen', {
               userId: 'business-vertigo',
               userName: 'Vértigo y Calambre',
               skipAuth: true
@@ -1305,12 +1618,7 @@ export default function UserProfileScreen() {
   };
 
   if (loading) {
-    return (
-      <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
-        <ActivityIndicator size="large" color={theme.primaryText} />
-        <Text style={[styles.emptyText, { color: theme.primaryText }]}>Loading profile...</Text>
-      </View>
-    );
+    return <ProfileSkeleton />;
   }
 
   return (
@@ -1680,7 +1988,7 @@ export default function UserProfileScreen() {
                         <Text style={[styles.infoSectionTitle, { color: theme.primaryText }]}>Roaster</Text>
                         <TouchableOpacity
                           style={styles.parentRoasterContainer}
-                          onPress={() => navigation.navigate('UserProfileBridge', {
+                          onPress={() => navigation.navigate('UserProfileScreen', {
                             userId: user.parentBusinessId,
                             userName: user.parentBusinessName,
                             skipAuth: true,
@@ -1943,7 +2251,7 @@ export default function UserProfileScreen() {
                             borderWidth: isDarkMode ? 0 : 1
                           }
                         ]}
-                        onPress={() => navigation.navigate('UserProfileBridge', {
+                        onPress={() => navigation.navigate('UserProfileScreen', {
                           userId: cafe.id,
                           userName: cafe.name,
                           userAvatar: cafe.avatar,
@@ -2113,6 +2421,9 @@ export default function UserProfileScreen() {
 }
 
 const styles = StyleSheet.create({
+  skeletonContainer: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     // backgroundColor: '#F2F2F7',

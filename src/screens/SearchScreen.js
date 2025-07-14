@@ -1276,7 +1276,7 @@ export default function SearchScreen() {
         description: item.description
       });
     } else if (item.type === 'user') {
-      navigation.replace('UserProfileBridge', {
+      navigation.replace('UserProfileScreen', {
         userId: item.id,
         userName: item.name || item.userName,
         userAvatar: item.userAvatar || item.avatar,
@@ -1285,7 +1285,7 @@ export default function SearchScreen() {
         skipAuth: true
       });
     } else if (item.type === 'roaster') {
-      navigation.replace('UserProfileBridge', {
+      navigation.replace('UserProfileScreen', {
         userId: item.id,
         userName: item.name,
         userAvatar: item.imageUrl,
@@ -1296,7 +1296,7 @@ export default function SearchScreen() {
     } else if (item.type === 'cafe') {
       // Special handling for Vértigo y Calambre
       if (item.name === 'Vértigo y Calambre' || item.full_name === 'Vértigo y Calambre') {
-        navigation.replace('UserProfileBridge', {
+        navigation.replace('UserProfileScreen', {
           userId: 'business-vertigo',
           userName: 'Vértigo y Calambre',
           userAvatar: item.avatar_url || item.logo_url,
@@ -1306,7 +1306,7 @@ export default function SearchScreen() {
           skipAuth: true
         });
       } else {
-        navigation.replace('UserProfileBridge', {
+        navigation.replace('UserProfileScreen', {
           userId: item.id,
           userName: item.name,
           userAvatar: item.avatar_url || item.logo_url,
@@ -1459,7 +1459,7 @@ export default function SearchScreen() {
                 onPress={() => {
                   // Special handling for Vértigo y Calambre
                   if (item.name === 'Vértigo y Calambre' || item.full_name === 'Vértigo y Calambre') {
-                    navigation.replace('UserProfileBridge', {
+                    navigation.replace('UserProfileScreen', {
                       userId: 'business-vertigo',
                       userName: 'Vértigo y Calambre',
                       userAvatar: typeof item.avatar_url === 'string' ? item.avatar_url : require('../../assets/businesses/vertigo-logo.jpg'),
@@ -1469,7 +1469,7 @@ export default function SearchScreen() {
                       skipAuth: true
                     });
                   } else {
-                    navigation.replace('UserProfileBridge', {
+                    navigation.replace('UserProfileScreen', {
                       userId: item.id,
                       userName: item.name,
                       userAvatar: getImageSource(item.avatar_url || item.logo_url),
@@ -1686,7 +1686,7 @@ export default function SearchScreen() {
                       borderColor: theme.divider
                     }
                   ]}
-                  onPress={() => navigation.navigate('UserProfileBridge', {
+                  onPress={() => navigation.navigate('UserProfileScreen', {
                     userId: item.id,
                     userName: item.userName,
                     userAvatar: item.userAvatar,

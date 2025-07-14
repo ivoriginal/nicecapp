@@ -240,7 +240,7 @@ const RecipesListScreen = () => {
           } : {}),
           skipAuth: true
         })}
-        onUserPress={() => navigation.navigate('UserProfileBridge', { 
+        onUserPress={() => navigation.navigate('UserProfileScreen', { 
           userId: item.creatorId || item.userId, 
           userName: item.userName || item.creatorName,
           userAvatar: item.creatorAvatar || item.userAvatar,

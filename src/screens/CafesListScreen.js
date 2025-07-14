@@ -432,7 +432,7 @@ const cafes = goodCafeIds.map(cafeId => {
             : { backgroundColor: 'transparent', borderColor: theme.border }
         ]}
         onPress={() => {
-          navigation.navigate('UserProfileBridge', { 
+          navigation.navigate('UserProfileScreen', { 
             userId: item.id, 
             userName: item.name,
             skipAuth: true 

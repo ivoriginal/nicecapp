@@ -598,7 +598,7 @@ export default function ProfileScreen() {
     const userId = userInfo.userId || userInfo;
     
     if (userId) {
-      navigation.navigate('UserProfileBridge', {
+      navigation.navigate('UserProfileScreen', {
         userId: userId,
         skipAuth: true
       });
