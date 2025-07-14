@@ -186,55 +186,102 @@ export default function RecipeDetailScreen() {
           // Not found in Supabase, try to find in mock data as fallback
           console.warn(`Equipment ${itemId} not found in Supabase, searching in mock data`);
           
-          // Create a simple mapping for common gear items that might be missing from Supabase
-          // Using singular categories to match current Supabase schema
+          // Create a mapping for common gear items using actual Supabase IDs and names
+          // This maps mock gear IDs to real Supabase gear data
           const gearMapping = {
-            'gear1': { name: 'Fellow Stagg EKG', brand: 'Fellow', category: 'Kettle', type: 'Kettle', image: 'https://hola.coffee/cdn/shop/files/FELLOW-STAGG_1024x1024@2x.jpg?v=1732719228' },
-            'gear2': { name: 'Baratza Encore', brand: 'Baratza', category: 'Grinder', type: 'Grinder', image: 'https://ecafe.es/tienda/2089-large_default/baratza-encore-esp.jpg' },
-            'gear3': { name: 'Comandante C40 MK4', brand: 'Comandante', category: 'Grinder', type: 'Grinder', image: 'https://images.unsplash.com/photo-1575441347544-11725ca18b26' },
-            'gear4': { name: 'Hario V60', brand: 'Hario', category: 'Brewer', type: 'Pour Over', image: 'https://www.hario-europe.com/cdn/shop/files/VDC-01R_web.png?v=1683548122&width=1400' },
-            'gear5': { name: 'Acaia Pearl', brand: 'Acaia', category: 'Scale', type: 'Scale', image: 'https://images.unsplash.com/photo-1575441347548-0e745b37a5b8' },
-            'gear6': { name: 'AeroPress', brand: 'Aerobie', category: 'Brewer', type: 'Brewer', image: 'https://aeropress.com/cdn/shop/files/Hero_Original_87a4958c-7df9-43b6-af92-0edc12c126cf_900x.png?v=1744683381' },
-            'gear7': { name: 'Chemex', brand: 'Chemex', category: 'Brewer', type: 'Pour Over', image: 'https://images.unsplash.com/photo-1544233726-9f1d2b27be8b' },
-            'gear8': { name: 'Hario Ceramic Slim', brand: 'Hario', category: 'Grinder', type: 'Grinder', image: 'https://images.unsplash.com/photo-1544713300-6b5a2817d25f' },
-            'gear10': { name: '9Barista Espresso Machine Mk.1', brand: '9Barista', category: 'Espresso Machine', type: 'Espresso Machine', image: 'https://9barista.com/cdn/shop/products/9Barista-unboxed2_1296x.jpg?v=1710943847' },
-            'gear11': { name: 'Fellow Opus', brand: 'Fellow', category: 'Grinder', type: 'Grinder', image: 'https://fellowproducts.com/cdn/shop/products/FellowProducts_OpusConicalBurrGrinder_MatteBlack_01.png' },
-            'gear12': { name: 'Hario V60 Paper Filters', brand: 'Hario', category: 'Accessory', type: 'Accessories', image: 'https://www.hario.co.uk/cdn/shop/products/VARIO_1200x1200.jpg?v=1609933351' },
-            'gear13': { name: 'AeroPress Paper Filters', brand: 'Aerobie', category: 'Accessory', type: 'Accessories', image: 'https://aeropress.com/cdn/shop/files/Hero_Original_87a4958c-7df9-43b6-af92-0edc12c126cf_900x.png?v=1744683381' }
+            'gear1': { id: '7cf32b96-bac9-4891-846f-d63782fac0ed', name: 'Fellow Stagg EKG', brand: 'Fellow', category: 'Kettle', type: 'Kettle' },
+            'gear2': { id: 'a2e6687b-91af-4a6d-81ca-903fe5465d08', name: 'Baratza Encore', brand: 'Baratza', category: 'Brewer', type: 'Grinder' },
+            'gear3': { id: 'e385e02e-75d5-450f-acb3-a3b74b07d339', name: 'Comandante C40 MK4', brand: 'BB Coffee Company', category: 'Grinder', type: 'Grinder' },
+            'gear4': { id: '6c4f526c-c52c-4d21-8269-5b5ee36d51b1', name: 'Hario V60', brand: 'Hario', category: 'Brewer', type: 'Pour Over' },
+            'gear5': { id: 'c4466e7e-4792-4961-8264-78296aa91c12', name: 'Acaia Pearl', brand: 'Acaia', category: 'Weight', type: 'Scale' },
+            'gear6': { id: '3086f3e0-d833-4918-9054-abc2cdb44aec', name: 'AeroPress', brand: 'AeroPress', category: 'Brewer', type: 'Brewer' },
+            'gear7': { id: 'eedbe18d-5360-40d2-9b4e-d315fba1c41a', name: 'Chemex', brand: 'Chemex', category: 'Brewer', type: 'Pour Over' },
+            'gear8': { id: 'fb34820b-010d-4da8-90f1-8fefa2b0479c', name: 'Hario Mini Slim Plus', brand: 'Hario', category: 'Grinder', type: 'Grinder', description: 'The Hario Mini Slim Plus is a compact hand grinder with ceramic burrs for consistent grinding, perfect for travel or small kitchens.', price: 34.99 },
+            'gear10': { id: '6eb00905-7002-4a05-9491-d97b30498c0a', name: '9Barista Espresso Machine Mk.1', brand: '9Barista', category: 'Brewer', type: 'Espresso Machine' },
+            'gear11': { id: '2d98a26c-1e61-427b-83b7-b355b9f9d753', name: 'Fellow Opus', brand: 'Fellow', category: 'Grinder', type: 'Grinder' },
+            'gear12': { id: '7a4830f5-7f56-47fd-b7a0-725403187995', name: 'Hario V60 Paper Filters', brand: 'Hario', category: null, type: 'Accessories' },
+            'gear13': { name: 'AeroPress Paper Filters', brand: 'AeroPress', category: 'Accessory', type: 'Accessories' }
           };
           
           // Try the gear mapping first
           let mockItem = gearMapping[itemId];
           
-          // If not found in mapping, try mockGear.json
-          if (!mockItem) {
-            mockItem = mockGear.gear?.find(item => item.id === itemId);
-          }
-          
-          if (mockItem) {
-            console.log(`Found equipment ${itemId} in mock data:`, mockItem.name);
+          if (mockItem && mockItem.id) {
+            // If we have a Supabase ID in the mapping, fetch from Supabase
+            const supabaseMatch = gearData.find(item => item.id === mockItem.id);
+            if (supabaseMatch) {
+              console.log(`Found equipment ${itemId} in Supabase via mapping:`, supabaseMatch.name);
+              transformedEquipment.push({
+                id: supabaseMatch.id,
+                name: supabaseMatch.name,
+                brand: supabaseMatch.brand,
+                category: supabaseMatch.category,
+                type: supabaseMatch.category,
+                image: supabaseMatch.image_url,
+                description: supabaseMatch.description || mockItem.description,
+                price: supabaseMatch.price || mockItem.price,
+                // Keep any additional settings from the original recipe equipment
+                ...(typeof equipmentItem === 'object' ? equipmentItem : {})
+              });
+            } else {
+              // Use mapping data as fallback
+              console.log(`Using mapping data for equipment ${itemId}:`, mockItem.name);
+              transformedEquipment.push({
+                id: itemId,
+                name: mockItem.name,
+                brand: mockItem.brand,
+                category: mockItem.category || mockItem.type,
+                type: mockItem.type,
+                image: null, // Let AppImage handle the placeholder
+                description: mockItem.description,
+                price: mockItem.price,
+                // Keep any additional settings from the original recipe equipment
+                ...(typeof equipmentItem === 'object' ? equipmentItem : {})
+              });
+            }
+          } else if (mockItem) {
+            // Use mapping data without Supabase ID
+            console.log(`Found equipment ${itemId} in mapping:`, mockItem.name);
             transformedEquipment.push({
               id: itemId,
               name: mockItem.name,
               brand: mockItem.brand,
               category: mockItem.category || mockItem.type,
               type: mockItem.type,
-              image: mockItem.imageUrl || mockItem.image,
+              image: null, // Let AppImage handle the placeholder
               description: mockItem.description,
               price: mockItem.price,
               // Keep any additional settings from the original recipe equipment
               ...(typeof equipmentItem === 'object' ? equipmentItem : {})
             });
-          } else if (typeof equipmentItem === 'object') {
-            // Use original data as final fallback
-            console.warn(`Equipment ${itemId} not found anywhere, using original data`);
-            transformedEquipment.push({
-              ...equipmentItem,
-              // Add fallback image if not present
-              image: equipmentItem.image || 
-                     (gearDetails[equipmentItem.name] && gearDetails[equipmentItem.name].image) ||
-                     'https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?auto=format&fit=crop&w=60&h=60&q=60'
-            });
+          } else {
+            // Try mockGear.json as fallback
+            mockItem = mockGear.gear?.find(item => item.id === itemId);
+            
+            if (mockItem) {
+              console.log(`Found equipment ${itemId} in mockGear.json:`, mockItem.name);
+              transformedEquipment.push({
+                id: itemId,
+                name: mockItem.name,
+                brand: mockItem.brand,
+                category: mockItem.category || mockItem.type,
+                type: mockItem.type,
+                image: mockItem.imageUrl || mockItem.image,
+                description: mockItem.description,
+                price: mockItem.price,
+                // Keep any additional settings from the original recipe equipment
+                ...(typeof equipmentItem === 'object' ? equipmentItem : {})
+              });
+            } else if (typeof equipmentItem === 'object') {
+              // Use original data as final fallback
+              console.warn(`Equipment ${itemId} not found anywhere, using original data`);
+              transformedEquipment.push({
+                ...equipmentItem,
+                // Add fallback image if not present
+                image: equipmentItem.image || 
+                       (gearDetails[equipmentItem.name] && gearDetails[equipmentItem.name].image)
+              });
+            }
           }
         }
       }
@@ -415,8 +462,7 @@ export default function RecipeDetailScreen() {
             name: route.params?.coffeeName || routeRecipe.coffeeName,
             roaster: route.params?.roaster || routeRecipe.roaster || 'Coffee Roaster',
             image: coffeeInfo?.image || coffeeInfo?.imageUrl || 
-                  route.params?.imageUrl || routeRecipe.imageUrl || 
-                  'https://images.unsplash.com/photo-1447933601403-0c6688de566e'
+                  route.params?.imageUrl || routeRecipe.imageUrl
           });
           
           // Check if this coffee is in collection or wishlist
@@ -484,7 +530,7 @@ export default function RecipeDetailScreen() {
             id: mockRecipeMatch.coffeeId,
             name: mockRecipeMatch.coffeeName,
             roaster: mockRecipeMatch.roaster,
-            image: coffeeInfo?.image || coffeeInfo?.imageUrl || mockRecipeMatch.imageUrl || 'https://images.unsplash.com/photo-1447933601403-0c6688de566e'
+            image: coffeeInfo?.image || coffeeInfo?.imageUrl || mockRecipeMatch.imageUrl
           });
           
           // Check if this coffee is in collection or wishlist
@@ -545,7 +591,7 @@ export default function RecipeDetailScreen() {
               id: coffeeId,
               name: coffeeName,
               roaster: route.params?.roaster || 'Coffee Roaster',
-              image: coffeeInfo?.image || coffeeInfo?.imageUrl || route.params?.imageUrl || 'https://images.unsplash.com/photo-1447933601403-0c6688de566e'
+              image: coffeeInfo?.image || coffeeInfo?.imageUrl || route.params?.imageUrl
             });
           } else {
             // Try to find coffee info from the recipe
@@ -672,7 +718,7 @@ export default function RecipeDetailScreen() {
           id: fallbackRecipe.coffeeId || 'coffee1',
           name: fallbackRecipe.coffeeName || 'Coffee',
           roaster: fallbackRecipe.roaster || 'Coffee Roaster',
-          image: coffeeInfo?.image || coffeeInfo?.imageUrl || fallbackRecipe.imageUrl || 'https://images.unsplash.com/photo-1447933601403-0c6688de566e'
+          image: coffeeInfo?.image || coffeeInfo?.imageUrl || fallbackRecipe.imageUrl
         });
         
         // Update route params to include the full recipe for ActionSheet access
@@ -1799,12 +1845,9 @@ export default function RecipeDetailScreen() {
                       >
                         {/* Squared avatar image for the piece of equipment */}
                         <AppImage
-                          source={
-                            item.image ||
-                            (gearDetails[item.name] && gearDetails[item.name].image) ||
-                            'https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?auto=format&fit=crop&w=60&h=60&q=60'
-                          }
+                          source={item.image || (gearDetails[item.name] && gearDetails[item.name].image)}
                           style={[styles.equipmentIconImage, { borderColor: theme.border }]}
+                          placeholder="gear"
                         />
                         <View style={[styles.equipmentInfo, { backgroundColor: theme.cardBackground }]}>
                           <Text style={[styles.equipmentName, { color: theme.primaryText }]}>{item.name}</Text>
@@ -2351,7 +2394,7 @@ const styles = StyleSheet.create({
   // Steps and tips
   stepItem: {
     flexDirection: 'row',
-    marginBottom: 16,
+    marginBottom: 8,
   },
   stepNumber: {
     width: 24,
@@ -2768,7 +2811,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   stepsContainer: {
-    gap: 12,
+    gap: 6,
   },
   stepDetailItem: {
     flexDirection: 'row',
