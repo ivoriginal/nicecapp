@@ -33,7 +33,7 @@ import { businessCoffees } from '../data/businessProducts';
 import AppImage from '../components/common/AppImage';
 import RecipeCard from '../components/RecipeCard';
 import { useTheme } from '../context/ThemeContext';
-import { mockFollowersData } from '../data/mockFollowers';
+// Removed mock followers data - now using real Supabase data
 
 // Loading and error components with safe default insets
 const LoadingView = ({ insets }) => {
@@ -109,7 +109,9 @@ export default function ProfileScreen() {
     removeFromWishlist,
     removeCoffeeEvent,
     signOut,
-    deleteRecipe
+    deleteRecipe,
+    followers,
+    following
   } = useCoffee();
   
   // Add theme context at the component level
@@ -668,14 +670,12 @@ export default function ProfileScreen() {
 
   // Get followers count for current user
   const getFollowersCount = () => {
-    const userFollowerData = mockFollowersData[currentAccount];
-    return userFollowerData?.followers?.length || 0;
+    return followers?.length || 0;
   };
 
   // Get following count for current user
   const getFollowingCount = () => {
-    const userFollowerData = mockFollowersData[currentAccount];
-    return userFollowerData?.following?.length || 0;
+    return following?.length || 0;
   };
 
   // Filter recipes based on the selected filter
