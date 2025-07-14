@@ -1949,7 +1949,7 @@ export default function SearchScreen() {
           <View style={styles.carouselSection}>
             <View style={styles.sectionHeader}>
               <Text style={[styles.carouselSectionTitle, { color: theme.primaryText }]}>People You Might Know</Text>
-              <TouchableOpacity onPress={() => navigation.navigate('PeopleList', { suggestedUsers })}>
+              <TouchableOpacity onPress={() => navigation.navigate('PeopleList')}>
                 <Text style={[styles.viewAllText, { color: theme.primaryText, borderBottomColor: theme.primaryText }]}>View more</Text>
               </TouchableOpacity>
             </View>
