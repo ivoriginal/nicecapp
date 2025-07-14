@@ -284,6 +284,41 @@ export default function EditProfileScreen() {
     return null;
   };
 
+  // Helper function to upload image to Supabase Storage
+  const uploadImageToSupabase = async (imageUri, userId) => {
+    try {
+      // Create a unique filename
+      const fileName = `avatar_${userId}_${Date.now()}.jpeg`;
+      
+      // Convert the local file URI to a blob
+      const response = await fetch(imageUri);
+      const blob = await response.blob();
+      
+      // Upload to Supabase Storage
+      const { data, error } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, blob, {
+          contentType: 'image/jpeg',
+          upsert: true
+        });
+      
+      if (error) {
+        console.error('Error uploading image:', error);
+        throw error;
+      }
+      
+      // Get the public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName);
+      
+      return publicUrl;
+    } catch (error) {
+      console.error('Error in uploadImageToSupabase:', error);
+      throw error;
+    }
+  };
+
   // Handle image picker
   const pickImage = async () => {
     try {
@@ -409,28 +444,38 @@ export default function EditProfileScreen() {
       console.log('Saving profile with data:', userData);
       console.log('Location being saved:', userData.location);
       
-      // Create updated user data
-      const updatedUser = {
-        ...user,
-        id: currentAccount,
-        userName: userData.userName,
-        location: userData.location || '', // Allow empty location
-        userAvatar: userData.userAvatar,
-        userHandle: userData.userHandle || user?.userHandle,
-        gear: selectedGear
-      };
-      
-      console.log('Final updated user data:', updatedUser);
-      
-      // Update Supabase profile
       try {
+        // Handle avatar upload if it's a local file
+        let avatarUrl = userData.userAvatar;
+        
+        // Check if the avatar is a local file URI that needs to be uploaded
+        if (avatarUrl && avatarUrl.startsWith('file://')) {
+          console.log('Uploading new avatar image...');
+          avatarUrl = await uploadImageToSupabase(avatarUrl, currentAccount);
+          console.log('Avatar uploaded successfully:', avatarUrl);
+        }
+        
+        // Create updated user data with the uploaded avatar URL
+        const updatedUser = {
+          ...user,
+          id: currentAccount,
+          userName: userData.userName,
+          location: userData.location || '', // Allow empty location
+          userAvatar: avatarUrl,
+          userHandle: userData.userHandle || user?.userHandle,
+          gear: selectedGear
+        };
+        
+        console.log('Final updated user data:', updatedUser);
+        
+        // Update Supabase profile
         console.log('Updating Supabase profile...');
         const { error: updateError } = await supabase
           .from('profiles')
           .update({
             full_name: userData.userName,
             username: userData.userHandle || user?.userHandle,
-            avatar_url: userData.userAvatar,
+            avatar_url: avatarUrl, // Use the uploaded URL
             location: userData.location || '', // Add location to Supabase update
             updated_at: new Date().toISOString(),
             gear: selectedGear // Add gear to Supabase update
@@ -450,7 +495,7 @@ export default function EditProfileScreen() {
           id: currentAccount,
           userName: userData.userName,
           userHandle: userData.userHandle || user?.userHandle,
-          userAvatar: userData.userAvatar,
+          userAvatar: avatarUrl, // Use the uploaded avatar URL
           location: userData.location || '', // Keep location in local state
           gear: selectedGear || [],
           // Preserve other important fields
