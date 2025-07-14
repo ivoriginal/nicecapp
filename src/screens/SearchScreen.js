@@ -27,6 +27,7 @@ import RecipeCard from '../components/RecipeCard';
 import GearCard from '../components/GearCard';
 import { useCoffee } from '../context/CoffeeContext';
 import { useTheme } from '../context/ThemeContext';
+import { useSearchData } from '../context/SearchDataContext';
 import { supabase } from '../lib/supabase';
 import FollowButton from '../components/FollowButton';
 
@@ -740,6 +741,16 @@ export default function SearchScreen() {
   const insets = useSafeAreaInsets();
   const { currentAccount, coffeeCollection, user } = useCoffee();
   const { theme, isDarkMode } = useTheme();
+  const { 
+    popularCoffees, 
+    goodCafes, 
+    popularGear, 
+    suggestedUsers, 
+    popularRecipes,
+    isSearchDataLoaded,
+    isLoading: isSearchDataLoading,
+    refreshSearchData
+  } = useSearchData();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -749,172 +760,13 @@ export default function SearchScreen() {
   const searchInputRef = useRef(null);
   const navigation = useNavigation();
   const isFirstMount = useRef(true);
-  
-  // State for different data types
-  const [suggestedUsers, setSuggestedUsers] = useState([]);
-  const [popularRecipes, setPopularRecipes] = useState([]);
-  const [popularGear, setPopularGear] = useState([]);
-  const [popularCoffees, setPopularCoffees] = useState([]);
-  const [goodCafes, setGoodCafes] = useState([]);
 
-  // Load data from Supabase
+  // Load recent searches from AsyncStorage
   useEffect(() => {
-    loadInitialData();
     loadRecentSearches();
   }, []);
 
-  const loadInitialData = async () => {
-    try {
-      // Load popular coffees
-      const { data: coffees, error: coffeesError } = await supabase
-        .from('coffees')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(5);
-      
-      if (coffeesError) throw coffeesError;
-      setPopularCoffees(coffees.map(coffee => ({
-        ...coffee,
-        type: 'coffee',
-        imageUrl: coffee.image_url
-      })));
 
-      // Load good cafes
-      const { data: cafes, error: cafesError } = await supabase
-        .from('profiles')
-        .select('*')
-        .in('account_type', ['cafe', 'roaster'])
-        .order('created_at', { ascending: false })
-        .limit(5);
-
-      if (cafesError) throw cafesError;
-      console.log('Raw cafes data:', cafes);
-
-      if (!cafes || cafes.length === 0) {
-        console.log('Using mock cafe data');
-        const mockCafes = [
-          {
-            id: 'vertigo-cafe',
-            type: 'cafe',
-            name: 'Vértigo y Calambre',
-            full_name: 'Vértigo y Calambre',
-            location: 'Murcia',
-            avatar_url: require('../../assets/businesses/vertigo-logo.jpg'),
-            cover_url: require('../../assets/businesses/vertigo-cover.jpg'),
-            rating: 4.8,
-            review_count: 42,
-            is_open: true,
-            account_type: 'cafe'
-          },
-          {
-            id: 'cafelab-cafe',
-            type: 'cafe',
-            name: 'CaféLab Murcia',
-            full_name: 'CaféLab Murcia',
-            location: 'Murcia',
-            avatar_url: require('../../assets/businesses/cafelab-logo.png'),
-            cover_url: require('../../assets/businesses/cafelab-murcia-cover.png'),
-            rating: 4.7,
-            review_count: 38,
-            is_open: true,
-            account_type: 'cafe'
-          }
-        ];
-        setGoodCafes(mockCafes);
-      } else {
-        setGoodCafes(cafes.map(cafe => ({
-          ...cafe,
-          type: 'cafe',
-          name: cafe.full_name,
-          imageUrl: cafe.avatar_url,
-          logo_url: cafe.avatar_url,
-          cover_url: cafe.cover_url || cafe.avatar_url,
-          rating: cafe.rating || 4.5,
-          review_count: cafe.review_count || 0,
-          is_open: true
-        })));
-      }
-
-      // Load popular gear from Supabase
-      try {
-        const { data: gear, error: gearError } = await supabase
-          .from('gear')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(4);
-
-        if (gearError) {
-          console.error('Error loading gear:', gearError);
-          return;
-        }
-
-        console.log('Loaded gear from Supabase:', gear);
-        
-        // Map gear data and ensure all required fields are present
-        setPopularGear(gear ? gear.map(item => {
-          // Log each item's image URL for debugging
-          console.log(`Processing gear item ${item.id}, image_url:`, item.image_url);
-          
-          // Get the public URL for the image
-          const { data: { publicUrl } } = supabase.storage
-            .from('gear')
-            .getPublicUrl(`${item.id}.jpg`);
-          
-          return {
-            ...item,
-            type: 'gear',
-            // Use the Supabase storage URL if available, otherwise use a default image
-            imageUrl: publicUrl || 
-              'https://images.unsplash.com/photo-1510017803434-a899398421b3?q=80&w=2940&auto=format&fit=crop', // Default coffee gear image
-            name: item.name || '',
-            brand: item.brand || '',
-            category: item.category || '',
-            description: item.description || '',
-            price: item.price || 0
-          };
-        }) : []);
-      } catch (error) {
-        console.error('Error loading gear:', error);
-        setPopularGear([]);
-      }
-
-      // Load suggested users
-      try {
-        let query = supabase
-          .from('profiles')
-          .select('id, username, full_name, avatar_url, location, account_type')
-          .eq('account_type', 'user')
-          .order('created_at', { ascending: false })
-          .limit(5);
-        
-        // Only add the neq filter if we have a valid user ID
-        if (user?.id) {
-          query = query.neq('id', user.id);
-        }
-
-        const { data: users, error: usersError } = await query;
-
-        if (usersError) throw usersError;
-        
-        console.log('Loaded users:', users);
-        setSuggestedUsers(users ? users.map(user => ({
-          ...user,
-          id: user.id,
-          type: 'user',
-          userName: user.full_name || user.username,
-          username: user.username,
-          userAvatar: user.avatar_url,
-          location: user.location
-        })) : []);
-      } catch (error) {
-        console.error('Error loading suggested users:', error);
-        setSuggestedUsers([]);
-      }
-
-    } catch (error) {
-      console.error('Error loading initial data:', error);
-    }
-  };
 
   // Load recent searches from AsyncStorage
   const loadRecentSearches = async () => {
@@ -1635,6 +1487,14 @@ export default function SearchScreen() {
           style={styles.discoveryContainer}
           contentContainerStyle={styles.discoveryContentContainer}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={isSearchDataLoading}
+              onRefresh={refreshSearchData}
+              tintColor={theme.primaryText}
+              colors={[theme.primaryText]}
+            />
+          }
         >
           {renderPopularCoffeeCarousel()}
           {renderGoodCafesSection()}

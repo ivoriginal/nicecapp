@@ -33,6 +33,7 @@ import AddGearScreen from './src/screens/AddGearScreen';
 import { CoffeeProvider, useCoffee } from './src/context/CoffeeContext';
 import { NotificationsProvider } from './src/context/NotificationsContext';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
+import { SearchDataProvider } from './src/context/SearchDataContext';
 import * as NavigationBar from 'expo-navigation-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
@@ -280,22 +281,24 @@ function AppContent() {
   return (
     <>
       <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
-      <NotificationsProvider>
-        <NavigationContainer theme={navigationTheme}>
-          <View style={{ flex: 1, backgroundColor: theme.background }}>
-            <CoffeeProvider>
-              <AuthenticatedNavigator 
-                theme={theme} 
-                handleRecipeOptions={handleRecipeOptions} 
-                handleCoffeeOptions={handleCoffeeOptions}
-                headerStyle={headerStyle}
-                headerTintColor={headerTintColor}
-                cardStyle={cardStyle}
-              />
-            </CoffeeProvider>
-          </View>
-        </NavigationContainer>
-      </NotificationsProvider>
+              <NotificationsProvider>
+          <SearchDataProvider>
+            <NavigationContainer theme={navigationTheme}>
+              <View style={{ flex: 1, backgroundColor: theme.background }}>
+                <CoffeeProvider>
+                  <AuthenticatedNavigator 
+                    theme={theme} 
+                    handleRecipeOptions={handleRecipeOptions} 
+                    handleCoffeeOptions={handleCoffeeOptions}
+                    headerStyle={headerStyle}
+                    headerTintColor={headerTintColor}
+                    cardStyle={cardStyle}
+                  />
+                </CoffeeProvider>
+              </View>
+            </NavigationContainer>
+          </SearchDataProvider>
+        </NotificationsProvider>
     </>
   );
 }
