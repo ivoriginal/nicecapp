@@ -142,7 +142,7 @@ const AppImage = ({
         placeholderIcon = 'business-outline';
         break;
       case 'gear':
-        placeholderIcon = 'cafe-outline';
+        placeholderIcon = 'construct-outline';
         break;
       case 'cafe':
       default:
@@ -276,9 +276,11 @@ const AppImage = ({
           imageSource = { uri: source };
         }
       }
-      // Check for the old Nomad Coffee Unsplash URL and replace with proper logo
+      // Check for the old generic coffee placeholder URL and show placeholder instead
       else if (source && source.includes('https://images.unsplash.com/photo-1447933601403-0c6688de566e')) {
-        imageSource = { uri: 'https://nomadcoffee.es/cdn/shop/files/NOMAD_LOGO_NEGRO.png' };
+        // Don't load the generic coffee image, let it fall back to placeholder
+        setHasError(true);
+        return null;
       }
       // Last resort - use default gear image for gear placeholder
       else if (placeholder === 'gear') {
