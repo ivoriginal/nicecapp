@@ -10,19 +10,20 @@ import {
   StatusBar
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRoute, useNavigation } from '@react-navigation/native';
+import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
+import { useCoffee } from '../context/CoffeeContext';
 import AppImage from '../components/common/AppImage';
 import FollowButton from '../components/FollowButton';
-import { mockFollowersData } from '../data/mockFollowers';
-import mockUsers from '../data/mockUsers.json';
+import { supabase } from '../lib/supabase';
 
 export default function FollowersScreen() {
   const route = useRoute();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const { theme, isDarkMode } = useTheme();
+  const { isFollowing, currentAccount } = useCoffee();
   const { userId, userName, type = 'followers', skipAuth } = route.params || {};
   
   const [loading, setLoading] = useState(true);
@@ -44,55 +45,127 @@ export default function FollowersScreen() {
   }, [navigation, type, theme]);
 
   // Load followers/following data
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
 
-        // Get the user's follower data
-        const userFollowerData = mockFollowersData[userId];
-        
-        if (!userFollowerData) {
-          setUsers([]);
+      if (!userId) {
+        setUsers([]);
+        return;
+      }
+
+      let userIds = [];
+
+      if (type === 'followers') {
+        // Get users who follow this user
+        const { data: followersData, error: followersError } = await supabase
+          .from('follows')
+          .select('follower_id')
+          .eq('following_id', userId);
+
+        if (followersError) {
+          console.error('Error loading followers:', followersError);
+          setError('Failed to load followers');
           return;
         }
 
-        // Get the list of user IDs based on type
-        const userIds = type === 'followers' 
-          ? userFollowerData.followers || []
-          : userFollowerData.following || [];
+        userIds = (followersData || []).map(f => f.follower_id);
+      } else {
+        // Get users that this user follows
+        const { data: followingData, error: followingError } = await supabase
+          .from('follows')
+          .select('following_id')
+          .eq('follower_id', userId);
 
-        // Map user IDs to full user objects
-        const userObjects = userIds
-          .map(id => mockUsers.users.find(user => user.id === id))
-          .filter(Boolean) // Remove any null/undefined users
-          .map(user => ({
-            ...user,
-            isFollowing: type === 'followers' ? false : true, // For now, assume we're not following followers, but we are following people we follow
-            // Ensure business account identification is consistent
-            isBusinessAccount: user.isBusinessAccount || 
-                             user.userName === 'Vértigo y Calambre' || 
-                             user.userName === 'Kima Coffee' ||
-                             (user.userName && user.userName.includes('Café')) ||
-                             user.id?.startsWith('business-')
-          }));
+        if (followingError) {
+          console.error('Error loading following:', followingError);
+          setError('Failed to load following');
+          return;
+        }
 
-        setUsers(userObjects);
-      } catch (err) {
-        console.error('Error loading followers/following:', err);
-        setError('Failed to load data');
-      } finally {
-        setLoading(false);
+        userIds = (followingData || []).map(f => f.following_id);
       }
-    };
 
+      if (userIds.length === 0) {
+        setUsers([]);
+        return;
+      }
+
+      // Get profile data for these users
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('*')
+        .in('id', userIds);
+
+      if (profilesError) {
+        console.error('Error loading profiles:', profilesError);
+        setError('Failed to load user profiles');
+        return;
+      }
+
+      // Map profiles to user objects with follow status
+      const userObjects = (profilesData || []).map(profile => {
+        return {
+          id: profile.id,
+          userName: profile.full_name || profile.username || profile.email?.split('@')[0] || 'User',
+          userAvatar: profile.avatar_url,
+          handle: profile.username ? `@${profile.username}` : null,
+          location: profile.location,
+          isBusinessAccount: profile.account_type === 'business' || profile.account_type === 'cafe',
+          isFollowing: currentAccount ? isFollowing(profile.id) : false
+        };
+      });
+
+      setUsers(userObjects);
+    } catch (err) {
+      console.error('Error loading followers/following:', err);
+      setError('Failed to load data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     if (userId) {
       loadData();
     }
-  }, [userId, type]);
+  }, [userId, type, currentAccount, isFollowing]);
+
+  // Refresh data when screen comes into focus (after navigating back from profile)
+  useFocusEffect(
+    React.useCallback(() => {
+      if (userId) {
+        console.log('FollowersScreen focused - refreshing data to show updated counts');
+        loadData();
+      }
+    }, [userId, type, currentAccount])
+  );
 
   const handleUserPress = (user) => {
+    console.log('FollowersScreen: handleUserPress called with user:', user.id, user.userName);
+    console.log('FollowersScreen: currentAccount:', currentAccount);
+    console.log('FollowersScreen: user.id === currentAccount:', user.id === currentAccount);
+    console.log('FollowersScreen: typeof user.id:', typeof user.id);
+    console.log('FollowersScreen: typeof currentAccount:', typeof currentAccount);
+    
+    // If this is the current user, navigate to their own profile screen
+    if (user.id === currentAccount) {
+      console.log('FollowersScreen: Navigating to own Profile tab via MainTabs');
+      try {
+        // Navigate to the main tabs and then to the Profile tab
+        navigation.navigate('MainTabs', { screen: 'Profile' });
+        console.log('FollowersScreen: Navigation to MainTabs succeeded');
+      } catch (error) {
+        console.error('FollowersScreen: Navigation to MainTabs failed:', error);
+        // Fallback: try to go back to the main tabs
+        navigation.goBack();
+      }
+      return;
+    }
+    
+    // Otherwise, navigate to the user's profile screen
+    console.log('FollowersScreen: Navigating to UserProfileScreen for other user');
     navigation.navigate('UserProfileScreen', {
       userId: user.id,
       userName: user.userName,
@@ -142,12 +215,15 @@ export default function FollowersScreen() {
         </View>
       </TouchableOpacity>
       
-      <FollowButton
-        userId={item.id}
-        isFollowing={item.isFollowing}
-        onFollowChanged={handleFollowChange}
-        style={styles.followButton}
-      />
+      {/* Don't show follow button for current user */}
+      {item.id !== currentAccount && (
+        <FollowButton
+          userId={item.id}
+          isFollowing={item.isFollowing}
+          onFollowChanged={handleFollowChange}
+          style={styles.followButton}
+        />
+      )}
     </View>
   );
 
@@ -323,4 +399,4 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 20,
   },
-}); 
+  });
