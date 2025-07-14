@@ -121,7 +121,7 @@ export default function UserProfileScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const { userId, userName, isCurrentUser, ensureHeaderShown, isLocation, parentBusinessId, isModalView = false } = route.params || { userId: 'user1' };
-  const { allEvents, following, followers, loadData: loadGlobalData, currentAccount, removeCoffeeEvent } = useCoffee();
+  const { allEvents, following, followers, loadData: loadGlobalData, currentAccount, removeCoffeeEvent, followUser, unfollowUser } = useCoffee();
   const { currentUser } = useUser();
   const { theme, isDarkMode } = useTheme();
   
@@ -803,7 +803,7 @@ export default function UserProfileScreen() {
     loadAllProfileData();
   }, [userId, isCurrentUser, currentUser, allEvents, route.params]);
 
-  const handleFollowPress = () => {
+  const handleFollowPress = async () => {
     if (isFollowing) {
       // Show confirmation alert when unfollowing
       Alert.alert(
@@ -816,8 +816,15 @@ export default function UserProfileScreen() {
           },
           {
             text: 'Unfollow',
-            onPress: () => {
-              setIsFollowing(false);
+            onPress: async () => {
+              try {
+                await unfollowUser(userId);
+                setIsFollowing(false);
+                setFollowersCount(prev => Math.max(0, prev - 1));
+              } catch (error) {
+                console.error('Error unfollowing user:', error);
+                Alert.alert('Error', 'Failed to unfollow user. Please try again.');
+              }
             },
             style: 'destructive', // This makes the button red
           },
@@ -828,7 +835,14 @@ export default function UserProfileScreen() {
       );
     } else {
       // Follow user directly without confirmation
-      setIsFollowing(true);
+      try {
+        await followUser(userId);
+        setIsFollowing(true);
+        setFollowersCount(prev => prev + 1);
+      } catch (error) {
+        console.error('Error following user:', error);
+        Alert.alert('Error', 'Failed to follow user. Please try again.');
+      }
     }
   };
 
@@ -1291,83 +1305,93 @@ export default function UserProfileScreen() {
   }, [userId, user]);
 
   // Load follower data from Supabase
-  useEffect(() => {
-    const loadFollowerData = async () => {
-      if (!user || !currentAccount) return;
-      
-      try {
-        // Get followers count for this profile
-        const { data: followersData, error: followersError } = await supabase
-          .from('follows')
-          .select('follower_id')
-          .eq('following_id', userId);
+  const loadFollowerData = async () => {
+    if (!user || !currentAccount) return;
+    
+    try {
+      // Get followers count for this profile
+      const { data: followersData, error: followersError } = await supabase
+        .from('follows')
+        .select('follower_id')
+        .eq('following_id', userId);
 
-        if (!followersError) {
-          const followerIds = (followersData || []).map(f => f.follower_id);
-          setFollowersCount(followerIds.length);
-          
-          // Check if current user is following this profile
-          const isUserFollowing = followerIds.includes(currentAccount);
-          setIsFollowing(isUserFollowing);
-        }
+      if (!followersError) {
+        const followerIds = (followersData || []).map(f => f.follower_id);
+        setFollowersCount(followerIds.length);
+        
+        // Check if current user is following this profile
+        const isUserFollowing = followerIds.includes(currentAccount);
+        setIsFollowing(isUserFollowing);
+      }
 
-        // Get following count for this profile
-        const { data: followingData, error: followingError } = await supabase
+      // Get following count for this profile
+      const { data: followingData, error: followingError } = await supabase
+        .from('follows')
+        .select('following_id')
+        .eq('follower_id', userId);
+
+      if (!followingError) {
+        const followingIds = (followingData || []).map(f => f.following_id);
+        setFollowingCount(followingIds.length);
+      }
+
+      // Find mutual followers (people the current user follows who also follow this profile)
+      if (followersData && followersData.length > 0) {
+        // Get people that current user follows
+        const { data: currentUserFollowing, error: currentUserFollowingError } = await supabase
           .from('follows')
           .select('following_id')
-          .eq('follower_id', userId);
+          .eq('follower_id', currentAccount);
 
-        if (!followingError) {
-          const followingIds = (followingData || []).map(f => f.following_id);
-          setFollowingCount(followingIds.length);
-        }
+        if (!currentUserFollowingError && currentUserFollowing) {
+          const currentUserFollowingIds = currentUserFollowing.map(f => f.following_id);
+          const followerIds = followersData.map(f => f.follower_id);
+          
+          // Find intersection (mutual followers)
+          const mutualFollowerIds = followerIds.filter(
+            followerId => currentUserFollowingIds.includes(followerId) && followerId !== currentAccount
+          );
+          
+          if (mutualFollowerIds.length > 0) {
+            // Get profile data for mutual followers
+            const { data: mutualFollowerProfiles, error: mutualFollowerProfilesError } = await supabase
+              .from('profiles')
+              .select('id, username, full_name, avatar_url')
+              .in('id', mutualFollowerIds);
 
-        // Find mutual followers (people the current user follows who also follow this profile)
-        if (followersData && followersData.length > 0) {
-          // Get people that current user follows
-          const { data: currentUserFollowing, error: currentUserFollowingError } = await supabase
-            .from('follows')
-            .select('following_id')
-            .eq('follower_id', currentAccount);
-
-          if (!currentUserFollowingError && currentUserFollowing) {
-            const currentUserFollowingIds = currentUserFollowing.map(f => f.following_id);
-            const followerIds = followersData.map(f => f.follower_id);
-            
-            // Find intersection (mutual followers)
-            const mutualFollowerIds = followerIds.filter(
-              followerId => currentUserFollowingIds.includes(followerId) && followerId !== currentAccount
-            );
-            
-            if (mutualFollowerIds.length > 0) {
-              // Get profile data for mutual followers
-              const { data: mutualFollowerProfiles, error: mutualFollowerProfilesError } = await supabase
-                .from('profiles')
-                .select('id, username, full_name, avatar_url')
-                .in('id', mutualFollowerIds);
-
-              if (!mutualFollowerProfilesError && mutualFollowerProfiles) {
-                const mutualFollowerUsers = mutualFollowerProfiles.map(profile => ({
-                  id: profile.id,
-                  userName: profile.full_name || profile.username,
-                  userAvatar: profile.avatar_url
-                }));
-                setMutualFollowers(mutualFollowerUsers);
-              }
+            if (!mutualFollowerProfilesError && mutualFollowerProfiles) {
+              const mutualFollowerUsers = mutualFollowerProfiles.map(profile => ({
+                id: profile.id,
+                userName: profile.full_name || profile.username,
+                userAvatar: profile.avatar_url
+              }));
+              setMutualFollowers(mutualFollowerUsers);
             }
           }
         }
-      } catch (error) {
-        console.error('Error loading follower data:', error);
-        // Fallback to defaults
-        setFollowersCount(0);
-        setFollowingCount(0);
-        setMutualFollowers([]);
       }
-    };
+    } catch (error) {
+      console.error('Error loading follower data:', error);
+      // Fallback to defaults
+      setFollowersCount(0);
+      setFollowingCount(0);
+      setMutualFollowers([]);
+    }
+  };
 
+  useEffect(() => {
     loadFollowerData();
   }, [user, userId, currentAccount]);
+
+  // Refresh follower data when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      if (user && currentAccount) {
+        console.log('UserProfileScreen focused - refreshing follower data');
+        loadFollowerData();
+      }
+    }, [user, userId, currentAccount])
+  );
 
   // Load parent roaster data
   useEffect(() => {

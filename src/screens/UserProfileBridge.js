@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef, useLayoutEffect } from 'react';
 import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useTheme } from '../context/ThemeContext';
+import { useCoffee } from '../context/CoffeeContext';
 import mockCafes from '../data/mockCafes.json';
 import mockUsers from '../data/mockUsers.json';
 import mockGear from '../data/mockGear.json';
@@ -12,6 +13,7 @@ export default function UserProfileBridge() {
   const navigation = useNavigation();
   const route = useRoute();
   const { theme } = useTheme();
+  const { currentAccount } = useCoffee();
   const { 
     userId, 
     userName, 
@@ -46,6 +48,15 @@ export default function UserProfileBridge() {
     if (!userId && !userName) {
       console.error('UserProfileBridge: No userId or userName provided');
       navigation.goBack();
+      return;
+    }
+
+    // Check if this is the current user - if so, navigate to their profile tab
+    if (userId === currentAccount) {
+      console.log('UserProfileBridge: Current user detected, navigating to Profile tab');
+      hasNavigatedRef.current = true;
+      // Navigate to the main tabs and then to the Profile tab
+      navigation.navigate('MainTabs', { screen: 'Profile' });
       return;
     }
 
@@ -322,7 +333,7 @@ export default function UserProfileBridge() {
 
     // Execute navigation immediately
     navigateToProfile();
-  }, [navigation, userId, userName]);
+  }, [navigation, userId, userName, currentAccount]);
 
   // Show loading state while processing
   if (error) {
