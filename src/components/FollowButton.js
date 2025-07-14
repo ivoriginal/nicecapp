@@ -8,9 +8,10 @@ const FollowButton = ({
   userId, 
   isFollowing: initialIsFollowing = false, 
   onFollowChanged,
-  style
+  style,
+  textStyle
 }) => {
-  const { theme } = useTheme();
+  const { theme, isDarkMode } = useTheme();
   const { followUser, unfollowUser, isFollowing: checkIsFollowing } = useCoffee();
   const [isFollowing, setIsFollowing] = useState(initialIsFollowing);
   const [isLoading, setIsLoading] = useState(false);
@@ -49,19 +50,38 @@ const FollowButton = ({
     <TouchableOpacity
       style={[
         styles.container,
-        isFollowing ? [styles.followingContainer, { backgroundColor: theme.cardBackground, borderColor: theme.primaryText }] : [styles.notFollowingContainer, { backgroundColor: theme.primaryText }],
+        isFollowing ? [
+          styles.followingContainer, 
+          { 
+            backgroundColor: theme.background,
+            borderColor: theme.primaryText 
+          }
+        ] : [
+          styles.notFollowingContainer, 
+          { 
+            backgroundColor: theme.primaryText,
+            borderColor: theme.primaryText
+          }
+        ],
         style
       ]}
       onPress={handlePress}
       disabled={isLoading}
     >
       {isLoading ? (
-        <ActivityIndicator size="small" color={isFollowing ? theme.primaryText : theme.cardBackground} />
+        <ActivityIndicator size="small" color={isFollowing ? theme.primaryText : theme.background} />
       ) : (
         <Text 
           style={[
             styles.buttonText,
-            isFollowing ? [styles.followingText, { color: theme.primaryText }] : [styles.notFollowingText, { color: theme.cardBackground }]
+            isFollowing ? [
+              styles.followingText, 
+              { color: theme.primaryText }
+            ] : [
+              styles.notFollowingText, 
+              { color: theme.background }
+            ],
+            textStyle
           ]}
         >
           {isFollowing ? 'Following' : 'Follow'}
@@ -79,14 +99,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     minWidth: 100,
+    borderWidth: 1,
   },
   notFollowingContainer: {
     backgroundColor: COLORS.primary,
   },
   followingContainer: {
     backgroundColor: COLORS.white,
-    borderWidth: 1,
-    borderColor: COLORS.primary,
   },
   buttonText: {
     ...FONTS.body3,
