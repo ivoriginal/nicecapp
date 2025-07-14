@@ -12,6 +12,28 @@ import { useTheme } from '../context/ThemeContext';
 import { useCoffee } from '../context/CoffeeContext';
 import { supabase } from '../lib/supabase';
 import * as Contacts from 'expo-contacts';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// Function to check if contacts permission was previously granted
+const checkContactsPermission = async (userId) => {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('contacts_permission')
+      .eq('id', userId)
+      .single();
+      
+    if (error) {
+      console.error('Error checking contacts permission:', error);
+      return false;
+    }
+    
+    return data?.contacts_permission || false;
+  } catch (error) {
+    console.error('Error checking contacts permission:', error);
+    return false;
+  }
+};
 
 const ContactsBanner = ({ onConnect, theme, isDarkMode }) => (
   <TouchableOpacity 
@@ -83,12 +105,26 @@ const PeopleListScreen = () => {
     });
   }, [navigation, isDarkMode]);
   
-  // Hide banner in followers/followees views
+  // Hide banner in followers/followees views and check contacts permission
   useEffect(() => {
-    if (route.params?.type === 'followers' || route.params?.type === 'following') {
-      setShowContactsBanner(false);
-    }
-  }, [route.params?.type]);
+    const checkPermissions = async () => {
+      // Hide banner for followers/following views
+      if (route.params?.type === 'followers' || route.params?.type === 'following') {
+        setShowContactsBanner(false);
+        return;
+      }
+      
+      // Check if contacts permission was previously granted
+      if (currentUser?.id) {
+        const hasPermission = await checkContactsPermission(currentUser.id);
+        if (hasPermission) {
+          setShowContactsBanner(false);
+        }
+      }
+    };
+    
+    checkPermissions();
+  }, [route.params?.type, currentUser?.id]);
 
   // Load Supabase profiles to get updated avatar and profile data
   const loadSupabaseProfiles = async () => {
@@ -131,70 +167,84 @@ const PeopleListScreen = () => {
   // Fetch people data
   const fetchPeople = async () => {
     try {
-      // Load Supabase profiles for updated data
-      const profiles = await loadSupabaseProfiles();
-      setSupabaseProfiles(profiles);
+      // Always fetch fresh user data from Supabase
+      let query = supabase
+        .from('profiles')
+        .select('id, username, full_name, avatar_url, location, account_type, created_at')
+        .eq('account_type', 'user')
+        .order('created_at', { ascending: false });
       
-      // Create a map for quick lookup
-      const profilesMap = {};
-      profiles.forEach(profile => {
-        profilesMap[profile.id] = profile;
+      // Only add the neq filter if we have a valid user ID
+      if (currentUser?.id) {
+        query = query.neq('id', currentUser.id);
+      }
+
+      const { data: users, error: usersError } = await query;
+
+      if (usersError) throw usersError;
+      
+      console.log('Loaded users from Supabase:', users);
+      
+      let suggestedUsersList = [];
+      
+      if (users && users.length > 0) {
+        suggestedUsersList = users.map(user => ({
+          ...user,
+          id: user.id,
+          type: 'user',
+          userName: user.full_name || user.username,
+          username: user.username,
+          userAvatar: user.avatar_url,
+          location: user.location
+        }));
+      }
+      
+      // If we have fewer than 3 users from Supabase, add mock users as fallback
+      if (suggestedUsersList.length < 3) {
+        console.log('Adding mock users as fallback');
+        
+        // Import mock users
+        const mockUsersList = mockUsers.users
+          .filter(mockUser => 
+            // Don't include current user and only include regular users (not businesses)
+            mockUser.id !== currentUser?.id && 
+            !mockUser.isBusinessAccount &&
+            mockUser.id !== 'user2' // Exclude Vértigo y Calambre business account
+          )
+          .slice(0, 5 - suggestedUsersList.length) // Only take what we need
+          .map(mockUser => ({
+            id: mockUser.id,
+            type: 'user',
+            userName: mockUser.userName,
+            username: mockUser.handle?.replace('@', '') || mockUser.userName.toLowerCase().replace(' ', ''),
+            userAvatar: mockUser.userAvatar,
+            location: mockUser.location
+          }));
+          
+        suggestedUsersList = [...suggestedUsersList, ...mockUsersList];
+      }
+
+      // Filter out users we already follow
+      const unfollowedUsers = suggestedUsersList.filter(user => !isFollowing(user.id));
+      
+      // Split into new and other users based on join date
+      const now = new Date();
+      const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      
+      const newUsersList = unfollowedUsers.filter(user => {
+        const joinDate = new Date(user.created_at || '2024-01-01');
+        return joinDate > oneWeekAgo;
+      });
+      
+      const otherUsersList = unfollowedUsers.filter(user => {
+        const joinDate = new Date(user.created_at || '2024-01-01');
+        return joinDate <= oneWeekAgo;
       });
 
-      // If we have suggestedUsers from SearchScreen, use those
-      if (route.params?.suggestedUsers) {
-        const suggestedUsers = route.params.suggestedUsers.map(user => {
-          const supabaseProfile = profilesMap[user.id];
-          return mergeUserData(user, supabaseProfile);
-        });
-        
-        // Split into new and other users based on join date
-        const now = new Date();
-        const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        
-        const newUsersList = suggestedUsers.filter(user => {
-          const joinDate = new Date(user.created_at || user.joinedDate || '2024-01-01');
-          return joinDate > oneWeekAgo;
-        });
-        
-        const otherUsersList = suggestedUsers.filter(user => {
-          const joinDate = new Date(user.created_at || user.joinedDate || '2024-01-01');
-          return joinDate <= oneWeekAgo;
-        });
-
-        setNewUsers(newUsersList);
-        setOtherUsers(otherUsersList);
-        setAllUnfollowedUsers(suggestedUsers);
-      } else {
-        // Get all users from mockUsers and merge with Supabase data
-        const allUsers = mockUsers.users.map(user => {
-          const supabaseProfile = profilesMap[user.id];
-          return mergeUserData(user, supabaseProfile);
-        });
-        
-        // Filter out users we already follow
-        const unfollowedUsers = allUsers.filter(user => !isFollowing(user.id));
-        
-        // Store all unfollowed users for filtering
-        setAllUnfollowedUsers(unfollowedUsers);
-        
-        // Split into new and other users
-        const now = new Date();
-        const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        
-        const newUsersList = unfollowedUsers.filter(user => {
-          const joinDate = new Date(user.created_at || user.joinedDate || user.joinDate || '2024-01-01');
-          return joinDate > oneWeekAgo;
-        });
-        
-        const otherUsersList = unfollowedUsers.filter(user => {
-          const joinDate = new Date(user.created_at || user.joinedDate || user.joinDate || '2024-01-01');
-          return joinDate <= oneWeekAgo;
-        });
-
-        setNewUsers(newUsersList);
-        setOtherUsers(otherUsersList);
-      }
+      setNewUsers(newUsersList);
+      setOtherUsers(otherUsersList);
+      setAllUnfollowedUsers(unfollowedUsers);
+      
     } catch (error) {
       console.error('Error fetching people:', error);
     } finally {
@@ -243,7 +293,18 @@ const PeopleListScreen = () => {
       // Request permission to access contacts
       const { status } = await Contacts.requestPermissionsAsync();
       
-      if (status === 'granted') {
+      if (status === 'granted' && currentUser?.id) {
+        // Store permission status in Supabase
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ contacts_permission: true })
+          .eq('id', currentUser.id);
+          
+        if (updateError) {
+          console.error('Error updating contacts permission:', updateError);
+          return;
+        }
+        
         // Permission granted, fetch contacts
         const { data } = await Contacts.getContactsAsync({
           fields: [
