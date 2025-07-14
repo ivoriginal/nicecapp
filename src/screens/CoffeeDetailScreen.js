@@ -1393,10 +1393,10 @@ export default function CoffeeDetailScreen() {
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: theme.primaryText }]}>Brewing Recipes</Text>
             <TouchableOpacity 
-              style={[styles.createRecipeButton, { borderBottomColor: theme.accent }]}
+              style={[styles.createRecipeButton, { borderBottomColor: theme.primaryText }]}
               onPress={navigateToCreateRecipe}
             >
-              <Text style={[styles.createRecipeText, { color: theme.accent }]}>Create Recipe</Text>
+              <Text style={[styles.createRecipeText, { color: theme.primaryText }]}>Create Recipe</Text>
             </TouchableOpacity>
           </View>
           
