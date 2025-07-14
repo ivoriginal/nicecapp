@@ -87,6 +87,41 @@ export default function OnboardingScreen() {
     return `https://www.gravatar.com/avatar/${hash}?s=200&d=identicon`;
   };
 
+  // Helper function to upload image to Supabase Storage
+  const uploadImageToSupabase = async (imageUri, userId) => {
+    try {
+      // Create a unique filename
+      const fileName = `avatar_${userId}_${Date.now()}.jpeg`;
+      
+      // Convert the local file URI to a blob
+      const response = await fetch(imageUri);
+      const blob = await response.blob();
+      
+      // Upload to Supabase Storage
+      const { data, error } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, blob, {
+          contentType: 'image/jpeg',
+          upsert: true
+        });
+      
+      if (error) {
+        console.error('Error uploading image:', error);
+        throw error;
+      }
+      
+      // Get the public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName);
+      
+      return publicUrl;
+    } catch (error) {
+      console.error('Error in uploadImageToSupabase:', error);
+      throw error;
+    }
+  };
+
   const generateSuggestedUsername = (name) => {
     if (!name) return '';
     
@@ -275,6 +310,16 @@ export default function OnboardingScreen() {
         return;
       }
 
+      // Handle avatar upload if it's a local file
+      let avatarUrl = avatar;
+      
+      // Check if the avatar is a local file URI that needs to be uploaded
+      if (avatarUrl && avatarUrl.startsWith('file://')) {
+        console.log('Uploading new avatar image...');
+        avatarUrl = await uploadImageToSupabase(avatarUrl, user.id);
+        console.log('Avatar uploaded successfully:', avatarUrl);
+      }
+
       // Since we're already doing real-time validation, we don't need to check again
       // Just update the user's profile
       const { error: updateError } = await supabase
@@ -282,7 +327,7 @@ export default function OnboardingScreen() {
         .update({
           full_name: fullName.trim(),
           username: username.trim(),
-          avatar_url: avatar,
+          avatar_url: avatarUrl,
           updated_at: new Date().toISOString()
         })
         .eq('id', user.id);
