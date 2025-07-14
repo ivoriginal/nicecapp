@@ -31,6 +31,7 @@ import RecipeCard from '../components/RecipeCard';
 import RecipeCard2 from '../components/RecipeCard2';
 import UserAvatar from '../components/UserAvatar';
 import CoffeeInfo from '../components/CoffeeInfo';
+import AppImage from '../components/common/AppImage';
 import mockCafes from '../data/mockCafes.json';
 import mockCoffees from '../data/mockCoffees.json';
 import mockUsers from '../data/mockUsers.json';
@@ -132,6 +133,13 @@ export default function AddCoffeeScreen({ navigation, route }) {
   const [remixRecipe, setRemixRecipe] = useState(null);
   const [rating, setRating] = useState(0);
   const [showAddCoffeeModal, setShowAddCoffeeModal] = useState(false);
+
+  // Add new state for recipe filtering and modal
+  const [selectedMethodFilter, setSelectedMethodFilter] = useState('all');
+  const [filteredRecipeSuggestions, setFilteredRecipeSuggestions] = useState([]);
+  const [availableMethods, setAvailableMethods] = useState([]);
+  const [showRecipeDetailModal, setShowRecipeDetailModal] = useState(false);
+  const [selectedRecipeForModal, setSelectedRecipeForModal] = useState(null);
 
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
@@ -556,11 +564,49 @@ export default function AddCoffeeScreen({ navigation, route }) {
       });
       
       setRecipeSuggestions(uniqueRecipes);
+      
+      // Extract available brewing methods and update filtered recipes
+      updateRecipeFiltering(uniqueRecipes);
     } catch (error) {
       console.error('Error searching recipe database:', error);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Function to update recipe filtering based on available methods
+  const updateRecipeFiltering = (recipes) => {
+    if (!recipes || recipes.length === 0) {
+      setAvailableMethods([]);
+      setFilteredRecipeSuggestions([]);
+      setSelectedMethodFilter('all');
+      return;
+    }
+
+    // Extract unique brewing methods
+    const methods = [...new Set(recipes.map(recipe => recipe.method || recipe.brewingMethod).filter(Boolean))];
+    setAvailableMethods(methods);
+    
+    // Apply current filter
+    applyMethodFilter(recipes, selectedMethodFilter);
+  };
+
+  // Function to apply method filter
+  const applyMethodFilter = (recipes, filterMethod) => {
+    if (filterMethod === 'all') {
+      setFilteredRecipeSuggestions(recipes);
+    } else {
+      const filtered = recipes.filter(recipe => 
+        (recipe.method || recipe.brewingMethod) === filterMethod
+      );
+      setFilteredRecipeSuggestions(filtered);
+    }
+  };
+
+  // Handle method filter selection
+  const handleMethodFilterSelect = (method) => {
+    setSelectedMethodFilter(method);
+    applyMethodFilter(recipeSuggestions, method);
   };
 
   const handleNameChange = (text) => {
@@ -618,54 +664,57 @@ export default function AddCoffeeScreen({ navigation, route }) {
 
 
   const handleRecipePress = (recipe) => {
-    // Only use ActionSheetIOS if we're on iOS and the module is available
-    if (Platform.OS === 'ios' && ActionSheetIOS?.showActionSheetWithOptions) {
-      ActionSheetIOS.showActionSheetWithOptions(
-        {
-          options: ['Cancel', 'Use as is', 'Remix'],
-          cancelButtonIndex: 0,
-          userInterfaceStyle: isDarkMode ? 'dark' : 'light',
-        },
-        (buttonIndex) => {
-          if (buttonIndex === 1) {
-            // Use as is - show selected recipe card
-            setSelectedRecipe(recipe);
-            setCustomRecipe(null);
-          } else if (buttonIndex === 2) {
-            // Show create recipe modal for remixing
-            setRemixRecipe(recipe);
-            setShowCreateRecipe(true);
-          }
-        }
-      );
-    } else {
-      Alert.alert(
-        'Recipe Options',
-        'What would you like to do with this recipe?',
-        [
-          {
-            text: 'Cancel',
-            style: 'cancel',
-          },
-          {
-            text: 'Use as is',
-            onPress: () => {
-              // Use as is - show selected recipe card
-              setSelectedRecipe(recipe);
-              setCustomRecipe(null);
-            },
-          },
-          {
-            text: 'Remix',
-            onPress: () => {
-              // Show create recipe modal for remixing
-              setRemixRecipe(recipe);
-              setShowCreateRecipe(true);
-            },
-          },
-        ]
-      );
+    // Navigate to full RecipeDetailScreen with all the required data
+    navigation.navigate('RecipeDetail', {
+      recipeId: recipe.id,
+      coffeeId: recipe.coffeeId || coffeeData.coffeeId,
+      coffeeName: recipe.coffeeName || coffeeData.name,
+      roaster: recipe.roaster,
+      imageUrl: recipe.imageUrl || recipe.image,
+      recipe: {
+        ...recipe,
+        // Ensure user information is properly passed
+        userId: recipe.userId || recipe.creatorId,
+        userName: recipe.userName || recipe.creatorName || 'Unknown',
+        userAvatar: recipe.userAvatar || recipe.creatorAvatar,
+        // Ensure stats are included
+        logs: recipe.logs || 0,
+        saves: recipe.saves || 0,
+        loggedUsers: recipe.loggedUsers || [],
+        savedUsers: recipe.savedUsers || [],
+        // Rating stats
+        averageRating: recipe.averageRating || 0,
+        ratingStats: recipe.ratingStats || null,
+        userRatings: recipe.userRatings || {}
+      },
+      // Pass user info at the top level as well for consistency
+      userId: recipe.userId || recipe.creatorId,
+      userName: recipe.userName || recipe.creatorName || 'Unknown',
+      userAvatar: recipe.userAvatar || recipe.creatorAvatar,
+      skipAuth: true
+    });
+  };
+
+  const handleRecipeLongPress = (recipe) => {
+    // Show recipe detail modal for quick preview (original behavior)
+    setSelectedRecipeForModal(recipe);
+    setShowRecipeDetailModal(true);
+  };
+
+  // Handle recipe selection from modal
+  const handleRecipeModalConfirm = () => {
+    if (selectedRecipeForModal) {
+      setSelectedRecipe(selectedRecipeForModal);
+      setCustomRecipe(null);
     }
+    setShowRecipeDetailModal(false);
+    setSelectedRecipeForModal(null);
+  };
+
+  // Handle recipe modal close
+  const handleRecipeModalClose = () => {
+    setShowRecipeDetailModal(false);
+    setSelectedRecipeForModal(null);
   };
 
 
@@ -976,15 +1025,57 @@ export default function AddCoffeeScreen({ navigation, route }) {
     </View>
   );
 
+  const renderMethodFilterChips = () => {
+    // Only show chips if there are multiple methods or multiple recipes
+    if (availableMethods.length <= 1 || recipeSuggestions.length <= 1) {
+      return null;
+    }
+
+    const allMethods = ['all', ...availableMethods];
+
+    return (
+      <View style={styles.methodFilterContainer}>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.methodFilterScrollContent}
+        >
+          {allMethods.map((method) => (
+            <TouchableOpacity
+              key={method}
+              style={[
+                styles.methodFilterChip,
+                selectedMethodFilter === method && styles.methodFilterChipSelected,
+                { 
+                  backgroundColor: selectedMethodFilter === method ? theme.primaryText : theme.altBackground,
+                  borderColor: theme.border 
+                }
+              ]}
+              onPress={() => handleMethodFilterSelect(method)}
+            >
+              <Text style={[
+                styles.methodFilterChipText,
+                selectedMethodFilter === method && styles.methodFilterChipTextSelected,
+                { color: selectedMethodFilter === method ? theme.background : theme.primaryText }
+              ]}>
+                {method === 'all' ? 'All' : method}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+    );
+  };
+
   const renderSuggestedRecipes = () => (
     <View style={styles.recipesContainer}>
       {isLoading ? (
         <ActivityIndicator style={styles.loader} size="small" color={theme.primaryText} />
       ) : recipeSuggestions.length > 0 ? (
         <View>
-          <Text style={styles.recipesSubheader}>Suggested</Text>
+          {renderMethodFilterChips()}
           <View style={styles.verticalRecipesList}>
-            {recipeSuggestions.map((item, index) => (
+            {filteredRecipeSuggestions.map((item, index) => (
               <RecipeCard
                 key={`recipe-${item.id || index}`}
                 recipe={item}
@@ -2059,6 +2150,7 @@ export default function AddCoffeeScreen({ navigation, route }) {
     brewMinutes: '',
     brewSeconds: '',
     notes: '',
+    coffeeMaker: '',
     gear: [],
     grinder: '',
     clicks: '',
@@ -2066,46 +2158,55 @@ export default function AddCoffeeScreen({ navigation, route }) {
   });
   
   const [showMethodSelector, setShowMethodSelector] = useState(false);
-  const [showGearSelector, setShowGearSelector] = useState(false);
+  const [showCoffeeMakerSelector, setShowCoffeeMakerSelector] = useState(false);
+  const [showOtherGearSelector, setShowOtherGearSelector] = useState(false);
   const [showGrinderSelector, setShowGrinderSelector] = useState(false);
 
   // Selector states for inline dropdowns
 
   // Define options arrays at component level
   const brewingMethods = ['V60', 'Chemex', 'AeroPress', 'French Press', 'Espresso', 'Kalita Wave', 'Siphon'];
-  const gearOptions = ['V60', 'Chemex', 'AeroPress', 'French Press', 'Espresso Machine', 'Kalita Wave', 'Siphon', 'Scale', 'Timer', 'Thermometer'];
+  
+  // Define which methods require a separate coffee maker selection
+  const methodsRequiringCoffeeMaker = ['Espresso', 'Siphon'];
+  
+  // Define coffee maker options based on brewing method
+  const getCoffeeMakerOptions = (method) => {
+    if (method === 'Espresso') {
+      return ['9Barista Espresso Machine Mk.1'];
+    } else if (method === 'Siphon') {
+      return ['Hario Syphon Next 5', 'Yama Glass 5-Cup Stovetop Coffee Siphon'];
+    }
+    return [];
+  };
+  
+  // Other gear options for multiple selection
+  const otherGearOptions = [
+    'Acaia Pearl', 'Fellow Stagg EKG', 'Hario V60 Paper Filters', 'Hario Range Server', 
+    'Chemex Filters', 'AeroPress Filters', 'Timer', 'Thermometer', 'Kalita Wave Filters',
+    'Fellow Ode', 'Timemore C2', 'Baratza Encore', 'Comandante C40 MK4'
+  ];
+  
   const grinderOptions = ['Commandante', 'Baratza Encore', 'Hario Mini Mill', 'Timemore C2', '1Zpresso JX', 'Manual', 'Other'];
 
   // Define handler functions at component level
   const handleMethodSelect = (method) => {
-    // Auto-select the coffee maker based on brewing method
-    let newGear = [];
-    if (method === 'Chemex') {
-      newGear = ['Chemex'];
-    } else if (method === 'V60') {
-      newGear = ['V60'];
-    } else if (method === 'AeroPress') {
-      newGear = ['AeroPress'];
-    } else if (method === 'French Press') {
-      newGear = ['French Press'];
-    } else if (method === 'Espresso') {
-      newGear = ['Espresso Machine'];
-    } else if (method === 'Kalita Wave') {
-      newGear = ['Kalita Wave'];
-    } else if (method === 'Siphon') {
-      newGear = ['Siphon'];
-    } else {
-      // For other methods, keep existing gear or add the method if it exists in gear options
-      newGear = [...(recipeModalData.gear || [])];
-      if (gearOptions.includes(method) && !newGear.includes(method)) {
-        newGear.push(method);
-      }
-    }
-    setRecipeModalData({...recipeModalData, method, gear: newGear});
+    // Clear coffee maker when method changes
+    setRecipeModalData({
+      ...recipeModalData, 
+      method, 
+      coffeeMaker: '',
+      gear: [] // Clear other gear as well
+    });
     setShowMethodSelector(false);
   };
   
-  const handleGearToggle = (gearItem) => {
+  const handleCoffeeMakerSelect = (coffeeMaker) => {
+    setRecipeModalData({...recipeModalData, coffeeMaker});
+    setShowCoffeeMakerSelector(false);
+  };
+  
+  const handleOtherGearToggle = (gearItem) => {
     const currentGear = recipeModalData.gear || [];
     const newGear = currentGear.includes(gearItem)
       ? currentGear.filter(g => g !== gearItem)
@@ -2132,9 +2233,10 @@ export default function AddCoffeeScreen({ navigation, route }) {
           waterVolume: recipeToRemix.waterVolume || recipeToRemix.waterAmount || '',
           brewTime: recipeToRemix.brewTime || '',
           notes: '', // Keep notes empty by default for remixes
-          gear: [],
-          grinder: '',
-          clicks: '',
+          coffeeMaker: recipeToRemix.coffeeMaker || '',
+          gear: recipeToRemix.gear || [],
+          grinder: recipeToRemix.grinder || '',
+          clicks: recipeToRemix.clicks || '',
           brewMinutes: '',
           brewSeconds: '',
           steps: recipeToRemix.steps || []
@@ -2147,6 +2249,7 @@ export default function AddCoffeeScreen({ navigation, route }) {
           waterVolume: '',
           brewTime: '',
           notes: '',
+          coffeeMaker: '',
           gear: [],
           grinder: '',
           clicks: '',
@@ -2158,8 +2261,15 @@ export default function AddCoffeeScreen({ navigation, route }) {
     }, [isRemixing, recipeToRemix]);
 
     const handleSaveRecipe = async () => {
+      // Check required fields
       if (!recipeModalData.method || !recipeModalData.amount || !recipeModalData.waterVolume) {
         Alert.alert('Error', 'Please fill in all required fields.');
+        return;
+      }
+      
+      // Check if coffee maker is required and provided
+      if (methodsRequiringCoffeeMaker.includes(recipeModalData.method) && !recipeModalData.coffeeMaker) {
+        Alert.alert('Error', 'Please select a coffee maker for this brewing method.');
         return;
       }
 
@@ -2176,6 +2286,10 @@ export default function AddCoffeeScreen({ navigation, route }) {
           waterVolume: recipeModalData.waterVolume,
           brewTime: recipeModalData.brewTime,
           notes: recipeModalData.notes,
+          coffeeMaker: recipeModalData.coffeeMaker,
+          gear: recipeModalData.gear,
+          grinder: recipeModalData.grinder,
+          clicks: recipeModalData.clicks,
           creatorId: currentAccount?.id || 'user-default',
           creatorName: currentAccount?.userName || 'You',
           creatorAvatar: currentAccount?.userAvatar,
@@ -2212,6 +2326,10 @@ export default function AddCoffeeScreen({ navigation, route }) {
           waterVolume: newRecipe.waterVolume,
           brewTime: newRecipe.brewTime,
           notes: newRecipe.notes,
+          coffeeMaker: newRecipe.coffeeMaker,
+          gear: newRecipe.gear,
+          grinder: newRecipe.grinder,
+          clicks: newRecipe.clicks,
           // Add remix info if applicable
           ...(isRemixing && recipeToRemix ? {
             isRemix: true,
@@ -2256,15 +2374,26 @@ export default function AddCoffeeScreen({ navigation, route }) {
             <Text style={[styles.reviewModalTitle, { color: theme.primaryText }]}>Create Recipe</Text>
             <TouchableOpacity 
               onPress={handleSaveRecipe}
-              disabled={!recipeModalData.method || !recipeModalData.amount || !recipeModalData.waterVolume}
+              disabled={
+                !recipeModalData.method || 
+                !recipeModalData.amount || 
+                !recipeModalData.waterVolume ||
+                (methodsRequiringCoffeeMaker.includes(recipeModalData.method) && !recipeModalData.coffeeMaker)
+              }
             >
               <Text style={[
                 styles.reviewModalSubmit, 
                 { 
-                  color: (!recipeModalData.method || !recipeModalData.amount || !recipeModalData.waterVolume) 
+                  color: (!recipeModalData.method || 
+                          !recipeModalData.amount || 
+                          !recipeModalData.waterVolume ||
+                          (methodsRequiringCoffeeMaker.includes(recipeModalData.method) && !recipeModalData.coffeeMaker)) 
                     ? theme.secondaryText 
                     : theme.primaryText,
-                  opacity: (!recipeModalData.method || !recipeModalData.amount || !recipeModalData.waterVolume) ? 0.5 : 1
+                  opacity: (!recipeModalData.method || 
+                           !recipeModalData.amount || 
+                           !recipeModalData.waterVolume ||
+                           (methodsRequiringCoffeeMaker.includes(recipeModalData.method) && !recipeModalData.coffeeMaker)) ? 0.5 : 1
                 }
               ]}>Save</Text>
             </TouchableOpacity>
@@ -2307,7 +2436,8 @@ export default function AddCoffeeScreen({ navigation, route }) {
                     style={[styles.selectorButton, { backgroundColor: theme.altBackground, borderColor: theme.border }]}
                     onPress={() => {
                       // Close other selectors
-                      setShowGearSelector(false);
+                      setShowCoffeeMakerSelector(false);
+                      setShowOtherGearSelector(false);
                       setShowGrinderSelector(false);
                       setShowMethodSelector(!showMethodSelector);
                     }}
@@ -2348,49 +2478,53 @@ export default function AddCoffeeScreen({ navigation, route }) {
                   )}
                 </View>
 
-                <View style={styles.inputContainer}>
-                  <Text style={[styles.label, { color: theme.primaryText }]}>Coffee Maker</Text>
-                  <TouchableOpacity 
-                    style={[styles.selectorButton, { backgroundColor: theme.altBackground, borderColor: theme.border }]}
-                    onPress={() => {
-                      // Close other selectors
-                      setShowMethodSelector(false);
-                      setShowGrinderSelector(false);
-                      setShowGearSelector(!showGearSelector);
-                    }}
-                  >
-                    <Text style={[styles.selectorButtonText, { color: theme.primaryText }]}>
-                      {recipeModalData.gear?.length > 0 ? recipeModalData.gear.join(', ') : 'Select coffee maker'}
-                    </Text>
-                    <Ionicons 
-                      name={showGearSelector ? "chevron-up" : "chevron-down"} 
-                      size={20} 
-                      color={theme.secondaryText} 
-                    />
-                  </TouchableOpacity>
-                  
-                  {showGearSelector && (
-                    <ScrollView style={[styles.inlineSelector, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
-                      {gearOptions.map(gear => (
-                        <TouchableOpacity
-                          key={gear}
-                          style={[
-                            styles.inlineSelectorItem,
-                            recipeModalData.gear?.includes(gear) && styles.inlineSelectorItemSelected
-                          ]}
-                          onPress={() => handleGearToggle(gear)}
-                        >
-                          <Text style={[styles.inlineSelectorText, { color: theme.primaryText }]}>
-                            {gear}
-                          </Text>
-                          {recipeModalData.gear?.includes(gear) && (
-                            <Ionicons name="checkmark" size={20} color={theme.accent || '#007AFF'} />
-                          )}
-                        </TouchableOpacity>
-                      ))}
-                    </ScrollView>
-                  )}
-                </View>
+                {/* Coffee Maker - only show for methods that require it */}
+                {methodsRequiringCoffeeMaker.includes(recipeModalData.method) && (
+                  <View style={styles.inputContainer}>
+                    <Text style={[styles.label, { color: theme.primaryText }]}>Coffee Maker *</Text>
+                    <TouchableOpacity 
+                      style={[styles.selectorButton, { backgroundColor: theme.altBackground, borderColor: theme.border }]}
+                      onPress={() => {
+                        // Close other selectors
+                        setShowMethodSelector(false);
+                        setShowGrinderSelector(false);
+                        setShowOtherGearSelector(false);
+                        setShowCoffeeMakerSelector(!showCoffeeMakerSelector);
+                      }}
+                    >
+                      <Text style={[styles.selectorButtonText, { color: theme.primaryText }]}>
+                        {recipeModalData.coffeeMaker || 'Select coffee maker'}
+                      </Text>
+                      <Ionicons 
+                        name={showCoffeeMakerSelector ? "chevron-up" : "chevron-down"} 
+                        size={20} 
+                        color={theme.secondaryText} 
+                      />
+                    </TouchableOpacity>
+                    
+                    {showCoffeeMakerSelector && (
+                      <ScrollView style={[styles.inlineSelector, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
+                        {getCoffeeMakerOptions(recipeModalData.method).map(coffeeMaker => (
+                          <TouchableOpacity
+                            key={coffeeMaker}
+                            style={[
+                              styles.inlineSelectorItem,
+                              recipeModalData.coffeeMaker === coffeeMaker && styles.inlineSelectorItemSelected
+                            ]}
+                            onPress={() => handleCoffeeMakerSelect(coffeeMaker)}
+                          >
+                            <Text style={[styles.inlineSelectorText, { color: theme.primaryText }]}>
+                              {coffeeMaker}
+                            </Text>
+                            {recipeModalData.coffeeMaker === coffeeMaker && (
+                              <Ionicons name="checkmark" size={20} color={theme.accent || '#007AFF'} />
+                            )}
+                          </TouchableOpacity>
+                        ))}
+                      </ScrollView>
+                    )}
+                  </View>
+                )}
 
                 <View style={styles.inputContainer}>
                   <Text style={[styles.label, { color: theme.primaryText }]}>Grinder</Text>
@@ -2399,7 +2533,8 @@ export default function AddCoffeeScreen({ navigation, route }) {
                     onPress={() => {
                       // Close other selectors
                       setShowMethodSelector(false);
-                      setShowGearSelector(false);
+                      setShowCoffeeMakerSelector(false);
+                      setShowOtherGearSelector(false);
                       setShowGrinderSelector(!showGrinderSelector);
                     }}
                   >
@@ -2483,6 +2618,51 @@ export default function AddCoffeeScreen({ navigation, route }) {
                         <Ionicons name="add" size={20} color={theme.primaryText} />
                       </TouchableOpacity>
                     </View>
+                  )}
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={[styles.label, { color: theme.primaryText }]}>Other Gear</Text>
+                  <TouchableOpacity 
+                    style={[styles.selectorButton, { backgroundColor: theme.altBackground, borderColor: theme.border }]}
+                    onPress={() => {
+                      // Close other selectors
+                      setShowMethodSelector(false);
+                      setShowCoffeeMakerSelector(false);
+                      setShowGrinderSelector(false);
+                      setShowOtherGearSelector(!showOtherGearSelector);
+                    }}
+                  >
+                    <Text style={[styles.selectorButtonText, { color: theme.primaryText }]}>
+                      {recipeModalData.gear?.length > 0 ? `${recipeModalData.gear.length} item${recipeModalData.gear.length > 1 ? 's' : ''} selected` : 'Select other gear (optional)'}
+                    </Text>
+                    <Ionicons 
+                      name={showOtherGearSelector ? "chevron-up" : "chevron-down"} 
+                      size={20} 
+                      color={theme.secondaryText} 
+                    />
+                  </TouchableOpacity>
+                  
+                  {showOtherGearSelector && (
+                    <ScrollView style={[styles.inlineSelector, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
+                      {otherGearOptions.map(gear => (
+                        <TouchableOpacity
+                          key={gear}
+                          style={[
+                            styles.inlineSelectorItem,
+                            recipeModalData.gear?.includes(gear) && styles.inlineSelectorItemSelected
+                          ]}
+                          onPress={() => handleOtherGearToggle(gear)}
+                        >
+                          <Text style={[styles.inlineSelectorText, { color: theme.primaryText }]}>
+                            {gear}
+                          </Text>
+                          {recipeModalData.gear?.includes(gear) && (
+                            <Ionicons name="checkmark" size={20} color={theme.accent || '#007AFF'} />
+                          )}
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
                   )}
                 </View>
 
@@ -2762,6 +2942,211 @@ export default function AddCoffeeScreen({ navigation, route }) {
     </Modal>
   );
 
+  const renderRecipeDetailModal = () => {
+    if (!selectedRecipeForModal) return null;
+
+    // Safe way to render text values
+    const safeRender = (value, defaultValue = '') => {
+      if (value === null || value === undefined) {
+        return defaultValue;
+      }
+      return String(value);
+    };
+
+    return (
+      <Modal
+        visible={showRecipeDetailModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={handleRecipeModalClose}
+      >
+        <SafeAreaView style={[styles.recipeDetailModalContainer, { backgroundColor: theme.background }]}>
+          <View style={[styles.recipeDetailModalHeader, { borderBottomColor: theme.divider }]}>
+            <TouchableOpacity onPress={handleRecipeModalClose}>
+              <Text style={[styles.recipeDetailModalCancel, { color: theme.primaryText }]}>Cancel</Text>
+            </TouchableOpacity>
+            <Text style={[styles.recipeDetailModalTitle, { color: theme.primaryText }]}>Recipe Details</Text>
+            <TouchableOpacity onPress={handleRecipeModalConfirm}>
+              <Text style={[styles.recipeDetailModalDone, { color: theme.primaryText }]}>Done</Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={[styles.recipeDetailModalContent, { backgroundColor: theme.background }]}>
+            {/* Recipe Header */}
+            <View style={[styles.recipeDetailHeader, { backgroundColor: theme.background }]}>
+              <View style={[styles.recipeDetailMethodContainer, { backgroundColor: theme.background }]}>
+                <View style={[styles.recipeDetailChip, { backgroundColor: theme.altBackground }]}>
+                  <Text style={[styles.recipeDetailChipText, { color: theme.primaryText }]}>
+                    {selectedRecipeForModal.method || selectedRecipeForModal.brewingMethod || 'Pour Over'}
+                  </Text>
+                </View>
+                <Text style={[styles.recipeDetailText, { color: theme.secondaryText }]}>recipe</Text>
+                <Text style={[styles.recipeDetailText, { color: theme.secondaryText }]}>for</Text>
+                <View style={[styles.recipeDetailChip, { backgroundColor: theme.altBackground }]}>
+                  <Text style={[styles.recipeDetailChipText, { color: theme.primaryText }]}>{coffeeData.name}</Text>
+                </View>
+              </View>
+              
+              <View style={[styles.recipeDetailUserContainer, { backgroundColor: theme.background }]}>
+                <Text style={[styles.recipeDetailByText, { color: theme.secondaryText }]}>by</Text>
+                <View style={[styles.recipeDetailUserChip, { backgroundColor: theme.altBackground }]}>
+                  <AppImage 
+                    source={selectedRecipeForModal.userAvatar} 
+                    style={[styles.recipeDetailUserAvatar, { borderColor: theme.border }]} 
+                    placeholder="person"
+                  />
+                  <Text style={[styles.recipeDetailUserText, { color: theme.primaryText }]}>{selectedRecipeForModal.userName || selectedRecipeForModal.creatorName || 'Unknown'}</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Who tried it section */}
+            <View style={[styles.recipeDetailWhoTriedContainer, { backgroundColor: theme.background }]}>
+              <View style={[styles.recipeDetailWhoTriedGroup, { backgroundColor: theme.background }]}>
+                <View style={[styles.recipeDetailAvatarRow, { backgroundColor: theme.background }]}>
+                  {/* Sample avatars for demonstration */}
+                  {(selectedRecipeForModal.logs > 0 || (selectedRecipeForModal.loggedUsers && selectedRecipeForModal.loggedUsers.length > 0)) && (
+                                         <View style={[styles.recipeDetailTriedAvatar, { zIndex: 3, backgroundColor: theme.background }]}>
+                       <AppImage 
+                         source="https://randomuser.me/api/portraits/women/33.jpg" 
+                         style={[styles.recipeDetailTriedAvatarImage, { borderColor: theme.border }]} 
+                         placeholder="person"
+                       />
+                     </View>
+                  )}
+                  {(selectedRecipeForModal.logs >= 2 || (selectedRecipeForModal.loggedUsers && selectedRecipeForModal.loggedUsers.length >= 2)) && (
+                                         <View style={[styles.recipeDetailTriedAvatar, { zIndex: 2, marginLeft: -10, backgroundColor: theme.background }]}>
+                       <AppImage 
+                         source="https://randomuser.me/api/portraits/men/45.jpg" 
+                         style={[styles.recipeDetailTriedAvatarImage, { borderColor: theme.border }]} 
+                         placeholder="person"
+                       />
+                     </View>
+                  )}
+                  {(selectedRecipeForModal.logs >= 3 || (selectedRecipeForModal.loggedUsers && selectedRecipeForModal.loggedUsers.length >= 3)) && (
+                                         <View style={[styles.recipeDetailTriedAvatar, { zIndex: 1, marginLeft: -10, backgroundColor: theme.background }]}>
+                       <AppImage 
+                         source="https://randomuser.me/api/portraits/women/68.jpg" 
+                         style={[styles.recipeDetailTriedAvatarImage, { borderColor: theme.border }]} 
+                         placeholder="person"
+                       />
+                     </View>
+                  )}
+                </View>
+                <Text style={[styles.recipeDetailWhoTriedText, { color: theme.primaryText }]}>
+                  {(selectedRecipeForModal.logs === 0 && (!selectedRecipeForModal.loggedUsers || selectedRecipeForModal.loggedUsers.length === 0)) ? 
+                    "No logs" :
+                    (selectedRecipeForModal.logs === 1 || (selectedRecipeForModal.loggedUsers && selectedRecipeForModal.loggedUsers.length === 1)) ? 
+                    "1 log" : 
+                    `${selectedRecipeForModal.logs || selectedRecipeForModal.loggedUsers?.length || 0} logs`}
+                </Text>
+              </View>
+              
+              {/* Rating section */}
+              <View style={[styles.recipeDetailRatingContainer, { backgroundColor: theme.background }]}>
+                {selectedRecipeForModal.ratingStats ? (
+                  <View style={[styles.recipeDetailPopularRating, { backgroundColor: theme.background }]}>
+                    <Text style={[styles.recipeDetailRatingText, { color: theme.secondaryText }]}>
+                      {selectedRecipeForModal.ratingStats.goodPercentage > 0 ? 
+                        `${selectedRecipeForModal.ratingStats.goodPercentage}% positive` : 
+                        'No ratings yet'}
+                    </Text>
+                  </View>
+                ) : selectedRecipeForModal.averageRating > 0 ? (
+                  <View style={[styles.recipeDetailPopularRating, { backgroundColor: theme.background }]}>
+                    <Text style={[styles.recipeDetailRatingText, { color: theme.secondaryText }]}>
+                      {selectedRecipeForModal.averageRating.toFixed(1)} stars
+                    </Text>
+                  </View>
+                ) : (
+                  <View style={[styles.recipeDetailPopularRating, { backgroundColor: theme.background }]}>
+                    <Text style={[styles.recipeDetailRatingText, { color: theme.secondaryText }]}>
+                      No ratings yet
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </View>
+
+            {/* Recipe Details */}
+            <View style={[styles.recipeDetailSection, { backgroundColor: theme.background, borderTopColor: theme.divider }]}>
+              <Text style={[styles.recipeDetailSectionTitle, { color: theme.primaryText }]}>Recipe Details</Text>
+              <View style={[styles.recipeDetailGrid, { backgroundColor: theme.background }]}>
+                <View style={[styles.recipeDetailItem, { backgroundColor: theme.background }]}>
+                  <Text style={[styles.recipeDetailLabel, { color: theme.secondaryText }]}>Coffee</Text>
+                  <Text style={[styles.recipeDetailValue, { color: theme.primaryText }]}>{safeRender(selectedRecipeForModal.amount || selectedRecipeForModal.coffeeAmount, '18')}g</Text>
+                </View>
+                <View style={[styles.recipeDetailItem, { backgroundColor: theme.background }]}>
+                  <Text style={[styles.recipeDetailLabel, { color: theme.secondaryText }]}>Grind Size</Text>
+                  <Text style={[styles.recipeDetailValue, { color: theme.primaryText }]}>{safeRender(selectedRecipeForModal.grindSize, 'Medium')}</Text>
+                </View>
+                <View style={[styles.recipeDetailItem, { backgroundColor: theme.background }]}>
+                  <Text style={[styles.recipeDetailLabel, { color: theme.secondaryText }]}>Water</Text>
+                  <Text style={[styles.recipeDetailValue, { color: theme.primaryText }]}>{safeRender(selectedRecipeForModal.waterVolume || selectedRecipeForModal.waterAmount, '300')}ml</Text>
+                </View>
+                <View style={[styles.recipeDetailItem, { backgroundColor: theme.background }]}>
+                  <Text style={[styles.recipeDetailLabel, { color: theme.secondaryText }]}>Brew Time</Text>
+                  <Text style={[styles.recipeDetailValue, { color: theme.primaryText }]}>{safeRender(selectedRecipeForModal.brewTime, '3:00')}</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Brewing Steps - only show if recipe has valid steps */}
+            {selectedRecipeForModal && selectedRecipeForModal.steps && Array.isArray(selectedRecipeForModal.steps) && 
+             selectedRecipeForModal.steps.length > 0 && 
+             selectedRecipeForModal.steps.some(step => step && (step.description || (typeof step === 'string' && step.trim()))) && (
+              <View style={[styles.recipeDetailSection, { backgroundColor: theme.background, borderTopColor: theme.divider }]}>
+                <Text style={[styles.recipeDetailSectionTitle, { color: theme.primaryText }]}>Brewing Steps</Text>
+                <View style={[styles.recipeDetailStepsContainer, { backgroundColor: theme.background }]}>
+                  {selectedRecipeForModal.steps.filter(step => step && (step.description || (typeof step === 'string' && step.trim()))).map((step, index) => (
+                    <View key={index} style={[styles.recipeDetailStepItem, { backgroundColor: 'transparent' }]}>
+                      <View style={[styles.recipeDetailStepNumber, { backgroundColor: theme.primaryText }]}>
+                        <Text style={[styles.recipeDetailStepNumberText, { color: theme.background }]}>{index + 1}</Text>
+                      </View>
+                      <View style={[styles.recipeDetailStepContent, { backgroundColor: 'transparent' }]}>
+                        <Text style={[styles.recipeDetailStepText, { color: theme.primaryText }]}>
+                          {typeof step === 'string' ? step : step.description}
+                        </Text>
+                        {typeof step === 'object' && (step.time || step.water) && (
+                          <View style={[styles.recipeDetailStepDetailContainer, { backgroundColor: 'transparent' }]}>
+                            {step.time && (
+                              <View style={[styles.recipeDetailStepDetailItem, { backgroundColor: 'transparent' }]}>
+                                <Ionicons name="time-outline" size={12} color={theme.secondaryText} />
+                                <Text style={[styles.recipeDetailStepDetailText, { color: theme.secondaryText }]}>
+                                  {safeRender(step.time)}
+                                </Text>
+                              </View>
+                            )}
+                            {step.water && parseInt(safeRender(step.water, '0')) > 0 && (
+                              <View style={[styles.recipeDetailStepDetailItem, { backgroundColor: 'transparent' }]}>
+                                <Ionicons name="water-outline" size={12} color={theme.secondaryText} />
+                                <Text style={[styles.recipeDetailStepDetailText, { color: theme.secondaryText }]}>
+                                  {safeRender(step.water)}g
+                                </Text>
+                              </View>
+                            )}
+                          </View>
+                        )}
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {/* Notes */}
+            {selectedRecipeForModal && selectedRecipeForModal.notes && (
+              <View style={[styles.recipeDetailSection, { backgroundColor: theme.background, borderTopColor: theme.divider }]}>
+                <Text style={[styles.recipeDetailSectionTitle, { color: theme.primaryText }]}>Notes</Text>
+                <Text style={[styles.recipeDetailNotesText, { color: theme.secondaryText }]}>{selectedRecipeForModal.notes}</Text>
+              </View>
+            )}
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
+    );
+  };
+
       return (
       <View style={styles.container}>
         {renderContent()}
@@ -2770,6 +3155,7 @@ export default function AddCoffeeScreen({ navigation, route }) {
         {renderFriendSelector()}
         {renderCreateRecipeModal()}
         {renderAddCoffeeModal()}
+        {renderRecipeDetailModal()}
         
         {/* Modal-based selectors removed - now using inline selectors */}
       </View>
@@ -4296,5 +4682,238 @@ const createStyles = (theme, isDarkMode) => StyleSheet.create({
     flex: 1,
     paddingBottom: 16,
     paddingTop: 8,
+  },
+  
+  // Method filter chips styles
+  methodFilterContainer: {
+    marginBottom: 16,
+  },
+  methodFilterScrollContent: {
+    // paddingHorizontal: 16,
+  },
+  methodFilterChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginRight: 8,
+    borderWidth: 1,
+  },
+  methodFilterChipSelected: {
+    borderWidth: 1,
+  },
+  methodFilterChipText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  methodFilterChipTextSelected: {
+    fontWeight: '600',
+  },
+  
+  // Recipe detail modal styles
+  recipeDetailModalContainer: {
+    flex: 1,
+  },
+  recipeDetailModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  recipeDetailModalCancel: {
+    fontSize: 16,
+    fontWeight: '400',
+  },
+  recipeDetailModalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  recipeDetailModalDone: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  recipeDetailModalContent: {
+    flex: 1,
+  },
+  recipeDetailHeader: {
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+  },
+  recipeDetailMethodContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+    marginBottom: 12,
+  },
+  recipeDetailUserContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  recipeDetailByText: {
+    fontSize: 16,
+    marginRight: 8,
+  },
+  recipeDetailChip: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+    marginHorizontal: 4,
+  },
+  recipeDetailChipText: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  recipeDetailUserChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+  },
+  recipeDetailUserAvatar: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    marginRight: 6,
+    borderWidth: 1,
+  },
+  recipeDetailUserText: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  recipeDetailText: {
+    fontSize: 16,
+    marginHorizontal: 4,
+  },
+  recipeDetailSection: {
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    marginTop: 8,
+    borderTopWidth: 1,
+  },
+  recipeDetailSectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 16,
+  },
+  recipeDetailGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  recipeDetailItem: {
+    width: '50%',
+    marginBottom: 16,
+  },
+  recipeDetailLabel: {
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  recipeDetailValue: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  recipeDetailStepsContainer: {
+    gap: 12,
+  },
+  recipeDetailStepItem: {
+    flexDirection: 'row',
+    marginBottom: 16,
+  },
+  recipeDetailStepNumber: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+    marginTop: 2,
+  },
+  recipeDetailStepNumberText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  recipeDetailStepContent: {
+    flex: 1,
+    flexDirection: 'column',
+  },
+  recipeDetailStepText: {
+    fontSize: 16,
+    lineHeight: 24,
+  },
+  recipeDetailStepDetailContainer: {
+    flexDirection: 'row',
+    marginTop: 4,
+  },
+  recipeDetailStepDetailItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 12,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  recipeDetailStepDetailText: {
+    fontSize: 12,
+    marginLeft: 4,
+  },
+  recipeDetailNotesText: {
+    fontSize: 16,
+    lineHeight: 24,
+    paddingBottom: 8,
+  },
+  
+  // Who tried it section styles for modal
+  recipeDetailWhoTriedContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5EA',
+  },
+  recipeDetailWhoTriedGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  recipeDetailAvatarRow: {
+    flexDirection: 'row',
+    marginRight: 8,
+  },
+  recipeDetailTriedAvatar: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  recipeDetailTriedAvatarImage: {
+    width: '100%',
+    height: '100%',
+    borderWidth: 1,
+    borderRadius: 12,
+  },
+  recipeDetailWhoTriedText: {
+    fontSize: 14,
+    color: '#666666',
+  },
+  recipeDetailRatingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+  },
+  recipeDetailPopularRating: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  recipeDetailRatingText: {
+    fontSize: 14,
+    fontWeight: '500',
   },
 });
