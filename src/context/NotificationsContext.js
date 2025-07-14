@@ -1,5 +1,7 @@
 import React, { createContext, useState, useContext, useEffect, useCallback, useMemo } from 'react';
+import { supabase } from '../lib/supabase';
 import mockEvents from '../data/mockEvents.json';
+import { useInAppNotification } from './InAppNotificationContext';
 
 // Create the context
 const NotificationsContext = createContext();
@@ -17,35 +19,165 @@ export function useNotifications() {
 export function NotificationsProvider({ children }) {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [currentUserId, setCurrentUserId] = useState(null);
+  const inAppNotification = useInAppNotification();
 
-  // Initialize notifications from mock data
+  // Get current user ID from auth
   useEffect(() => {
-    // Get relevant notifications for user1 (Ivo Vilches)
-    // Include only: saved_recipe, added_to_gear_wishlist, followed, remixed_recipe
-    const relevantTypes = ['saved_recipe', 'added_to_gear_wishlist', 'followed', 'remixed_recipe'];
-    
-    const userNotifications = mockEvents.notifications.filter(
-      notification => notification.targetUserId === 'user1' && relevantTypes.includes(notification.type)
-    );
-    
-    // Sort notifications by date (newest first)
-    const sortedNotifications = [...userNotifications].sort((a, b) => {
-      return new Date(b.date) - new Date(a.date);
-    });
-    
-    // Take 4 notifications and set read status
-    // The first 3 (newest) should be unread, the rest read
-    const processedNotifications = sortedNotifications.slice(0, 4).map((notification, index) => {
-      // First 3 (newest) notifications should be unread
-      if (index < 3) {
-        return { ...notification, read: false };
+    const getCurrentUser = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user?.id) {
+          setCurrentUserId(session.user.id);
+        }
+      } catch (error) {
+        console.error('Error getting current user:', error);
+      }
+    };
+
+    getCurrentUser();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session?.user?.id) {
+        setCurrentUserId(session.user.id);
       } else {
-        return { ...notification, read: true };
+        setCurrentUserId(null);
+        setNotifications([]);
       }
     });
-    
-    setNotifications(processedNotifications);
+
+    return () => subscription.unsubscribe();
   }, []);
+
+  // Load notifications from Supabase when user changes
+  useEffect(() => {
+    if (!currentUserId) return;
+
+    const loadNotifications = async () => {
+      try {
+        console.log('Loading notifications for user:', currentUserId);
+        
+        // Get notifications from Supabase
+        const { data: supabaseNotifications, error } = await supabase
+          .from('notifications')
+          .select(`
+            *,
+            actor:profiles!notifications_actor_id_fkey(
+              id,
+              full_name,
+              username,
+              avatar_url
+            )
+          `)
+          .eq('user_id', currentUserId)
+          .order('created_at', { ascending: false })
+          .limit(20);
+
+        if (error) {
+          console.error('Error loading notifications:', error);
+          return;
+        }
+
+        // Transform Supabase notifications to match expected format
+        const transformedNotifications = (supabaseNotifications || []).map(notification => ({
+          id: notification.id,
+          type: notification.type,
+          userId: notification.actor_id,
+          userName: notification.actor?.full_name || notification.actor?.username || 'User',
+          userAvatar: notification.actor?.avatar_url || 'https://via.placeholder.com/40',
+          date: notification.created_at,
+          read: notification.read,
+          targetUserId: notification.user_id,
+          // Add specific fields based on notification type
+          ...(notification.type === 'follow' && {
+            message: `${notification.actor?.full_name || notification.actor?.username || 'Someone'} started following you`
+          }),
+          // Add other notification type specific fields as needed
+          ...notification.data // Include any additional data stored in the notification
+        }));
+
+        // Also load some mock notifications for other types (saved_recipe, etc.)
+        const relevantTypes = ['saved_recipe', 'added_to_gear_wishlist', 'remixed_recipe'];
+        const mockNotifications = mockEvents.notifications.filter(
+          notification => notification.targetUserId === 'user1' && relevantTypes.includes(notification.type)
+        ).slice(0, 2); // Just take 2 mock notifications
+
+        // Combine real and mock notifications
+        const allNotifications = [...transformedNotifications, ...mockNotifications];
+
+        // Sort by date (newest first)
+        const sortedNotifications = allNotifications.sort((a, b) => {
+          const dateA = new Date(a.date || a.created_at);
+          const dateB = new Date(b.date || b.created_at);
+          return dateB - dateA;
+        });
+
+        console.log(`Loaded ${sortedNotifications.length} notifications (${transformedNotifications.length} real, ${mockNotifications.length} mock)`);
+        setNotifications(sortedNotifications);
+
+      } catch (error) {
+        console.error('Error loading notifications:', error);
+      }
+    };
+
+    loadNotifications();
+
+    // Set up real-time subscription for new notifications
+    const subscription = supabase
+      .channel('notifications')
+      .on('postgres_changes', 
+        { 
+          event: 'INSERT', 
+          schema: 'public', 
+          table: 'notifications',
+          filter: `user_id=eq.${currentUserId}`
+        }, 
+        (payload) => {
+          console.log('New notification received:', payload);
+          
+          // Show in-app notification for new follow notifications
+          if (payload.new.type === 'follow' && inAppNotification) {
+            // Get actor profile for the notification
+            const fetchActorAndShowNotification = async () => {
+              try {
+                const { data: actorProfile, error } = await supabase
+                  .from('profiles')
+                  .select('*')
+                  .eq('id', payload.new.actor_id)
+                  .single();
+
+                if (!error && actorProfile) {
+                  const notification = {
+                    id: payload.new.id,
+                    type: payload.new.type,
+                    userId: payload.new.actor_id,
+                    userName: actorProfile.full_name || actorProfile.username || 'Someone',
+                    userAvatar: actorProfile.avatar_url || 'https://via.placeholder.com/40',
+                    message: `${actorProfile.full_name || actorProfile.username || 'Someone'} started following you`,
+                    date: payload.new.created_at,
+                  };
+
+                  inAppNotification.showNotification(notification);
+                }
+              } catch (error) {
+                console.error('Error fetching actor profile for notification:', error);
+              }
+            };
+
+            fetchActorAndShowNotification();
+          }
+          
+          // Reload notifications to get complete data with joins
+          loadNotifications();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [currentUserId]);
 
   // Calculate unread count whenever notifications change
   useEffect(() => {
@@ -92,12 +224,30 @@ export function NotificationsProvider({ children }) {
   }, []);
 
   // Mark a notification as read - memoized to prevent re-renders
-  const markAsRead = useCallback((id) => {
+  const markAsRead = useCallback(async (id) => {
+    // Update local state immediately
     setNotifications(prevNotifications => 
       prevNotifications.map(notification => 
         notification.id === id ? { ...notification, read: true } : notification
       )
     );
+
+    // Update in database (only for real notifications, not mock ones)
+    try {
+      if (typeof id === 'string' && id.includes('uuid')) {
+        // This is a real notification from Supabase
+        const { error } = await supabase
+          .from('notifications')
+          .update({ read: true })
+          .eq('id', id);
+
+        if (error) {
+          console.error('Error marking notification as read:', error);
+        }
+      }
+    } catch (error) {
+      console.error('Error updating notification read status:', error);
+    }
   }, []);
 
   // Mark all notifications as read - memoized to prevent re-renders
