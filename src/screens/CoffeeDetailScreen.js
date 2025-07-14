@@ -27,6 +27,7 @@ import mockCoffees from '../data/mockCoffees.json';
 import mockCafes from '../data/mockCafes.json';
 import { useNavigation, useRoute, useIsFocused } from '@react-navigation/native';
 import RecipeCard from '../components/RecipeCard';
+import RecipeForm from '../components/RecipeForm';
 import AppImage from '../components/common/AppImage';
 import Animated, {
   useSharedValue,
@@ -97,7 +98,13 @@ export default function CoffeeDetailScreen() {
     grindSize: 'Medium',
     waterVolume: '',
     brewTime: '',
-    notes: ''
+    brewMinutes: '',
+    brewSeconds: '',
+    notes: '',
+    gear: [],
+    grinder: '',
+    clicks: '',
+    steps: []
   });
 
   useEffect(() => {
@@ -792,6 +799,11 @@ export default function CoffeeDetailScreen() {
       const randomString = Math.random().toString(36).substring(2, 8);
       const recipeId = `recipe-${Date.now()}-${randomString}`;
       
+      // Calculate brew time if using step-based methods
+      const calculatedBrewTime = recipeData.brewMinutes || recipeData.brewSeconds ? 
+        `${recipeData.brewMinutes || '0'}:${(recipeData.brewSeconds || '0').padStart(2, '0')}` : 
+        recipeData.brewTime;
+      
       // Create the recipe object
       const newRecipe = {
         id: recipeId,
@@ -802,8 +814,11 @@ export default function CoffeeDetailScreen() {
         amount: recipeData.amount,
         grindSize: recipeData.grindSize,
         waterVolume: recipeData.waterVolume,
-        brewTime: recipeData.brewTime,
+        brewTime: calculatedBrewTime,
         notes: recipeData.notes,
+        gear: recipeData.gear || [],
+        grinderUsed: recipeData.grinder,
+        steps: recipeData.steps || [],
         creatorId: currentAccount?.id || 'user-default',
         creatorName: currentAccount?.userName || 'You',
         creatorAvatar: currentAccount?.userAvatar,
@@ -847,7 +862,13 @@ export default function CoffeeDetailScreen() {
         grindSize: 'Medium',
         waterVolume: '',
         brewTime: '',
-        notes: ''
+        brewMinutes: '',
+        brewSeconds: '',
+        notes: '',
+        gear: [],
+        grinder: '',
+        clicks: '',
+        steps: []
       });
       
       // Refresh related recipes to show the new one
@@ -1384,138 +1405,12 @@ export default function CoffeeDetailScreen() {
             </TouchableOpacity>
           </View>
 
-          <KeyboardAvoidingView 
-            behavior={Platform.OS === "ios" ? "padding" : "height"}
-            style={{ flex: 1 }}
-            keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
-          >
-            <ScrollView 
-              style={styles.recipeModalContent}
-              keyboardShouldPersistTaps="handled"
-              keyboardDismissMode="interactive"
-              showsVerticalScrollIndicator={true}
-              contentContainerStyle={{ paddingBottom: 40 }}
-            >
-            {/* Coffee Info */}
-            <View style={[styles.coffeeInfoContainer, { backgroundColor: theme.altBackground }]}>
-              <AppImage 
-                source={coffee.image} 
-                style={styles.coffeeInfoImage}
-                resizeMode="cover"
-              />
-              <View style={styles.coffeeInfoText}>
-                <Text style={[styles.coffeeInfoName, { color: theme.primaryText }]}>{coffee.name}</Text>
-                <Text style={[styles.coffeeInfoRoaster, { color: theme.secondaryText }]}>{coffee.roaster}</Text>
-              </View>
-            </View>
-
-            {/* Form Fields */}
-            <View style={styles.formContainer}>
-              {/* Brewing Method */}
-              <View style={styles.fieldContainer}>
-                <Text style={[styles.fieldLabel, { color: theme.primaryText }]}>Brewing Method *</Text>
-                <TouchableOpacity 
-                  style={[styles.selectorButton, { backgroundColor: theme.altBackground, borderColor: theme.border }]}
-                  onPress={() => {
-                    const methods = ['V60', 'Chemex', 'AeroPress', 'French Press', 'Espresso', 'Cold Brew', 'Pour Over'];
-                    Alert.alert(
-                      'Select Method',
-                      '',
-                      methods.map(method => ({
-                        text: method,
-                        onPress: () => setRecipeData({...recipeData, method})
-                      })).concat([{text: 'Cancel', style: 'cancel'}])
-                    );
-                  }}
-                >
-                  <Text style={[styles.selectorButtonText, { color: theme.primaryText }]}>
-                    {recipeData.method || 'Select brewing method'}
-                  </Text>
-                  <Ionicons name="chevron-down" size={20} color={theme.secondaryText} />
-                </TouchableOpacity>
-              </View>
-
-              {/* Coffee Amount */}
-              <View style={styles.fieldContainer}>
-                <Text style={[styles.fieldLabel, { color: theme.primaryText }]}>Coffee Amount (g) *</Text>
-                <TextInput
-                  style={[styles.textInput, { backgroundColor: theme.altBackground, color: theme.primaryText, borderColor: theme.border }]}
-                  value={recipeData.amount}
-                  onChangeText={(text) => setRecipeData({...recipeData, amount: text})}
-                  placeholder="20"
-                  keyboardType="numeric"
-                  keyboardAppearance={isDarkMode ? 'dark' : 'light'}
-                  placeholderTextColor={theme.secondaryText}
-                />
-              </View>
-
-              {/* Grind Size */}
-              <View style={styles.fieldContainer}>
-                <Text style={[styles.fieldLabel, { color: theme.primaryText }]}>Grind Size</Text>
-                <TouchableOpacity 
-                  style={[styles.selectorButton, { backgroundColor: theme.altBackground, borderColor: theme.border }]}
-                  onPress={() => {
-                    const sizes = ['Extra Fine', 'Fine', 'Medium-Fine', 'Medium', 'Medium-Coarse', 'Coarse'];
-                    Alert.alert(
-                      'Select Grind Size',
-                      '',
-                      sizes.map(size => ({
-                        text: size,
-                        onPress: () => setRecipeData({...recipeData, grindSize: size})
-                      })).concat([{text: 'Cancel', style: 'cancel'}])
-                    );
-                  }}
-                >
-                  <Text style={[styles.selectorButtonText, { color: theme.primaryText }]}>{recipeData.grindSize}</Text>
-                  <Ionicons name="chevron-down" size={20} color={theme.secondaryText} />
-                </TouchableOpacity>
-              </View>
-
-              {/* Water Volume */}
-              <View style={styles.fieldContainer}>
-                <Text style={[styles.fieldLabel, { color: theme.primaryText }]}>Water Volume (ml) *</Text>
-                <TextInput
-                  style={[styles.textInput, { backgroundColor: theme.altBackground, color: theme.primaryText, borderColor: theme.border }]}
-                  value={recipeData.waterVolume}
-                  onChangeText={(text) => setRecipeData({...recipeData, waterVolume: text})}
-                  placeholder="300"
-                  keyboardType="numeric"
-                  keyboardAppearance={isDarkMode ? 'dark' : 'light'}
-                  placeholderTextColor={theme.secondaryText}
-                />
-              </View>
-
-              {/* Brew Time */}
-              <View style={styles.fieldContainer}>
-                <Text style={[styles.fieldLabel, { color: theme.primaryText }]}>Brew Time</Text>
-                <TextInput
-                  style={[styles.textInput, { backgroundColor: theme.altBackground, color: theme.primaryText, borderColor: theme.border }]}
-                  value={recipeData.brewTime}
-                  onChangeText={(text) => setRecipeData({...recipeData, brewTime: text})}
-                  placeholder="3:30"
-                  keyboardAppearance={isDarkMode ? 'dark' : 'light'}
-                  placeholderTextColor={theme.secondaryText}
-                />
-              </View>
-
-              {/* Notes */}
-              <View style={styles.fieldContainer}>
-                <Text style={[styles.fieldLabel, { color: theme.primaryText }]}>Notes</Text>
-                <TextInput
-                  style={[styles.textAreaInput, { backgroundColor: theme.altBackground, color: theme.primaryText, borderColor: theme.border }]}
-                  value={recipeData.notes}
-                  onChangeText={(text) => setRecipeData({...recipeData, notes: text})}
-                  placeholder="Any brewing notes or tips..."
-                  multiline
-                  numberOfLines={4}
-                  textAlignVertical="top"
-                  keyboardAppearance={isDarkMode ? 'dark' : 'light'}
-                  placeholderTextColor={theme.secondaryText}
-                />
-              </View>
-            </View>
-          </ScrollView>
-          </KeyboardAvoidingView>
+          <RecipeForm
+            recipeData={recipeData}
+            setRecipeData={setRecipeData}
+            coffeeInfo={coffee}
+            isDarkMode={isDarkMode}
+          />
         </View>
       </Modal>
     </View>
@@ -1934,70 +1829,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  recipeModalContent: {
-    flexGrow: 1,
-    padding: 16,
-  },
-  coffeeInfoContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 24,
-  },
-  coffeeInfoImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 8,
-    marginRight: 12,
-  },
-  coffeeInfoText: {
-    flex: 1,
-  },
-  coffeeInfoName: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  coffeeInfoRoaster: {
-    fontSize: 14,
-  },
-  formContainer: {
-    flex: 1,
-  },
-  fieldContainer: {
-    marginBottom: 20,
-  },
-  fieldLabel: {
-    fontSize: 16,
-    fontWeight: '500',
-    marginBottom: 8,
-  },
-  selectorButton: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-  },
-  selectorButtonText: {
-    fontSize: 16,
-  },
-  textInput: {
-    padding: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    fontSize: 16,
-  },
-  textAreaInput: {
-    padding: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    fontSize: 16,
-    minHeight: 100,
-    textAlignVertical: 'top',
-  },
+
 
 
 }); 
