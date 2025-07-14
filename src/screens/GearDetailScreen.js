@@ -165,30 +165,97 @@ export default function GearDetailScreen() {
         console.log('✅ Setting transformed gear:', transformedGear.name);
         setGear(transformedGear);
       } else {
-        // Fallback to default if still not found
-        console.log('⚠️ No gear data found, using fallback');
-        setGear({
-          id: gearId || 'unknown',
-          name: gearName || 'Unknown Gear',
-          image: 'https://images.unsplash.com/photo-1447933601403-0c6688de566e',
-          description: 'No information available for this item.',
-          price: 0,
-          brand: 'Unknown',
-          type: 'Unknown',
-          rating: 0,
-          numReviews: 0,
-          whereToBuy: [],
-          usedBy: [],
-          wantedBy: [],
-          usedByCafes: []
-        });
+        // Fallback to mock data if still not found
+        console.log('⚠️ No gear data found in Supabase, trying fallback data');
+        
+        // Create a mapping for common gear items that might be missing from Supabase
+        const gearFallbackMapping = {
+          'Hario Ceramic Slim': {
+            id: 'fb34820b-010d-4da8-90f1-8fefa2b0479c',
+            name: 'Hario Mini Slim Plus',
+            brand: 'Hario',
+            type: 'Grinder',
+            category: 'Grinder',
+            image: null, // Let AppImage handle the placeholder
+            description: 'The Hario Mini Slim Plus is a compact hand grinder with ceramic burrs for consistent grinding, perfect for travel or small kitchens.',
+            price: 34.99,
+            rating: 4.5,
+            numReviews: 2100
+          },
+          'Hario Mini Slim Plus': {
+            id: 'fb34820b-010d-4da8-90f1-8fefa2b0479c',
+            name: 'Hario Mini Slim Plus',
+            brand: 'Hario',
+            type: 'Grinder',
+            category: 'Grinder',
+            image: null, // Let AppImage handle the placeholder
+            description: 'The Hario Mini Slim Plus is a compact hand grinder with ceramic burrs for consistent grinding, perfect for travel or small kitchens.',
+            price: 34.99,
+            rating: 4.5,
+            numReviews: 2100
+          },
+          'Hario V60 Paper Filters': {
+            id: '7a4830f5-7f56-47fd-b7a0-725403187995',
+            name: 'Hario V60 Paper Filters',
+            brand: 'Hario',
+            type: 'Accessories',
+            category: 'Accessory',
+            image: null, // Let AppImage handle the placeholder
+            description: '100 count of high-quality Hario V60 paper filters, designed for optimal extraction and clean flavor in pour-over brewing.',
+            price: 8.99,
+            rating: 4.9,
+            numReviews: 2500
+          },
+          'AeroPress Paper Filters': {
+            id: 'gear13',
+            name: 'AeroPress Paper Filters',
+            brand: 'Aerobie',
+            type: 'Accessories',
+            category: 'Accessory',
+            image: 'https://aeropress.com/cdn/shop/products/AeroPress_Microfilters_1024x1024.jpg?v=1551222076',
+            description: '350 count of genuine AeroPress paper filters, essential for brewing with your AeroPress coffee maker.',
+            price: 5.99,
+            rating: 4.8,
+            numReviews: 3200
+          }
+        };
+        
+        const fallbackData = gearFallbackMapping[gearName];
+        
+        if (fallbackData) {
+          console.log('✅ Found fallback data for:', gearName);
+          setGear({
+            ...fallbackData,
+            whereToBuy: createWhereToBuyData(fallbackData),
+            usedBy: getUsersWhoHaveGear(fallbackData.name),
+            wantedBy: getUsersWhoWantGear(fallbackData.name),
+            usedByCafes: getCafesUsingGear(fallbackData)
+          });
+        } else {
+          console.log('⚠️ No fallback data found, using default');
+          setGear({
+            id: gearId || 'unknown',
+            name: gearName || 'Unknown Gear',
+            image: null, // Let AppImage handle the placeholder
+            description: 'No information available for this item.',
+            price: 0,
+            brand: 'Unknown',
+            type: 'Unknown',
+            rating: 0,
+            numReviews: 0,
+            whereToBuy: [],
+            usedBy: [],
+            wantedBy: [],
+            usedByCafes: []
+          });
+        }
       }
     } catch (error) {
       console.error('Error loading gear data:', error);
       setGear({
         id: gearId || 'unknown',
         name: gearName || 'Unknown Gear',
-        image: 'https://images.unsplash.com/photo-1447933601403-0c6688de566e',
+        image: null, // Let AppImage handle the placeholder
         description: 'Error loading gear information.',
         price: 0,
         brand: 'Unknown',
@@ -529,9 +596,10 @@ export default function GearDetailScreen() {
             {/* Gear Image */}
             <View style={[styles.imageContainer, { backgroundColor: theme.surface, borderColor: theme.border }]}>
               <AppImage
-                source={{ uri: gear.image }}
+                source={gear.image ? { uri: gear.image } : null}
                 style={styles.gearImage}
                 resizeMode="contain"
+                placeholder="gear"
               />
             </View>
 
