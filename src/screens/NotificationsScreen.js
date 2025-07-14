@@ -4,6 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNotifications } from '../context/NotificationsContext';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../context/ThemeContext';
+import NotificationPermissionCard from '../components/NotificationPermissionCard';
+import { shouldShowPermissionCard, registerForPushNotifications } from '../utils/pushNotifications';
 
 const NotificationItem = ({ notification, onPress, isLast, theme }) => {
   const formatDate = (dateString) => {
@@ -132,6 +134,7 @@ const NotificationsScreen = ({ navigation }) => {
   const { theme, isDarkMode } = useTheme();
   const [loading, setLoading] = useState(true);
   const [screenFocused, setScreenFocused] = useState(false);
+  const [showPermissionCard, setShowPermissionCard] = useState(false);
 
   // Ensure header configuration is maintained
   useLayoutEffect(() => {
@@ -197,6 +200,48 @@ const NotificationsScreen = ({ navigation }) => {
     );
     
   }, [notifications]);
+
+  // Check if we should show permission card
+  useEffect(() => {
+    const checkPermissionCard = async () => {
+      const shouldShow = await shouldShowPermissionCard();
+      setShowPermissionCard(shouldShow);
+    };
+
+    checkPermissionCard();
+  }, []);
+
+  const handleEnableNotifications = async () => {
+    try {
+      const result = await registerForPushNotifications();
+      
+      if (result.status === 'granted') {
+        setShowPermissionCard(false);
+        Alert.alert(
+          'Notifications Enabled',
+          'You\'ll now receive push notifications when people interact with your content.',
+          [{ text: 'OK' }]
+        );
+      } else if (result.status === 'denied') {
+        Alert.alert(
+          'Notifications Denied',
+          'You can enable notifications later in your device settings.',
+          [{ text: 'OK' }]
+        );
+      }
+    } catch (error) {
+      console.error('Error enabling notifications:', error);
+      Alert.alert(
+        'Error',
+        'Something went wrong. Please try again.',
+        [{ text: 'OK' }]
+      );
+    }
+  };
+
+  const handleDismissPermissionCard = () => {
+    setShowPermissionCard(false);
+  };
 
   const handleNotificationPress = (notification, isAvatarPress = false) => {
     // Mark the notification as read
@@ -359,6 +404,14 @@ const NotificationsScreen = ({ navigation }) => {
           keyExtractor={item => item.id}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={[styles.notificationsList, notifications.length === 0 && styles.emptyList]}
+          ListHeaderComponent={
+            showPermissionCard ? (
+              <NotificationPermissionCard
+                onPress={handleEnableNotifications}
+                onDismiss={handleDismissPermissionCard}
+              />
+            ) : null
+          }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Ionicons name="notifications-outline" size={48} color={theme.secondaryText} />
